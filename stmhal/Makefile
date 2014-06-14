@@ -35,29 +35,16 @@ INC += -I$(BUILD)
 INC += -I$(CMSIS_DIR)/inc
 INC += -I$(CMSIS_DIR)/devinc
 INC += -I$(HAL_DIR)/inc
-INC += -I$(USBDEV_DIR)/core/inc -I$(USBDEV_DIR)/class/cdc_msc_hid/inc
+INC += -I$(USBDEV_DIR)/core/inc
+INC += -I$(USBDEV_DIR)/class/cdc_msc_hid/inc
 #INC += -I$(USBHOST_DIR)
 INC += -I$(FATFS_DIR)/src
 INC += -I$(CC3K_DIR)
 
-CFLAGS_CORTEX_M4 = -mthumb -mtune=cortex-m4 -mabi=aapcs-linux -mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard -fsingle-precision-constant -Wdouble-promotion
-CFLAGS = $(INC) -Wall -Werror -ansi -std=gnu99 $(CFLAGS_CORTEX_M4) $(COPT)
-
+CFLAGS += $(COPT)
 CFLAGS += -Iboards/$(BOARD)
 
-#Debugging/Optimization
-ifeq ($(DEBUG), 1)
-CFLAGS += -g -DPENDSV_DEBUG
-COPT = -O0
-else
-COPT += -O2 -ggdb3 -DNDEBUG
-endif
-
 LDFLAGS = --nostdlib -T stm32f405.ld -Map=$(@:.elf=.map) --cref
-LIBS =
-
-# uncomment this if you want libgcc
-#LIBS += $(shell $(CC) -print-libgcc-file-name)
 
 SRC_C = \
 	main.c \
@@ -190,13 +177,13 @@ OBJ =
 OBJ += $(PY_O)
 OBJ += $(addprefix $(BUILD)/, $(SRC_C:.c=.o))
 OBJ += $(addprefix $(BUILD)/, $(SRC_S:.s=.o))
-OBJ += $(addprefix $(BUILD)/, $(SRC_HAL:.c=.o))
+#OBJ += $(addprefix $(BUILD)/, $(SRC_HAL:.c=.o))
 OBJ += $(addprefix $(BUILD)/, $(SRC_USBDEV:.c=.o))
-OBJ += $(addprefix $(BUILD)/, $(SRC_FATFS:.c=.o))
-OBJ += $(addprefix $(BUILD)/, $(SRC_CC3K:.c=.o))
+#OBJ += $(addprefix $(BUILD)/, $(SRC_FATFS:.c=.o))
+#OBJ += $(addprefix $(BUILD)/, $(SRC_CC3K:.c=.o))
 OBJ += $(BUILD)/pins_$(BOARD).o
 
-all: $(BUILD)/firmware.dfu
+all: $(OBJ)
 
 .PHONY: deploy
 
