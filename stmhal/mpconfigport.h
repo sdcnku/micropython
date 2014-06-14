@@ -96,7 +96,7 @@ typedef const void *machine_const_ptr_t; // must be of pointer size
 #define free gc_free
 #define realloc gc_realloc
 
-#define USE_DEVICE_MODE
+//#define USE_DEVICE_MODE
 //#define USE_HOST_MODE
 
 // board specific definitions
