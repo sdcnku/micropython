@@ -50,7 +50,7 @@ ifeq ($(DEBUG), 1)
 CFLAGS += -g -DPENDSV_DEBUG
 COPT = -O0
 else
-COPT += -Os -DNDEBUG
+COPT += -O2 -ggdb3 -DNDEBUG
 endif
 
 LDFLAGS = --nostdlib -T stm32f405.ld -Map=$(@:.elf=.map) --cref
