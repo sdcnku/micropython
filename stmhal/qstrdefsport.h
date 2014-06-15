@@ -504,3 +504,13 @@ Q(WWDG)
 Q(WWDG_CFR)
 Q(WWDG_CR)
 Q(WWDG_SR)
+
+
+// Led Module
+Q(led)
+Q(RED)
+Q(GREEN)
+Q(BLUE)
+Q(on)
+Q(off)
+Q(toggle)
