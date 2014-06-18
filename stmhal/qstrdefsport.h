@@ -506,6 +506,26 @@ Q(WWDG_CR)
 Q(WWDG_SR)
 
 
+//openmv entries
+// Image
+Q(image)
+Q(Image)
+Q(Surf)
+Q(Cascade)
+Q(save)
+Q(blit)
+Q(histeq)
+Q(median)
+Q(threshold)
+Q(draw_circle)
+Q(draw_rectangle)
+Q(draw_keypoints)
+Q(find_blobs)
+Q(find_template)
+Q(find_features)
+Q(find_keypoints)
+Q(find_keypoints_match)
+
 // Led Module
 Q(led)
 Q(RED)
@@ -514,3 +534,62 @@ Q(BLUE)
 Q(on)
 Q(off)
 Q(toggle)
+
+// Time Module
+Q(time)
+Q(ticks)
+Q(sleep)
+Q(clock)
+Q(Clock)
+
+// Clock
+Q(tick)
+Q(fps)
+Q(avg)
+
+//Sensor Module
+Q(sensor)
+Q(RGB565)
+Q(YUV422)
+Q(GRAYSCALE)
+Q(QQCIF)
+Q(QQVGA)
+Q(QCIF)
+Q(QVGA)
+Q(CIF)
+Q(VGA)
+Q(SXGA)
+
+Q(reset)
+Q(snapshot)
+Q(set_pixformat)
+Q(set_framerate)
+Q(set_framesize)
+Q(set_gainceiling)
+Q(set_brightness)
+Q(__write_reg)
+Q(__read_reg)
+
+// GPIO
+Q(P1)
+Q(P2)
+Q(P3)
+Q(P4)
+Q(P5)
+Q(P6)
+Q(IN)
+Q(OUT)
+Q(gpio)
+Q(GPIO)
+Q(low)
+Q(high)
+
+// SPI
+Q(spi)
+Q(read)
+Q(write)
+Q(write_image)
+
+// File
+Q(file)
+Q(close)
