@@ -29,6 +29,7 @@
 
 #include <stm32f4xx_hal.h>
 
+#include "std.h"
 #include "mpconfig.h"
 #include "nlr.h"
 #include "misc.h"
@@ -260,6 +261,46 @@ bool pyexec_file(const char *filename) {
     }
 
     return parse_compile_execute(lex, MP_PARSE_FILE_INPUT, false);
+}
+
+static mp_obj_dict_t *old_locals, *old_globals;
+static mp_obj_dict_t new_locals, new_globals;
+void pyexec_push_scope() {
+    old_locals = mp_locals_get();
+    old_globals = mp_globals_get();
+
+    /* create new scope */
+    mp_obj_dict_init(&new_locals, 1);
+    mp_obj_dict_init(&new_globals, old_globals->map.alloc);
+    new_globals.map.used = old_globals->map.used;
+    memcpy(new_globals.map.table, old_globals->map.table, old_globals->map.alloc * sizeof(mp_map_elem_t));
+
+    /* set new scope */
+    mp_locals_set(&new_locals);
+    mp_globals_set(&new_globals);
+}
+
+void pyexec_pop_scope() {
+    /* restore old scope */
+    mp_locals_set(old_locals);
+    mp_globals_set(old_globals);
+
+    /* cleanup */
+    mp_map_free(&new_locals.map);
+    mp_map_free(&new_globals.map);
+}
+
+
+bool pyexec_str(vstr_t *str) {
+    mp_lexer_t *lex = mp_lexer_new_from_str_len(MP_QSTR__lt_stdin_gt_, vstr_str(str), vstr_len(str), 0);
+    if (lex == NULL) {
+        printf("MemoryError\n");
+        return false;
+    } else {
+        /* exec code */
+        parse_compile_execute(lex, MP_PARSE_FILE_INPUT, true);
+        return true;
+    }
 }
 
 mp_obj_t pyb_set_repl_info(mp_obj_t o_value) {

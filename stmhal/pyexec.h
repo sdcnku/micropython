@@ -34,5 +34,7 @@ extern pyexec_mode_kind_t pyexec_mode_kind;
 int pyexec_raw_repl(void);
 int pyexec_friendly_repl(void);
 bool pyexec_file(const char *filename);
-
+bool pyexec_str(vstr_t *str);
+void pyexec_push_scope();
+void pyexec_pop_scope();
 MP_DECLARE_CONST_FUN_OBJ(pyb_set_repl_info_obj);
