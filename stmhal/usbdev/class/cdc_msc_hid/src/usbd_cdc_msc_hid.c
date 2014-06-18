@@ -1,7 +1,7 @@
 #include "usbd_ioreq.h"
 #include "usbd_cdc_msc_hid.h"
 
-#define USB_CDC_MSC_CONFIG_DESC_SIZ (98)
+#define USB_CDC_MSC_CONFIG_DESC_SIZ (98+23)
 #define USB_CDC_HID_CONFIG_DESC_SIZ (100)
 #define CDC_IFACE_NUM (1)
 #define MSC_IFACE_NUM (0)
@@ -12,16 +12,16 @@
 
 #define USB_DESC_TYPE_ASSOCIATION (0x0b)
 
-#define CDC_CMD_PACKET_SIZE                  8  // Control Endpoint Packet size
-#define CDC_DATA_IN_PACKET_SIZE                CDC_DATA_FS_MAX_PACKET_SIZE
-#define CDC_DATA_OUT_PACKET_SIZE               CDC_DATA_FS_MAX_PACKET_SIZE
+#define CDC_CMD_PACKET_SIZE           8  // Control Endpoint Packet size
+#define CDC_DATA_IN_PACKET_SIZE       CDC_DATA_FS_MAX_PACKET_SIZE
+#define CDC_DATA_OUT_PACKET_SIZE      CDC_DATA_FS_MAX_PACKET_SIZE
 
-#define MSC_MAX_PACKET            0x40
-#define USB_MSC_CONFIG_DESC_SIZ      32
-#define BOT_GET_MAX_LUN              0xFE
-#define BOT_RESET                    0xFF
+#define MSC_MAX_PACKET                0x40
+#define USB_MSC_CONFIG_DESC_SIZ       32
+#define BOT_GET_MAX_LUN               0xFE
+#define BOT_RESET                     0xFF
 
-#define HID_MAX_PACKET             0x04
+#define HID_MAX_PACKET                0x04
 #define USB_HID_DESC_SIZ              9
 #define HID_MOUSE_REPORT_DESC_SIZE    74
 #define HID_KEYBOARD_REPORT_DESC_SIZE 63
@@ -32,6 +32,20 @@
 #define HID_REQ_SET_IDLE              0x0A
 #define HID_REQ_GET_IDLE              0x02
 
+/* OpenMV Debug Iface */
+#define DBG_IFACE_NUM           (0)
+#define DBG_MAX_PACKET          (64)
+#define DBG_MAX_IN_PACKET       (64)
+#define DBG_MAX_OUT_PACKET      (64)
+#define DBG_EPIN_SIZE           DBG_MAX_IN_PACKET
+#define DBG_EPOUT_SIZE          DBG_MAX_OUT_PACKET
+
+extern void usbdbg_data_in(void *buffer, int length);
+extern void usbdbg_data_out(void *buffer, int length);
+extern void usbdbg_control(uint8_t request, int length);
+static int dbg_xfer_length;
+__ALIGN_BEGIN static uint8_t dbg_xfer_buffer[MSC_MAX_PACKET] __ALIGN_END
+;
 typedef enum {
   HID_IDLE = 0,
   HID_BUSY,
@@ -207,6 +221,39 @@ __ALIGN_BEGIN static uint8_t USBD_CDC_MSC_CfgDesc[USB_CDC_MSC_CONFIG_DESC_SIZ] _
     LOBYTE(MSC_MAX_PACKET),         // wMaxPacketSize
     HIBYTE(MSC_MAX_PACKET),
     0x00,                           // bInterval: ignore for Bulk transfer
+
+    //==========================================================================
+    // OpenMV Debug alternate interface
+
+    //--------------------------------------------------------------------------
+    // Interface Descriptor
+    0x09,                       // bLength: Interface Descriptor size
+    USB_DESC_TYPE_INTERFACE,    // bDescriptorType: interface descriptor
+    MSC_IFACE_NUM,              // bInterfaceNumber: Number of Interface
+    0x01,                       // bAlternateSetting: Alternate setting
+    0x02,                       // bNumEndpoints
+    0xFF,                       // bInterfaceClass: Vendor Specific
+    0x00,                       // bInterfaceSubClass
+    0x00,                       // nInterfaceProtocol
+    0x00,                       // iInterface:
+
+    // Endpoint IN descriptor
+    0x07,                       // bLength: Endpoint descriptor length
+    USB_DESC_TYPE_ENDPOINT,     // bDescriptorType: Endpoint descriptor type
+    MSC_IN_EP,                  // bEndpointAddress: IN, address 3
+    0x02,                       // bmAttributes: Bulk endpoint type
+    LOBYTE(DBG_MAX_IN_PACKET),  // wMaxPacketSize
+    HIBYTE(DBG_MAX_IN_PACKET),
+    0x00,                       // bInterval: ignore for Bulk transfer
+
+    // Endpoint OUT descriptor
+    0x07,                       // bLength: Endpoint descriptor length
+    USB_DESC_TYPE_ENDPOINT,     // bDescriptorType: Endpoint descriptor type
+    MSC_OUT_EP,                 // bEndpointAddress: OUT, address 3
+    0x02,                       // bmAttributes: Bulk endpoint type
+    LOBYTE(DBG_MAX_OUT_PACKET), // wMaxPacketSize
+    HIBYTE(DBG_MAX_OUT_PACKET),
+    0x00,                       // bInterval: ignore for Bulk transfer
 };
 
 // USB CDC HID device Configuration Descriptor
@@ -594,7 +641,7 @@ static uint8_t USBD_CDC_MSC_HID_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTyp
         SU: 21 20 0 1
     */
 
-    switch (req->bmRequest & USB_REQ_TYPE_MASK) {
+    switch (req->bmRequest & USB_REQ_TYPE_MASK ) {
 
         // Class request
         case USB_REQ_TYPE_CLASS:
@@ -678,6 +725,18 @@ static uint8_t USBD_CDC_MSC_HID_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTyp
 
                     case USB_REQ_SET_INTERFACE :
                         MSC_BOT_ClassData.interface = (uint8_t)(req->wValue);
+                        /* Flush the FIFO and Clear the stall status */
+                        USBD_LL_FlushEP(pdev, MSC_IN_EP);
+                        USBD_LL_FlushEP(pdev, MSC_OUT_EP);
+
+                        /* Re-activate the EP */
+                        USBD_LL_CloseEP(pdev , MSC_IN_EP);
+                        USBD_LL_CloseEP(pdev, MSC_OUT_EP);
+
+                        /* Open EP IN */
+                        USBD_LL_OpenEP(pdev, MSC_IN_EP, USBD_EP_TYPE_BULK, MSC_MAX_PACKET);
+                        /* Open EP OUT */
+                        USBD_LL_OpenEP(pdev, MSC_OUT_EP, USBD_EP_TYPE_BULK, MSC_MAX_PACKET);
                         break;
 
                     case USB_REQ_CLEAR_FEATURE:
@@ -723,6 +782,25 @@ static uint8_t USBD_CDC_MSC_HID_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTyp
                 }
             }
             break;
+
+        // OpenMV Vendor Request ------------------------------
+        case USB_REQ_TYPE_VENDOR:
+            if (req->bmRequest & USB_REQ_RECIPIENT_INTERFACE) {
+            int bytes = MIN(req->wValue, DBG_MAX_PACKET);
+            dbg_xfer_length =req->wValue - bytes;
+
+            usbdbg_control(req->bRequest, req->wValue);
+            if (req->bmRequest & 0x80) { /* Device to host */
+                /* call user callback */
+                usbdbg_data_in(dbg_xfer_buffer, bytes);
+                /* Fill IN endpoint fifo with first packet */
+                USBD_LL_Transmit (pdev, MSC_IN_EP, dbg_xfer_buffer, bytes);
+            } else { /* Host to device */
+                /* Prepare Out endpoint to receive next packet */
+                USBD_LL_PrepareReceive(pdev, MSC_OUT_EP, (uint8_t*)(dbg_xfer_buffer), bytes);
+            }
+            break;
+        }
     }
     return USBD_OK;
 }
@@ -745,8 +823,23 @@ static uint8_t USBD_CDC_MSC_HID_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum) 
         CDC_ClassData.TxState = 0;
         return USBD_OK;
     } else if ((usbd_mode & USBD_MODE_MSC) && epnum == (MSC_IN_EP & 0x7f)) {
-        MSC_BOT_DataIn(pdev, epnum);
+        switch (MSC_BOT_ClassData.interface){
+            case 0:
+                MSC_BOT_DataIn(pdev, epnum);
+                break;
+            case 1: {
+                int bytes = MIN(dbg_xfer_length, DBG_MAX_PACKET);
+                if (dbg_xfer_length) {
+                    usbdbg_data_in(dbg_xfer_buffer, bytes);
+                    /* Fill IN endpoint fifo with packet */
+                    USBD_LL_Transmit (pdev, MSC_IN_EP, dbg_xfer_buffer, bytes);
+                    dbg_xfer_length -= bytes;
+                }
+                break;
+            }
+        }
         return USBD_OK;
+
     } else if ((usbd_mode & USBD_MODE_HID) && epnum == (hid_in_ep & 0x7f)) {
         /* Ensure that the FIFO is empty before a new transfer, this condition could
         be caused by  a new transfer before the end of the previous transfer */
@@ -768,7 +861,20 @@ static uint8_t USBD_CDC_MSC_HID_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
 
         return USBD_OK;
     } else if ((usbd_mode & USBD_MODE_MSC) && epnum == (MSC_OUT_EP & 0x7f)) {
-        MSC_BOT_DataOut(pdev, epnum);
+        switch (MSC_BOT_ClassData.interface) {
+            case 0:
+                MSC_BOT_DataOut(pdev, epnum);
+                break;
+            case 1: {
+                int dbg_xfer_length;
+                dbg_xfer_length = USBD_LL_GetRxDataSize(pdev, epnum);
+                usbdbg_data_out(dbg_xfer_buffer, dbg_xfer_length);
+                /* Prepare Out endpoint to receive next packet */
+                USBD_LL_PrepareReceive(pdev, MSC_OUT_EP,
+                    (uint8_t*)(dbg_xfer_buffer), DBG_MAX_OUT_PACKET);
+                break;
+            }
+        }
         return USBD_OK;
     }
 
