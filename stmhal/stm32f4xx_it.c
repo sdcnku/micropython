@@ -336,19 +336,6 @@ void RTC_WKUP_IRQHandler(void) {
     Handle_EXTI_Irq(EXTI_RTC_WAKEUP);
 }
 
-void TIM1_BRK_TIM9_IRQHandler(void) {
-    timer_irq_handler(9);
-}
-
-void TIM1_UP_TIM10_IRQHandler(void) {
-    timer_irq_handler(1);
-    timer_irq_handler(10);
-}
-
-void TIM1_TRG_COM_TIM11_IRQHandler(void) {
-    timer_irq_handler(11);
-}
-
 void TIM2_IRQHandler(void) {
     timer_irq_handler(2);
 }
@@ -385,4 +372,15 @@ void TIM8_UP_TIM13_IRQHandler(void) {
 
 void TIM8_TRG_COM_TIM14_IRQHandler(void) {
     timer_irq_handler(14);
+}
+
+extern DCMI_HandleTypeDef DCMIHandle;
+
+void DCMI_IRQHandler(void) {
+    HAL_DCMI_IRQHandler(&DCMIHandle);
+}
+
+void DMA2_Stream1_IRQHandler(void) {
+    /* Check the interrupt and clear flag */
+    HAL_DMA_IRQHandler(DCMIHandle.DMA_Handle);
 }
