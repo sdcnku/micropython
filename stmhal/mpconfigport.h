@@ -61,11 +61,9 @@ extern const struct _mp_obj_fun_native_t mp_builtin_open_obj;
     { MP_OBJ_NEW_QSTR(MP_QSTR_open), (mp_obj_t)&mp_builtin_open_obj },
 
 // extra built in modules to add to the list of known ones
-extern const struct _mp_obj_module_t os_module;
 extern const struct _mp_obj_module_t stm_module;
 extern const struct _mp_obj_module_t time_module;
 #define MICROPY_PORT_BUILTIN_MODULES \
-    { MP_OBJ_NEW_QSTR(MP_QSTR_os), (mp_obj_t)&os_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_stm), (mp_obj_t)&stm_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_time), (mp_obj_t)&time_module }, \
 
