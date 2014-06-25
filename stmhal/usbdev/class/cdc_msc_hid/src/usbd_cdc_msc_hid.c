@@ -42,7 +42,7 @@
 
 extern void usbdbg_data_in(void *buffer, int length);
 extern void usbdbg_data_out(void *buffer, int length);
-extern void usbdbg_control(uint8_t request, int length);
+extern void usbdbg_control(void *buffer, uint8_t request, uint16_t length);
 static int dbg_xfer_length;
 __ALIGN_BEGIN static uint8_t dbg_xfer_buffer[MSC_MAX_PACKET] __ALIGN_END
 ;
@@ -786,18 +786,30 @@ static uint8_t USBD_CDC_MSC_HID_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTyp
         // OpenMV Vendor Request ------------------------------
         case USB_REQ_TYPE_VENDOR:
             if (req->bmRequest & USB_REQ_RECIPIENT_INTERFACE) {
-            int bytes = MIN(req->wValue, DBG_MAX_PACKET);
-            dbg_xfer_length =req->wValue - bytes;
 
-            usbdbg_control(req->bRequest, req->wValue);
-            if (req->bmRequest & 0x80) { /* Device to host */
-                /* call user callback */
-                usbdbg_data_in(dbg_xfer_buffer, bytes);
-                /* Fill IN endpoint fifo with first packet */
-                USBD_LL_Transmit (pdev, MSC_IN_EP, dbg_xfer_buffer, bytes);
-            } else { /* Host to device */
-                /* Prepare Out endpoint to receive next packet */
-                USBD_LL_PrepareReceive(pdev, MSC_OUT_EP, (uint8_t*)(dbg_xfer_buffer), bytes);
+            if (req->wLength) {
+                usbdbg_control(dbg_xfer_buffer, req->bRequest, req->wLength);
+                if (req->bmRequest & 0x80) { /* Device to host */
+                    USBD_CtlSendData(pdev, dbg_xfer_buffer, req->wLength);
+                } else { /* Host to device */
+                    /* Prepare Out endpoint to receive next packet */
+                    USBD_CtlPrepareRx(pdev, dbg_xfer_buffer, req->wLength);
+                }
+            } else {
+                int bytes = MIN(req->wValue, DBG_MAX_PACKET);
+                dbg_xfer_length =req->wValue - bytes;
+
+                usbdbg_control(dbg_xfer_buffer, req->bRequest, req->wValue);
+                if (req->bmRequest & 0x80) { /* Device to host */
+                    /* call user callback */
+                    usbdbg_data_in(dbg_xfer_buffer, bytes);
+                    /* Fill IN endpoint fifo with first packet */
+                    USBD_LL_Transmit (pdev, MSC_IN_EP, dbg_xfer_buffer, bytes);
+                } else { /* Host to device */
+                    /* Prepare Out endpoint to receive next packet */
+                    USBD_LL_PrepareReceive(pdev, MSC_OUT_EP, (uint8_t*)(dbg_xfer_buffer), bytes);
+                }
+
             }
             break;
         }
