@@ -89,7 +89,6 @@ SRC_C = \
 	flash.c \
 	storage.c \
 	file.c \
-	sdcard.c \
 	diskio.c \
 	lcd.c \
 	accel.c \
