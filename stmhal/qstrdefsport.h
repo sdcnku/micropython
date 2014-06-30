@@ -64,6 +64,8 @@ Q(FileIO)
 // Entries for sys.path
 Q(0:/)
 Q(0:/lib)
+Q(1:/)
+Q(1:/lib)
 Q(millis)
 
 // for file class
@@ -513,6 +515,7 @@ Q(Image)
 Q(Surf)
 Q(Cascade)
 Q(save)
+Q(size)
 Q(blit)
 Q(histeq)
 Q(median)
