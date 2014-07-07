@@ -87,9 +87,9 @@ typedef const void *machine_const_ptr_t; // must be of pointer size
 // garbage-collected heap. For completeness, emulate C heap via
 // GC heap. Note that MicroPython core never uses malloc() and friends,
 // so these defines are mostly to help extension module writers.
-#define malloc gc_alloc
-#define free gc_free
-#define realloc gc_realloc
+//#define malloc gc_alloc
+//#define free gc_free
+//#define realloc gc_realloc
 
 //#define USE_DEVICE_MODE
 //#define USE_HOST_MODE
