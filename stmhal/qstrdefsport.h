@@ -573,6 +573,7 @@ Q(set_framesize)
 Q(set_gainceiling)
 Q(set_contrast)
 Q(set_brightness)
+Q(set_quality)
 Q(__write_reg)
 Q(__read_reg)
 
