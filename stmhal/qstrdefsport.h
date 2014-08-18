@@ -646,3 +646,9 @@ Q(IPPROTO_TCP)
 Q(IPPROTO_UDP)
 Q(IPPROTO_IPV6)
 Q(IPPROTO_RAW)
+
+// MLX90620
+Q(mlx)
+Q(init)
+Q(read)
+Q(read_raw)
