@@ -41,7 +41,7 @@ extern const mp_obj_type_t mp_type_fileio;
 extern const mp_obj_type_t mp_type_textio;
 
 // this table converts from FRESULT to POSIX errno
-STATIC const byte fresult_to_errno_table[] = {
+const byte fresult_to_errno_table[20] = {
     [FR_OK] = 0,
     [FR_DISK_ERR] = EIO,
     [FR_INT_ERR] = EIO,
@@ -102,30 +102,37 @@ typedef struct _pyb_file_obj_t {
 } pyb_file_obj_t;
 
 void file_obj_print(void (*print)(void *env, const char *fmt, ...), void *env, mp_obj_t self_in, mp_print_kind_t kind) {
-    printf("<io.%s %p>", mp_obj_get_type_str(self_in), self_in);
+    print(env, "<io.%s %p>", mp_obj_get_type_str(self_in), self_in);
 }
 
-STATIC machine_int_t file_obj_read(mp_obj_t self_in, void *buf, machine_uint_t size, int *errcode) {
+STATIC mp_uint_t file_obj_read(mp_obj_t self_in, void *buf, mp_uint_t size, int *errcode) {
     pyb_file_obj_t *self = self_in;
     UINT sz_out;
     FRESULT res = f_read(&self->fp, buf, size, &sz_out);
     if (res != FR_OK) {
         *errcode = fresult_to_errno_table[res];
-        return -1;
+        return MP_STREAM_ERROR;
     }
     return sz_out;
 }
 
-STATIC machine_int_t file_obj_write(mp_obj_t self_in, const void *buf, machine_uint_t size, int *errcode) {
+STATIC mp_uint_t file_obj_write(mp_obj_t self_in, const void *buf, mp_uint_t size, int *errcode) {
     pyb_file_obj_t *self = self_in;
     UINT sz_out;
     FRESULT res = f_write(&self->fp, buf, size, &sz_out);
     if (res != FR_OK) {
         *errcode = fresult_to_errno_table[res];
-        return -1;
+        return MP_STREAM_ERROR;
     }
     return sz_out;
 }
+
+STATIC mp_obj_t file_obj_flush(mp_obj_t self_in) {
+    pyb_file_obj_t *self = self_in;
+    f_sync(&self->fp);
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(file_obj_flush_obj, file_obj_flush);
 
 mp_obj_t file_obj_close(mp_obj_t self_in) {
     pyb_file_obj_t *self = self_in;
@@ -141,8 +148,8 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(file_obj___exit___obj, 4, 4, file_obj
 
 mp_obj_t file_obj_seek(uint n_args, const mp_obj_t *args) {
     pyb_file_obj_t *self = args[0];
-    machine_int_t offset = mp_obj_get_int(args[1]);
-    machine_int_t whence = 0;
+    mp_int_t offset = mp_obj_get_int(args[1]);
+    mp_int_t whence = 0;
     if (n_args == 3) {
         whence = mp_obj_get_int(args[2]);
     }
@@ -231,7 +238,7 @@ STATIC mp_obj_t file_obj_make_new(mp_obj_t type, uint n_args, uint n_kw, const m
     FRESULT res = f_open(&o->fp, fname, mode);
     if (res != FR_OK) {
         m_del_obj(pyb_file_obj_t, o);
-        nlr_raise(mp_obj_new_exception_arg1(&mp_type_OSError, MP_OBJ_NEW_SMALL_INT((machine_int_t)fresult_to_errno_table[res])));
+        nlr_raise(mp_obj_new_exception_arg1(&mp_type_OSError, MP_OBJ_NEW_SMALL_INT(fresult_to_errno_table[res])));
     }
 
     // for 'a' mode, we must begin at the end of the file
@@ -250,6 +257,7 @@ STATIC const mp_map_elem_t rawfile_locals_dict_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_readline), (mp_obj_t)&mp_stream_unbuffered_readline_obj},
     { MP_OBJ_NEW_QSTR(MP_QSTR_readlines), (mp_obj_t)&mp_stream_unbuffered_readlines_obj},
     { MP_OBJ_NEW_QSTR(MP_QSTR_write), (mp_obj_t)&mp_stream_write_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_flush), (mp_obj_t)&file_obj_flush_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_close), (mp_obj_t)&file_obj_close_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_seek), (mp_obj_t)&file_obj_seek_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_tell), (mp_obj_t)&file_obj_tell_obj },
@@ -264,7 +272,6 @@ STATIC MP_DEFINE_CONST_DICT(rawfile_locals_dict, rawfile_locals_dict_table);
 STATIC const mp_stream_p_t fileio_stream_p = {
     .read = file_obj_read,
     .write = file_obj_write,
-    .is_bytes = true,
 };
 
 const mp_obj_type_t mp_type_fileio = {
@@ -282,6 +289,7 @@ const mp_obj_type_t mp_type_fileio = {
 STATIC const mp_stream_p_t textio_stream_p = {
     .read = file_obj_read,
     .write = file_obj_write,
+    .is_text = true,
 };
 
 const mp_obj_type_t mp_type_textio = {

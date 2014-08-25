@@ -137,10 +137,13 @@ mp_obj_t mp_obj_tuple_binary_op(int op, mp_obj_t lhs, mp_obj_t rhs) {
             return s;
         }
         case MP_BINARY_OP_MULTIPLY: {
-            if (!MP_OBJ_IS_SMALL_INT(rhs)) {
+            mp_int_t n;
+            if (!mp_obj_get_int_maybe(rhs, &n)) {
                 return MP_OBJ_NULL; // op not supported
             }
-            int n = MP_OBJ_SMALL_INT_VALUE(rhs);
+            if (n <= 0) {
+                return mp_const_empty_tuple;
+            }
             mp_obj_tuple_t *s = mp_obj_new_tuple(o->len * n, NULL);
             mp_seq_multiply(o->items, sizeof(*o->items), o->len, n, s->items);
             return s;
@@ -252,11 +255,11 @@ void mp_obj_tuple_del(mp_obj_t self_in) {
     m_del_var(mp_obj_tuple_t, mp_obj_t, self->len, self);
 }
 
-machine_int_t mp_obj_tuple_hash(mp_obj_t self_in) {
+mp_int_t mp_obj_tuple_hash(mp_obj_t self_in) {
     assert(MP_OBJ_IS_TYPE(self_in, &mp_type_tuple));
     mp_obj_tuple_t *self = self_in;
     // start hash with pointer to empty tuple, to make it fairly unique
-    machine_int_t hash = (machine_int_t)mp_const_empty_tuple;
+    mp_int_t hash = (mp_int_t)mp_const_empty_tuple;
     for (uint i = 0; i < self->len; i++) {
         hash += mp_obj_hash(self->items[i]);
     }
@@ -269,7 +272,7 @@ machine_int_t mp_obj_tuple_hash(mp_obj_t self_in) {
 typedef struct _mp_obj_tuple_it_t {
     mp_obj_base_t base;
     mp_obj_tuple_t *tuple;
-    machine_uint_t cur;
+    mp_uint_t cur;
 } mp_obj_tuple_it_t;
 
 STATIC mp_obj_t tuple_it_iternext(mp_obj_t self_in) {

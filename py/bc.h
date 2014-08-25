@@ -50,11 +50,11 @@ typedef struct _mp_code_state {
 } mp_code_state;
 
 mp_vm_return_kind_t mp_execute_bytecode(mp_code_state *code_state, volatile mp_obj_t inject_exc);
-void mp_setup_code_state(mp_code_state *code_state, mp_obj_t self_in, uint n_args, uint n_kw, const mp_obj_t *args);
+void mp_setup_code_state(mp_code_state *code_state, mp_obj_t self_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args);
 void mp_bytecode_print(const void *descr, const byte *code, int len);
 void mp_bytecode_print2(const byte *code, int len);
 
 // Helper macros to access pointer with least significant bit holding a flag
-#define MP_TAGPTR_PTR(x) ((void*)((machine_uint_t)(x) & ~((machine_uint_t)1)))
-#define MP_TAGPTR_TAG(x) ((machine_uint_t)(x) & 1)
-#define MP_TAGPTR_MAKE(ptr, tag) ((void*)((machine_uint_t)(ptr) | tag))
+#define MP_TAGPTR_PTR(x) ((void*)((mp_uint_t)(x) & ~((mp_uint_t)1)))
+#define MP_TAGPTR_TAG(x) ((mp_uint_t)(x) & 1)
+#define MP_TAGPTR_MAKE(ptr, tag) ((void*)((mp_uint_t)(ptr) | tag))

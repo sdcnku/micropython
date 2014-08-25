@@ -32,6 +32,7 @@ Q(fileno)
 Q(makefile)
 
 Q(FileIO)
+Q(flush)
 
 Q(_os)
 Q(stat)
@@ -82,3 +83,14 @@ Q(SO_ERROR)
 Q(SO_KEEPALIVE)
 Q(SO_LINGER)
 Q(SO_REUSEADDR)
+
+#if MICROPY_PY_TERMIOS
+Q(termios)
+Q(tcgetattr)
+Q(tcsetattr)
+Q(setraw)
+Q(TCSANOW)
+Q(B9600)
+Q(B57600)
+Q(B115200)
+#endif

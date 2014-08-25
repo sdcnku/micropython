@@ -30,8 +30,8 @@
 #include <string.h>
 #include <assert.h>
 
-#include "misc.h"
 #include "mpconfig.h"
+#include "misc.h"
 #include "qstr.h"
 #include "lexer.h"
 #include "parse.h"
@@ -63,7 +63,7 @@ emit_t *emit_cpython_new(uint max_num_labels) {
     return emit;
 }
 
-STATIC void emit_cpy_set_native_types(emit_t *emit, bool do_native_types) {
+STATIC void emit_cpy_set_native_type(emit_t *emit, mp_uint_t op, mp_uint_t arg1, qstr arg2) {
 }
 
 STATIC void emit_cpy_start_pass(emit_t *emit, pass_kind_t pass, scope_t *scope) {
@@ -173,7 +173,7 @@ STATIC void emit_cpy_load_const_tok(emit_t *emit, mp_token_kind_t tok) {
     }
 }
 
-STATIC void emit_cpy_load_const_small_int(emit_t *emit, machine_int_t arg) {
+STATIC void emit_cpy_load_const_small_int(emit_t *emit, mp_int_t arg) {
     emit_pre(emit, 1, 3);
     if (emit->pass == MP_PASS_EMIT) {
         printf("LOAD_CONST " INT_FMT "\n", arg);
@@ -792,6 +792,14 @@ STATIC void emit_cpy_yield_from(emit_t *emit) {
     }
 }
 
+STATIC void emit_cpy_start_except_handler(emit_t *emit) {
+    emit_cpy_adjust_stack_size(emit, 3); // stack adjust for the 3 exception items
+}
+
+STATIC void emit_cpy_end_except_handler(emit_t *emit) {
+    emit_cpy_adjust_stack_size(emit, -5); // stack adjust
+}
+
 STATIC void emit_cpy_load_const_verbatim_str(emit_t *emit, const char *str) {
     emit_pre(emit, 1, 3);
     if (emit->pass == MP_PASS_EMIT) {
@@ -814,7 +822,7 @@ STATIC void emit_cpy_setup_loop(emit_t *emit, uint label) {
 }
 
 const emit_method_table_t emit_cpython_method_table = {
-    emit_cpy_set_native_types,
+    emit_cpy_set_native_type,
     emit_cpy_start_pass,
     emit_cpy_end_pass,
     emit_cpy_last_emit_was_return_value,
@@ -898,6 +906,9 @@ const emit_method_table_t emit_cpython_method_table = {
     emit_cpy_raise_varargs,
     emit_cpy_yield_value,
     emit_cpy_yield_from,
+
+    emit_cpy_start_except_handler,
+    emit_cpy_end_except_handler,
 
     // emitcpy specific functions
     emit_cpy_load_const_verbatim_str,

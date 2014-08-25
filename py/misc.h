@@ -82,7 +82,10 @@ int m_get_peak_bytes_allocated(void);
 /** array helpers ***********************************************/
 
 // get the number of elements in a fixed-size array
-#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
+#define MP_ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
+
+// align ptr to the nearest multiple of "alignment"
+#define MP_ALIGN(ptr, alignment) (void*)(((mp_uint_t)(ptr) + ((alignment) - 1)) & ~((alignment) - 1))
 
 /** unichar / UTF-8 *********************************************/
 
@@ -100,7 +103,9 @@ bool unichar_isupper(unichar c);
 bool unichar_islower(unichar c);
 unichar unichar_tolower(unichar c);
 unichar unichar_toupper(unichar c);
-#define unichar_charlen(s, bytelen) (bytelen)
+mp_uint_t unichar_charlen(const char *str, mp_uint_t len);
+#define UTF8_IS_NONASCII(ch) ((ch) & 0x80)
+#define UTF8_IS_CONT(ch) (((ch) & 0xC0) == 0x80)
 
 /** variable string *********************************************/
 
@@ -163,5 +168,19 @@ void vstr_vprintf(vstr_t *vstr, const char *fmt, va_list ap);
 int DEBUG_printf(const char *fmt, ...);
 
 extern uint mp_verbose_flag;
+
+// This is useful for unicode handling. Some CPU archs has
+// special instructions for efficient implentation of this
+// function (e.g. CLZ on ARM).
+// NOTE: this function is unused at the moment
+#ifndef count_lead_ones
+static inline uint count_lead_ones(byte val) {
+    uint c = 0;
+    for (byte mask = 0x80; val & mask; mask >>= 1) {
+        c++;
+    }
+    return c;
+}
+#endif
 
 #endif // _INCLUDED_MINILIB_H

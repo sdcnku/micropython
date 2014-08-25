@@ -101,14 +101,14 @@
 #define EXTI_SWIER_BB(line) (*(__IO uint32_t *)(PERIPH_BB_BASE + ((EXTI_OFFSET + offsetof(EXTI_TypeDef, SWIER)) * 32) + ((line) * 4)))
 
 typedef struct {
-    mp_obj_base_t  base;
-    mp_small_int_t line;
+    mp_obj_base_t base;
+    mp_int_t line;
 } extint_obj_t;
 
 typedef struct {
-  mp_obj_t callback_obj;
-  void *param;
-  uint32_t mode;
+    mp_obj_t callback_obj;
+    void *param;
+    uint32_t mode;
 } extint_vector_t;
 
 STATIC extint_vector_t extint_vector[EXTI_NUM_VECTORS];
@@ -296,7 +296,7 @@ STATIC const mp_arg_t pyb_extint_make_new_args[] = {
     { MP_QSTR_pull,     MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
     { MP_QSTR_callback, MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
 };
-#define PYB_EXTINT_MAKE_NEW_NUM_ARGS ARRAY_SIZE(pyb_extint_make_new_args)
+#define PYB_EXTINT_MAKE_NEW_NUM_ARGS MP_ARRAY_SIZE(pyb_extint_make_new_args)
 
 STATIC mp_obj_t extint_make_new(mp_obj_t type_in, uint n_args, uint n_kw, const mp_obj_t *args) {
     // type_in == extint_obj_type
@@ -346,7 +346,7 @@ const mp_obj_type_t extint_type = {
     .locals_dict = (mp_obj_t)&extint_locals_dict,
 };
 
-void extint_init(void) {
+void extint_init0(void) {
     for (extint_vector_t *v = extint_vector; v < &extint_vector[EXTI_NUM_VECTORS]; v++) {
         v->callback_obj = mp_const_none;
         v->param = NULL;

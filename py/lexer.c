@@ -32,8 +32,8 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "misc.h"
 #include "mpconfig.h"
+#include "misc.h"
 #include "qstr.h"
 #include "lexer.h"
 
@@ -45,30 +45,30 @@
 struct _mp_lexer_t {
     qstr source_name;           // name of source
     void *stream_data;          // data for stream
-    mp_lexer_stream_next_char_t stream_next_char;   // stream callback to get next char
+    mp_lexer_stream_next_byte_t stream_next_byte;   // stream callback to get next byte
     mp_lexer_stream_close_t stream_close;           // stream callback to free
 
     unichar chr0, chr1, chr2;   // current cached characters from source
 
-    uint line;                  // source line
-    uint column;                // source column
+    mp_uint_t line;             // source line
+    mp_uint_t column;           // source column
 
-    int emit_dent;              // non-zero when there are INDENT/DEDENT tokens to emit
-    int nested_bracket_level;   // >0 when there are nested brackets over multiple lines
+    mp_int_t emit_dent;             // non-zero when there are INDENT/DEDENT tokens to emit
+    mp_int_t nested_bracket_level;  // >0 when there are nested brackets over multiple lines
 
-    uint alloc_indent_level;
-    uint num_indent_level;
+    mp_uint_t alloc_indent_level;
+    mp_uint_t num_indent_level;
     uint16_t *indent_level;
 
     vstr_t vstr;
     mp_token_t tok_cur;
 };
 
-uint mp_optimise_value;
+mp_uint_t mp_optimise_value;
 
 // TODO replace with a call to a standard function
-bool str_strn_equal(const char *str, const char *strn, int len) {
-    uint i = 0;
+bool str_strn_equal(const char *str, const char *strn, mp_uint_t len) {
+    mp_uint_t i = 0;
 
     while (i < len && *str == *strn) {
         ++i;
@@ -81,7 +81,7 @@ bool str_strn_equal(const char *str, const char *strn, int len) {
 
 #ifdef MICROPY_DEBUG_PRINTERS
 void mp_token_show(const mp_token_t *tok) {
-    printf("(%d:%d) kind:%d str:%p len:%d", tok->src_line, tok->src_column, tok->kind, tok->str, tok->len);
+    printf("(" UINT_FMT ":" UINT_FMT ") kind:%u str:%p len:" UINT_FMT, tok->src_line, tok->src_column, tok->kind, tok->str, tok->len);
     if (tok->str != NULL && tok->len > 0) {
         const byte *i = (const byte *)tok->str;
         const byte *j = (const byte *)i + tok->len;
@@ -103,7 +103,7 @@ void mp_token_show(const mp_token_t *tok) {
 #define CUR_CHAR(lex) ((lex)->chr0)
 
 STATIC bool is_end(mp_lexer_t *lex) {
-    return lex->chr0 == MP_LEXER_CHAR_EOF;
+    return lex->chr0 == MP_LEXER_EOF;
 }
 
 STATIC bool is_physical_newline(mp_lexer_t *lex) {
@@ -171,11 +171,11 @@ STATIC bool is_tail_of_identifier(mp_lexer_t *lex) {
 }
 
 STATIC void next_char(mp_lexer_t *lex) {
-    if (lex->chr0 == MP_LEXER_CHAR_EOF) {
+    if (lex->chr0 == MP_LEXER_EOF) {
         return;
     }
 
-    int advance = 1;
+    mp_uint_t advance = 1;
 
     if (lex->chr0 == '\n') {
         // LF is a new line
@@ -200,17 +200,17 @@ STATIC void next_char(mp_lexer_t *lex) {
     for (; advance > 0; advance--) {
         lex->chr0 = lex->chr1;
         lex->chr1 = lex->chr2;
-        lex->chr2 = lex->stream_next_char(lex->stream_data);
-        if (lex->chr2 == MP_LEXER_CHAR_EOF) {
+        lex->chr2 = lex->stream_next_byte(lex->stream_data);
+        if (lex->chr2 == MP_LEXER_EOF) {
             // EOF
-            if (lex->chr1 != MP_LEXER_CHAR_EOF && lex->chr1 != '\n' && lex->chr1 != '\r') {
+            if (lex->chr1 != MP_LEXER_EOF && lex->chr1 != '\n' && lex->chr1 != '\r') {
                 lex->chr2 = '\n'; // insert newline at end of file
             }
         }
     }
 }
 
-void indent_push(mp_lexer_t *lex, uint indent) {
+void indent_push(mp_lexer_t *lex, mp_uint_t indent) {
     if (lex->num_indent_level >= lex->alloc_indent_level) {
         // TODO use m_renew_maybe and somehow indicate an error if it fails... probably by using MP_TOKEN_MEMORY_ERROR
         lex->indent_level = m_renew(uint16_t, lex->indent_level, lex->alloc_indent_level, lex->alloc_indent_level + MICROPY_ALLOC_LEXEL_INDENT_INC);
@@ -219,7 +219,7 @@ void indent_push(mp_lexer_t *lex, uint indent) {
     lex->indent_level[lex->num_indent_level++] = indent;
 }
 
-uint indent_top(mp_lexer_t *lex) {
+mp_uint_t indent_top(mp_lexer_t *lex) {
     return lex->indent_level[lex->num_indent_level - 1];
 }
 
@@ -308,9 +308,9 @@ STATIC const char *tok_kw[] = {
     "__debug__",
 };
 
-STATIC int hex_digit(unichar c) {
+STATIC mp_uint_t hex_digit(unichar c) {
     // c is assumed to be hex digit
-    int n = c - '0';
+    mp_uint_t n = c - '0';
     if (n > 9) {
         n &= ~('a' - 'A');
         n -= ('A' - ('9' + 1));
@@ -320,8 +320,9 @@ STATIC int hex_digit(unichar c) {
 
 // This is called with CUR_CHAR() before first hex digit, and should return with
 // it pointing to last hex digit
-STATIC bool get_hex(mp_lexer_t *lex, int num_digits, uint *result) {
-    uint num = 0;
+// num_digits must be greater than zero
+STATIC bool get_hex(mp_lexer_t *lex, mp_uint_t num_digits, mp_uint_t *result) {
+    mp_uint_t num = 0;
     while (num_digits-- != 0) {
         next_char(lex);
         unichar c = CUR_CHAR(lex);
@@ -394,7 +395,7 @@ STATIC void mp_lexer_next_token_into(mp_lexer_t *lex, mp_token_t *tok, bool firs
     } else if (had_physical_newline && lex->nested_bracket_level == 0) {
         tok->kind = MP_TOKEN_NEWLINE;
 
-        uint num_spaces = lex->column - 1;
+        mp_uint_t num_spaces = lex->column - 1;
         lex->emit_dent = 0;
         if (num_spaces == indent_top(lex)) {
         } else if (num_spaces > indent_top(lex)) {
@@ -463,7 +464,7 @@ STATIC void mp_lexer_next_token_into(mp_lexer_t *lex, mp_token_t *tok, bool firs
         next_char(lex);
 
         // work out if it's a single or triple quoted literal
-        int num_quotes;
+        mp_uint_t num_quotes;
         if (is_char_and(lex, quote_char, quote_char)) {
             // triple quotes
             next_char(lex);
@@ -475,7 +476,7 @@ STATIC void mp_lexer_next_token_into(mp_lexer_t *lex, mp_token_t *tok, bool firs
         }
 
         // parse the literal
-        int n_closing = 0;
+        mp_uint_t n_closing = 0;
         while (!is_end(lex) && (num_quotes > 1 || !is_char(lex, '\n')) && n_closing < num_quotes) {
             if (is_char(lex, quote_char)) {
                 n_closing += 1;
@@ -490,8 +491,8 @@ STATIC void mp_lexer_next_token_into(mp_lexer_t *lex, mp_token_t *tok, bool firs
                         vstr_add_char(&lex->vstr, '\\');
                     } else {
                         switch (c) {
-                            case MP_LEXER_CHAR_EOF: break; // TODO a proper error message?
-                            case '\n': c = MP_LEXER_CHAR_EOF; break; // TODO check this works correctly (we are supposed to ignore it
+                            case MP_LEXER_EOF: break; // TODO a proper error message?
+                            case '\n': c = MP_LEXER_EOF; break; // TODO check this works correctly (we are supposed to ignore it
                             case '\\': break;
                             case '\'': break;
                             case '"': break;
@@ -502,24 +503,37 @@ STATIC void mp_lexer_next_token_into(mp_lexer_t *lex, mp_token_t *tok, bool firs
                             case 'v': c = 0x0b; break;
                             case 'f': c = 0x0c; break;
                             case 'r': c = 0x0d; break;
+                            case 'u':
+                            case 'U':
+                                if (is_bytes) {
+                                    // b'\u1234' == b'\\u1234'
+                                    vstr_add_char(&lex->vstr, '\\');
+                                    break;
+                                }
+                                // Otherwise fall through.
                             case 'x':
                             {
-                                uint num = 0;
-                                if (!get_hex(lex, 2, &num)) {
+                                mp_uint_t num = 0;
+                                if (!get_hex(lex, (c == 'x' ? 2 : c == 'u' ? 4 : 8), &num)) {
                                     // TODO error message
                                     assert(0);
                                 }
                                 c = num;
                                 break;
                             }
-                            case 'N': break; // TODO \N{name} only in strings
-                            case 'u': break; // TODO \uxxxx only in strings
-                            case 'U': break; // TODO \Uxxxxxxxx only in strings
+                            case 'N':
+                                // Supporting '\N{LATIN SMALL LETTER A}' == 'a' would require keeping the
+                                // entire Unicode name table in the core. As of Unicode 6.3.0, that's nearly
+                                // 3MB of text; even gzip-compressed and with minimal structure, it'll take
+                                // roughly half a meg of storage. This form of Unicode escape may be added
+                                // later on, but it's definitely not a priority right now. -- CJA 20140607
+                                assert(!"Unicode name escapes not supported");
+                                break;
                             default:
                                 if (c >= '0' && c <= '7') {
                                     // Octal sequence, 1-3 chars
-                                    int digits = 3;
-                                    int num = c - '0';
+                                    mp_uint_t digits = 3;
+                                    mp_uint_t num = c - '0';
                                     while (is_following_odigit(lex) && --digits != 0) {
                                         next_char(lex);
                                         num = num * 8 + (CUR_CHAR(lex) - '0');
@@ -532,11 +546,19 @@ STATIC void mp_lexer_next_token_into(mp_lexer_t *lex, mp_token_t *tok, bool firs
                                 break;
                         }
                     }
-                    if (c != MP_LEXER_CHAR_EOF) {
-                        vstr_add_char(&lex->vstr, c);
+                    if (c != MP_LEXER_EOF) {
+                        if (c < 0x110000 && !is_bytes) {
+                            vstr_add_char(&lex->vstr, c);
+                        } else if (c < 0x100 && is_bytes) {
+                            vstr_add_byte(&lex->vstr, c);
+                        } else {
+                            assert(!"TODO: Throw an error, invalid escape code probably");
+                        }
                     }
                 } else {
-                    vstr_add_char(&lex->vstr, CUR_CHAR(lex));
+                    // Add the "character" as a byte so that we remain 8-bit clean.
+                    // This way, strings are parsed correctly whether or not they contain utf-8 chars.
+                    vstr_add_byte(&lex->vstr, CUR_CHAR(lex));
                 }
             }
             next_char(lex);
@@ -608,7 +630,7 @@ STATIC void mp_lexer_next_token_into(mp_lexer_t *lex, mp_token_t *tok, bool firs
         // search for encoded delimiter or operator
 
         const char *t = tok_enc;
-        uint tok_enc_index = 0;
+        mp_uint_t tok_enc_index = 0;
         for (; *t != 0 && !is_char(lex, *t); t += 1) {
             if (*t == 'e' || *t == 'c') {
                 t += 1;
@@ -630,7 +652,7 @@ STATIC void mp_lexer_next_token_into(mp_lexer_t *lex, mp_token_t *tok, bool firs
 
             // get the maximum characters for a valid token
             t += 1;
-            uint t_index = tok_enc_index;
+            mp_uint_t t_index = tok_enc_index;
             for (;;) {
                 for (; *t == 'e'; t += 1) {
                     t += 1;
@@ -693,11 +715,11 @@ STATIC void mp_lexer_next_token_into(mp_lexer_t *lex, mp_token_t *tok, bool firs
         // the parser gives a syntax error on, eg, x.__debug__.  Otherwise, we
         // need to check for this special token in many places in the compiler.
         // TODO improve speed of these string comparisons
-        //for (int i = 0; tok_kw[i] != NULL; i++) {
-        for (int i = 0; i < ARRAY_SIZE(tok_kw); i++) {
+        //for (mp_int_t i = 0; tok_kw[i] != NULL; i++) {
+        for (mp_int_t i = 0; i < MP_ARRAY_SIZE(tok_kw); i++) {
             if (str_strn_equal(tok_kw[i], tok->str, tok->len)) {
-                if (i == ARRAY_SIZE(tok_kw) - 1) {
-                    // tok_kw[ARRAY_SIZE(tok_kw) - 1] == "__debug__"
+                if (i == MP_ARRAY_SIZE(tok_kw) - 1) {
+                    // tok_kw[MP_ARRAY_SIZE(tok_kw) - 1] == "__debug__"
                     tok->kind = (mp_optimise_value == 0 ? MP_TOKEN_KW_TRUE : MP_TOKEN_KW_FALSE);
                 } else {
                     tok->kind = MP_TOKEN_KW_FALSE + i;
@@ -708,7 +730,7 @@ STATIC void mp_lexer_next_token_into(mp_lexer_t *lex, mp_token_t *tok, bool firs
     }
 }
 
-mp_lexer_t *mp_lexer_new(qstr src_name, void *stream_data, mp_lexer_stream_next_char_t stream_next_char, mp_lexer_stream_close_t stream_close) {
+mp_lexer_t *mp_lexer_new(qstr src_name, void *stream_data, mp_lexer_stream_next_byte_t stream_next_byte, mp_lexer_stream_close_t stream_close) {
     mp_lexer_t *lex = m_new_maybe(mp_lexer_t, 1);
 
     // check for memory allocation error
@@ -721,7 +743,7 @@ mp_lexer_t *mp_lexer_new(qstr src_name, void *stream_data, mp_lexer_stream_next_
 
     lex->source_name = src_name;
     lex->stream_data = stream_data;
-    lex->stream_next_char = stream_next_char;
+    lex->stream_next_byte = stream_next_byte;
     lex->stream_close = stream_close;
     lex->line = 1;
     lex->column = 1;
@@ -742,18 +764,18 @@ mp_lexer_t *mp_lexer_new(qstr src_name, void *stream_data, mp_lexer_stream_next_
     lex->indent_level[0] = 0;
 
     // preload characters
-    lex->chr0 = stream_next_char(stream_data);
-    lex->chr1 = stream_next_char(stream_data);
-    lex->chr2 = stream_next_char(stream_data);
+    lex->chr0 = stream_next_byte(stream_data);
+    lex->chr1 = stream_next_byte(stream_data);
+    lex->chr2 = stream_next_byte(stream_data);
 
     // if input stream is 0, 1 or 2 characters long and doesn't end in a newline, then insert a newline at the end
-    if (lex->chr0 == MP_LEXER_CHAR_EOF) {
+    if (lex->chr0 == MP_LEXER_EOF) {
         lex->chr0 = '\n';
-    } else if (lex->chr1 == MP_LEXER_CHAR_EOF) {
+    } else if (lex->chr1 == MP_LEXER_EOF) {
         if (lex->chr0 != '\n' && lex->chr0 != '\r') {
             lex->chr1 = '\n';
         }
-    } else if (lex->chr2 == MP_LEXER_CHAR_EOF) {
+    } else if (lex->chr2 == MP_LEXER_EOF) {
         if (lex->chr1 != '\n' && lex->chr1 != '\r') {
             lex->chr2 = '\n';
         }

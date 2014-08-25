@@ -43,6 +43,26 @@
 
 #if MICROPY_LONGINT_IMPL == MICROPY_LONGINT_IMPL_MPZ
 
+#if MICROPY_PY_SYS_MAXSIZE
+// Export value for sys.maxsize
+#define DIG_MASK ((1 << MPZ_DIG_SIZE) - 1)
+STATIC const mpz_dig_t maxsize_dig[MPZ_NUM_DIG_FOR_INT] = {
+    (INT_MAX >> MPZ_DIG_SIZE * 0) & DIG_MASK,
+    (INT_MAX >> MPZ_DIG_SIZE * 1) & DIG_MASK,
+    (INT_MAX >> MPZ_DIG_SIZE * 2) & DIG_MASK,
+    #if (INT_MAX >> MPZ_DIG_SIZE * 2) > DIG_MASK
+    (INT_MAX >> MPZ_DIG_SIZE * 3) & DIG_MASK,
+    (INT_MAX >> MPZ_DIG_SIZE * 4) & DIG_MASK,
+//    (INT_MAX >> MPZ_DIG_SIZE * 5) & DIG_MASK,
+    #endif
+};
+const mp_obj_int_t mp_maxsize_obj = {
+    {&mp_type_int},
+    {.fixed_dig = 1, .len = MPZ_NUM_DIG_FOR_INT, .alloc = MPZ_NUM_DIG_FOR_INT, .dig = (mpz_dig_t*)maxsize_dig}
+};
+#undef DIG_MASK
+#endif
+
 STATIC mp_obj_int_t *mp_obj_int_new_mpz(void) {
     mp_obj_int_t *o = m_new_obj(mp_obj_int_t);
     o->base.type = &mp_type_int;
@@ -74,6 +94,14 @@ char *mp_obj_int_formatted_impl(char **buf, int *buf_size, int *fmt_size, mp_con
     *fmt_size = mpz_as_str_inpl(&self->mpz, base, prefix, base_char, comma, str);
 
     return str;
+}
+
+mp_int_t mp_obj_int_hash(mp_obj_t self_in) {
+    if (MP_OBJ_IS_SMALL_INT(self_in)) {
+        return MP_OBJ_SMALL_INT_VALUE(self_in);
+    }
+    mp_obj_int_t *self = self_in;
+    return mpz_hash(&self->mpz);
 }
 
 bool mp_obj_int_is_positive(mp_obj_t self_in) {
@@ -121,8 +149,10 @@ mp_obj_t mp_obj_int_binary_op(int op, mp_obj_t lhs_in, mp_obj_t rhs_in) {
 #if MICROPY_PY_BUILTINS_FLOAT
     } else if (MP_OBJ_IS_TYPE(rhs_in, &mp_type_float)) {
         return mp_obj_float_binary_op(op, mpz_as_float(zlhs), rhs_in);
+#if MICROPY_PY_BUILTINS_COMPLEX
     } else if (MP_OBJ_IS_TYPE(rhs_in, &mp_type_complex)) {
         return mp_obj_complex_binary_op(op, mpz_as_float(zlhs), 0, rhs_in);
+#endif
 #endif
     } else {
         // delegate to generic function to check for extra cases
@@ -195,8 +225,7 @@ mp_obj_t mp_obj_int_binary_op(int op, mp_obj_t lhs_in, mp_obj_t rhs_in) {
             case MP_BINARY_OP_INPLACE_LSHIFT:
             case MP_BINARY_OP_RSHIFT:
             case MP_BINARY_OP_INPLACE_RSHIFT: {
-                // TODO check conversion overflow
-                machine_int_t irhs = mpz_as_int(zrhs);
+                mp_int_t irhs = mp_obj_int_get_checked(rhs_in);
                 if (irhs < 0) {
                     nlr_raise(mp_obj_new_exception_msg(&mp_type_ValueError, "negative shift count"));
                 }
@@ -239,7 +268,7 @@ mp_obj_t mp_obj_int_binary_op(int op, mp_obj_t lhs_in, mp_obj_t rhs_in) {
     }
 }
 
-mp_obj_t mp_obj_new_int(machine_int_t value) {
+mp_obj_t mp_obj_new_int(mp_int_t value) {
     if (MP_SMALL_INT_FITS(value)) {
         return MP_OBJ_NEW_SMALL_INT(value);
     }
@@ -252,7 +281,7 @@ mp_obj_t mp_obj_new_int_from_ll(long long val) {
     return o;
 }
 
-mp_obj_t mp_obj_new_int_from_uint(machine_uint_t value) {
+mp_obj_t mp_obj_new_int_from_uint(mp_uint_t value) {
     // SMALL_INT accepts only signed numbers, of one bit less size
     // than word size, which totals 2 bits less for unsigned numbers.
     if ((value & (WORD_MSBIT_HIGH | (WORD_MSBIT_HIGH >> 1))) == 0) {
@@ -268,21 +297,22 @@ mp_obj_t mp_obj_new_int_from_str_len(const char **str, uint len, bool neg, uint 
     return o;
 }
 
-machine_int_t mp_obj_int_get(mp_const_obj_t self_in) {
+mp_int_t mp_obj_int_get(mp_const_obj_t self_in) {
     if (MP_OBJ_IS_SMALL_INT(self_in)) {
         return MP_OBJ_SMALL_INT_VALUE(self_in);
     } else {
         const mp_obj_int_t *self = self_in;
-        return mpz_as_int(&self->mpz);
+        // TODO this is a hack until we remove mp_obj_int_get function entirely
+        return mpz_hash(&self->mpz);
     }
 }
 
-machine_int_t mp_obj_int_get_checked(mp_const_obj_t self_in) {
+mp_int_t mp_obj_int_get_checked(mp_const_obj_t self_in) {
     if (MP_OBJ_IS_SMALL_INT(self_in)) {
         return MP_OBJ_SMALL_INT_VALUE(self_in);
     } else {
         const mp_obj_int_t *self = self_in;
-        machine_int_t value;
+        mp_int_t value;
         if (mpz_as_int_checked(&self->mpz, &value)) {
             return value;
         } else {

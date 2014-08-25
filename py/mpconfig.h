@@ -111,6 +111,9 @@
 #define MICROPY_EMIT_INLINE_THUMB (0)
 #endif
 
+// Convenience definition for whether any native emitter is enabled
+#define MICROPY_EMIT_NATIVE (MICROPY_EMIT_X64 || MICROPY_EMIT_THUMB)
+
 /*****************************************************************************/
 /* Compiler configuration                                                    */
 
@@ -155,6 +158,22 @@
 // Whether to enable finalisers in the garbage collector (ie call __del__)
 #ifndef MICROPY_ENABLE_GC_FINALISER
 #define MICROPY_ENABLE_GC_FINALISER (0)
+#endif
+
+// Whether to check C stack usage. C stack used for calling Python functions,
+// etc. Not checking means segfault on overflow.
+#ifndef MICROPY_STACK_CHECK
+#define MICROPY_STACK_CHECK (1)
+#endif
+
+// Whether to have an emergency exception buffer
+#ifndef MICROPY_ENABLE_EMERGENCY_EXCEPTION_BUF
+#define MICROPY_ENABLE_EMERGENCY_EXCEPTION_BUF (0)
+#endif
+#if MICROPY_ENABLE_EMERGENCY_EXCEPTION_BUF
+#   ifndef MICROPY_EMERGENCY_EXCEPTION_BUF_SIZE
+#   define MICROPY_EMERGENCY_EXCEPTION_BUF_SIZE (0)   // 0 - implies dynamic allocation
+#   endif
 #endif
 
 // Whether to include REPL helper function
@@ -223,6 +242,10 @@ typedef double mp_float_t;
 #define MICROPY_PY_BUILTINS_FLOAT (0)
 #endif
 
+#ifndef MICROPY_PY_BUILTINS_COMPLEX
+#define MICROPY_PY_BUILTINS_COMPLEX (MICROPY_PY_BUILTINS_FLOAT)
+#endif
+
 // Enable features which improve CPython compatibility
 // but may lead to more code size/memory usage.
 // TODO: Originally intended as generic category to not
@@ -238,6 +261,16 @@ typedef double mp_float_t;
 
 /*****************************************************************************/
 /* Fine control over Python builtins, classes, modules, etc                  */
+
+// Whether str object is proper unicode
+#ifndef MICROPY_PY_BUILTINS_STR_UNICODE
+#define MICROPY_PY_BUILTINS_STR_UNICODE (0)
+#endif
+
+// Whether to support bytearray object
+#ifndef MICROPY_PY_BUILTINS_BYTEARRAY
+#define MICROPY_PY_BUILTINS_BYTEARRAY (1)
+#endif
 
 // Whether to support set object
 #ifndef MICROPY_PY_BUILTINS_SET
@@ -257,6 +290,18 @@ typedef double mp_float_t;
 // Whether to support property object
 #ifndef MICROPY_PY_BUILTINS_PROPERTY
 #define MICROPY_PY_BUILTINS_PROPERTY (1)
+#endif
+
+// Whether to set __file__ for imported modules
+#ifndef MICROPY_PY___FILE__
+#define MICROPY_PY___FILE__ (1)
+#endif
+
+// Whether to provide "array" module. Note that large chunk of the
+// underlying code is shared with "bytearray" builtin type, so to
+// get real savings, it should be disabled too.
+#ifndef MICROPY_PY_ARRAY
+#define MICROPY_PY_ARRAY (1)
 #endif
 
 // Whether to provide "collections" module
@@ -309,6 +354,11 @@ typedef double mp_float_t;
 #define MICROPY_PY_SYS (1)
 #endif
 
+// Whether to provide "sys.maxsize" constant
+#ifndef MICROPY_PY_SYS_MAXSIZE
+#define MICROPY_PY_SYS_MAXSIZE (0)
+#endif
+
 // Whether to provide "sys.exit" function
 #ifndef MICROPY_PY_SYS_EXIT
 #define MICROPY_PY_SYS_EXIT (0)
@@ -317,6 +367,17 @@ typedef double mp_float_t;
 // Whether to provide sys.{stdin,stdout,stderr} objects
 #ifndef MICROPY_PY_SYS_STDFILES
 #define MICROPY_PY_SYS_STDFILES (0)
+#endif
+
+
+// Extended modules
+
+#ifndef MICROPY_PY_UCTYPES
+#define MICROPY_PY_UCTYPES (0)
+#endif
+
+#ifndef MICROPY_PY_ZLIBD
+#define MICROPY_PY_ZLIBD (0)
 #endif
 
 /*****************************************************************************/
@@ -340,6 +401,14 @@ typedef double mp_float_t;
 /*****************************************************************************/
 /* Miscellaneous settings                                                    */
 
+// On embedded platforms, these will typically enable/disable irqs.
+#ifndef MICROPY_BEGIN_ATOMIC_SECTION
+#define MICROPY_BEGIN_ATOMIC_SECTION()
+#endif
+#ifndef MICROPY_END_ATOMIC_SECTION
+#define MICROPY_END_ATOMIC_SECTION()
+#endif
+
 // Allow to override static modifier for global objects, e.g. to use with
 // object code analysis tools which don't support static symbols.
 #ifndef STATIC
@@ -348,8 +417,8 @@ typedef double mp_float_t;
 
 #define BITS_PER_BYTE (8)
 #define BITS_PER_WORD (BITS_PER_BYTE * BYTES_PER_WORD)
-// machine_int_t value with most significant bit set
-#define WORD_MSBIT_HIGH (((machine_uint_t)1) << (BYTES_PER_WORD * 8 - 1))
+// mp_int_t value with most significant bit set
+#define WORD_MSBIT_HIGH (((mp_uint_t)1) << (BYTES_PER_WORD * 8 - 1))
 
 #if !defined(MP_ENDIANNESS_LITTLE) && !defined(MP_ENDIANNESS_BIG)
 // Just because most archs are such?
@@ -360,14 +429,20 @@ typedef double mp_float_t;
 #define MP_ENDIANNESS_LITTLE (0)
 #endif
 
-// printf format spec to use for machine_int_t and friends
+// Make a pointer to RAM callable (eg set lower bit for Thumb code)
+// (This scheme won't work if we want to mix Thumb and normal ARM code.)
+#ifndef MICROPY_MAKE_POINTER_CALLABLE
+#define MICROPY_MAKE_POINTER_CALLABLE(p) (p)
+#endif
+
+// printf format spec to use for mp_int_t and friends
 #ifndef INT_FMT
 #ifdef __LP64__
-// Archs where machine_int_t == long, long != int
+// Archs where mp_int_t == long, long != int
 #define UINT_FMT "%lu"
 #define INT_FMT "%ld"
 #else
-// Archs where machine_int_t == int
+// Archs where mp_int_t == int
 #define UINT_FMT "%u"
 #define INT_FMT "%d"
 #endif
@@ -376,4 +451,9 @@ typedef double mp_float_t;
 // Modifier for function which doesn't return
 #ifndef NORETURN
 #define NORETURN __attribute__((noreturn))
+#endif
+
+// Modifier for weak functions
+#ifndef MP_WEAK
+#define MP_WEAK __attribute__((weak))
 #endif

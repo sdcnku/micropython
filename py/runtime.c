@@ -45,6 +45,7 @@
 #include "smallint.h"
 #include "objgenerator.h"
 #include "lexer.h"
+#include "stackctrl.h"
 
 #if 0 // print debugging info
 #define DEBUG_PRINT (1)
@@ -69,6 +70,13 @@ const mp_obj_module_t mp_module___main__ = {
 };
 
 void mp_init(void) {
+    qstr_init();
+    mp_stack_ctrl_init();
+
+#if MICROPY_ENABLE_EMERGENCY_EXCEPTION_BUF
+    mp_init_emergency_exception_buf();
+#endif
+
     // call port specific initialization if any
 #ifdef MICROPY_PORT_INIT_FUNC
     MICROPY_PORT_INIT_FUNC;
@@ -184,7 +192,7 @@ mp_obj_t mp_unary_op(int op, mp_obj_t arg) {
     DEBUG_OP_printf("unary %d %p\n", op, arg);
 
     if (MP_OBJ_IS_SMALL_INT(arg)) {
-        mp_small_int_t val = MP_OBJ_SMALL_INT_VALUE(arg);
+        mp_int_t val = MP_OBJ_SMALL_INT_VALUE(arg);
         switch (op) {
             case MP_UNARY_OP_BOOL:
                 return MP_BOOL(val != 0);
@@ -269,17 +277,17 @@ mp_obj_t mp_binary_op(int op, mp_obj_t lhs, mp_obj_t rhs) {
     }
 
     if (MP_OBJ_IS_SMALL_INT(lhs)) {
-        mp_small_int_t lhs_val = MP_OBJ_SMALL_INT_VALUE(lhs);
+        mp_int_t lhs_val = MP_OBJ_SMALL_INT_VALUE(lhs);
         if (MP_OBJ_IS_SMALL_INT(rhs)) {
-            mp_small_int_t rhs_val = MP_OBJ_SMALL_INT_VALUE(rhs);
+            mp_int_t rhs_val = MP_OBJ_SMALL_INT_VALUE(rhs);
             // This is a binary operation: lhs_val op rhs_val
             // We need to be careful to handle overflow; see CERT INT32-C
             // Operations that can overflow:
-            //      +       result always fits in machine_int_t, then handled by SMALL_INT check
-            //      -       result always fits in machine_int_t, then handled by SMALL_INT check
+            //      +       result always fits in mp_int_t, then handled by SMALL_INT check
+            //      -       result always fits in mp_int_t, then handled by SMALL_INT check
             //      *       checked explicitly
-            //      /       if lhs=MIN and rhs=-1; result always fits in machine_int_t, then handled by SMALL_INT check
-            //      %       if lhs=MIN and rhs=-1; result always fits in machine_int_t, then handled by SMALL_INT check
+            //      /       if lhs=MIN and rhs=-1; result always fits in mp_int_t, then handled by SMALL_INT check
+            //      %       if lhs=MIN and rhs=-1; result always fits in mp_int_t, then handled by SMALL_INT check
             //      <<      checked explicitly
             switch (op) {
                 case MP_BINARY_OP_OR:
@@ -320,7 +328,7 @@ mp_obj_t mp_binary_op(int op, mp_obj_t lhs, mp_obj_t rhs) {
                 case MP_BINARY_OP_MULTIPLY:
                 case MP_BINARY_OP_INPLACE_MULTIPLY: {
 
-                    // If long long type exists and is larger than machine_int_t, then
+                    // If long long type exists and is larger than mp_int_t, then
                     // we can use the following code to perform overflow-checked multiplication.
                     // Otherwise (eg in x64 case) we must use mp_small_int_mul_overflow.
                     #if 0
@@ -331,7 +339,7 @@ mp_obj_t mp_binary_op(int op, mp_obj_t lhs, mp_obj_t rhs) {
                         return mp_obj_new_int_from_ll(res);
                     } else {
                         // use standard precision
-                        lhs_val = (mp_small_int_t)res;
+                        lhs_val = (mp_int_t)res;
                     }
                     #endif
 
@@ -378,7 +386,7 @@ mp_obj_t mp_binary_op(int op, mp_obj_t lhs, mp_obj_t rhs) {
                         nlr_raise(mp_obj_new_exception_msg(&mp_type_ValueError, "negative power with no float support"));
                         #endif
                     } else {
-                        machine_int_t ans = 1;
+                        mp_int_t ans = 1;
                         while (rhs_val > 0) {
                             if (rhs_val & 1) {
                                 if (mp_small_int_mul_overflow(ans, lhs_val)) {
@@ -426,6 +434,7 @@ mp_obj_t mp_binary_op(int op, mp_obj_t lhs, mp_obj_t rhs) {
             } else {
                 return res;
             }
+#if MICROPY_PY_BUILTINS_COMPLEX
         } else if (MP_OBJ_IS_TYPE(rhs, &mp_type_complex)) {
             mp_obj_t res = mp_obj_complex_binary_op(op, lhs_val, 0, rhs);
             if (res == MP_OBJ_NULL) {
@@ -433,6 +442,7 @@ mp_obj_t mp_binary_op(int op, mp_obj_t lhs, mp_obj_t rhs) {
             } else {
                 return res;
             }
+#endif
 #endif
         }
     }
@@ -505,12 +515,6 @@ mp_obj_t mp_call_function_2(mp_obj_t fun, mp_obj_t arg1, mp_obj_t arg2) {
     args[0] = arg1;
     args[1] = arg2;
     return mp_call_function_n_kw(fun, 2, 0, args);
-}
-
-// wrapper that accepts n_args and n_kw in one argument
-// native emitter can only pass at most 3 arguments to a function
-mp_obj_t mp_call_function_n_kw_for_native(mp_obj_t fun_in, uint n_args_kw, const mp_obj_t *args) {
-    return mp_call_function_n_kw(fun_in, n_args_kw & 0xff, (n_args_kw >> 8) & 0xff, args);
 }
 
 // args contains, eg: arg0  arg1  key0  value0  key1  value1
@@ -1153,17 +1157,56 @@ NORETURN void mp_not_implemented(const char *msg) {
     nlr_raise(mp_obj_new_exception_msg(&mp_type_NotImplementedError, msg));
 }
 
-// these must correspond to the respective enum
+// convert a Micro Python object to a valid native value based on type
+mp_uint_t mp_convert_obj_to_native(mp_obj_t obj, mp_uint_t type) {
+    DEBUG_printf("mp_convert_obj_to_native(%p, " UINT_FMT ")\n", obj, type);
+    switch (type & 3) {
+        case MP_NATIVE_TYPE_OBJ: return (mp_uint_t)obj;
+        case MP_NATIVE_TYPE_BOOL:
+        case MP_NATIVE_TYPE_INT:
+        case MP_NATIVE_TYPE_UINT: return mp_obj_get_int(obj);
+        default: assert(0); return 0;
+    }
+}
+
+// convert a native value to a Micro Python object based on type
+mp_obj_t mp_convert_native_to_obj(mp_uint_t val, mp_uint_t type) {
+    DEBUG_printf("mp_convert_native_to_obj(" UINT_FMT ", " UINT_FMT ")\n", val, type);
+    switch (type & 3) {
+        case MP_NATIVE_TYPE_OBJ: return (mp_obj_t)val;
+        case MP_NATIVE_TYPE_BOOL: return MP_BOOL(val);
+        case MP_NATIVE_TYPE_INT: return mp_obj_new_int(val);
+        case MP_NATIVE_TYPE_UINT: return mp_obj_new_int_from_uint(val);
+        default: assert(0); return mp_const_none;
+    }
+}
+
+// wrapper that accepts n_args and n_kw in one argument
+// (native emitter can only pass at most 3 arguments to a function)
+mp_obj_t mp_native_call_function_n_kw(mp_obj_t fun_in, uint n_args_kw, const mp_obj_t *args) {
+    return mp_call_function_n_kw(fun_in, n_args_kw & 0xff, (n_args_kw >> 8) & 0xff, args);
+}
+
+// wrapper that makes raise obj and raises it
+NORETURN void mp_native_raise(mp_obj_t o) {
+    nlr_raise(mp_make_raise_obj(o));
+}
+
+// these must correspond to the respective enum in runtime0.h
 void *const mp_fun_table[MP_F_NUMBER_OF] = {
+    mp_convert_obj_to_native,
+    mp_convert_native_to_obj,
     mp_load_const_int,
     mp_load_const_dec,
     mp_load_const_str,
+    mp_load_const_bytes,
     mp_load_name,
     mp_load_global,
     mp_load_build_class,
     mp_load_attr,
     mp_load_method,
     mp_store_name,
+    mp_store_global,
     mp_store_attr,
     mp_obj_subscr,
     mp_obj_is_true,
@@ -1179,10 +1222,13 @@ void *const mp_fun_table[MP_F_NUMBER_OF] = {
     mp_obj_set_store,
 #endif
     mp_make_function_from_raw_code,
-    mp_call_function_n_kw_for_native,
+    mp_native_call_function_n_kw,
     mp_call_method_n_kw,
     mp_getiter,
     mp_iternext,
+    nlr_push,
+    nlr_pop,
+    mp_native_raise,
     mp_import_name,
     mp_import_from,
     mp_import_all,

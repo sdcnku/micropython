@@ -27,8 +27,8 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "misc.h"
 #include "mpconfig.h"
+#include "misc.h"
 #include "qstr.h"
 #include "obj.h"
 #include "runtime.h"
@@ -36,7 +36,7 @@
 typedef struct _mp_obj_enumerate_t {
     mp_obj_base_t base;
     mp_obj_t iter;
-    machine_int_t cur;
+    mp_int_t cur;
 } mp_obj_enumerate_t;
 
 STATIC mp_obj_t enumerate_iternext(mp_obj_t self_in);
@@ -45,7 +45,7 @@ STATIC const mp_arg_t enumerate_make_new_args[] = {
     { MP_QSTR_iterable, MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
     { MP_QSTR_start, MP_ARG_INT, {.u_int = 0} },
 };
-#define ENUMERATE_MAKE_NEW_NUM_ARGS ARRAY_SIZE(enumerate_make_new_args)
+#define ENUMERATE_MAKE_NEW_NUM_ARGS MP_ARRAY_SIZE(enumerate_make_new_args)
 
 STATIC mp_obj_t enumerate_make_new(mp_obj_t type_in, uint n_args, uint n_kw, const mp_obj_t *args) {
 #if MICROPY_CPYTHON_COMPAT

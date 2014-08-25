@@ -51,6 +51,10 @@
  *      s - as argument, the same as "p", as return value, causes string
  *          to be allocated and returned, instead of pointer value.
  *
+ * TODO:
+ *      O - mp_obj_t, passed as is (mostly useful as callback param)
+ *      C - callback function
+ *
  * Note: all constraint specified by typecode can be not enforced at this time,
  * but may be later.
  */
@@ -100,12 +104,15 @@ STATIC ffi_type *char2ffi_type(char c)
     switch (c) {
         case 'b': return &ffi_type_schar;
         case 'B': return &ffi_type_uchar;
+        case 'h': return &ffi_type_sshort;
+        case 'H': return &ffi_type_ushort;
         case 'i': return &ffi_type_sint;
         case 'I': return &ffi_type_uint;
         case 'l': return &ffi_type_slong;
         case 'L': return &ffi_type_ulong;
         case 'f': return &ffi_type_float;
         case 'd': return &ffi_type_double;
+        case 'C': // (*)()
         case 'P': // const void*
         case 'p': // void*
         case 's': return &ffi_type_pointer;
@@ -172,7 +179,7 @@ STATIC mp_obj_t ffimod_func(uint n_args, const mp_obj_t *args) {
 
     void *sym = dlsym(self->handle, symname);
     if (sym == NULL) {
-        nlr_raise(mp_obj_new_exception_arg1(&mp_type_OSError, MP_OBJ_NEW_SMALL_INT((machine_int_t)errno)));
+        nlr_raise(mp_obj_new_exception_arg1(&mp_type_OSError, MP_OBJ_NEW_SMALL_INT(errno)));
     }
     int nparams = MP_OBJ_SMALL_INT_VALUE(mp_obj_len_maybe(args[3]));
     mp_obj_ffifunc_t *o = m_new_obj_var(mp_obj_ffifunc_t, ffi_type*, nparams);
@@ -246,7 +253,7 @@ STATIC mp_obj_t ffimod_var(mp_obj_t self_in, mp_obj_t vartype_in, mp_obj_t symna
 
     void *sym = dlsym(self->handle, symname);
     if (sym == NULL) {
-        nlr_raise(mp_obj_new_exception_arg1(&mp_type_OSError, MP_OBJ_NEW_SMALL_INT((machine_int_t)errno)));
+        nlr_raise(mp_obj_new_exception_arg1(&mp_type_OSError, MP_OBJ_NEW_SMALL_INT(errno)));
     }
     mp_obj_ffivar_t *o = m_new_obj(mp_obj_ffivar_t);
     o->base.type = &ffivar_type;
@@ -262,7 +269,7 @@ STATIC mp_obj_t ffimod_make_new(mp_obj_t type_in, uint n_args, uint n_kw, const 
     void *mod = dlopen(fname, RTLD_NOW | RTLD_LOCAL);
 
     if (mod == NULL) {
-        nlr_raise(mp_obj_new_exception_arg1(&mp_type_OSError, MP_OBJ_NEW_SMALL_INT((machine_int_t)errno)));
+        nlr_raise(mp_obj_new_exception_arg1(&mp_type_OSError, MP_OBJ_NEW_SMALL_INT(errno)));
     }
     mp_obj_ffimod_t *o = m_new_obj(mp_obj_ffimod_t);
     o->base.type = type_in;
@@ -421,8 +428,8 @@ STATIC const mp_obj_dict_t mp_module_ffi_globals = {
     .map = {
         .all_keys_are_qstrs = 1,
         .table_is_fixed_array = 1,
-        .used = ARRAY_SIZE(mp_module_ffi_globals_table),
-        .alloc = ARRAY_SIZE(mp_module_ffi_globals_table),
+        .used = MP_ARRAY_SIZE(mp_module_ffi_globals_table),
+        .alloc = MP_ARRAY_SIZE(mp_module_ffi_globals_table),
         .table = (mp_map_elem_t*)mp_module_ffi_globals_table,
     },
 };

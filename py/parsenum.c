@@ -27,20 +27,21 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "misc.h"
 #include "mpconfig.h"
+#include "misc.h"
 #include "qstr.h"
 #include "nlr.h"
 #include "obj.h"
 #include "parsenumbase.h"
 #include "parsenum.h"
 #include "smallint.h"
+#include "runtime.h"
 
 #if MICROPY_PY_BUILTINS_FLOAT
 #include <math.h>
 #endif
 
-mp_obj_t mp_parse_num_integer(const char *restrict str_, uint len, int base) {
+mp_obj_t mp_parse_num_integer(const char *restrict str_, mp_uint_t len, mp_uint_t base) {
     const byte *restrict str = (const byte *)str_;
     const byte *restrict top = str + len;
     bool neg = false;
@@ -69,11 +70,11 @@ mp_obj_t mp_parse_num_integer(const char *restrict str_, uint len, int base) {
     str += mp_parse_num_base((const char*)str, top - str, &base);
 
     // string should be an integer number
-    machine_int_t int_val = 0;
+    mp_int_t int_val = 0;
     const byte *restrict str_val_start = str;
     for (; str < top; str++) {
         // get next digit as a value
-        int dig = *str;
+        mp_uint_t dig = *str;
         if (unichar_isdigit(dig) && dig - '0' < base) {
             // 0-9 digit
             dig = dig - '0';
@@ -140,11 +141,13 @@ value_error:
     nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_ValueError, "invalid syntax for integer with base %d: '%s'", base, str));
 }
 
-#define PARSE_DEC_IN_INTG (1)
-#define PARSE_DEC_IN_FRAC (2)
-#define PARSE_DEC_IN_EXP  (3)
+typedef enum {
+    PARSE_DEC_IN_INTG,
+    PARSE_DEC_IN_FRAC,
+    PARSE_DEC_IN_EXP,
+} parse_dec_in_t;
 
-mp_obj_t mp_parse_num_decimal(const char *str, uint len, bool allow_imag, bool force_complex) {
+mp_obj_t mp_parse_num_decimal(const char *str, mp_uint_t len, bool allow_imag, bool force_complex) {
 #if MICROPY_PY_BUILTINS_FLOAT
     const char *top = str + len;
     mp_float_t dec_val = 0;
@@ -186,12 +189,12 @@ mp_obj_t mp_parse_num_decimal(const char *str, uint len, bool allow_imag, bool f
         }
     } else {
         // string should be a decimal number
-        int in = PARSE_DEC_IN_INTG;
+        parse_dec_in_t in = PARSE_DEC_IN_INTG;
         bool exp_neg = false;
-        int exp_val = 0;
-        int exp_extra = 0;
+        mp_int_t exp_val = 0;
+        mp_int_t exp_extra = 0;
         for (; str < top; str++) {
-            int dig = *str;
+            mp_uint_t dig = *str;
             if ('0' <= dig && dig <= '9') {
                 dig -= '0';
                 if (in == PARSE_DEC_IN_EXP) {
@@ -252,10 +255,15 @@ mp_obj_t mp_parse_num_decimal(const char *str, uint len, bool allow_imag, bool f
     }
 
     // return the object
+#if MICROPY_PY_BUILTINS_COMPLEX
     if (imag) {
         return mp_obj_new_complex(0, dec_val);
     } else if (force_complex) {
         return mp_obj_new_complex(dec_val, 0);
+#else
+    if (imag || force_complex) {
+        mp_not_implemented("complex values not supported");
+#endif
     } else {
         return mp_obj_new_float(dec_val);
     }

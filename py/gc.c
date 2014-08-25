@@ -33,7 +33,6 @@
 #include "misc.h"
 #include "gc.h"
 
-#include "misc.h"
 #include "qstr.h"
 #include "obj.h"
 #include "runtime.h"
@@ -52,18 +51,18 @@
 #define STACK_SIZE (64) // tunable; minimum is 1
 
 STATIC byte *gc_alloc_table_start;
-STATIC machine_uint_t gc_alloc_table_byte_len;
+STATIC mp_uint_t gc_alloc_table_byte_len;
 #if MICROPY_ENABLE_FINALISER
 STATIC byte *gc_finaliser_table_start;
 #endif
-STATIC machine_uint_t *gc_pool_start;
-STATIC machine_uint_t *gc_pool_end;
+STATIC mp_uint_t *gc_pool_start;
+STATIC mp_uint_t *gc_pool_end;
 
 STATIC int gc_stack_overflow;
-STATIC machine_uint_t gc_stack[STACK_SIZE];
-STATIC machine_uint_t *gc_sp;
-STATIC machine_uint_t gc_lock_depth;
-STATIC machine_uint_t gc_last_free_atb_index;
+STATIC mp_uint_t gc_stack[STACK_SIZE];
+STATIC mp_uint_t *gc_sp;
+STATIC mp_uint_t gc_lock_depth;
+STATIC mp_uint_t gc_last_free_atb_index;
 
 // ATB = allocation table byte
 // 0b00 = FREE -- free block
@@ -95,8 +94,8 @@ STATIC machine_uint_t gc_last_free_atb_index;
 #define ATB_HEAD_TO_MARK(block) do { gc_alloc_table_start[(block) / BLOCKS_PER_ATB] |= (AT_MARK << BLOCK_SHIFT(block)); } while (0)
 #define ATB_MARK_TO_HEAD(block) do { gc_alloc_table_start[(block) / BLOCKS_PER_ATB] &= (~(AT_TAIL << BLOCK_SHIFT(block))); } while (0)
 
-#define BLOCK_FROM_PTR(ptr) (((ptr) - (machine_uint_t)gc_pool_start) / BYTES_PER_BLOCK)
-#define PTR_FROM_BLOCK(block) (((block) * BYTES_PER_BLOCK + (machine_uint_t)gc_pool_start))
+#define BLOCK_FROM_PTR(ptr) (((ptr) - (mp_uint_t)gc_pool_start) / BYTES_PER_BLOCK)
+#define PTR_FROM_BLOCK(block) (((block) * BYTES_PER_BLOCK + (mp_uint_t)gc_pool_start))
 #define ATB_FROM_BLOCK(bl) ((bl) / BLOCKS_PER_ATB)
 
 #if MICROPY_ENABLE_FINALISER
@@ -113,32 +112,35 @@ STATIC machine_uint_t gc_last_free_atb_index;
 // TODO waste less memory; currently requires that all entries in alloc_table have a corresponding block in pool
 void gc_init(void *start, void *end) {
     // align end pointer on block boundary
-    end = (void*)((machine_uint_t)end & (~(BYTES_PER_BLOCK - 1)));
-    DEBUG_printf("Initializing GC heap: %p..%p = " UINT_FMT " bytes\n", start, end, end - start);
+    end = (void*)((mp_uint_t)end & (~(BYTES_PER_BLOCK - 1)));
+    DEBUG_printf("Initializing GC heap: %p..%p = " UINT_FMT " bytes\n", start, end, (byte*)end - (byte*)start);
 
     // calculate parameters for GC (T=total, A=alloc table, F=finaliser table, P=pool; all in bytes):
     // T = A + F + P
     //     F = A * BLOCKS_PER_ATB / BLOCKS_PER_FTB
     //     P = A * BLOCKS_PER_ATB * BYTES_PER_BLOCK
     // => T = A * (1 + BLOCKS_PER_ATB / BLOCKS_PER_FTB + BLOCKS_PER_ATB * BYTES_PER_BLOCK)
-    machine_uint_t total_byte_len = (byte*)end - (byte*)start;
+    mp_uint_t total_byte_len = (byte*)end - (byte*)start;
 #if MICROPY_ENABLE_FINALISER
     gc_alloc_table_byte_len = total_byte_len * BITS_PER_BYTE / (BITS_PER_BYTE + BITS_PER_BYTE * BLOCKS_PER_ATB / BLOCKS_PER_FTB + BITS_PER_BYTE * BLOCKS_PER_ATB * BYTES_PER_BLOCK);
 #else
     gc_alloc_table_byte_len = total_byte_len / (1 + BITS_PER_BYTE / 2 * BYTES_PER_BLOCK);
 #endif
 
-
     gc_alloc_table_start = (byte*)start;
 
 #if MICROPY_ENABLE_FINALISER
-    machine_uint_t gc_finaliser_table_byte_len = (gc_alloc_table_byte_len * BLOCKS_PER_ATB) / BLOCKS_PER_FTB;
+    mp_uint_t gc_finaliser_table_byte_len = (gc_alloc_table_byte_len * BLOCKS_PER_ATB + BLOCKS_PER_FTB - 1) / BLOCKS_PER_FTB;
     gc_finaliser_table_start = gc_alloc_table_start + gc_alloc_table_byte_len;
 #endif
 
-    machine_uint_t gc_pool_block_len = gc_alloc_table_byte_len * BLOCKS_PER_ATB;
-    gc_pool_start = (machine_uint_t*)((byte*)end - gc_pool_block_len * BYTES_PER_BLOCK);
-    gc_pool_end = (machine_uint_t*)end;
+    mp_uint_t gc_pool_block_len = gc_alloc_table_byte_len * BLOCKS_PER_ATB;
+    gc_pool_start = (mp_uint_t*)((byte*)end - gc_pool_block_len * BYTES_PER_BLOCK);
+    gc_pool_end = (mp_uint_t*)end;
+
+#if MICROPY_ENABLE_FINALISER
+    assert((byte*)gc_pool_start >= gc_finaliser_table_start + gc_finaliser_table_byte_len);
+#endif
 
     // clear ATBs
     memset(gc_alloc_table_start, 0, gc_alloc_table_byte_len);
@@ -155,8 +157,9 @@ void gc_init(void *start, void *end) {
         gc_pool_start[i] = 0;
     }
 
+    // set last free ATB index to start of heap
     gc_last_free_atb_index = 0;
-    
+
     // unlock the GC
     gc_lock_depth = 0;
 
@@ -176,16 +179,20 @@ void gc_unlock(void) {
     gc_lock_depth--;
 }
 
+bool gc_is_locked(void) {
+    return gc_lock_depth != 0;
+}
+
 #define VERIFY_PTR(ptr) ( \
         (ptr & (BYTES_PER_BLOCK - 1)) == 0          /* must be aligned on a block */ \
-        && ptr >= (machine_uint_t)gc_pool_start     /* must be above start of pool */ \
-        && ptr < (machine_uint_t)gc_pool_end        /* must be below end of pool */ \
+        && ptr >= (mp_uint_t)gc_pool_start     /* must be above start of pool */ \
+        && ptr < (mp_uint_t)gc_pool_end        /* must be below end of pool */ \
     )
 
 #define VERIFY_MARK_AND_PUSH(ptr) \
     do { \
         if (VERIFY_PTR(ptr)) { \
-            machine_uint_t _block = BLOCK_FROM_PTR(ptr); \
+            mp_uint_t _block = BLOCK_FROM_PTR(ptr); \
             if (ATB_GET_KIND(_block) == AT_HEAD) { \
                 /* an unmarked head, mark it, and push it on gc stack */ \
                 ATB_HEAD_TO_MARK(_block); \
@@ -201,18 +208,18 @@ void gc_unlock(void) {
 STATIC void gc_drain_stack(void) {
     while (gc_sp > gc_stack) {
         // pop the next block off the stack
-        machine_uint_t block = *--gc_sp;
+        mp_uint_t block = *--gc_sp;
 
         // work out number of consecutive blocks in the chain starting with this one
-        machine_uint_t n_blocks = 0;
+        mp_uint_t n_blocks = 0;
         do {
             n_blocks += 1;
         } while (ATB_GET_KIND(block + n_blocks) == AT_TAIL);
 
         // check this block's children
-        machine_uint_t *scan = (machine_uint_t*)PTR_FROM_BLOCK(block);
-        for (machine_uint_t i = n_blocks * WORDS_PER_BLOCK; i > 0; i--, scan++) {
-            machine_uint_t ptr2 = *scan;
+        mp_uint_t *scan = (mp_uint_t*)PTR_FROM_BLOCK(block);
+        for (mp_uint_t i = n_blocks * WORDS_PER_BLOCK; i > 0; i--, scan++) {
+            mp_uint_t ptr2 = *scan;
             VERIFY_MARK_AND_PUSH(ptr2);
         }
     }
@@ -224,7 +231,7 @@ STATIC void gc_deal_with_stack_overflow(void) {
         gc_sp = gc_stack;
 
         // scan entire memory looking for blocks which have been marked but not their children
-        for (machine_uint_t block = 0; block < gc_alloc_table_byte_len * BLOCKS_PER_ATB; block++) {
+        for (mp_uint_t block = 0; block < gc_alloc_table_byte_len * BLOCKS_PER_ATB; block++) {
             // trace (again) if mark bit set
             if (ATB_GET_KIND(block) == AT_MARK) {
                 *gc_sp++ = block;
@@ -244,7 +251,7 @@ STATIC void gc_sweep(void) {
     #endif
     // free unmarked heads and their tails
     int free_tail = 0;
-    for (machine_uint_t block = 0; block < gc_alloc_table_byte_len * BLOCKS_PER_ATB; block++) {
+    for (mp_uint_t block = 0; block < gc_alloc_table_byte_len * BLOCKS_PER_ATB; block++) {
         switch (ATB_GET_KIND(block)) {
             case AT_HEAD:
 #if MICROPY_ENABLE_FINALISER
@@ -271,6 +278,7 @@ STATIC void gc_sweep(void) {
 
             case AT_TAIL:
                 if (free_tail) {
+                    DEBUG_printf("gc_sweep(%p)\n",PTR_FROM_BLOCK(block));
                     ATB_ANY_TO_FREE(block);
                 }
                 break;
@@ -289,9 +297,9 @@ void gc_collect_start(void) {
     gc_sp = gc_stack;
 }
 
-void gc_collect_root(void **ptrs, machine_uint_t len) {
-    for (machine_uint_t i = 0; i < len; i++) {
-        machine_uint_t ptr = (machine_uint_t)ptrs[i];
+void gc_collect_root(void **ptrs, mp_uint_t len) {
+    for (mp_uint_t i = 0; i < len; i++) {
+        mp_uint_t ptr = (mp_uint_t)ptrs[i];
         VERIFY_MARK_AND_PUSH(ptr);
         gc_drain_stack();
     }
@@ -305,14 +313,14 @@ void gc_collect_end(void) {
 }
 
 void gc_info(gc_info_t *info) {
-    info->total = (gc_pool_end - gc_pool_start) * sizeof(machine_uint_t);
+    info->total = (gc_pool_end - gc_pool_start) * sizeof(mp_uint_t);
     info->used = 0;
     info->free = 0;
     info->num_1block = 0;
     info->num_2block = 0;
     info->max_block = 0;
-    for (machine_uint_t block = 0, len = 0; block < gc_alloc_table_byte_len * BLOCKS_PER_ATB; block++) {
-        machine_uint_t kind = ATB_GET_KIND(block);
+    for (mp_uint_t block = 0, len = 0; block < gc_alloc_table_byte_len * BLOCKS_PER_ATB; block++) {
+        mp_uint_t kind = ATB_GET_KIND(block);
         if (kind == AT_FREE || kind == AT_HEAD) {
             if (len == 1) {
                 info->num_1block += 1;
@@ -349,8 +357,8 @@ void gc_info(gc_info_t *info) {
     info->free *= BYTES_PER_BLOCK;
 }
 
-void *gc_alloc(machine_uint_t n_bytes, bool has_finaliser) {
-    machine_uint_t n_blocks = ((n_bytes + BYTES_PER_BLOCK - 1) & (~(BYTES_PER_BLOCK - 1))) / BYTES_PER_BLOCK;
+void *gc_alloc(mp_uint_t n_bytes, bool has_finaliser) {
+    mp_uint_t n_blocks = ((n_bytes + BYTES_PER_BLOCK - 1) & (~(BYTES_PER_BLOCK - 1))) / BYTES_PER_BLOCK;
     DEBUG_printf("gc_alloc(" UINT_FMT " bytes -> " UINT_FMT " blocks)\n", n_bytes, n_blocks);
 
     // check if GC is locked
@@ -363,15 +371,15 @@ void *gc_alloc(machine_uint_t n_bytes, bool has_finaliser) {
         return NULL;
     }
 
-    machine_uint_t i;
-    machine_uint_t end_block;
-    machine_uint_t start_block;
-    machine_uint_t n_free = 0;
+    mp_uint_t i;
+    mp_uint_t end_block;
+    mp_uint_t start_block;
+    mp_uint_t n_free = 0;
     int collected = 0;
     for (;;) {
 
         // look for a run of n_blocks available blocks
-       for (i = gc_last_free_atb_index; i < gc_alloc_table_byte_len; i++) {
+        for (i = gc_last_free_atb_index; i < gc_alloc_table_byte_len; i++) {
             byte a = gc_alloc_table_start[i];
             if (ATB_0_IS_FREE(a)) { if (++n_free >= n_blocks) { i = i * BLOCKS_PER_ATB + 0; goto found; } } else { n_free = 0; }
             if (ATB_1_IS_FREE(a)) { if (++n_free >= n_blocks) { i = i * BLOCKS_PER_ATB + 1; goto found; } } else { n_free = 0; }
@@ -401,6 +409,7 @@ found:
     end_block = i;
     start_block = i - n_free + 1;
 
+    // set last free ATB index to last block we found, for start of next scan
     gc_last_free_atb_index = i / BLOCKS_PER_ATB;
 
     // mark first block as used head
@@ -408,12 +417,13 @@ found:
 
     // mark rest of blocks as used tail
     // TODO for a run of many blocks can make this more efficient
-    for (machine_uint_t bl = start_block + 1; bl <= end_block; bl++) {
+    for (mp_uint_t bl = start_block + 1; bl <= end_block; bl++) {
         ATB_FREE_TO_TAIL(bl);
     }
 
     // get pointer to first block
     void *ret_ptr = (void*)(gc_pool_start + start_block * WORDS_PER_BLOCK);
+    DEBUG_printf("gc_alloc(%p)\n", ret_ptr);
 
     // zero out the additional bytes of the newly allocated blocks
     // This is needed because the blocks may have previously held pointers
@@ -435,11 +445,11 @@ found:
 }
 
 /*
-void *gc_alloc(machine_uint_t n_bytes) {
+void *gc_alloc(mp_uint_t n_bytes) {
     return _gc_alloc(n_bytes, false);
 }
 
-void *gc_alloc_with_finaliser(machine_uint_t n_bytes) {
+void *gc_alloc_with_finaliser(mp_uint_t n_bytes) {
     return _gc_alloc(n_bytes, true);
 }
 */
@@ -451,10 +461,11 @@ void gc_free(void *ptr_in) {
         return;
     }
 
-    machine_uint_t ptr = (machine_uint_t)ptr_in;
+    mp_uint_t ptr = (mp_uint_t)ptr_in;
+    DEBUG_printf("gc_free(%p)\n", ptr);
 
     if (VERIFY_PTR(ptr)) {
-        machine_uint_t block = BLOCK_FROM_PTR(ptr);
+        mp_uint_t block = BLOCK_FROM_PTR(ptr);
         if (ATB_GET_KIND(block) == AT_HEAD) {
             // free head and all of its tail blocks
             do {
@@ -465,14 +476,14 @@ void gc_free(void *ptr_in) {
     }
 }
 
-machine_uint_t gc_nbytes(void *ptr_in) {
-    machine_uint_t ptr = (machine_uint_t)ptr_in;
+mp_uint_t gc_nbytes(void *ptr_in) {
+    mp_uint_t ptr = (mp_uint_t)ptr_in;
 
     if (VERIFY_PTR(ptr)) {
-        machine_uint_t block = BLOCK_FROM_PTR(ptr);
+        mp_uint_t block = BLOCK_FROM_PTR(ptr);
         if (ATB_GET_KIND(block) == AT_HEAD) {
             // work out number of consecutive blocks in the chain starting with this on
-            machine_uint_t n_blocks = 0;
+            mp_uint_t n_blocks = 0;
             do {
                 n_blocks += 1;
             } while (ATB_GET_KIND(block + n_blocks) == AT_TAIL);
@@ -486,8 +497,8 @@ machine_uint_t gc_nbytes(void *ptr_in) {
 
 #if 0
 // old, simple realloc that didn't expand memory in place
-void *gc_realloc(void *ptr, machine_uint_t n_bytes) {
-    machine_uint_t n_existing = gc_nbytes(ptr);
+void *gc_realloc(void *ptr, mp_uint_t n_bytes) {
+    mp_uint_t n_existing = gc_nbytes(ptr);
     if (n_bytes <= n_existing) {
         return ptr;
     } else {
@@ -496,7 +507,7 @@ void *gc_realloc(void *ptr, machine_uint_t n_bytes) {
             has_finaliser = false;
         } else {
 #if MICROPY_ENABLE_FINALISER
-            has_finaliser = FTB_GET(BLOCK_FROM_PTR((machine_uint_t)ptr));
+            has_finaliser = FTB_GET(BLOCK_FROM_PTR((mp_uint_t)ptr));
 #else
             has_finaliser = false;
 #endif
@@ -513,7 +524,7 @@ void *gc_realloc(void *ptr, machine_uint_t n_bytes) {
 
 #else // Alternative gc_realloc impl
 
-void *gc_realloc(void *ptr_in, machine_uint_t n_bytes) {
+void *gc_realloc(void *ptr_in, mp_uint_t n_bytes) {
     if (gc_lock_depth > 0) {
         return NULL;
     }
@@ -523,7 +534,7 @@ void *gc_realloc(void *ptr_in, machine_uint_t n_bytes) {
         return gc_alloc(n_bytes, false);
     }
 
-    machine_uint_t ptr = (machine_uint_t)ptr_in;
+    mp_uint_t ptr = (mp_uint_t)ptr_in;
 
     // sanity check the ptr
     if (!VERIFY_PTR(ptr)) {
@@ -531,7 +542,7 @@ void *gc_realloc(void *ptr_in, machine_uint_t n_bytes) {
     }
 
     // get first block
-    machine_uint_t block = BLOCK_FROM_PTR(ptr);
+    mp_uint_t block = BLOCK_FROM_PTR(ptr);
 
     // sanity check the ptr is pointing to the head of a block
     if (ATB_GET_KIND(block) != AT_HEAD) {
@@ -539,14 +550,14 @@ void *gc_realloc(void *ptr_in, machine_uint_t n_bytes) {
     }
 
     // compute number of new blocks that are requested
-    machine_uint_t new_blocks = (n_bytes + BYTES_PER_BLOCK - 1) / BYTES_PER_BLOCK;
+    mp_uint_t new_blocks = (n_bytes + BYTES_PER_BLOCK - 1) / BYTES_PER_BLOCK;
 
     // get the number of consecutive tail blocks and
     // the number of free blocks after last tail block
     // stop if we reach (or are at) end of heap
-    machine_uint_t n_free   = 0;
-    machine_uint_t n_blocks = 1; // counting HEAD block
-    machine_uint_t max_block = gc_alloc_table_byte_len * BLOCKS_PER_ATB;
+    mp_uint_t n_free   = 0;
+    mp_uint_t n_blocks = 1; // counting HEAD block
+    mp_uint_t max_block = gc_alloc_table_byte_len * BLOCKS_PER_ATB;
     while (block + n_blocks + n_free < max_block) {
         if (n_blocks + n_free >= new_blocks) {
             // stop as soon as we find enough blocks for n_bytes
@@ -569,7 +580,7 @@ void *gc_realloc(void *ptr_in, machine_uint_t n_bytes) {
     // check if we can shrink the allocated area
     if (new_blocks < n_blocks) {
         // free unneeded tail blocks
-        for (machine_uint_t bl = block + new_blocks; ATB_GET_KIND(bl) == AT_TAIL; bl++) {
+        for (mp_uint_t bl = block + new_blocks; ATB_GET_KIND(bl) == AT_TAIL; bl++) {
             ATB_ANY_TO_FREE(bl);
         }
         return ptr_in;
@@ -578,7 +589,7 @@ void *gc_realloc(void *ptr_in, machine_uint_t n_bytes) {
     // check if we can expand in place
     if (new_blocks <= n_blocks + n_free) {
         // mark few more blocks as used tail
-        for (machine_uint_t bl = block + n_blocks; bl < block + new_blocks; bl++) {
+        for (mp_uint_t bl = block + n_blocks; bl < block + new_blocks; bl++) {
             assert(ATB_GET_KIND(bl) == AT_FREE);
             ATB_FREE_TO_TAIL(bl);
         }
@@ -603,7 +614,7 @@ void *gc_realloc(void *ptr_in, machine_uint_t n_bytes) {
         return NULL;
     }
 
-    DEBUG_printf("gc_realloc: allocating new block\n");
+    DEBUG_printf("gc_realloc(%p -> %p)\n", ptr_in, ptr_out);
     memcpy(ptr_out, ptr_in, n_blocks * BYTES_PER_BLOCK);
     gc_free(ptr_in);
     return ptr_out;
@@ -620,7 +631,7 @@ void gc_dump_info() {
 
 void gc_dump_alloc_table(void) {
     printf("GC memory layout; from %p:", gc_pool_start);
-    for (machine_uint_t bl = 0; bl < gc_alloc_table_byte_len * BLOCKS_PER_ATB; bl++) {
+    for (mp_uint_t bl = 0; bl < gc_alloc_table_byte_len * BLOCKS_PER_ATB; bl++) {
         if (bl % 64 == 0) {
             printf("\n%04x: ", (uint)bl);
         }
@@ -630,12 +641,12 @@ void gc_dump_alloc_table(void) {
             case AT_HEAD: c = 'h'; break;
             /* this prints the uPy object type of the head block
             case AT_HEAD: {
-                machine_uint_t *ptr = gc_pool_start + bl * WORDS_PER_BLOCK;
-                if (*ptr == (machine_uint_t)&mp_type_tuple) { c = 'T'; }
-                else if (*ptr == (machine_uint_t)&mp_type_list) { c = 'L'; }
-                else if (*ptr == (machine_uint_t)&mp_type_dict) { c = 'D'; }
-                else if (*ptr == (machine_uint_t)&mp_type_float) { c = 'F'; }
-                else if (*ptr == (machine_uint_t)&mp_type_fun_bc) { c = 'B'; }
+                mp_uint_t *ptr = gc_pool_start + bl * WORDS_PER_BLOCK;
+                if (*ptr == (mp_uint_t)&mp_type_tuple) { c = 'T'; }
+                else if (*ptr == (mp_uint_t)&mp_type_list) { c = 'L'; }
+                else if (*ptr == (mp_uint_t)&mp_type_dict) { c = 'D'; }
+                else if (*ptr == (mp_uint_t)&mp_type_float) { c = 'F'; }
+                else if (*ptr == (mp_uint_t)&mp_type_fun_bc) { c = 'B'; }
                 else { c = 'h'; }
                 break;
             }
@@ -650,23 +661,23 @@ void gc_dump_alloc_table(void) {
 
 #if DEBUG_PRINT
 void gc_test(void) {
-    machine_uint_t len = 500;
-    machine_uint_t *heap = malloc(len);
-    gc_init(heap, heap + len / sizeof(machine_uint_t));
+    mp_uint_t len = 500;
+    mp_uint_t *heap = malloc(len);
+    gc_init(heap, heap + len / sizeof(mp_uint_t));
     void *ptrs[100];
     {
-        machine_uint_t **p = gc_alloc(16, false);
+        mp_uint_t **p = gc_alloc(16, false);
         p[0] = gc_alloc(64, false);
         p[1] = gc_alloc(1, false);
         p[2] = gc_alloc(1, false);
         p[3] = gc_alloc(1, false);
-        machine_uint_t ***p2 = gc_alloc(16, false);
+        mp_uint_t ***p2 = gc_alloc(16, false);
         p2[0] = p;
         p2[1] = p;
         ptrs[0] = p2;
     }
     for (int i = 0; i < 25; i+=2) {
-        machine_uint_t *p = gc_alloc(i, false);
+        mp_uint_t *p = gc_alloc(i, false);
         printf("p=%p\n", p);
         if (i & 3) {
             //ptrs[i] = p;

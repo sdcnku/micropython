@@ -24,8 +24,8 @@
  * THE SOFTWARE.
  */
 
-#include "misc.h"
 #include "mpconfig.h"
+#include "misc.h"
 #include "qstr.h"
 #include "obj.h"
 #include "builtin.h"
@@ -35,20 +35,24 @@
 
 #if MICROPY_MEM_STATS
 STATIC mp_obj_t mp_micropython_mem_total() {
-    return MP_OBJ_NEW_SMALL_INT((machine_int_t)m_get_total_bytes_allocated());
+    return MP_OBJ_NEW_SMALL_INT(m_get_total_bytes_allocated());
 }
 
 STATIC mp_obj_t mp_micropython_mem_current() {
-    return MP_OBJ_NEW_SMALL_INT((machine_int_t)m_get_current_bytes_allocated());
+    return MP_OBJ_NEW_SMALL_INT(m_get_current_bytes_allocated());
 }
 
 STATIC mp_obj_t mp_micropython_mem_peak() {
-    return MP_OBJ_NEW_SMALL_INT((machine_int_t)m_get_peak_bytes_allocated());
+    return MP_OBJ_NEW_SMALL_INT(m_get_peak_bytes_allocated());
 }
 
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(mp_micropython_mem_total_obj, mp_micropython_mem_total);
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(mp_micropython_mem_current_obj, mp_micropython_mem_current);
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(mp_micropython_mem_peak_obj, mp_micropython_mem_peak);
+#endif
+
+#if MICROPY_ENABLE_EMERGENCY_EXCEPTION_BUF && (MICROPY_EMERGENCY_EXCEPTION_BUF_SIZE == 0)
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(mp_alloc_emergency_exception_buf_obj, mp_alloc_emergency_exception_buf);
 #endif
 
 STATIC const mp_map_elem_t mp_module_micropython_globals_table[] = {
@@ -58,6 +62,9 @@ STATIC const mp_map_elem_t mp_module_micropython_globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_mem_current), (mp_obj_t)&mp_micropython_mem_current_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_mem_peak), (mp_obj_t)&mp_micropython_mem_peak_obj },
 #endif
+#if MICROPY_ENABLE_EMERGENCY_EXCEPTION_BUF && (MICROPY_EMERGENCY_EXCEPTION_BUF_SIZE == 0)
+    { MP_OBJ_NEW_QSTR(MP_QSTR_alloc_emergency_exception_buf), (mp_obj_t)&mp_alloc_emergency_exception_buf_obj },
+#endif
 };
 
 STATIC const mp_obj_dict_t mp_module_micropython_globals = {
@@ -65,8 +72,8 @@ STATIC const mp_obj_dict_t mp_module_micropython_globals = {
     .map = {
         .all_keys_are_qstrs = 1,
         .table_is_fixed_array = 1,
-        .used = ARRAY_SIZE(mp_module_micropython_globals_table),
-        .alloc = ARRAY_SIZE(mp_module_micropython_globals_table),
+        .used = MP_ARRAY_SIZE(mp_module_micropython_globals_table),
+        .alloc = MP_ARRAY_SIZE(mp_module_micropython_globals_table),
         .table = (mp_map_elem_t*)mp_module_micropython_globals_table,
     },
 };

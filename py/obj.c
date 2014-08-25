@@ -24,6 +24,7 @@
  * THE SOFTWARE.
  */
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <assert.h>
@@ -33,8 +34,11 @@
 #include "misc.h"
 #include "qstr.h"
 #include "obj.h"
+#include "mpz.h"
+#include "objint.h"
 #include "runtime0.h"
 #include "runtime.h"
+#include "stackctrl.h"
 
 mp_obj_type_t *mp_obj_get_type(mp_const_obj_t o_in) {
     if (MP_OBJ_IS_SMALL_INT(o_in)) {
@@ -59,6 +63,8 @@ void printf_wrapper(void *env, const char *fmt, ...) {
 }
 
 void mp_obj_print_helper(void (*print)(void *env, const char *fmt, ...), void *env, mp_obj_t o_in, mp_print_kind_t kind) {
+    // There can be data structures nested too deep, or just recursive
+    MP_STACK_CHECK();
 #if !NDEBUG
     if (o_in == NULL) {
         print(env, "(nil)");
@@ -80,7 +86,7 @@ void mp_obj_print(mp_obj_t o_in, mp_print_kind_t kind) {
 // helper function to print an exception with traceback
 void mp_obj_print_exception(mp_obj_t exc) {
     if (mp_obj_is_exception_instance(exc)) {
-        machine_uint_t n, *values;
+        mp_uint_t n, *values;
         mp_obj_exception_get_traceback(exc, &n, &values);
         if (n > 0) {
             assert(n % 3 == 0);
@@ -142,23 +148,25 @@ bool mp_obj_is_callable(mp_obj_t o_in) {
     return mp_obj_get_type(o_in)->call != NULL;
 }
 
-machine_int_t mp_obj_hash(mp_obj_t o_in) {
+mp_int_t mp_obj_hash(mp_obj_t o_in) {
     if (o_in == mp_const_false) {
         return 0; // needs to hash to same as the integer 0, since False==0
     } else if (o_in == mp_const_true) {
         return 1; // needs to hash to same as the integer 1, since True==1
     } else if (MP_OBJ_IS_SMALL_INT(o_in)) {
         return MP_OBJ_SMALL_INT_VALUE(o_in);
+    } else if (MP_OBJ_IS_TYPE(o_in, &mp_type_int)) {
+        return mp_obj_int_hash(o_in);
     } else if (MP_OBJ_IS_STR(o_in) || MP_OBJ_IS_TYPE(o_in, &mp_type_bytes)) {
         return mp_obj_str_get_hash(o_in);
     } else if (MP_OBJ_IS_TYPE(o_in, &mp_type_NoneType)) {
-        return (machine_int_t)o_in;
-    } else if (MP_OBJ_IS_TYPE(o_in, &mp_type_fun_native) || MP_OBJ_IS_TYPE(o_in, &mp_type_fun_bc)) {
-        return (machine_int_t)o_in;
+        return (mp_int_t)o_in;
+    } else if (MP_OBJ_IS_FUN(o_in)) {
+        return (mp_int_t)o_in;
     } else if (MP_OBJ_IS_TYPE(o_in, &mp_type_tuple)) {
         return mp_obj_tuple_hash(o_in);
     } else if (MP_OBJ_IS_TYPE(o_in, &mp_type_type)) {
-        return (machine_int_t)o_in;
+        return (mp_int_t)o_in;
 
     // TODO hash class and instances
     // TODO delegate to __hash__ method if it exists
@@ -222,7 +230,7 @@ bool mp_obj_equal(mp_obj_t o1, mp_obj_t o2) {
     return false;
 }
 
-machine_int_t mp_obj_get_int(mp_const_obj_t arg) {
+mp_int_t mp_obj_get_int(mp_const_obj_t arg) {
     // This function essentially performs implicit type conversion to int
     // Note that Python does NOT provide implicit type conversion from
     // float to int in the core expression language, try some_list[1.0].
@@ -241,8 +249,8 @@ machine_int_t mp_obj_get_int(mp_const_obj_t arg) {
 
 // returns false if arg is not of integral type
 // returns true and sets *value if it is of integral type
-// can throw OverflowError if arg is of integral type, but doesn't fit in a machine_int_t
-bool mp_obj_get_int_maybe(mp_const_obj_t arg, machine_int_t *value) {
+// can throw OverflowError if arg is of integral type, but doesn't fit in a mp_int_t
+bool mp_obj_get_int_maybe(mp_const_obj_t arg, mp_int_t *value) {
     if (arg == mp_const_false) {
         *value = 0;
     } else if (arg == mp_const_true) {
@@ -274,6 +282,7 @@ mp_float_t mp_obj_get_float(mp_obj_t arg) {
     }
 }
 
+#if MICROPY_PY_BUILTINS_COMPLEX
 void mp_obj_get_complex(mp_obj_t arg, mp_float_t *real, mp_float_t *imag) {
     if (arg == mp_const_false) {
         *real = 0;
@@ -296,6 +305,7 @@ void mp_obj_get_complex(mp_obj_t arg, mp_float_t *real, mp_float_t *imag) {
         nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_TypeError, "can't convert %s to complex", mp_obj_get_type_str(arg)));
     }
 }
+#endif
 #endif
 
 void mp_obj_get_array(mp_obj_t o, uint *len, mp_obj_t **items) {
@@ -325,8 +335,8 @@ void mp_obj_get_array_fixed_n(mp_obj_t o, uint len, mp_obj_t **items) {
 }
 
 // is_slice determines whether the index is a slice index
-uint mp_get_index(const mp_obj_type_t *type, machine_uint_t len, mp_obj_t index, bool is_slice) {
-    machine_int_t i;
+uint mp_get_index(const mp_obj_type_t *type, mp_uint_t len, mp_obj_t index, bool is_slice) {
+    mp_int_t i;
     if (MP_OBJ_IS_SMALL_INT(index)) {
         i = MP_OBJ_SMALL_INT_VALUE(index);
     } else if (!mp_obj_get_int_maybe(index, &i)) {
@@ -350,10 +360,25 @@ uint mp_get_index(const mp_obj_type_t *type, machine_uint_t len, mp_obj_t index,
     return i;
 }
 
+// will raise a TypeError if object has no length
+mp_obj_t mp_obj_len(mp_obj_t o_in) {
+    mp_obj_t len = mp_obj_len_maybe(o_in);
+    if (len == MP_OBJ_NULL) {
+        nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_TypeError, "object of type '%s' has no len()", mp_obj_get_type_str(o_in)));
+    } else {
+        return len;
+    }
+}
+
 // may return MP_OBJ_NULL
 mp_obj_t mp_obj_len_maybe(mp_obj_t o_in) {
-    if (MP_OBJ_IS_STR(o_in) || MP_OBJ_IS_TYPE(o_in, &mp_type_bytes)) {
-        return MP_OBJ_NEW_SMALL_INT((machine_int_t)mp_obj_str_get_len(o_in));
+    if (
+#if !MICROPY_PY_BUILTINS_STR_UNICODE
+        // It's simple - unicode is slow, non-unicode is fast
+        MP_OBJ_IS_STR(o_in) ||
+#endif
+        MP_OBJ_IS_TYPE(o_in, &mp_type_bytes)) {
+        return MP_OBJ_NEW_SMALL_INT(mp_obj_str_get_len(o_in));
     } else {
         mp_obj_type_t *type = mp_obj_get_type(o_in);
         if (type->unary_op != NULL) {
@@ -395,7 +420,7 @@ bool mp_get_buffer(mp_obj_t obj, mp_buffer_info_t *bufinfo, int flags) {
         return false;
     }
     int ret = type->buffer_p.get_buffer(obj, bufinfo, flags);
-    if (ret != 0 || bufinfo->buf == NULL) {
+    if (ret != 0) {
         return false;
     }
     return true;

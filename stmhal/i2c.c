@@ -220,7 +220,7 @@ STATIC const mp_arg_t pyb_i2c_init_args[] = {
     { MP_QSTR_baudrate, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 400000} },
     { MP_QSTR_gencall,  MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = false} },
 };
-#define PYB_I2C_INIT_NUM_ARGS ARRAY_SIZE(pyb_i2c_init_args)
+#define PYB_I2C_INIT_NUM_ARGS MP_ARRAY_SIZE(pyb_i2c_init_args)
 
 STATIC mp_obj_t pyb_i2c_init_helper(const pyb_i2c_obj_t *self, uint n_args, const mp_obj_t *args, mp_map_t *kw_args) {
     // parse args
@@ -268,10 +268,10 @@ STATIC mp_obj_t pyb_i2c_make_new(mp_obj_t type_in, uint n_args, uint n_kw, const
     mp_arg_check_num(n_args, n_kw, 1, MP_OBJ_FUN_ARGS_MAX, true);
 
     // get i2c number
-    machine_int_t i2c_id = mp_obj_get_int(args[0]) - 1;
+    mp_int_t i2c_id = mp_obj_get_int(args[0]) - 1;
 
     // check i2c number
-    if (!(0 <= i2c_id && i2c_id < ARRAY_SIZE(pyb_i2c_obj) && pyb_i2c_obj[i2c_id].i2c != NULL)) {
+    if (!(0 <= i2c_id && i2c_id < MP_ARRAY_SIZE(pyb_i2c_obj) && pyb_i2c_obj[i2c_id].i2c != NULL)) {
         nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_ValueError, "I2C bus %d does not exist", i2c_id + 1));
     }
 
@@ -311,7 +311,7 @@ STATIC mp_obj_t pyb_i2c_is_ready(mp_obj_t self_in, mp_obj_t i2c_addr_o) {
         nlr_raise(mp_obj_new_exception_msg(&mp_type_TypeError, "I2C must be a master"));
     }
 
-    machine_uint_t i2c_addr = mp_obj_get_int(i2c_addr_o) << 1;
+    mp_uint_t i2c_addr = mp_obj_get_int(i2c_addr_o) << 1;
 
     for (int i = 0; i < 10; i++) {
         HAL_StatusTypeDef status = HAL_I2C_IsDeviceReady(self->i2c, i2c_addr, 10, 200);
@@ -363,7 +363,7 @@ STATIC const mp_arg_t pyb_i2c_send_args[] = {
     { MP_QSTR_addr,    MP_ARG_INT, {.u_int = PYB_I2C_MASTER_ADDRESS} },
     { MP_QSTR_timeout, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 5000} },
 };
-#define PYB_I2C_SEND_NUM_ARGS ARRAY_SIZE(pyb_i2c_send_args)
+#define PYB_I2C_SEND_NUM_ARGS MP_ARRAY_SIZE(pyb_i2c_send_args)
 
 STATIC mp_obj_t pyb_i2c_send(uint n_args, const mp_obj_t *args, mp_map_t *kw_args) {
     pyb_i2c_obj_t *self = args[0];
@@ -383,7 +383,7 @@ STATIC mp_obj_t pyb_i2c_send(uint n_args, const mp_obj_t *args, mp_map_t *kw_arg
         if (vals[1].u_int == PYB_I2C_MASTER_ADDRESS) {
             nlr_raise(mp_obj_new_exception_msg(&mp_type_TypeError, "addr argument required"));
         }
-        machine_uint_t i2c_addr = vals[1].u_int << 1;
+        mp_uint_t i2c_addr = vals[1].u_int << 1;
         status = HAL_I2C_Master_Transmit(self->i2c, i2c_addr, bufinfo.buf, bufinfo.len, vals[2].u_int);
     } else {
         status = HAL_I2C_Slave_Transmit(self->i2c, bufinfo.buf, bufinfo.len, vals[2].u_int);
@@ -414,7 +414,7 @@ STATIC const mp_arg_t pyb_i2c_recv_args[] = {
     { MP_QSTR_addr,    MP_ARG_INT, {.u_int = PYB_I2C_MASTER_ADDRESS} },
     { MP_QSTR_timeout, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 5000} },
 };
-#define PYB_I2C_RECV_NUM_ARGS ARRAY_SIZE(pyb_i2c_recv_args)
+#define PYB_I2C_RECV_NUM_ARGS MP_ARRAY_SIZE(pyb_i2c_recv_args)
 
 STATIC mp_obj_t pyb_i2c_recv(uint n_args, const mp_obj_t *args, mp_map_t *kw_args) {
     pyb_i2c_obj_t *self = args[0];
@@ -433,7 +433,7 @@ STATIC mp_obj_t pyb_i2c_recv(uint n_args, const mp_obj_t *args, mp_map_t *kw_arg
         if (vals[1].u_int == PYB_I2C_MASTER_ADDRESS) {
             nlr_raise(mp_obj_new_exception_msg(&mp_type_TypeError, "addr argument required"));
         }
-        machine_uint_t i2c_addr = vals[1].u_int << 1;
+        mp_uint_t i2c_addr = vals[1].u_int << 1;
         status = HAL_I2C_Master_Receive(self->i2c, i2c_addr, bufinfo.buf, bufinfo.len, vals[2].u_int);
     } else {
         status = HAL_I2C_Slave_Receive(self->i2c, bufinfo.buf, bufinfo.len, vals[2].u_int);
@@ -453,7 +453,7 @@ STATIC mp_obj_t pyb_i2c_recv(uint n_args, const mp_obj_t *args, mp_map_t *kw_arg
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(pyb_i2c_recv_obj, 1, pyb_i2c_recv);
 
-/// \method mem_read(data, addr, memaddr, timeout=5000)
+/// \method mem_read(data, addr, memaddr, timeout=5000, addr_size=8)
 ///
 /// Read from the memory of an I2C device:
 ///
@@ -461,6 +461,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(pyb_i2c_recv_obj, 1, pyb_i2c_recv);
 ///   - `addr` is the I2C device address
 ///   - `memaddr` is the memory location within the I2C device
 ///   - `timeout` is the timeout in milliseconds to wait for the read
+///   - `addr_size` selects width of memaddr: 8 or 16 bits
 ///
 /// Returns the read data.
 /// This is only valid in master mode.
@@ -469,8 +470,9 @@ STATIC const mp_arg_t pyb_i2c_mem_read_args[] = {
     { MP_QSTR_addr,    MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
     { MP_QSTR_memaddr, MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
     { MP_QSTR_timeout, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 5000} },
+    { MP_QSTR_addr_size, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 8} },
 };
-#define PYB_I2C_MEM_READ_NUM_ARGS ARRAY_SIZE(pyb_i2c_mem_read_args)
+#define PYB_I2C_MEM_READ_NUM_ARGS MP_ARRAY_SIZE(pyb_i2c_mem_read_args)
 
 STATIC mp_obj_t pyb_i2c_mem_read(uint n_args, const mp_obj_t *args, mp_map_t *kw_args) {
     pyb_i2c_obj_t *self = args[0];
@@ -488,10 +490,15 @@ STATIC mp_obj_t pyb_i2c_mem_read(uint n_args, const mp_obj_t *args, mp_map_t *kw
     mp_obj_t o_ret = pyb_buf_get_for_recv(vals[0].u_obj, &bufinfo);
 
     // get the addresses
-    machine_uint_t i2c_addr = vals[1].u_int << 1;
-    machine_uint_t mem_addr = vals[2].u_int;
+    mp_uint_t i2c_addr = vals[1].u_int << 1;
+    mp_uint_t mem_addr = vals[2].u_int;
+    // determine width of mem_addr; default is 8 bits, entering any other value gives 16 bit width
+    mp_uint_t mem_addr_size = I2C_MEMADD_SIZE_8BIT;
+    if (vals[4].u_int != 8) {
+        mem_addr_size = I2C_MEMADD_SIZE_16BIT;
+    }
 
-    HAL_StatusTypeDef status = HAL_I2C_Mem_Read(self->i2c, i2c_addr, mem_addr, I2C_MEMADD_SIZE_8BIT, bufinfo.buf, bufinfo.len, vals[3].u_int);
+    HAL_StatusTypeDef status = HAL_I2C_Mem_Read(self->i2c, i2c_addr, mem_addr, mem_addr_size, bufinfo.buf, bufinfo.len, vals[3].u_int);
 
     if (status != HAL_OK) {
         // TODO really need a HardwareError object, or something
@@ -507,7 +514,7 @@ STATIC mp_obj_t pyb_i2c_mem_read(uint n_args, const mp_obj_t *args, mp_map_t *kw
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(pyb_i2c_mem_read_obj, 1, pyb_i2c_mem_read);
 
-/// \method mem_write(data, addr, memaddr, timeout=5000)
+/// \method mem_write(data, addr, memaddr, timeout=5000, addr_size=8)
 ///
 /// Write to the memory of an I2C device:
 ///
@@ -515,6 +522,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(pyb_i2c_mem_read_obj, 1, pyb_i2c_mem_read);
 ///   - `addr` is the I2C device address
 ///   - `memaddr` is the memory location within the I2C device
 ///   - `timeout` is the timeout in milliseconds to wait for the write
+///   - `addr_size` selects width of memaddr: 8 or 16 bits
 ///
 /// Returns `None`.
 /// This is only valid in master mode.
@@ -535,10 +543,15 @@ STATIC mp_obj_t pyb_i2c_mem_write(uint n_args, const mp_obj_t *args, mp_map_t *k
     pyb_buf_get_for_send(vals[0].u_obj, &bufinfo, data);
 
     // get the addresses
-    machine_uint_t i2c_addr = vals[1].u_int << 1;
-    machine_uint_t mem_addr = vals[2].u_int;
+    mp_uint_t i2c_addr = vals[1].u_int << 1;
+    mp_uint_t mem_addr = vals[2].u_int;
+    // determine width of mem_addr; default is 8 bits, entering any other value gives 16 bit width
+    mp_uint_t mem_addr_size = I2C_MEMADD_SIZE_8BIT;
+    if (vals[4].u_int != 8) {
+        mem_addr_size = I2C_MEMADD_SIZE_16BIT;
+    }
 
-    HAL_StatusTypeDef status = HAL_I2C_Mem_Write(self->i2c, i2c_addr, mem_addr, I2C_MEMADD_SIZE_8BIT, bufinfo.buf, bufinfo.len, vals[3].u_int);
+    HAL_StatusTypeDef status = HAL_I2C_Mem_Write(self->i2c, i2c_addr, mem_addr, mem_addr_size, bufinfo.buf, bufinfo.len, vals[3].u_int);
 
     if (status != HAL_OK) {
         // TODO really need a HardwareError object, or something

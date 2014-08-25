@@ -73,9 +73,9 @@ all: $(PROG)
 
 $(PROG): $(OBJ)
 	$(ECHO) "LINK $@"
-	$(Q)$(CC) -o $@ $(OBJ) $(LIB) $(LDFLAGS)
+	$(Q)$(CC) $(COPT) -o $@ $(OBJ) $(LIB) $(LDFLAGS)
 ifndef DEBUG
-	$(Q)$(STRIP) $(PROG)
+	$(Q)$(STRIP) $(STRIPFLAGS_EXTRA) $(PROG)
 endif
 	$(Q)$(SIZE) $(PROG)
 
@@ -96,5 +96,11 @@ print-cfg:
 	$(ECHO) "BUILD  = $(BUILD)"
 	$(ECHO) "OBJ    = $(OBJ)"
 .PHONY: print-cfg
+
+print-def:
+	@$(ECHO) "The following defines are built into the $(CC) compiler"
+	touch __empty__.c
+	@$(CC) -E -Wp,-dM __empty__.c
+	@$(RM) -f __empty__.c
 
 -include $(OBJ:.o=.P)

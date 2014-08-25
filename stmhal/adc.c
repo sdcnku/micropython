@@ -80,7 +80,7 @@ typedef struct _pyb_obj_adc_t {
     ADC_HandleTypeDef handle;
 } pyb_obj_adc_t;
 
-void adc_init_single(pyb_obj_adc_t *adc_obj) {
+STATIC void adc_init_single(pyb_obj_adc_t *adc_obj) {
     if (!IS_ADC_CHANNEL(adc_obj->channel)) {
         return;
     }
@@ -114,7 +114,9 @@ void adc_init_single(pyb_obj_adc_t *adc_obj) {
     adcHandle->Init.EOCSelection          = DISABLE;
 
     HAL_ADC_Init(adcHandle);
+}
 
+STATIC void adc_config_channel(pyb_obj_adc_t *adc_obj) {
     ADC_ChannelConfTypeDef sConfig;
 
     sConfig.Channel = adc_obj->channel;
@@ -122,10 +124,10 @@ void adc_init_single(pyb_obj_adc_t *adc_obj) {
     sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;
     sConfig.Offset = 0;
 
-    HAL_ADC_ConfigChannel(adcHandle, &sConfig);
+    HAL_ADC_ConfigChannel(&adc_obj->handle, &sConfig);
 }
 
-uint32_t adc_read_channel(ADC_HandleTypeDef *adcHandle) {
+STATIC uint32_t adc_read_channel(ADC_HandleTypeDef *adcHandle) {
     uint32_t rawValue = 0;
 
     HAL_ADC_Start(adcHandle);
@@ -165,7 +167,7 @@ STATIC mp_obj_t adc_make_new(mp_obj_t type_in, uint n_args, uint n_kw, const mp_
         const pin_obj_t *pin = pin_find(pin_obj);
         if ((pin->adc_num & PIN_ADC1) == 0) {
             // No ADC1 function on that pin
-            nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_ValueError, "pin %s does not have ADC capabilities", pin->name));
+            nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_ValueError, "pin %s does not have ADC capabilities", qstr_str(pin->name)));
         }
         channel = pin->adc_channel;
     }
@@ -193,13 +195,16 @@ STATIC mp_obj_t adc_make_new(mp_obj_t type_in, uint n_args, uint n_kw, const mp_
 STATIC mp_obj_t adc_read(mp_obj_t self_in) {
     pyb_obj_adc_t *self = self_in;
 
+    adc_config_channel(self);
     uint32_t data = adc_read_channel(&self->handle);
     return mp_obj_new_int(data);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(adc_read_obj, adc_read);
 
 /// \method read_timed(buf, freq)
-/// Read analog values into the given buffer at the given frequency.
+/// Read analog values into the given buffer at the given frequency. Buffer
+/// can be bytearray or array.array for example. If a buffer with 8-bit elements
+/// is used, sample resolution will be reduced to 8 bits.
 ///
 /// Example:
 ///
@@ -226,6 +231,7 @@ STATIC mp_obj_t adc_read_timed(mp_obj_t self_in, mp_obj_t buf_in, mp_obj_t freq_
 
     // This uses the timer in polling mode to do the sampling
     // We could use DMA, but then we can't convert the values correctly for the buffer
+    adc_config_channel(self);
     for (uint index = 0; index < bufinfo.len; index++) {
         // Wait for the timer to trigger
         while (__HAL_TIM_GET_FLAG(&TIM6_Handle, TIM_FLAG_UPDATE) == RESET) {

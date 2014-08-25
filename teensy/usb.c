@@ -1,26 +1,45 @@
+#include <string.h>
+#include <stdint.h>
+
 #include "Arduino.h"
+
+#include "mpconfig.h"
+#include "misc.h"
+#include "qstr.h"
+#include "obj.h"
+#include "runtime.h"
 
 #include "usb.h"
 #include "usb_serial.h"
 
-int usb_vcp_is_connected(void)
+bool usb_vcp_is_connected(void)
 {
   return usb_configuration && (usb_cdc_line_rtsdtr & (USB_SERIAL_DTR | USB_SERIAL_RTS));
 }
 
-int usb_vcp_is_enabled(void)
+bool usb_vcp_is_enabled(void)
 {
-  return 1;
+  return true;
 }
 
-int usb_vcp_rx_any(void)
-{
+void usb_vcp_set_interrupt_char(int c) {
+  // The teensy 3.1 usb stack doesn't currently have the notion of generating
+  // an exception when a certain character is received. That just means that
+  // you can't press Control-C and get your python script to stop.
+}
+
+int usb_vcp_rx_num(void) {
   return usb_serial_available();
 }
 
-char usb_vcp_rx_get(void)
+int usb_vcp_recv_byte(uint8_t *ptr)
 {
-  return usb_serial_getchar();
+  int ch = usb_serial_getchar();
+  if (ch < 0) {
+    return 0;
+  }
+  *ptr = ch;
+  return 1;
 }
 
 void usb_vcp_send_str(const char* str)

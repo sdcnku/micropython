@@ -24,6 +24,7 @@
  * THE SOFTWARE.
  */
 
+#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -68,9 +69,12 @@
 ///     dac = DAC(1)
 ///     dac.write_timed(buf, 400 * len(buf), mode=DAC.CIRCULAR)
 
+#if MICROPY_HW_ENABLE_DAC
+
 STATIC DAC_HandleTypeDef DAC_Handle;
 
 void dac_init(void) {
+    memset(&DAC_Handle, 0, sizeof DAC_Handle);
     DAC_Handle.Instance = DAC;
     DAC_Handle.State = HAL_DAC_STATE_RESET;
     HAL_DAC_Init(&DAC_Handle);
@@ -97,7 +101,7 @@ typedef struct _pyb_dac_obj_t {
     mp_obj_base_t base;
     uint32_t dac_channel; // DAC_CHANNEL_1 or DAC_CHANNEL_2
     DMA_Stream_TypeDef *dma_stream; // DMA1_Stream5 or DMA1_Stream6
-    machine_uint_t state;
+    mp_uint_t state;
 } pyb_dac_obj_t;
 
 // create the dac object
@@ -114,7 +118,7 @@ STATIC mp_obj_t pyb_dac_make_new(mp_obj_t type_in, uint n_args, uint n_kw, const
     pyb_dac_obj_t *dac = m_new_obj(pyb_dac_obj_t);
     dac->base.type = &pyb_dac_type;
 
-    machine_int_t dac_id = mp_obj_get_int(args[0]);
+    mp_int_t dac_id = mp_obj_get_int(args[0]);
     uint32_t pin;
     if (dac_id == 1) {
         pin = GPIO_PIN_4;
@@ -140,7 +144,10 @@ STATIC mp_obj_t pyb_dac_make_new(mp_obj_t type_in, uint n_args, uint n_kw, const
 
     // stop anything already going on
     HAL_DAC_Stop(&DAC_Handle, dac->dac_channel);
-    HAL_DAC_Stop_DMA(&DAC_Handle, dac->dac_channel);
+    if ((dac->dac_channel == DAC_CHANNEL_1 && DAC_Handle.DMA_Handle1 != NULL)
+            || (dac->dac_channel == DAC_CHANNEL_2 && DAC_Handle.DMA_Handle2 != NULL)) {
+        HAL_DAC_Stop_DMA(&DAC_Handle, dac->dac_channel);
+    }
 
     dac->state = 0;
 
@@ -237,7 +244,7 @@ STATIC const mp_arg_t pyb_dac_write_timed_args[] = {
     { MP_QSTR_freq, MP_ARG_REQUIRED | MP_ARG_INT, {.u_int = 0} },
     { MP_QSTR_mode, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = DMA_NORMAL} },
 };
-#define PYB_DAC_WRITE_TIMED_NUM_ARGS ARRAY_SIZE(pyb_dac_write_timed_args)
+#define PYB_DAC_WRITE_TIMED_NUM_ARGS MP_ARRAY_SIZE(pyb_dac_write_timed_args)
 
 mp_obj_t pyb_dac_write_timed(uint n_args, const mp_obj_t *args, mp_map_t *kw_args) {
     pyb_dac_obj_t *self = args[0];
@@ -354,3 +361,5 @@ const mp_obj_type_t pyb_dac_type = {
     .make_new = pyb_dac_make_new,
     .locals_dict = (mp_obj_t)&pyb_dac_locals_dict,
 };
+
+#endif // MICROPY_HW_ENABLE_DAC

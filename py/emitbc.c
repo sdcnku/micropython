@@ -30,8 +30,8 @@
 #include <string.h>
 #include <assert.h>
 
-#include "misc.h"
 #include "mpconfig.h"
+#include "misc.h"
 #include "qstr.h"
 #include "lexer.h"
 #include "parse.h"
@@ -50,7 +50,6 @@
 struct _emit_t {
     pass_kind_t pass : 8;
     uint last_emit_was_return_value : 8;
-    byte dummy_data[DUMMY_DATA_SIZE];
 
     int stack_size;
 
@@ -67,6 +66,8 @@ struct _emit_t {
     uint bytecode_offset;
     uint bytecode_size;
     byte *code_base; // stores both byte code and code info
+    // Accessed as uint, so must be aligned as such
+    byte dummy_data[DUMMY_DATA_SIZE];
 };
 
 STATIC void emit_bc_rot_two(emit_t *emit);
@@ -99,7 +100,7 @@ STATIC byte* emit_get_cur_to_write_code_info(emit_t* emit, int num_bytes_to_writ
 }
 
 STATIC void emit_align_code_info_to_machine_word(emit_t* emit) {
-    emit->code_info_offset = (emit->code_info_offset + sizeof(machine_uint_t) - 1) & (~(sizeof(machine_uint_t) - 1));
+    emit->code_info_offset = (emit->code_info_offset + sizeof(mp_uint_t) - 1) & (~(sizeof(mp_uint_t) - 1));
 }
 
 STATIC void emit_write_code_info_qstr(emit_t* emit, qstr qstr) {
@@ -114,12 +115,24 @@ STATIC void emit_write_code_info_qstr(emit_t* emit, qstr qstr) {
 #if MICROPY_ENABLE_SOURCE_LINE
 STATIC void emit_write_code_info_bytes_lines(emit_t* emit, uint bytes_to_skip, uint lines_to_skip) {
     assert(bytes_to_skip > 0 || lines_to_skip > 0);
+    //printf("  %d %d\n", bytes_to_skip, lines_to_skip);
     while (bytes_to_skip > 0 || lines_to_skip > 0) {
-        uint b = MIN(bytes_to_skip, 31);
-        uint l = MIN(lines_to_skip, 7);
+        mp_uint_t b, l;
+        if (lines_to_skip <= 6) {
+            // use 0b0LLBBBBB encoding
+            b = MIN(bytes_to_skip, 0x1f);
+            l = MIN(lines_to_skip, 0x3);
+            *emit_get_cur_to_write_code_info(emit, 1) = b | (l << 5);
+        } else {
+            // use 0b1LLLBBBB 0bLLLLLLLL encoding (l's LSB in second byte)
+            b = MIN(bytes_to_skip, 0xf);
+            l = MIN(lines_to_skip, 0x7ff);
+            byte *ci = emit_get_cur_to_write_code_info(emit, 2);
+            ci[0] = 0x80 | b | ((l >> 4) & 0x70);
+            ci[1] = l;
+        }
         bytes_to_skip -= b;
         lines_to_skip -= l;
-        *emit_get_cur_to_write_code_info(emit, 1) = b | (l << 5);
     }
 }
 #endif
@@ -139,7 +152,7 @@ STATIC byte* emit_get_cur_to_write_bytecode(emit_t* emit, int num_bytes_to_write
 }
 
 STATIC void emit_align_bytecode_to_machine_word(emit_t* emit) {
-    emit->bytecode_offset = (emit->bytecode_offset + sizeof(machine_uint_t) - 1) & (~(sizeof(machine_uint_t) - 1));
+    emit->bytecode_offset = (emit->bytecode_offset + sizeof(mp_uint_t) - 1) & (~(sizeof(mp_uint_t) - 1));
 }
 
 STATIC void emit_write_bytecode_byte(emit_t* emit, byte b1) {
@@ -171,7 +184,7 @@ STATIC void emit_write_bytecode_uint(emit_t* emit, uint num) {
 }
 
 // Similar to emit_write_bytecode_uint(), just some extra handling to encode sign
-STATIC void emit_write_bytecode_byte_int(emit_t* emit, byte b1, machine_int_t num) {
+STATIC void emit_write_bytecode_byte_int(emit_t* emit, byte b1, mp_int_t num) {
     emit_write_bytecode_byte(emit, b1);
 
     // We store each 7 bits in a separate byte, and that's how many bytes needed
@@ -206,8 +219,10 @@ STATIC void emit_write_bytecode_byte_uint(emit_t* emit, byte b, uint num) {
 STATIC void emit_write_bytecode_byte_ptr(emit_t* emit, byte b, void *ptr) {
     emit_write_bytecode_byte(emit, b);
     emit_align_bytecode_to_machine_word(emit);
-    machine_uint_t *c = (machine_uint_t*)emit_get_cur_to_write_bytecode(emit, sizeof(machine_uint_t));
-    *c = (machine_uint_t)ptr;
+    mp_uint_t *c = (mp_uint_t*)emit_get_cur_to_write_bytecode(emit, sizeof(mp_uint_t));
+    // Verify thar c is already uint-aligned
+    assert(c == MP_ALIGN(c, sizeof(mp_uint_t)));
+    *c = (mp_uint_t)ptr;
 }
 
 /* currently unused
@@ -250,7 +265,7 @@ STATIC void emit_write_bytecode_byte_signed_label(emit_t* emit, byte b1, uint la
     c[2] = bytecode_offset >> 8;
 }
 
-STATIC void emit_bc_set_native_types(emit_t *emit, bool do_native_types) {
+STATIC void emit_bc_set_native_type(emit_t *emit, mp_uint_t op, mp_uint_t arg1, qstr arg2) {
 }
 
 STATIC void emit_bc_start_pass(emit_t *emit, pass_kind_t pass, scope_t *scope) {
@@ -269,7 +284,7 @@ STATIC void emit_bc_start_pass(emit_t *emit, pass_kind_t pass, scope_t *scope) {
     // write code info size; use maximum space (4 bytes) to write it; TODO possible optimise this
     {
         byte* c = emit_get_cur_to_write_code_info(emit, 4);
-        machine_uint_t s = emit->code_info_size;
+        mp_uint_t s = emit->code_info_size;
         c[0] = s & 0xff;
         c[1] = (s >> 8) & 0xff;
         c[2] = (s >> 16) & 0xff;
@@ -360,7 +375,6 @@ STATIC void emit_bc_set_source_line(emit_t *emit, int source_line) {
         uint bytes_to_skip = emit->bytecode_offset - emit->last_source_line_offset;
         uint lines_to_skip = source_line - emit->last_source_line;
         emit_write_code_info_bytes_lines(emit, bytes_to_skip, lines_to_skip);
-        //printf("  %d %d\n", bytes_to_skip, lines_to_skip);
         emit->last_source_line_offset = emit->bytecode_offset;
         emit->last_source_line = source_line;
     }
@@ -428,7 +442,7 @@ STATIC void emit_bc_load_const_tok(emit_t *emit, mp_token_kind_t tok) {
     }
 }
 
-STATIC void emit_bc_load_const_small_int(emit_t *emit, machine_int_t arg) {
+STATIC void emit_bc_load_const_small_int(emit_t *emit, mp_int_t arg) {
     emit_bc_pre(emit, 1);
     emit_write_bytecode_byte_int(emit, MP_BC_LOAD_CONST_SMALL_INT, arg);
 }
@@ -849,8 +863,16 @@ STATIC void emit_bc_yield_from(emit_t *emit) {
     emit_write_bytecode_byte(emit, MP_BC_YIELD_FROM);
 }
 
+STATIC void emit_bc_start_except_handler(emit_t *emit) {
+    emit_bc_adjust_stack_size(emit, 6); // stack adjust for the 3 exception items, +3 for possible UNWIND_JUMP state
+}
+
+STATIC void emit_bc_end_except_handler(emit_t *emit) {
+    emit_bc_adjust_stack_size(emit, -5); // stack adjust
+}
+
 const emit_method_table_t emit_bc_method_table = {
-    emit_bc_set_native_types,
+    emit_bc_set_native_type,
     emit_bc_start_pass,
     emit_bc_end_pass,
     emit_bc_last_emit_was_return_value,
@@ -934,6 +956,9 @@ const emit_method_table_t emit_bc_method_table = {
     emit_bc_raise_varargs,
     emit_bc_yield_value,
     emit_bc_yield_from,
+
+    emit_bc_start_except_handler,
+    emit_bc_end_except_handler,
 };
 
 #endif // !MICROPY_EMIT_CPYTHON

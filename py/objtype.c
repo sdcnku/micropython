@@ -46,6 +46,8 @@
 #define DEBUG_printf(...) (void)0
 #endif
 
+STATIC mp_obj_t static_class_method_make_new(mp_obj_t self_in, uint n_args, uint n_kw, const mp_obj_t *args);
+
 /******************************************************************************/
 // instance object
 
@@ -101,7 +103,7 @@ STATIC int instance_count_native_bases(const mp_obj_type_t *type, const mp_obj_t
 struct class_lookup_data {
     mp_obj_instance_t *obj;
     qstr attr;
-    machine_uint_t meth_offset;
+    mp_uint_t meth_offset;
     mp_obj_t *dest;
     bool is_type;
 };
@@ -749,6 +751,8 @@ mp_obj_t mp_obj_new_type(qstr name, mp_obj_t bases_tuple, mp_obj_t locals_dict) 
     assert(MP_OBJ_IS_TYPE(bases_tuple, &mp_type_tuple)); // Micro Python restriction, for now
     assert(MP_OBJ_IS_TYPE(locals_dict, &mp_type_dict)); // Micro Python restriction, for now
 
+    // TODO might need to make a copy of locals_dict; at least that's how CPython does it
+
     // Basic validation of base classes
     uint len;
     mp_obj_t *items;
@@ -781,6 +785,16 @@ mp_obj_t mp_obj_new_type(qstr name, mp_obj_t bases_tuple, mp_obj_t locals_dict) 
     uint num_native_bases = instance_count_native_bases(o, &native_base);
     if (num_native_bases > 1) {
         nlr_raise(mp_obj_new_exception_msg(&mp_type_TypeError, "multiple bases have instance lay-out conflict"));
+    }
+
+    mp_map_t *locals_map = mp_obj_dict_get_map(o->locals_dict);
+    mp_map_elem_t *elem = mp_map_lookup(locals_map, MP_OBJ_NEW_QSTR(MP_QSTR___new__), MP_MAP_LOOKUP);
+    if (elem != NULL) {
+        // __new__ slot exists; check if it is a function
+        if (MP_OBJ_IS_FUN(elem->value)) {
+            // __new__ is a function, wrap it in a staticmethod decorator
+            elem->value = static_class_method_make_new((mp_obj_t)&mp_type_staticmethod, 1, 0, &elem->value);
+        }
     }
 
     return o;

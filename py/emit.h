@@ -46,10 +46,14 @@ typedef enum {
 
 #define MP_EMIT_BREAK_FROM_FOR (0x8000)
 
+#define MP_EMIT_NATIVE_TYPE_ENABLE (0)
+#define MP_EMIT_NATIVE_TYPE_RETURN (1)
+#define MP_EMIT_NATIVE_TYPE_ARG    (2)
+
 typedef struct _emit_t emit_t;
 
 typedef struct _emit_method_table_t {
-    void (*set_native_types)(emit_t *emit, bool do_native_types);
+    void (*set_native_type)(emit_t *emit, mp_uint_t op, mp_uint_t arg1, qstr arg2);
     void (*start_pass)(emit_t *emit, pass_kind_t pass, scope_t *scope);
     void (*end_pass)(emit_t *emit);
     bool (*last_emit_was_return_value)(emit_t *emit);
@@ -65,7 +69,7 @@ typedef struct _emit_method_table_t {
     void (*import_from)(emit_t *emit, qstr qstr);
     void (*import_star)(emit_t *emit);
     void (*load_const_tok)(emit_t *emit, mp_token_kind_t tok);
-    void (*load_const_small_int)(emit_t *emit, machine_int_t arg);
+    void (*load_const_small_int)(emit_t *emit, mp_int_t arg);
     void (*load_const_int)(emit_t *emit, qstr qstr);
     void (*load_const_dec)(emit_t *emit, qstr qstr);
     void (*load_const_str)(emit_t *emit, qstr qstr, bool bytes);
@@ -133,6 +137,11 @@ typedef struct _emit_method_table_t {
     void (*raise_varargs)(emit_t *emit, int n_args);
     void (*yield_value)(emit_t *emit);
     void (*yield_from)(emit_t *emit);
+
+    // these methods are used to control entry to/exit from an exception handler
+    // they may or may not emit code
+    void (*start_except_handler)(emit_t *emit);
+    void (*end_except_handler)(emit_t *emit);
 
 #if MICROPY_EMIT_CPYTHON
     // these methods are only needed for emitcpy

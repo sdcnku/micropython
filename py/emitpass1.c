@@ -28,8 +28,8 @@
 #include <stdint.h>
 #include <assert.h>
 
-#include "misc.h"
 #include "mpconfig.h"
+#include "misc.h"
 #include "qstr.h"
 #include "lexer.h"
 #include "parse.h"
@@ -214,6 +214,10 @@ const emit_method_table_t emit_pass1_method_table = {
     (void*)emit_pass1_dummy,
     (void*)emit_pass1_dummy,
     (void*)emit_pass1_dummy,
+
+    (void*)emit_pass1_dummy,
+    (void*)emit_pass1_dummy,
+
 #if MICROPY_EMIT_CPYTHON
     (void*)emit_pass1_dummy,
     (void*)emit_pass1_dummy,

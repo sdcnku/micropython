@@ -26,8 +26,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-
-#include <stm32f4xx_hal.h>
+#include <stdint.h>
 
 #include "std.h"
 #include "mpconfig.h"
@@ -44,11 +43,13 @@
 #include "repl.h"
 #include "gc.h"
 #include "gccollect.h"
+#include MICROPY_HAL_H
 #include "systick.h"
-#include "pybstdio.h"
 #include "readline.h"
 #include "pyexec.h"
 #include "usb.h"
+#include "uart.h"
+#include "pybstdio.h"
 #include "genhdr/py-version.h"
 
 pyexec_mode_kind_t pyexec_mode_kind = PYEXEC_MODE_FRIENDLY_REPL;
@@ -186,7 +187,7 @@ int pyexec_friendly_repl(void) {
 #endif
 
 friendly_repl_reset:
-    stdout_tx_str("Micro Python " MICROPY_GIT_TAG " on " MICROPY_BUILD_DATE "; " MICROPY_HW_BOARD_NAME " with " MICROPY_HW_MICRO_NAME "\r\n");
+    stdout_tx_str("Micro Python " MICROPY_GIT_TAG " on " MICROPY_BUILD_DATE "; " MICROPY_HW_BOARD_NAME " with " MICROPY_HW_MCU_NAME "\r\n");
     stdout_tx_str("Type \"help()\" for more information.\r\n");
 
     // to test ctrl-C

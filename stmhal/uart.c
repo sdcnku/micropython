@@ -65,8 +65,6 @@ struct _pyb_uart_obj_t {
     UART_HandleTypeDef uart;
 };
 
-pyb_uart_obj_t *pyb_uart_global_debug = NULL;
-
 // assumes Init parameters have been set up correctly
 bool uart_init2(pyb_uart_obj_t *uart_obj) {
     USART_TypeDef *UARTx = NULL;
@@ -219,10 +217,6 @@ void uart_tx_char(pyb_uart_obj_t *uart_obj, int c) {
     HAL_UART_Transmit(&uart_obj->uart, &ch, 1, 100000);
 }
 
-void uart_tx_str(pyb_uart_obj_t *uart_obj, const char *str) {
-    HAL_UART_Transmit(&uart_obj->uart, (uint8_t*)str, strlen(str), 100000);
-}
-
 void uart_tx_strn(pyb_uart_obj_t *uart_obj, const char *str, uint len) {
     HAL_UART_Transmit(&uart_obj->uart, (uint8_t*)str, len, 100000);
 }
@@ -270,7 +264,7 @@ STATIC const mp_arg_t pyb_uart_init_args[] = {
     { MP_QSTR_stop,     MP_ARG_KW_ONLY | MP_ARG_INT,  {.u_int = 1} },
     { MP_QSTR_parity,   MP_ARG_KW_ONLY | MP_ARG_OBJ,  {.u_obj = mp_const_none} },
 };
-#define PYB_UART_INIT_NUM_ARGS ARRAY_SIZE(pyb_uart_init_args)
+#define PYB_UART_INIT_NUM_ARGS MP_ARRAY_SIZE(pyb_uart_init_args)
 
 STATIC mp_obj_t pyb_uart_init_helper(pyb_uart_obj_t *self, uint n_args, const mp_obj_t *args, mp_map_t *kw_args) {
     // parse args
@@ -289,7 +283,7 @@ STATIC mp_obj_t pyb_uart_init_helper(pyb_uart_obj_t *self, uint n_args, const mp
     if (vals[3].u_obj == mp_const_none) {
         init->Parity = UART_PARITY_NONE;
     } else {
-        machine_int_t parity = mp_obj_get_int(vals[3].u_obj);
+        mp_int_t parity = mp_obj_get_int(vals[3].u_obj);
         init->Parity = (parity & 1) ? UART_PARITY_ODD : UART_PARITY_EVEN;
     }
     init->Mode = UART_MODE_TX_RX;
@@ -396,7 +390,7 @@ STATIC const mp_arg_t pyb_uart_send_args[] = {
     { MP_QSTR_send,    MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
     { MP_QSTR_timeout, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 5000} },
 };
-#define PYB_UART_SEND_NUM_ARGS ARRAY_SIZE(pyb_uart_send_args)
+#define PYB_UART_SEND_NUM_ARGS MP_ARRAY_SIZE(pyb_uart_send_args)
 
 STATIC mp_obj_t pyb_uart_send(uint n_args, const mp_obj_t *args, mp_map_t *kw_args) {
     // TODO assumes transmission size is 8-bits wide
@@ -438,7 +432,7 @@ STATIC const mp_arg_t pyb_uart_recv_args[] = {
     { MP_QSTR_recv,    MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
     { MP_QSTR_timeout, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 5000} },
 };
-#define PYB_UART_RECV_NUM_ARGS ARRAY_SIZE(pyb_uart_recv_args)
+#define PYB_UART_RECV_NUM_ARGS MP_ARRAY_SIZE(pyb_uart_recv_args)
 
 STATIC mp_obj_t pyb_uart_recv(uint n_args, const mp_obj_t *args, mp_map_t *kw_args) {
     // TODO assumes transmission size is 8-bits wide

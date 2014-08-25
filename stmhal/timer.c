@@ -90,7 +90,7 @@
 
 typedef struct _pyb_timer_obj_t {
     mp_obj_base_t base;
-    machine_uint_t tim_id;
+    mp_uint_t tim_id;
     mp_obj_t callback;
     TIM_HandleTypeDef tim;
     IRQn_Type irqn;
@@ -105,12 +105,25 @@ static uint32_t tim3_counter = 0;
 
 // Used to do callbacks to Python code on interrupt
 STATIC pyb_timer_obj_t *pyb_timer_obj_all[14];
-#define PYB_TIMER_OBJ_ALL_NUM ARRAY_SIZE(pyb_timer_obj_all)
+#define PYB_TIMER_OBJ_ALL_NUM MP_ARRAY_SIZE(pyb_timer_obj_all)
+
+STATIC mp_obj_t pyb_timer_deinit(mp_obj_t self_in);
+STATIC mp_obj_t pyb_timer_callback(mp_obj_t self_in, mp_obj_t callback);
 
 void timer_init0(void) {
     tim3_counter = 0;
     for (uint i = 0; i < PYB_TIMER_OBJ_ALL_NUM; i++) {
         pyb_timer_obj_all[i] = NULL;
+    }
+}
+
+// unregister all interrupt sources
+void timer_deinit(void) {
+    for (uint i = 0; i < PYB_TIMER_OBJ_ALL_NUM; i++) {
+        pyb_timer_obj_t *tim = pyb_timer_obj_all[i];
+        if (tim != NULL) {
+            pyb_timer_deinit(tim);
+        }
     }
 }
 
@@ -234,7 +247,7 @@ STATIC const mp_arg_t pyb_timer_init_args[] = {
     { MP_QSTR_mode,      MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = TIM_COUNTERMODE_UP} },
     { MP_QSTR_div,       MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = TIM_CLOCKDIVISION_DIV1} },
 };
-#define PYB_TIMER_INIT_NUM_ARGS ARRAY_SIZE(pyb_timer_init_args)
+#define PYB_TIMER_INIT_NUM_ARGS MP_ARRAY_SIZE(pyb_timer_init_args)
 
 STATIC mp_obj_t pyb_timer_init_helper(pyb_timer_obj_t *self, uint n_args, const mp_obj_t *args, mp_map_t *kw_args) {
     // parse args
@@ -261,8 +274,11 @@ STATIC mp_obj_t pyb_timer_init_helper(pyb_timer_obj_t *self, uint n_args, const 
             tim_clock = HAL_RCC_GetPCLK1Freq();
         }
 
-        // compute the prescaler value so TIM triggers at freq-Hz
-        // dpgeorge: I don't understand why we need to multiply tim_clock by 2
+        // Compute the prescaler value so TIM triggers at freq-Hz
+        // On STM32F405/407/415/417 there are 2 cases for how the clock freq is set.
+        // If the APB prescaler is 1, then the timer clock is equal to its respective
+        // APB clock.  Otherwise (APB prescaler > 1) the timer clock is twice its
+        // respective APB clock.  See DM00031020 Rev 4, page 115.
         uint32_t period = MAX(1, 2 * tim_clock / vals[0].u_int);
         uint32_t prescaler = 1;
         while (period > 0xffff) {
@@ -369,10 +385,15 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(pyb_timer_init_obj, 1, pyb_timer_init);
 /// \method deinit()
 /// Deinitialises the timer.
 ///
-/// *This function is not yet implemented.*
+/// Disables the callback (and the associated irq).
+/// Stops the timer, and disables the timer peripheral.
 STATIC mp_obj_t pyb_timer_deinit(mp_obj_t self_in) {
-    //pyb_timer_obj_t *self = self_in;
-    // TODO implement me
+    pyb_timer_obj_t *self = self_in;
+
+    // Disable the interrupt
+    pyb_timer_callback(self_in, mp_const_none);
+
+    HAL_TIM_Base_DeInit(&self->tim);
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(pyb_timer_deinit_obj, pyb_timer_deinit);

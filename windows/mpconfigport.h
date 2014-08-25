@@ -35,40 +35,54 @@
 #define MICROPY_EMIT_X64            (0)
 #define MICROPY_EMIT_THUMB          (0)
 #define MICROPY_EMIT_INLINE_THUMB   (0)
+#define MICROPY_ENABLE_GC           (1)
+#define MICROPY_ENABLE_FINALISER    (1)
 #define MICROPY_MEM_STATS           (1)
 #define MICROPY_DEBUG_PRINTERS      (1)
 #define MICROPY_HELPER_REPL         (1)
 #define MICROPY_HELPER_LEXER_UNIX   (1)
-#define MICROPY_PY_BUILTINS_FROZENSET (1)
-#define MICROPY_PY_CMATH            (1)
-#define MICROPY_PY_SYS_STDFILES     (1)
-#define MICROPY_PY_SYS_EXIT         (1)
+#define MICROPY_ENABLE_SOURCE_LINE  (1)
 #define MICROPY_FLOAT_IMPL          (MICROPY_FLOAT_IMPL_DOUBLE)
 #define MICROPY_LONGINT_IMPL        (MICROPY_LONGINT_IMPL_MPZ)
+#define MICROPY_STREAMS_NON_BLOCK   (1)
+#define MICROPY_OPT_COMPUTED_GOTO   (0)
+#define MICROPY_PY_BUILTINS_STR_UNICODE (0)
+#define MICROPY_PY_BUILTINS_FROZENSET (1)
+#define MICROPY_PY_SYS_EXIT         (1)
+#define MICROPY_PY_SYS_PLATFORM     "win32"
+#define MICROPY_PY_SYS_STDFILES     (1)
+#define MICROPY_PY_CMATH            (1)
+#define MICROPY_PY_IO_FILEIO        (1)
+#define MICROPY_PY_GC_COLLECT_RETVAL (1)
+#define MICROPY_ERROR_REPORTING     (MICROPY_ERROR_REPORTING_DETAILED)
+#ifdef _MSC_VER
+#define MICROPY_GCREGS_SETJMP       (1)
+#endif
+
 #define MICROPY_PORT_INIT_FUNC      init()
 #define MICROPY_PORT_DEINIT_FUNC    deinit()
 
 // type definitions for the specific machine
 
 #if defined( __MINGW32__ ) && defined( __LP64__ )
-typedef long machine_int_t; // must be pointer size
-typedef unsigned long machine_uint_t; // must be pointer size
+typedef long mp_int_t; // must be pointer size
+typedef unsigned long mp_uint_t; // must be pointer size
 #elif defined ( _MSC_VER ) && defined( _WIN64 )
-typedef __int64 machine_int_t;
-typedef unsigned __int64 machine_uint_t;
+typedef __int64 mp_int_t;
+typedef unsigned __int64 mp_uint_t;
 #else
 // These are definitions for machines where sizeof(int) == sizeof(void*),
 // regardless for actual size.
-typedef int machine_int_t; // must be pointer size
-typedef unsigned int machine_uint_t; // must be pointer size
+typedef int mp_int_t; // must be pointer size
+typedef unsigned int mp_uint_t; // must be pointer size
 #endif
 
-#define BYTES_PER_WORD sizeof(machine_int_t)
+#define BYTES_PER_WORD sizeof(mp_int_t)
 
 typedef void *machine_ptr_t; // must be of pointer size
 typedef const void *machine_const_ptr_t; // must be of pointer size
 
-extern const struct _mp_obj_fun_native_t mp_builtin_open_obj;
+extern const struct _mp_obj_fun_builtin_t mp_builtin_open_obj;
 #define MICROPY_PORT_BUILTINS \
     { MP_OBJ_NEW_QSTR(MP_QSTR_open), (mp_obj_t)&mp_builtin_open_obj },
 
@@ -105,12 +119,21 @@ void msec_sleep(double msec);
 
 #define restrict
 #define inline                      __inline
+#define alignof(t)                  __alignof(t)
 #define STDIN_FILENO                0
 #define STDOUT_FILENO               1
 #define STDERR_FILENO               2
 #define PATH_MAX                    MICROPY_ALLOC_PATH_MAX
 #define S_ISREG(m)                  (((m) & S_IFMT) == S_IFREG)
 #define S_ISDIR(m)                  (((m) & S_IFMT) == S_IFDIR)
+
+
+// Put static/global variables in sections with a known name we can lookup for the GC
+// For this to work this header must be included by all sources, which is the case normally
+#define MICROPY_PORT_DATASECTION "upydata"
+#define MICROPY_PORT_BSSSECTION "upybss"
+#pragma data_seg(MICROPY_PORT_DATASECTION)
+#pragma bss_seg(MICROPY_PORT_BSSSECTION)
 
 
 // System headers (needed e.g. for nlr.h)
@@ -121,4 +144,9 @@ void msec_sleep(double msec);
 // Functions implemented in platform code
 
 int snprintf(char *dest, size_t count, const char *format, ...);
+#endif
+
+// MingW specifics
+#ifdef __MINGW32__
+#define MICROPY_PORT_BSSSECTION ".bss"
 #endif

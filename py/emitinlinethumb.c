@@ -30,8 +30,8 @@
 #include <stdarg.h>
 #include <assert.h>
 
-#include "misc.h"
 #include "mpconfig.h"
+#include "misc.h"
 #include "qstr.h"
 #include "lexer.h"
 #include "parse.h"
@@ -99,7 +99,7 @@ STATIC bool emit_inline_thumb_end_pass(emit_inline_asm_t *emit) {
 
     if (emit->pass == MP_PASS_EMIT) {
         void *f = asm_thumb_get_code(emit->as);
-        mp_emit_glue_assign_native(emit->scope->raw_code, MP_CODE_NATIVE_ASM, f, asm_thumb_get_code_size(emit->as), emit->scope->num_pos_args);
+        mp_emit_glue_assign_native(emit->scope->raw_code, MP_CODE_NATIVE_ASM, f, asm_thumb_get_code_size(emit->as), emit->scope->num_pos_args, 0);
     }
 
     return emit->success;
@@ -167,7 +167,7 @@ STATIC uint get_arg_reg(emit_inline_asm_t *emit, const char *op, mp_parse_node_t
     if (MP_PARSE_NODE_IS_ID(pn)) {
         qstr reg_qstr = MP_PARSE_NODE_LEAF_ARG(pn);
         const char *reg_str = qstr_str(reg_qstr);
-        for (uint i = 0; i < ARRAY_SIZE(reg_name_table); i++) {
+        for (uint i = 0; i < MP_ARRAY_SIZE(reg_name_table); i++) {
             const reg_name_t *r = &reg_name_table[i];
             if (reg_str[0] == r->name[0] && reg_str[1] == r->name[1] && reg_str[2] == r->name[2] && (reg_str[2] == '\0' || reg_str[3] == '\0')) {
                 if (r->reg > max_reg) {
@@ -286,7 +286,7 @@ STATIC void emit_inline_thumb_op(emit_inline_asm_t *emit, qstr op, int n_args, m
             asm_thumb_b_n(emit->as, label_num);
         } else if (op_str[0] == 'b' && op_len == 3) {
             uint cc = -1;
-            for (uint i = 0; i < ARRAY_SIZE(cc_name_table); i++) {
+            for (uint i = 0; i < MP_ARRAY_SIZE(cc_name_table); i++) {
                 if (op_str[1] == cc_name_table[i].name[0] && op_str[2] == cc_name_table[i].name[1]) {
                     cc = cc_name_table[i].cc;
                 }
@@ -315,7 +315,7 @@ STATIC void emit_inline_thumb_op(emit_inline_asm_t *emit, qstr op, int n_args, m
                 uint reg_dest = get_arg_reg(emit, op_str, pn_args[0], 15);
                 uint reg_src = get_arg_reg(emit, op_str, pn_args[1], 15);
                 asm_thumb_mov_reg_reg(emit->as, reg_dest, reg_src);
-            } else if (strcmp(op_str, "and") == 0) {
+            } else if (strcmp(op_str, "and_") == 0) {
                 op_code = ASM_THUMB_FORMAT_4_AND;
                 uint reg_dest, reg_src;
                 op_format_4:
@@ -323,7 +323,6 @@ STATIC void emit_inline_thumb_op(emit_inline_asm_t *emit, qstr op, int n_args, m
                 reg_src = get_arg_reg(emit, op_str, pn_args[1], 7);
                 asm_thumb_format_4(emit->as, op_code, reg_dest, reg_src);
             // TODO probably uses less ROM if these ops are in a lookup table
-            } else if (strcmp(op_str, "and") == 0) { op_code = ASM_THUMB_FORMAT_4_AND; goto op_format_4;
             } else if (strcmp(op_str, "eor") == 0) { op_code = ASM_THUMB_FORMAT_4_EOR; goto op_format_4;
             } else if (strcmp(op_str, "lsl") == 0) { op_code = ASM_THUMB_FORMAT_4_LSL; goto op_format_4;
             } else if (strcmp(op_str, "lsr") == 0) { op_code = ASM_THUMB_FORMAT_4_LSR; goto op_format_4;

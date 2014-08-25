@@ -26,8 +26,8 @@
 
 #include <stdlib.h>
 
-#include "misc.h"
 #include "mpconfig.h"
+#include "misc.h"
 #include "qstr.h"
 #include "obj.h"
 #include "builtin.h"
@@ -43,8 +43,10 @@ STATIC const mp_map_elem_t mp_builtin_object_table[] = {
     // built-in types
     { MP_OBJ_NEW_QSTR(MP_QSTR_bool), (mp_obj_t)&mp_type_bool },
     { MP_OBJ_NEW_QSTR(MP_QSTR_bytes), (mp_obj_t)&mp_type_bytes },
+#if MICROPY_PY_BUILTINS_BYTEARRAY
     { MP_OBJ_NEW_QSTR(MP_QSTR_bytearray), (mp_obj_t)&mp_type_bytearray },
-#if MICROPY_PY_BUILTINS_FLOAT
+#endif
+#if MICROPY_PY_BUILTINS_COMPLEX
     { MP_OBJ_NEW_QSTR(MP_QSTR_complex), (mp_obj_t)&mp_type_complex },
 #endif
     { MP_OBJ_NEW_QSTR(MP_QSTR_dict), (mp_obj_t)&mp_type_dict },
@@ -64,6 +66,7 @@ STATIC const mp_map_elem_t mp_builtin_object_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_property), (mp_obj_t)&mp_type_property },
 #endif
     { MP_OBJ_NEW_QSTR(MP_QSTR_range), (mp_obj_t)&mp_type_range },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_reversed), (mp_obj_t)&mp_type_reversed },
 #if MICROPY_PY_BUILTINS_SET
     { MP_OBJ_NEW_QSTR(MP_QSTR_set), (mp_obj_t)&mp_type_set },
 #endif
@@ -135,6 +138,7 @@ STATIC const mp_map_elem_t mp_builtin_object_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_StopIteration), (mp_obj_t)&mp_type_StopIteration },
     { MP_OBJ_NEW_QSTR(MP_QSTR_SyntaxError), (mp_obj_t)&mp_type_SyntaxError },
     { MP_OBJ_NEW_QSTR(MP_QSTR_SystemError), (mp_obj_t)&mp_type_SystemError },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_SystemExit), (mp_obj_t)&mp_type_SystemExit },
     { MP_OBJ_NEW_QSTR(MP_QSTR_TypeError), (mp_obj_t)&mp_type_TypeError },
     { MP_OBJ_NEW_QSTR(MP_QSTR_ValueError), (mp_obj_t)&mp_type_ValueError },
     { MP_OBJ_NEW_QSTR(MP_QSTR_ZeroDivisionError), (mp_obj_t)&mp_type_ZeroDivisionError },
@@ -150,8 +154,8 @@ const mp_obj_dict_t mp_builtin_object_dict_obj = {
     .map = {
         .all_keys_are_qstrs = 1,
         .table_is_fixed_array = 1,
-        .used = ARRAY_SIZE(mp_builtin_object_table),
-        .alloc = ARRAY_SIZE(mp_builtin_object_table),
+        .used = MP_ARRAY_SIZE(mp_builtin_object_table),
+        .alloc = MP_ARRAY_SIZE(mp_builtin_object_table),
         .table = (mp_map_elem_t*)mp_builtin_object_table,
     },
 };
@@ -160,7 +164,9 @@ STATIC const mp_map_elem_t mp_builtin_module_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR___main__), (mp_obj_t)&mp_module___main__ },
     { MP_OBJ_NEW_QSTR(MP_QSTR_micropython), (mp_obj_t)&mp_module_micropython },
 
+#if MICROPY_PY_ARRAY
     { MP_OBJ_NEW_QSTR(MP_QSTR_array), (mp_obj_t)&mp_module_array },
+#endif
 #if MICROPY_PY_IO
     { MP_OBJ_NEW_QSTR(MP_QSTR__io), (mp_obj_t)&mp_module_io },
 #endif
@@ -186,6 +192,15 @@ STATIC const mp_map_elem_t mp_builtin_module_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_gc), (mp_obj_t)&mp_module_gc },
 #endif
 
+    // extmod modules
+
+#if MICROPY_PY_UCTYPES
+    { MP_OBJ_NEW_QSTR(MP_QSTR_uctypes), (mp_obj_t)&mp_module_uctypes },
+#endif
+#if MICROPY_PY_ZLIBD
+    { MP_OBJ_NEW_QSTR(MP_QSTR_zlibd), (mp_obj_t)&mp_module_zlibd },
+#endif
+
     // extra builtin modules as defined by a port
     MICROPY_PORT_BUILTIN_MODULES
 };
@@ -195,8 +210,8 @@ const mp_obj_dict_t mp_builtin_module_dict_obj = {
     .map = {
         .all_keys_are_qstrs = 1,
         .table_is_fixed_array = 1,
-        .used = ARRAY_SIZE(mp_builtin_module_table),
-        .alloc = ARRAY_SIZE(mp_builtin_module_table),
+        .used = MP_ARRAY_SIZE(mp_builtin_module_table),
+        .alloc = MP_ARRAY_SIZE(mp_builtin_module_table),
         .table = (mp_map_elem_t*)mp_builtin_module_table,
     },
 };
