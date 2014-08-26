@@ -174,17 +174,17 @@ void PendSV_Handler(void) {
   * @param  None
   * @retval None
   */
+extern __IO uint32_t uwTick;
 void SysTick_Handler(void) {
     // Instead of calling HAL_IncTick we do the increment here of the counter.
     // This is purely for efficiency, since SysTick is called 1000 times per
     // second at the highest interrupt priority.
-    extern __IO uint32_t uwTick;
-    uwTick += 1;
+    uwTick++;
 
     // Read the systick control regster. This has the side effect of clearing
     // the COUNTFLAG bit, which makes the logic in sys_tick_get_microseconds
     // work properly.
-    SysTick->CTRL;
+    //SysTick->CTRL;
 }
 
 /******************************************************************************/
