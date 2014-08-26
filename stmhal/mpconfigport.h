@@ -55,8 +55,8 @@
 #define MICROPY_PY_CMATH            (1)
 #define MICROPY_PY_IO               (1)
 #define MICROPY_PY_IO_FILEIO        (1)
-#define MICROPY_PY_UCTYPES          (1)
-#define MICROPY_PY_ZLIBD            (1)
+#define MICROPY_PY_UCTYPES          (0)
+#define MICROPY_PY_ZLIBD            (0)
 
 #define MICROPY_ENABLE_EMERGENCY_EXCEPTION_BUF   (1)
 #define MICROPY_EMERGENCY_EXCEPTION_BUF_SIZE  (0)
@@ -66,20 +66,34 @@ extern const struct _mp_obj_fun_builtin_t mp_builtin_help_obj;
 extern const struct _mp_obj_fun_builtin_t mp_builtin_input_obj;
 extern const struct _mp_obj_fun_builtin_t mp_builtin_open_obj;
 #define MICROPY_PORT_BUILTINS \
-    { MP_OBJ_NEW_QSTR(MP_QSTR_help), (mp_obj_t)&mp_builtin_help_obj }, \
-    { MP_OBJ_NEW_QSTR(MP_QSTR_input), (mp_obj_t)&mp_builtin_input_obj }, \
-    { MP_OBJ_NEW_QSTR(MP_QSTR_open), (mp_obj_t)&mp_builtin_open_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_help),    (mp_obj_t)&mp_builtin_help_obj }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_input),   (mp_obj_t)&mp_builtin_input_obj }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_open),    (mp_obj_t)&mp_builtin_open_obj },
 
 // extra built in modules to add to the list of known ones
-extern const struct _mp_obj_module_t stm_module;
+extern const struct _mp_obj_module_t led_module;
 extern const struct _mp_obj_module_t time_module;
+extern const struct _mp_obj_module_t spi_module;
+extern const struct _mp_obj_module_t gpio_module;
+extern const struct _mp_obj_module_t wlan_module;
+extern const struct _mp_obj_module_t socket_module;
+extern const struct _mp_obj_module_t select_module;
+extern const struct _mp_obj_module_t mlx_module;
+extern const struct _mp_obj_module_t sensor_module;
 #define MICROPY_PORT_BUILTIN_MODULES \
-    { MP_OBJ_NEW_QSTR(MP_QSTR_stm), (mp_obj_t)&stm_module }, \
-    { MP_OBJ_NEW_QSTR(MP_QSTR_time), (mp_obj_t)&time_module }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_led),     (mp_obj_t)&led_module }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_time),    (mp_obj_t)&time_module }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_spi),     (mp_obj_t)&spi_module }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_gpio),    (mp_obj_t)&gpio_module }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_wlan),    (mp_obj_t)&wlan_module }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_socket),  (mp_obj_t)&socket_module }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_select),  (mp_obj_t)&select_module }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_mlx),     (mp_obj_t)&mlx_module }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_sensor),  (mp_obj_t)&sensor_module },
 
 // extra constants
-#define MICROPY_PORT_CONSTANTS \
-    { MP_OBJ_NEW_QSTR(MP_QSTR_stm), (mp_obj_t)&stm_module }, \
+//#define MICROPY_PORT_CONSTANTS
+//    { MP_OBJ_NEW_QSTR(MP_QSTR_stm), (mp_obj_t)&stm_module },
 
 // type definitions for the specific machine
 
