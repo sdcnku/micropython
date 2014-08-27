@@ -550,7 +550,7 @@ Q(WWDG_SR)
 // Image
 Q(image)
 Q(Image)
-Q(Surf)
+Q(kp_desc)
 Q(Cascade)
 Q(save)
 Q(size)
@@ -569,7 +569,7 @@ Q(find_blobs)
 Q(find_template)
 Q(find_features)
 Q(find_keypoints)
-Q(find_keypoints_match)
+Q(match_keypoints)
 
 // Led Module
 Q(led)
