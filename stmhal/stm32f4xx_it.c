@@ -316,14 +316,14 @@ void EXTI9_5_IRQHandler(void) {
     Handle_EXTI_Irq(9);
 }
 
-//void EXTI15_10_IRQHandler(void) {
-//    Handle_EXTI_Irq(10);
-//    Handle_EXTI_Irq(11);
-//    Handle_EXTI_Irq(12);
-//    Handle_EXTI_Irq(13);
-//    Handle_EXTI_Irq(14);
-//    Handle_EXTI_Irq(15);
-//}
+void EXTI15_10_IRQHandler(void) {
+    Handle_EXTI_Irq(10);
+    Handle_EXTI_Irq(11);
+    Handle_EXTI_Irq(12);
+    Handle_EXTI_Irq(13);
+    Handle_EXTI_Irq(14);
+    Handle_EXTI_Irq(15);
+}
 
 void PVD_IRQHandler(void) {
     Handle_EXTI_Irq(EXTI_PVD_OUTPUT);
