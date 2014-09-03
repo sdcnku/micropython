@@ -796,8 +796,12 @@ static uint8_t USBD_CDC_MSC_HID_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTyp
                     USBD_CtlPrepareRx(pdev, dbg_xfer_buffer, req->wLength);
                 }
             } else {
-                int bytes = MIN(req->wValue, DBG_MAX_PACKET);
-                dbg_xfer_length =req->wValue - bytes;
+                int wValue = req->wValue;
+                if (req->bRequest==2) {//Hack for big frames
+                    wValue<<=2;
+                }
+                int bytes = MIN(wValue, DBG_MAX_PACKET);
+                dbg_xfer_length =wValue - bytes;
 
                 usbdbg_control(dbg_xfer_buffer, req->bRequest, req->wValue);
                 if (req->bmRequest & 0x80) { /* Device to host */
