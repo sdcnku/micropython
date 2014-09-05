@@ -658,6 +658,9 @@ Q(read)
 Q(write)
 Q(write_image)
 
+// UART
+Q(uart)
+
 // File
 Q(file)
 Q(close)

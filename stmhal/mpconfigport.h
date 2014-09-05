@@ -75,6 +75,7 @@ extern const struct _mp_obj_module_t led_module;
 extern const struct _mp_obj_module_t time_module;
 extern const struct _mp_obj_module_t spi_module;
 extern const struct _mp_obj_module_t gpio_module;
+extern const struct _mp_obj_module_t uart_module;
 extern const struct _mp_obj_module_t wlan_module;
 extern const struct _mp_obj_module_t socket_module;
 extern const struct _mp_obj_module_t select_module;
@@ -85,6 +86,7 @@ extern const struct _mp_obj_module_t sensor_module;
     { MP_OBJ_NEW_QSTR(MP_QSTR_time),    (mp_obj_t)&time_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_spi),     (mp_obj_t)&spi_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_gpio),    (mp_obj_t)&gpio_module }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_uart),    (mp_obj_t)&uart_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_wlan),    (mp_obj_t)&wlan_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_socket),  (mp_obj_t)&socket_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_select),  (mp_obj_t)&select_module }, \
