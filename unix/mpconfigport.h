@@ -27,8 +27,11 @@
 // options to control how Micro Python is built
 
 #define MICROPY_ALLOC_PATH_MAX      (PATH_MAX)
-#ifndef MICROPY_EMIT_X64
-#define MICROPY_EMIT_X64            (1)
+#if !defined(MICROPY_EMIT_X64) && defined(__x86_64__)
+    #define MICROPY_EMIT_X64        (1)
+#endif
+#if !defined(MICROPY_EMIT_X86) && defined(__i386__)
+    #define MICROPY_EMIT_X86        (1)
 #endif
 #define MICROPY_EMIT_THUMB          (0)
 #define MICROPY_EMIT_INLINE_THUMB   (0)
@@ -62,7 +65,11 @@
 // Define to 1 to use untested inefficient GC helper implementation
 // (if more efficient arch-specific one is not available).
 #ifndef MICROPY_GCREGS_SETJMP
-#define MICROPY_GCREGS_SETJMP       (0)
+    #ifdef __mips__
+        #define MICROPY_GCREGS_SETJMP (1)
+    #else
+        #define MICROPY_GCREGS_SETJMP (0)
+    #endif
 #endif
 
 #define MICROPY_ENABLE_EMERGENCY_EXCEPTION_BUF   (1)
@@ -113,6 +120,11 @@ typedef unsigned int mp_uint_t; // must be pointer size
 
 typedef void *machine_ptr_t; // must be of pointer size
 typedef const void *machine_const_ptr_t; // must be of pointer size
+
+void mp_unix_alloc_exec(mp_uint_t min_size, void** ptr, mp_uint_t *size);
+void mp_unix_free_exec(void *ptr, mp_uint_t size);
+#define MP_PLAT_ALLOC_EXEC(min_size, ptr, size) mp_unix_alloc_exec(min_size, ptr, size)
+#define MP_PLAT_FREE_EXEC(ptr, size) mp_unix_free_exec(ptr, size)
 
 extern const struct _mp_obj_fun_builtin_t mp_builtin_input_obj;
 extern const struct _mp_obj_fun_builtin_t mp_builtin_open_obj;

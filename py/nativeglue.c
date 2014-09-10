@@ -71,7 +71,7 @@ mp_obj_t mp_convert_native_to_obj(mp_uint_t val, mp_uint_t type) {
 
 // wrapper that accepts n_args and n_kw in one argument
 // (native emitter can only pass at most 3 arguments to a function)
-mp_obj_t mp_native_call_function_n_kw(mp_obj_t fun_in, uint n_args_kw, const mp_obj_t *args) {
+mp_obj_t mp_native_call_function_n_kw(mp_obj_t fun_in, mp_uint_t n_args_kw, const mp_obj_t *args) {
     return mp_call_function_n_kw(fun_in, n_args_kw & 0xff, (n_args_kw >> 8) & 0xff, args);
 }
 
@@ -125,6 +125,8 @@ void *const mp_fun_table[MP_F_NUMBER_OF] = {
 #endif
     mp_unpack_sequence,
     mp_unpack_ex,
+    mp_delete_name,
+    mp_delete_global,
 };
 
 /*

@@ -52,20 +52,19 @@ typedef struct _mp_obj_gen_instance_t {
     mp_code_state code_state;
 } mp_obj_gen_instance_t;
 
-STATIC mp_obj_t gen_wrap_call(mp_obj_t self_in, uint n_args, uint n_kw, const mp_obj_t *args) {
+STATIC mp_obj_t gen_wrap_call(mp_obj_t self_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
     mp_obj_gen_wrap_t *self = self_in;
     mp_obj_fun_bc_t *self_fun = (mp_obj_fun_bc_t*)self->fun;
     assert(MP_OBJ_IS_TYPE(self_fun, &mp_type_fun_bc));
 
-    const byte *bytecode = self_fun->bytecode;
-    // get code info size, and skip the line number table
-    mp_uint_t code_info_size = bytecode[0] | (bytecode[1] << 8) | (bytecode[2] << 16) | (bytecode[3] << 24);
-    bytecode += code_info_size;
+    // skip code-info block
+    const byte *code_info = self_fun->bytecode;
+    mp_uint_t code_info_size = mp_decode_uint(&code_info);
+    const byte *ip = self_fun->bytecode + code_info_size;
 
     // bytecode prelude: get state size and exception stack size
-    mp_uint_t n_state = bytecode[0] | (bytecode[1] << 8);
-    mp_uint_t n_exc_stack = bytecode[2] | (bytecode[3] << 8);
-    bytecode += 4;
+    mp_uint_t n_state = mp_decode_uint(&ip);
+    mp_uint_t n_exc_stack = mp_decode_uint(&ip);
 
     // allocate the generator object, with room for local stack and exception stack
     mp_obj_gen_instance_t *o = m_new_obj_var(mp_obj_gen_instance_t, byte,
@@ -74,7 +73,7 @@ STATIC mp_obj_t gen_wrap_call(mp_obj_t self_in, uint n_args, uint n_kw, const mp
 
     o->globals = self_fun->globals;
     o->code_state.n_state = n_state;
-    o->code_state.ip = bytecode;
+    o->code_state.ip = ip;
     mp_setup_code_state(&o->code_state, self_fun, n_args, n_kw, args);
     return o;
 }
@@ -197,7 +196,7 @@ STATIC mp_obj_t gen_instance_send(mp_obj_t self_in, mp_obj_t send_value) {
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(gen_instance_send_obj, gen_instance_send);
 
 STATIC mp_obj_t gen_instance_close(mp_obj_t self_in);
-STATIC mp_obj_t gen_instance_throw(uint n_args, const mp_obj_t *args) {
+STATIC mp_obj_t gen_instance_throw(mp_uint_t n_args, const mp_obj_t *args) {
     mp_obj_t exc = (n_args == 2) ? args[1] : args[2];
     exc = mp_make_raise_obj(exc);
 

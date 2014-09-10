@@ -18,7 +18,7 @@ INC += -I$(PY_SRC)
 INC += -I$(BUILD)
 
 # compiler settings
-CWARN = -Wall -Werror -Wno-error=cpp
+CWARN = -Wall -Werror
 CFLAGS = $(INC) $(CWARN) -ansi -std=gnu99 -DUNIX $(CFLAGS_MOD) $(COPT) $(CFLAGS_EXTRA)
 
 # Debugging/Optimization
@@ -75,6 +75,7 @@ SRC_C = \
 	file.c \
 	modsocket.c \
 	modos.c \
+	alloc.c \
 	$(SRC_MOD)
 
 ifeq ($(UNAME_S),Darwin)

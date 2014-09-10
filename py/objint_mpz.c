@@ -45,15 +45,17 @@
 
 #if MICROPY_PY_SYS_MAXSIZE
 // Export value for sys.maxsize
-#define DIG_MASK ((1 << MPZ_DIG_SIZE) - 1)
+#define DIG_MASK ((1L << MPZ_DIG_SIZE) - 1)
 STATIC const mpz_dig_t maxsize_dig[MPZ_NUM_DIG_FOR_INT] = {
-    (INT_MAX >> MPZ_DIG_SIZE * 0) & DIG_MASK,
-    (INT_MAX >> MPZ_DIG_SIZE * 1) & DIG_MASK,
-    (INT_MAX >> MPZ_DIG_SIZE * 2) & DIG_MASK,
-    #if (INT_MAX >> MPZ_DIG_SIZE * 2) > DIG_MASK
-    (INT_MAX >> MPZ_DIG_SIZE * 3) & DIG_MASK,
-    (INT_MAX >> MPZ_DIG_SIZE * 4) & DIG_MASK,
-//    (INT_MAX >> MPZ_DIG_SIZE * 5) & DIG_MASK,
+    (MP_SSIZE_MAX >> MPZ_DIG_SIZE * 0) & DIG_MASK,
+    #if (MP_SSIZE_MAX >> MPZ_DIG_SIZE * 0) > DIG_MASK
+    (MP_SSIZE_MAX >> MPZ_DIG_SIZE * 1) & DIG_MASK,
+    #if (MP_SSIZE_MAX >> MPZ_DIG_SIZE * 1) > DIG_MASK
+    (MP_SSIZE_MAX >> MPZ_DIG_SIZE * 2) & DIG_MASK,
+    (MP_SSIZE_MAX >> MPZ_DIG_SIZE * 3) & DIG_MASK,
+    (MP_SSIZE_MAX >> MPZ_DIG_SIZE * 4) & DIG_MASK,
+//    (MP_SSIZE_MAX >> MPZ_DIG_SIZE * 5) & DIG_MASK,
+    #endif
     #endif
 };
 const mp_obj_int_t mp_maxsize_obj = {
@@ -84,7 +86,7 @@ char *mp_obj_int_formatted_impl(char **buf, int *buf_size, int *fmt_size, mp_con
     assert(MP_OBJ_IS_TYPE(self_in, &mp_type_int));
     const mp_obj_int_t *self = self_in;
 
-    uint needed_size = mpz_as_str_size_formatted(&self->mpz, base, prefix, comma);
+    uint needed_size = mpz_as_str_size(&self->mpz, base, prefix, comma);
     if (needed_size > *buf_size) {
         *buf = m_new(char, needed_size);
         *buf_size = needed_size;
@@ -112,7 +114,7 @@ bool mp_obj_int_is_positive(mp_obj_t self_in) {
     return !self->mpz.neg;
 }
 
-mp_obj_t mp_obj_int_unary_op(int op, mp_obj_t o_in) {
+mp_obj_t mp_obj_int_unary_op(mp_uint_t op, mp_obj_t o_in) {
     mp_obj_int_t *o = o_in;
     switch (op) {
         case MP_UNARY_OP_BOOL: return MP_BOOL(!mpz_is_zero(&o->mpz));
@@ -123,7 +125,7 @@ mp_obj_t mp_obj_int_unary_op(int op, mp_obj_t o_in) {
     }
 }
 
-mp_obj_t mp_obj_int_binary_op(int op, mp_obj_t lhs_in, mp_obj_t rhs_in) {
+mp_obj_t mp_obj_int_binary_op(mp_uint_t op, mp_obj_t lhs_in, mp_obj_t rhs_in) {
     const mpz_t *zlhs;
     const mpz_t *zrhs;
     mpz_t z_int;
@@ -290,9 +292,9 @@ mp_obj_t mp_obj_new_int_from_uint(mp_uint_t value) {
     return mp_obj_new_int_from_ll(value);
 }
 
-mp_obj_t mp_obj_new_int_from_str_len(const char **str, uint len, bool neg, uint base) {
+mp_obj_t mp_obj_new_int_from_str_len(const char **str, mp_uint_t len, bool neg, mp_uint_t base) {
     mp_obj_int_t *o = mp_obj_int_new_mpz();
-    uint n = mpz_set_from_str(&o->mpz, *str, len, neg, base);
+    mp_uint_t n = mpz_set_from_str(&o->mpz, *str, len, neg, base);
     *str += n;
     return o;
 }

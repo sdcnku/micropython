@@ -44,7 +44,7 @@ typedef struct _id_info_t {
     // when it's an ID_INFO_KIND_LOCAL this is the unique number of the local
     // whet it's an ID_INFO_KIND_CELL/FREE this is the unique number of the closed over variable
     uint16_t local_num;
-    qstr qstr;
+    qstr qst;
 } id_info_t;
 
 // scope is a "block" in Python parlance
@@ -69,7 +69,7 @@ typedef struct _scope_t {
     id_info_t *id_info;
 } scope_t;
 
-scope_t *scope_new(scope_kind_t kind, mp_parse_node_t pn, qstr source_file, uint emit_options);
+scope_t *scope_new(scope_kind_t kind, mp_parse_node_t pn, qstr source_file, mp_uint_t emit_options);
 void scope_free(scope_t *scope);
 id_info_t *scope_find_or_add_id(scope_t *scope, qstr qstr, bool *added);
 id_info_t *scope_find(scope_t *scope, qstr qstr);

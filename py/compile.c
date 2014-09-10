@@ -713,6 +713,23 @@ STATIC void c_if_cond(compiler_t *comp, mp_parse_node_t pn, bool jump_if, int la
         } else if (MP_PARSE_NODE_STRUCT_KIND(pns) == PN_not_test_2) {
             c_if_cond(comp, pns->nodes[0], !jump_if, label);
             return;
+        } else if (MP_PARSE_NODE_STRUCT_KIND(pns) == PN_atom_paren) {
+            // cond is something in parenthesis
+            if (MP_PARSE_NODE_IS_NULL(pns->nodes[0])) {
+                // empty tuple, acts as false for the condition
+                if (jump_if == false) {
+                    EMIT_ARG(jump, label);
+                }
+            } else if (MP_PARSE_NODE_IS_STRUCT_KIND(pns->nodes[0], PN_testlist_comp)) {
+                // non-empty tuple, acts as true for the condition
+                if (jump_if == true) {
+                    EMIT_ARG(jump, label);
+                }
+            } else {
+                // parenthesis around 1 item, is just that item
+                c_if_cond(comp, pns->nodes[0], jump_if, label);
+            }
+            return;
         }
     }
 
@@ -958,12 +975,12 @@ STATIC void close_over_variables_etc(compiler_t *comp, scope_t *this_scope, int 
             if (id->kind == ID_INFO_KIND_CELL || id->kind == ID_INFO_KIND_FREE) {
                 for (int j = 0; j < this_scope->id_info_len; j++) {
                     id_info_t *id2 = &this_scope->id_info[j];
-                    if (id2->kind == ID_INFO_KIND_FREE && id->qstr == id2->qstr) {
+                    if (id2->kind == ID_INFO_KIND_FREE && id->qst == id2->qst) {
 #if MICROPY_EMIT_CPYTHON
-                        EMIT_ARG(load_closure, id->qstr, id->local_num);
+                        EMIT_ARG(load_closure, id->qst, id->local_num);
 #else
                         // in Micro Python we load closures using LOAD_FAST
-                        EMIT_ARG(load_fast, id->qstr, id->flags, id->local_num);
+                        EMIT_ARG(load_fast, id->qst, id->flags, id->local_num);
 #endif
                         nfree += 1;
                     }
@@ -3429,7 +3446,7 @@ STATIC void compile_scope_compute_things(compiler_t *comp, scope_t *scope) {
     scope->num_locals = 0;
     for (int i = 0; i < scope->id_info_len; i++) {
         id_info_t *id = &scope->id_info[i];
-        if (scope->kind == SCOPE_CLASS && id->qstr == MP_QSTR___class__) {
+        if (scope->kind == SCOPE_CLASS && id->qst == MP_QSTR___class__) {
             // __class__ is not counted as a local; if it's used then it becomes a ID_INFO_KIND_CELL
             continue;
         }
@@ -3474,7 +3491,7 @@ STATIC void compile_scope_compute_things(compiler_t *comp, scope_t *scope) {
             if (id->kind == ID_INFO_KIND_CELL || id->kind == ID_INFO_KIND_FREE) {
                 for (int j = 0; j < scope->id_info_len; j++) {
                     id_info_t *id2 = &scope->id_info[j];
-                    if (id2->kind == ID_INFO_KIND_FREE && id->qstr == id2->qstr) {
+                    if (id2->kind == ID_INFO_KIND_FREE && id->qst == id2->qst) {
                         assert(!(id2->flags & ID_FLAG_IS_PARAM)); // free vars should not be params
 #if MICROPY_EMIT_CPYTHON
                         // in CPython the frees are numbered after the cells
@@ -3621,6 +3638,11 @@ mp_obj_t mp_compile(mp_parse_node_t pn, qstr source_file, uint emit_opt, bool is
                         emit_native = emit_native_x64_new(max_num_labels);
                     }
                     comp->emit_method_table = &emit_native_x64_method_table;
+#elif MICROPY_EMIT_X86
+                    if (emit_native == NULL) {
+                        emit_native = emit_native_x86_new(max_num_labels);
+                    }
+                    comp->emit_method_table = &emit_native_x86_method_table;
 #elif MICROPY_EMIT_THUMB
                     if (emit_native == NULL) {
                         emit_native = emit_native_thumb_new(max_num_labels);
@@ -3672,10 +3694,12 @@ mp_obj_t mp_compile(mp_parse_node_t pn, qstr source_file, uint emit_opt, bool is
     if (emit_native != NULL) {
 #if MICROPY_EMIT_X64
         emit_native_x64_free(emit_native);
+#elif MICROPY_EMIT_X86
+        emit_native_x86_free(emit_native);
 #elif MICROPY_EMIT_THUMB
         emit_native_thumb_free(emit_native);
 #elif MICROPY_EMIT_ARM
-	emit_native_arm_free(emit_native);
+        emit_native_arm_free(emit_native);
 #endif
     }
 #endif

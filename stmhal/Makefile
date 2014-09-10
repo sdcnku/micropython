@@ -9,6 +9,7 @@ endif
 BUILD ?= build-$(BOARD)
 
 include ../py/mkenv.mk
+-include mpconfigport.mk
 
 # qstr definitions (must come before including py.mk)
 QSTR_DEFS = qstrdefsport.h $(BUILD)/pins_qstr.h
@@ -46,6 +47,13 @@ CFLAGS += -Iboards/$(BOARD)
 
 LDFLAGS = --nostdlib -T stm32f405.ld -Map=$(@:.elf=.map) --cref
 
+SRC_LIB = $(addprefix lib/,\
+	libm/math.c \
+	libm/mathsincos.c \
+	libm/atanf.c \
+	libm/atan2f.c \
+	)
+
 SRC_C = \
 	main.c \
 	string0.c \
@@ -70,8 +78,6 @@ SRC_C = \
 	uart.c \
 	usb.c \
 	printf.c \
-	math.c \
-	mathsincos.c \
 	gccollect.c \
 	pybstdio.c \
 	readline.c \
@@ -82,6 +88,7 @@ SRC_C = \
 	modpyb.c \
 	modstm.c \
 	modtime.c \
+	modselect.c \
 	import.c \
 	lexerfatfs.c \
 	extint.c \
@@ -176,8 +183,22 @@ SRC_CC3K = $(addprefix $(CC3K_DIR)/,\
 	pybcc3k.c \
 	)
 
+ifeq ($(MICROPY_PY_WIZNET5K),1)
+WIZNET5K_DIR=drivers/wiznet5k
+INC += -I$(TOP)/$(WIZNET5K_DIR)
+CFLAGS_MOD += -DMICROPY_PY_WIZNET5K=1
+SRC_MOD += modwiznet5k.c
+SRC_MOD += $(addprefix $(WIZNET5K_DIR)/,\
+	ethernet/w5200/w5200.c \
+	ethernet/wizchip_conf.c \
+	ethernet/socket.c \
+	internet/dns/dns.c \
+	)
+endif
+
 OBJ =
 OBJ += $(PY_O)
+OBJ += $(addprefix $(BUILD)/, $(SRC_LIB:.c=.o))
 OBJ += $(addprefix $(BUILD)/, $(SRC_C:.c=.o))
 OBJ += $(addprefix $(BUILD)/, $(SRC_S:.s=.o))
 #OBJ += $(addprefix $(BUILD)/, $(SRC_HAL:.c=.o))

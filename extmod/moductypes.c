@@ -119,7 +119,7 @@ STATIC NORETURN void syntax_error() {
     nlr_raise(mp_obj_new_exception_msg(&mp_type_TypeError, "syntax error in uctypes descriptor"));
 }
 
-STATIC mp_obj_t uctypes_struct_make_new(mp_obj_t type_in, uint n_args, uint n_kw, const mp_obj_t *args) {
+STATIC mp_obj_t uctypes_struct_make_new(mp_obj_t type_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
     if (n_args < 2 || n_args > 3) {
         syntax_error();
     }
@@ -261,10 +261,10 @@ STATIC inline mp_obj_t get_unaligned(uint val_type, void *p, int big_endian) {
     }
 }
 
-STATIC inline void set_unaligned(uint val_type, void *p, int big_endian, mp_obj_t val) {
+STATIC inline void set_unaligned(uint val_type, byte *p, int big_endian, mp_obj_t val) {
     char struct_type = big_endian ? '>' : '<';
     static const char type2char[8] = "BbHhIiQq";
-    mp_binary_set_val(struct_type, type2char[val_type], val, (byte**)&p);
+    mp_binary_set_val(struct_type, type2char[val_type], val, &p);
 }
 
 static inline mp_uint_t get_aligned_basic(uint val_type, void *p) {

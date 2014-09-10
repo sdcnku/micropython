@@ -26,6 +26,8 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
+#include <errno.h>
 
 #include "stm32f4xx_hal.h"
 
@@ -37,6 +39,7 @@
 #include "runtime.h"
 #include "bufhelper.h"
 #include "uart.h"
+#include "pybioctl.h"
 
 /// \moduleref pyb
 /// \class UART - duplex serial communication bus
@@ -266,7 +269,7 @@ STATIC const mp_arg_t pyb_uart_init_args[] = {
 };
 #define PYB_UART_INIT_NUM_ARGS MP_ARRAY_SIZE(pyb_uart_init_args)
 
-STATIC mp_obj_t pyb_uart_init_helper(pyb_uart_obj_t *self, uint n_args, const mp_obj_t *args, mp_map_t *kw_args) {
+STATIC mp_obj_t pyb_uart_init_helper(pyb_uart_obj_t *self, mp_uint_t n_args, const mp_obj_t *args, mp_map_t *kw_args) {
     // parse args
     mp_arg_val_t vals[PYB_UART_INIT_NUM_ARGS];
     mp_arg_parse_all(n_args, args, kw_args, PYB_UART_INIT_NUM_ARGS, pyb_uart_init_args, vals);
@@ -313,7 +316,7 @@ STATIC mp_obj_t pyb_uart_init_helper(pyb_uart_obj_t *self, uint n_args, const mp
 ///   - `UART(6)` is on `YA`: `(TX, RX) = (Y1, Y2) = (PC6, PC7)`
 ///   - `UART(3)` is on `YB`: `(TX, RX) = (Y9, Y10) = (PB10, PB11)`
 ///   - `UART(2)` is on: `(TX, RX) = (X3, X4) = (PA2, PA3)`
-STATIC mp_obj_t pyb_uart_make_new(mp_obj_t type_in, uint n_args, uint n_kw, const mp_obj_t *args) {
+STATIC mp_obj_t pyb_uart_make_new(mp_obj_t type_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
     // check arguments
     mp_arg_check_num(n_args, n_kw, 1, MP_OBJ_FUN_ARGS_MAX, true);
 
@@ -353,7 +356,7 @@ STATIC mp_obj_t pyb_uart_make_new(mp_obj_t type_in, uint n_args, uint n_kw, cons
     return o;
 }
 
-STATIC mp_obj_t pyb_uart_init(uint n_args, const mp_obj_t *args, mp_map_t *kw_args) {
+STATIC mp_obj_t pyb_uart_init(mp_uint_t n_args, const mp_obj_t *args, mp_map_t *kw_args) {
     return pyb_uart_init_helper(args[0], n_args - 1, args + 1, kw_args);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(pyb_uart_init_obj, 1, pyb_uart_init);
@@ -392,7 +395,7 @@ STATIC const mp_arg_t pyb_uart_send_args[] = {
 };
 #define PYB_UART_SEND_NUM_ARGS MP_ARRAY_SIZE(pyb_uart_send_args)
 
-STATIC mp_obj_t pyb_uart_send(uint n_args, const mp_obj_t *args, mp_map_t *kw_args) {
+STATIC mp_obj_t pyb_uart_send(mp_uint_t n_args, const mp_obj_t *args, mp_map_t *kw_args) {
     // TODO assumes transmission size is 8-bits wide
 
     pyb_uart_obj_t *self = args[0];
@@ -434,7 +437,7 @@ STATIC const mp_arg_t pyb_uart_recv_args[] = {
 };
 #define PYB_UART_RECV_NUM_ARGS MP_ARRAY_SIZE(pyb_uart_recv_args)
 
-STATIC mp_obj_t pyb_uart_recv(uint n_args, const mp_obj_t *args, mp_map_t *kw_args) {
+STATIC mp_obj_t pyb_uart_recv(mp_uint_t n_args, const mp_obj_t *args, mp_map_t *kw_args) {
     // TODO assumes transmission size is 8-bits wide
 
     pyb_uart_obj_t *self = args[0];
@@ -475,10 +478,40 @@ STATIC const mp_map_elem_t pyb_uart_locals_dict_table[] = {
 
 STATIC MP_DEFINE_CONST_DICT(pyb_uart_locals_dict, pyb_uart_locals_dict_table);
 
+mp_uint_t uart_ioctl(mp_obj_t self_in, mp_uint_t request, int *errcode, ...) {
+    pyb_uart_obj_t *self = self_in;
+    va_list vargs;
+    va_start(vargs, errcode);
+    mp_uint_t ret;
+    if (request == MP_IOCTL_POLL) {
+        mp_uint_t flags = va_arg(vargs, mp_uint_t);
+        ret = 0;
+        if ((flags & MP_IOCTL_POLL_RD) && uart_rx_any(self)) {
+            ret |= MP_IOCTL_POLL_RD;
+        }
+        if ((flags & MP_IOCTL_POLL_WR) && __HAL_UART_GET_FLAG(&self->uart, UART_FLAG_TXE)) {
+            ret |= MP_IOCTL_POLL_WR;
+        }
+    } else {
+        *errcode = EINVAL;
+        ret = -1;
+    }
+    va_end(vargs);
+    return ret;
+}
+
+STATIC const mp_stream_p_t uart_stream_p = {
+    //.read = uart_read, // TODO
+    //.write = uart_write, // TODO
+    .ioctl = uart_ioctl,
+    .is_text = false,
+};
+
 const mp_obj_type_t pyb_uart_type = {
     { &mp_type_type },
     .name = MP_QSTR_UART,
     .print = pyb_uart_print,
     .make_new = pyb_uart_make_new,
+    .stream_p = &uart_stream_p,
     .locals_dict = (mp_obj_t)&pyb_uart_locals_dict,
 };

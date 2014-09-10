@@ -224,7 +224,7 @@ int usage(char **argv) {
 STATIC mp_obj_t mem_info(void) {
     printf("mem: total=%d, current=%d, peak=%d\n",
         m_get_total_bytes_allocated(), m_get_current_bytes_allocated(), m_get_peak_bytes_allocated());
-    printf("stack: %u\n", mp_stack_usage());
+    printf("stack: " UINT_FMT "\n", mp_stack_usage());
 #if MICROPY_ENABLE_GC
     gc_dump_info();
 #endif
@@ -293,7 +293,7 @@ int main(int argc, char **argv) {
     if (path == NULL) {
         path = "~/.micropython/lib:/usr/lib/micropython";
     }
-    uint path_num = 1; // [0] is for current dir (or base dir of the script)
+    mp_uint_t path_num = 1; // [0] is for current dir (or base dir of the script)
     for (char *p = path; p != NULL; p = strchr(p, PATHLIST_SEP_CHAR)) {
         path_num++;
         if (p != NULL) {

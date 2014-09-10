@@ -124,7 +124,7 @@ STATIC ffi_type *char2ffi_type(char c)
 STATIC ffi_type *get_ffi_type(mp_obj_t o_in)
 {
     if (MP_OBJ_IS_STR(o_in)) {
-        uint len;
+        mp_uint_t len;
         const char *s = mp_obj_str_get_data(o_in, &len);
         ffi_type *t = char2ffi_type(*s);
         if (t != NULL) {
@@ -146,8 +146,8 @@ STATIC mp_obj_t return_ffi_value(ffi_arg val, char type)
         case 'v':
             return mp_const_none;
         case 'f': {
-            float *p = (float*)&val;
-            return mp_obj_new_float(*p);
+            union { ffi_arg ffi; float flt; } val_union = { .ffi = val };
+            return mp_obj_new_float(val_union.flt);
         }
         case 'd': {
             double *p = (double*)&val;
@@ -172,7 +172,7 @@ STATIC mp_obj_t ffimod_close(mp_obj_t self_in) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(ffimod_close_obj, ffimod_close);
 
-STATIC mp_obj_t ffimod_func(uint n_args, const mp_obj_t *args) {
+STATIC mp_obj_t ffimod_func(mp_uint_t n_args, const mp_obj_t *args) {
     mp_obj_ffimod_t *self = args[0];
     const char *rettype = mp_obj_str_get_str(args[1]);
     const char *symname = mp_obj_str_get_str(args[2]);
@@ -264,7 +264,7 @@ STATIC mp_obj_t ffimod_var(mp_obj_t self_in, mp_obj_t vartype_in, mp_obj_t symna
 }
 MP_DEFINE_CONST_FUN_OBJ_3(ffimod_var_obj, ffimod_var);
 
-STATIC mp_obj_t ffimod_make_new(mp_obj_t type_in, uint n_args, uint n_kw, const mp_obj_t *args) {
+STATIC mp_obj_t ffimod_make_new(mp_obj_t type_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
     const char *fname = mp_obj_str_get_str(args[0]);
     void *mod = dlopen(fname, RTLD_NOW | RTLD_LOCAL);
 
@@ -300,7 +300,7 @@ STATIC void ffifunc_print(void (*print)(void *env, const char *fmt, ...), void *
     print(env, "<ffifunc %p>", self->func);
 }
 
-mp_obj_t ffifunc_call(mp_obj_t self_in, uint n_args, uint n_kw, const mp_obj_t *args) {
+mp_obj_t ffifunc_call(mp_obj_t self_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
     mp_obj_ffifunc_t *self = self_in;
     assert(n_kw == 0);
     assert(n_args == self->cif.nargs);
@@ -334,9 +334,19 @@ mp_obj_t ffifunc_call(mp_obj_t self_in, uint n_args, uint n_kw, const mp_obj_t *
         valueptrs[i] = &values[i];
     }
 
-    ffi_arg retval;
-    ffi_call(&self->cif, self->func, &retval, valueptrs);
-    return return_ffi_value(retval, self->rettype);
+    // If ffi_arg is not big enough to hold a double, then we must pass along a
+    // pointer to a memory location of the correct size.
+    // TODO check if this needs to be done for other types which don't fit into
+    // ffi_arg.
+    if (sizeof(ffi_arg) == 4 && self->rettype == 'd') {
+        double retval;
+        ffi_call(&self->cif, self->func, &retval, valueptrs);
+        return mp_obj_new_float(retval);
+    } else {
+        ffi_arg retval;
+        ffi_call(&self->cif, self->func, &retval, valueptrs);
+        return return_ffi_value(retval, self->rettype);
+    }
 
 error:
     nlr_raise(mp_obj_new_exception_msg(&mp_type_TypeError, "Don't know how to pass object to native function"));
@@ -406,7 +416,7 @@ STATIC const mp_obj_type_t opaque_type = {
 };
 */
 
-mp_obj_t mod_ffi_open(uint n_args, const mp_obj_t *args) {
+mp_obj_t mod_ffi_open(mp_uint_t n_args, const mp_obj_t *args) {
     return ffimod_make_new((mp_obj_t)&ffimod_type, n_args, 0, args);
 }
 MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mod_ffi_open_obj, 1, 2, mod_ffi_open);

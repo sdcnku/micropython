@@ -34,6 +34,7 @@
 #include "qstr.h"
 #include "obj.h"
 #include "objtuple.h"
+#include "objlist.h"
 #include "objmodule.h"
 #include "parsenum.h"
 #include "runtime0.h"
@@ -188,7 +189,7 @@ void mp_delete_global(qstr qstr) {
     mp_obj_dict_delete(dict_globals, MP_OBJ_NEW_QSTR(qstr));
 }
 
-mp_obj_t mp_unary_op(int op, mp_obj_t arg) {
+mp_obj_t mp_unary_op(mp_uint_t op, mp_obj_t arg) {
     DEBUG_OP_printf("unary %d %p\n", op, arg);
 
     if (MP_OBJ_IS_SMALL_INT(arg)) {
@@ -224,7 +225,7 @@ mp_obj_t mp_unary_op(int op, mp_obj_t arg) {
     }
 }
 
-mp_obj_t mp_binary_op(int op, mp_obj_t lhs, mp_obj_t rhs) {
+mp_obj_t mp_binary_op(mp_uint_t op, mp_obj_t lhs, mp_obj_t rhs) {
     DEBUG_OP_printf("binary %d %p %p\n", op, lhs, rhs);
 
     // TODO correctly distinguish inplace operators for mutable objects
@@ -518,7 +519,7 @@ mp_obj_t mp_call_function_2(mp_obj_t fun, mp_obj_t arg1, mp_obj_t arg2) {
 }
 
 // args contains, eg: arg0  arg1  key0  value0  key1  value1
-mp_obj_t mp_call_function_n_kw(mp_obj_t fun_in, uint n_args, uint n_kw, const mp_obj_t *args) {
+mp_obj_t mp_call_function_n_kw(mp_obj_t fun_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
     // TODO improve this: fun object can specify its type and we parse here the arguments,
     // passing to the function arrays of fixed and keyword arguments
 
@@ -537,13 +538,13 @@ mp_obj_t mp_call_function_n_kw(mp_obj_t fun_in, uint n_args, uint n_kw, const mp
 
 // args contains: fun  self/NULL  arg(0)  ...  arg(n_args-2)  arg(n_args-1)  kw_key(0)  kw_val(0)  ... kw_key(n_kw-1)  kw_val(n_kw-1)
 // if n_args==0 and n_kw==0 then there are only fun and self/NULL
-mp_obj_t mp_call_method_n_kw(uint n_args, uint n_kw, const mp_obj_t *args) {
+mp_obj_t mp_call_method_n_kw(mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
     DEBUG_OP_printf("call method (fun=%p, self=%p, n_args=%u, n_kw=%u, args=%p)\n", args[0], args[1], n_args, n_kw, args);
     int adjust = (args[1] == NULL) ? 0 : 1;
     return mp_call_function_n_kw(args[0], n_args + adjust, n_kw, args + 2 - adjust);
 }
 
-mp_obj_t mp_call_method_n_kw_var(bool have_self, uint n_args_n_kw, const mp_obj_t *args) {
+mp_obj_t mp_call_method_n_kw_var(bool have_self, mp_uint_t n_args_n_kw, const mp_obj_t *args) {
     mp_obj_t fun = *args++;
     mp_obj_t self = MP_OBJ_NULL;
     if (have_self) {
@@ -593,7 +594,7 @@ mp_obj_t mp_call_method_n_kw_var(bool have_self, uint n_args_n_kw, const mp_obj_
         // optimise the case of a tuple and list
 
         // get the items
-        uint len;
+        mp_uint_t len;
         mp_obj_t *items;
         mp_obj_get_array(pos_seq, &len, &items);
 
@@ -688,8 +689,8 @@ mp_obj_t mp_call_method_n_kw_var(bool have_self, uint n_args_n_kw, const mp_obj_
 }
 
 // unpacked items are stored in reverse order into the array pointed to by items
-void mp_unpack_sequence(mp_obj_t seq_in, uint num, mp_obj_t *items) {
-    uint seq_len;
+void mp_unpack_sequence(mp_obj_t seq_in, mp_uint_t num, mp_obj_t *items) {
+    mp_uint_t seq_len;
     if (MP_OBJ_IS_TYPE(seq_in, &mp_type_tuple) || MP_OBJ_IS_TYPE(seq_in, &mp_type_list)) {
         mp_obj_t *seq_items;
         if (MP_OBJ_IS_TYPE(seq_in, &mp_type_tuple)) {
@@ -702,7 +703,7 @@ void mp_unpack_sequence(mp_obj_t seq_in, uint num, mp_obj_t *items) {
         } else if (seq_len > num) {
             goto too_long;
         }
-        for (uint i = 0; i < num; i++) {
+        for (mp_uint_t i = 0; i < num; i++) {
             items[i] = seq_items[num - 1 - i];
         }
     } else {
@@ -728,11 +729,11 @@ too_long:
 }
 
 // unpacked items are stored in reverse order into the array pointed to by items
-void mp_unpack_ex(mp_obj_t seq_in, uint num_in, mp_obj_t *items) {
-    uint num_left = num_in & 0xff;
-    uint num_right = (num_in >> 8) & 0xff;
+void mp_unpack_ex(mp_obj_t seq_in, mp_uint_t num_in, mp_obj_t *items) {
+    mp_uint_t num_left = num_in & 0xff;
+    mp_uint_t num_right = (num_in >> 8) & 0xff;
     DEBUG_OP_printf("unpack ex %d %d\n", num_left, num_right);
-    uint seq_len;
+    mp_uint_t seq_len;
     if (MP_OBJ_IS_TYPE(seq_in, &mp_type_tuple) || MP_OBJ_IS_TYPE(seq_in, &mp_type_list)) {
         mp_obj_t *seq_items;
         if (MP_OBJ_IS_TYPE(seq_in, &mp_type_tuple)) {
@@ -748,11 +749,11 @@ void mp_unpack_ex(mp_obj_t seq_in, uint num_in, mp_obj_t *items) {
         if (seq_len < num_left + num_right) {
             goto too_short;
         }
-        for (uint i = 0; i < num_right; i++) {
+        for (mp_uint_t i = 0; i < num_right; i++) {
             items[i] = seq_items[seq_len - 1 - i];
         }
         items[num_right] = mp_obj_new_list(seq_len - num_left - num_right, seq_items + num_left);
-        for (uint i = 0; i < num_left; i++) {
+        for (mp_uint_t i = 0; i < num_left; i++) {
             items[num_right + 1 + i] = seq_items[num_left - 1 - i];
         }
     } else {
@@ -769,21 +770,18 @@ void mp_unpack_ex(mp_obj_t seq_in, uint num_in, mp_obj_t *items) {
             }
             items[num_left + num_right + 1 - 1 - seq_len] = item;
         }
-        mp_obj_t rest = mp_obj_new_list(0, NULL);
+        mp_obj_list_t *rest = mp_obj_new_list(0, NULL);
         while ((item = mp_iternext(iterable)) != MP_OBJ_STOP_ITERATION) {
             mp_obj_list_append(rest, item);
         }
-        uint rest_len;
-        mp_obj_t *rest_items;
-        mp_obj_list_get(rest, &rest_len, &rest_items);
-        if (rest_len < num_right) {
+        if (rest->len < num_right) {
             goto too_short;
         }
         items[num_right] = rest;
-        for (uint i = 0; i < num_right; i++) {
-            items[num_right - 1 - i] = rest_items[rest_len - num_right + i];
+        for (mp_uint_t i = 0; i < num_right; i++) {
+            items[num_right - 1 - i] = rest->items[rest->len - num_right + i];
         }
-        mp_obj_list_set_len(rest, rest_len - num_right);
+        mp_obj_list_set_len(rest, rest->len - num_right);
     }
     return;
 
@@ -1094,7 +1092,7 @@ import_error:
     }
 
     mp_load_method_maybe(module, MP_QSTR___name__, dest);
-    uint pkg_name_len;
+    mp_uint_t pkg_name_len;
     const char *pkg_name = mp_obj_str_get_data(dest[0], &pkg_name_len);
 
     const uint dot_name_len = pkg_name_len + 1 + qstr_len(name);
