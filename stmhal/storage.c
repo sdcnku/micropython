@@ -36,12 +36,14 @@
 #include "led.h"
 #include "flash.h"
 #include "storage.h"
+#include "gc.h"
 
 extern char _heap_end;
-#define CACHE_MEM_START_ADDR (&_heap_end) // cache after heap in CCM
-#define FLASH_PART1_START_BLOCK (0x100)
-#define FLASH_PART1_NUM_BLOCKS (64) // 16k+16k+16k enough mem for 16KB sectors only
-#define FLASH_MEM_START_ADDR (0x08004000) // sector 1, 16k
+//#define CACHE_MEM_START_ADDR    (&_heap_end)    // FS cache in CCM
+const void *CACHE_MEM_START_ADDR=NULL;
+#define FLASH_PART1_RES_BLOCKS   (1)             // Reserve 1 block for MBR
+#define FLASH_PART1_NUM_BLOCKS  (64)            // (16k+16k)/512
+#define FLASH_MEM_START_ADDR    (0x08004000)    // FS offset, sector 1
 
 #define FLASH_FLAG_DIRTY        (1)
 #define FLASH_FLAG_FORCE_WRITE  (2)
@@ -97,6 +99,7 @@ void storage_init(void) {
         flash_cache_sector_id = 0;
         flash_tick_counter_last_write = 0;
         flash_is_initialised = true;
+        CACHE_MEM_START_ADDR = gc_alloc(16*1024, false);
     }
 
     // Enable the flash IRQ, which is used to also call our storage IRQ handler
@@ -111,7 +114,7 @@ uint32_t storage_get_block_size(void) {
 }
 
 uint32_t storage_get_block_count(void) {
-    return FLASH_PART1_START_BLOCK + FLASH_PART1_NUM_BLOCKS;
+    return FLASH_PART1_RES_BLOCKS + FLASH_PART1_NUM_BLOCKS;
 }
 
 void storage_irq_handler(void) {
@@ -206,7 +209,7 @@ bool storage_read_block(uint8_t *dest, uint32_t block) {
             dest[i] = 0;
         }
 
-        build_partition(dest + 446, 0, 0x01 /* FAT12 */, FLASH_PART1_START_BLOCK, FLASH_PART1_NUM_BLOCKS);
+        build_partition(dest + 446, 0, 0x01 /* FAT12 */, FLASH_PART1_RES_BLOCKS, FLASH_PART1_NUM_BLOCKS);
         build_partition(dest + 462, 0, 0, 0, 0);
         build_partition(dest + 478, 0, 0, 0, 0);
         build_partition(dest + 494, 0, 0, 0, 0);
@@ -216,9 +219,9 @@ bool storage_read_block(uint8_t *dest, uint32_t block) {
 
         return true;
 
-    } else if (FLASH_PART1_START_BLOCK <= block && block < FLASH_PART1_START_BLOCK + FLASH_PART1_NUM_BLOCKS) {
+    } else if (FLASH_PART1_RES_BLOCKS <= block && block < FLASH_PART1_RES_BLOCKS + FLASH_PART1_NUM_BLOCKS) {
         // non-MBR block, get data from flash memory, possibly via cache
-        uint32_t flash_addr = FLASH_MEM_START_ADDR + (block - FLASH_PART1_START_BLOCK) * FLASH_BLOCK_SIZE;
+        uint32_t flash_addr = FLASH_MEM_START_ADDR + (block - FLASH_PART1_RES_BLOCKS) * FLASH_BLOCK_SIZE;
         uint8_t *src = flash_cache_get_addr_for_read(flash_addr);
         memcpy(dest, src, FLASH_BLOCK_SIZE);
         return true;
@@ -235,9 +238,9 @@ bool storage_write_block(const uint8_t *src, uint32_t block) {
         // can't write MBR, but pretend we did
         return true;
 
-    } else if (FLASH_PART1_START_BLOCK <= block && block < FLASH_PART1_START_BLOCK + FLASH_PART1_NUM_BLOCKS) {
+    } else if (FLASH_PART1_RES_BLOCKS <= block && block < FLASH_PART1_RES_BLOCKS + FLASH_PART1_NUM_BLOCKS) {
         // non-MBR block, copy to cache
-        uint32_t flash_addr = FLASH_MEM_START_ADDR + (block - FLASH_PART1_START_BLOCK) * FLASH_BLOCK_SIZE;
+        uint32_t flash_addr = FLASH_MEM_START_ADDR + (block - FLASH_PART1_RES_BLOCKS) * FLASH_BLOCK_SIZE;
         uint8_t *dest = flash_cache_get_addr_for_write(flash_addr);
         memcpy(dest, src, FLASH_BLOCK_SIZE);
         return true;
