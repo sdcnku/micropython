@@ -53,7 +53,7 @@ void stdout_tx_str(const char *str) {
 
 void stdout_tx_strn(const char *str, mp_uint_t len) {
     if (pyb_stdio_uart != PYB_UART_NONE) {
-        uart_tx_strn(pyb_stdio_uart, str, len);
+        //uart_tx_strn(pyb_stdio_uart, str, len);
     }
 #if 0 && defined(USE_HOST_MODE) && MICROPY_HW_HAS_LCD
     lcd_print_strn(str, len);
@@ -66,7 +66,7 @@ void stdout_tx_strn(const char *str, mp_uint_t len) {
 void stdout_tx_strn_cooked(const char *str, mp_uint_t len) {
     // send stdout to UART and USB CDC VCP
     if (pyb_stdio_uart != PYB_UART_NONE) {
-        uart_tx_strn_cooked(pyb_stdio_uart, str, len);
+        //uart_tx_strn_cooked(pyb_stdio_uart, str, len);
     }
     if (usb_vcp_is_enabled()) {
         usb_vcp_send_strn_cooked(str, len);
@@ -88,9 +88,12 @@ int stdin_rx_chr(void) {
         byte c;
         if (usb_vcp_recv_byte(&c) != 0) {
             return c;
-        } else if (pyb_stdio_uart != PYB_UART_NONE && uart_rx_any(pyb_stdio_uart)) {
+        }
+#if 0
+        else if (pyb_stdio_uart != PYB_UART_NONE && uart_rx_any(pyb_stdio_uart)) {
             return uart_rx_char(pyb_stdio_uart);
         }
+#endif
         __WFI();
     }
 }
