@@ -86,7 +86,6 @@ SRC_C = \
 	input.c \
 	modos.c \
 	modpyb.c \
-	modstm.c \
 	modtime.c \
 	modselect.c \
 	import.c \
