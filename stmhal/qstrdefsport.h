@@ -324,6 +324,20 @@ Q(pixel)
 Q(text)
 Q(show)
 
+// for usocket module
+Q(usocket)
+Q(socket)
+Q(getaddrinfo)
+Q(AF_INET)
+Q(AF_INET6)
+Q(SOCK_STREAM)
+Q(SOCK_DGRAM)
+Q(SOCK_RAW)
+
+// for network module
+Q(network)
+Q(route)
+
 // for WIZnet5k class
 #if MICROPY_PY_WIZNET5K
 Q(wiznet5k)

@@ -88,6 +88,8 @@ SRC_C = \
 	modpyb.c \
 	modtime.c \
 	modselect.c \
+	modusocket.c \
+	modnetwork.c \
 	import.c \
 	lexerfatfs.c \
 	extint.c \
@@ -200,9 +202,8 @@ SRC_MOD += $(addprefix $(CC3000_DIR)/src/,\
 	ccspi.c \
 	inet_ntop.c \
 	inet_pton.c \
-	)
-#	patch.c \
-#	patch_prog.c \
+	patch.c \
+	patch_prog.c \
 	)
 endif
 
