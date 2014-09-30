@@ -26,6 +26,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <errno.h>
 
 #include "stm32f4xx_hal.h"
 
@@ -124,10 +125,14 @@ STATIC mp_obj_t select_select(uint n_args, const mp_obj_t *args) {
     mp_uint_t timeout = -1;
     if (n_args == 4) {
         if (args[3] != mp_const_none) {
+            #if MICROPY_PY_BUILTINS_FLOAT
             float timeout_f = mp_obj_get_float(args[3]);
             if (timeout_f >= 0) {
                 timeout = (mp_uint_t)(timeout_f * 1000);
             }
+            #else
+            timeout = mp_obj_get_int(args[3]) * 1000;
+            #endif
         }
     }
 
@@ -174,7 +179,7 @@ STATIC mp_obj_t select_select(uint n_args, const mp_obj_t *args) {
 }
 MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mp_select_select_obj, 3, 4, select_select);
 
-/// \class Poll
+/// \class Poll - poll class
 
 typedef struct _mp_obj_poll_t {
     mp_obj_base_t base;
@@ -209,7 +214,7 @@ STATIC mp_obj_t poll_modify(mp_obj_t self_in, mp_obj_t obj_in, mp_obj_t eventmas
     mp_obj_poll_t *self = self_in;
     mp_map_elem_t *elem = mp_map_lookup(&self->poll_map, mp_obj_id(obj_in), MP_MAP_LOOKUP);
     if (elem == NULL) {
-        nlr_raise(mp_obj_new_exception_msg(&mp_type_IOError, "object was never registered"));
+        nlr_raise(mp_obj_new_exception_arg1(&mp_type_OSError, MP_OBJ_NEW_SMALL_INT(ENOENT)));
     }
     ((poll_obj_t*)elem->value)->flags = mp_obj_get_int(eventmask_in);
     return mp_const_none;

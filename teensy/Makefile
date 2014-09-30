@@ -6,10 +6,28 @@ QSTR_DEFS = qstrdefsport.h $(BUILD)/pins_qstr.h
 # include py core make definitions
 include ../py/py.mk
 
+# If you set USE_ARDUINO_TOOLCHAIN=1 then this makefile will attempt to use
+# the toolchain that comes with Teensyduino
+ifeq ($(USE_ARDUINO_TOOLCHAIN),)
+USE_ARDUINO_TOOLCHAIN = 0
+endif
+
+ifeq ($(USE_ARDUINO_TOOLCHAIN),1)
+ifeq ($(ARDUINO),)
+$(error USE_ARDUINO_TOOLCHAIN requires that ARDUINO be set)
+endif
+endif
+
+ifeq ($(USE_ARDUINO_TOOLCHAIN),1)
+$(info Using ARDUINO toolchain)
+CROSS_COMPILE = $(ARDUINO)/hardware/tools/arm-none-eabi/bin/arm-none-eabi-
+else
+$(info Using toolchain from PATH)
 CROSS_COMPILE = arm-none-eabi-
+endif
 
 CFLAGS_TEENSY = -DF_CPU=96000000 -DUSB_SERIAL -D__MK20DX256__
-CFLAGS_CORTEX_M4 = -mthumb -mtune=cortex-m4 -mcpu=cortex-m4 -fsingle-precision-constant -Wdouble-promotion $(CFLAGS_TEENSY)
+CFLAGS_CORTEX_M4 = -mthumb -mtune=cortex-m4 -mcpu=cortex-m4 -msoft-float -mfloat-abi=soft -fsingle-precision-constant -Wdouble-promotion $(CFLAGS_TEENSY)
 
 INC =  -I.
 INC += -I$(PY_SRC)
@@ -18,11 +36,21 @@ INC += -I$(BUILD)
 INC += -Icore
 
 CFLAGS = $(INC) -Wall -ansi -std=gnu99 -nostdlib $(CFLAGS_CORTEX_M4)
-LDFLAGS = -nostdlib -T mk20dx256.ld
+LDFLAGS = -nostdlib -T mk20dx256.ld -msoft-float -mfloat-abi=soft
 
-LIBGCC_FILE_NAME = $(shell $(CC) -print-libgcc-file-name)
-LIBM_FILE_NAME   = $(shell $(CC) -print-file-name=libm.a)
-LIBC_FILE_NAME   = $(shell $(CC) -print-file-name=libc.a)
+ifeq ($(USE_ARDUINO_TOOLCHAIN),1)
+
+LIBGCC_FILE_NAME = $(ARDUINO)/hardware/tools/arm-none-eabi/lib/gcc/arm-none-eabi/4.7.2/thumb2/libgcc.a
+LIBM_FILE_NAME   = $(ARDUINO)/hardware/tools/arm-none-eabi/arm-none-eabi/lib/thumb2/libm.a
+LIBC_FILE_NAME   = $(ARDUINO)/hardware/tools/arm-none-eabi/arm-none-eabi/lib/thumb2/libc.a
+
+else
+
+LIBGCC_FILE_NAME = $(shell $(CC) $(CFLAGS) -print-libgcc-file-name)
+LIBM_FILE_NAME   = $(shell $(CC) $(CFLAGS) -print-file-name=libm.a)
+LIBC_FILE_NAME   = $(shell $(CC) $(CFLAGS) -print-file-name=libc.a)
+
+endif
 
 #$(info %%%%% LIBGCC_FILE_NAME = $(LIBGCC_FILE_NAME))
 #$(info %%%%% LIBM_FILE_NAME = $(LIBM_FILE_NAME))
@@ -42,8 +70,11 @@ CFLAGS += -Og -ggdb
 else
 CFLAGS += -Os #-DNDEBUG
 endif
+CFLAGS += -fdata-sections -ffunction-sections
+LDFLAGS += -Wl,--gc-sections
 
 SRC_C = \
+	hal_ftm.c \
 	hal_gpio.c \
 	help.c \
 	import.c \
@@ -54,7 +85,9 @@ SRC_C = \
 	memzip.c \
 	modpyb.c \
 	pin_defs_teensy.c \
+	reg.c \
 	teensy_hal.c \
+	timer.c \
 	uart.c \
 	usb.c \
 
@@ -141,6 +174,7 @@ GEN_PINS_SRC = $(BUILD)/pins_gen.c
 GEN_PINS_HDR = $(HEADER_BUILD)/pins.h
 GEN_PINS_QSTR = $(BUILD)/pins_qstr.h
 GEN_PINS_AF_CONST = $(HEADER_BUILD)/pins_af_const.h
+GEN_PINS_AF_PY = $(BUILD)/pins_af.py
 
 # Making OBJ use an order-only depenedency on the generated pins.h file
 # has the side effect of making the pins.h file before we actually compile
@@ -153,7 +187,7 @@ $(OBJ): | $(HEADER_BUILD)/pins.h
 # both pins_$(BOARD).c and pins.h
 $(BUILD)/%_gen.c $(HEADER_BUILD)/%.h $(HEADER_BUILD)/%_af_const.h $(BUILD)/%_qstr.h: teensy_%.csv $(MAKE_PINS) $(AF_FILE) $(PREFIX_FILE) | $(HEADER_BUILD)
 	$(ECHO) "Create $@"
-	$(Q)$(PYTHON) $(MAKE_PINS) --board $(BOARD_PINS) --af $(AF_FILE) --prefix $(PREFIX_FILE) --hdr $(GEN_PINS_HDR) --qstr $(GEN_PINS_QSTR) --af-const $(GEN_PINS_AF_CONST) > $(GEN_PINS_SRC)
+	$(Q)$(PYTHON) $(MAKE_PINS) --board $(BOARD_PINS) --af $(AF_FILE) --prefix $(PREFIX_FILE) --hdr $(GEN_PINS_HDR) --qstr $(GEN_PINS_QSTR) --af-const $(GEN_PINS_AF_CONST) --af-py $(GEN_PINS_AF_PY) > $(GEN_PINS_SRC)
 
 $(BUILD)/pins_gen.o: $(BUILD)/pins_gen.c
 	$(call compile_c)

@@ -123,7 +123,6 @@ STATIC const mp_map_elem_t mp_builtin_object_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_EOFError), (mp_obj_t)&mp_type_EOFError },
     { MP_OBJ_NEW_QSTR(MP_QSTR_Exception), (mp_obj_t)&mp_type_Exception },
     { MP_OBJ_NEW_QSTR(MP_QSTR_GeneratorExit), (mp_obj_t)&mp_type_GeneratorExit },
-    { MP_OBJ_NEW_QSTR(MP_QSTR_IOError), (mp_obj_t)&mp_type_IOError },
     { MP_OBJ_NEW_QSTR(MP_QSTR_ImportError), (mp_obj_t)&mp_type_ImportError },
     { MP_OBJ_NEW_QSTR(MP_QSTR_IndentationError), (mp_obj_t)&mp_type_IndentationError },
     { MP_OBJ_NEW_QSTR(MP_QSTR_IndexError), (mp_obj_t)&mp_type_IndexError },
@@ -160,8 +159,15 @@ const mp_obj_dict_t mp_builtin_object_dict_obj = {
     },
 };
 
+STATIC const mp_obj_module_t mp_module_builtins = {
+    .base = { &mp_type_module },
+    .name = MP_QSTR_builtins,
+    .globals = (mp_obj_dict_t*)&mp_builtin_object_dict_obj,
+};
+
 STATIC const mp_map_elem_t mp_builtin_module_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR___main__), (mp_obj_t)&mp_module___main__ },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_builtins), (mp_obj_t)&mp_module_builtins },
     { MP_OBJ_NEW_QSTR(MP_QSTR_micropython), (mp_obj_t)&mp_module_micropython },
 
 #if MICROPY_PY_ARRAY
@@ -199,6 +205,9 @@ STATIC const mp_map_elem_t mp_builtin_module_table[] = {
 #endif
 #if MICROPY_PY_ZLIBD
     { MP_OBJ_NEW_QSTR(MP_QSTR_zlibd), (mp_obj_t)&mp_module_zlibd },
+#endif
+#if MICROPY_PY_UJSON
+    { MP_OBJ_NEW_QSTR(MP_QSTR_ujson), (mp_obj_t)&mp_module_ujson },
 #endif
 
     // extra builtin modules as defined by a port

@@ -54,9 +54,9 @@
 #include "stackctrl.h"
 
 // Command line options, with their defaults
-bool compile_only = false;
-uint emit_opt = MP_EMIT_OPT_NONE;
-uint mp_verbose_flag;
+STATIC bool compile_only = false;
+STATIC uint emit_opt = MP_EMIT_OPT_NONE;
+mp_uint_t mp_verbose_flag = 0;
 
 #if MICROPY_ENABLE_GC
 // Heap size of GC heap (if enabled)
@@ -130,10 +130,11 @@ STATIC int execute_from_lexer(mp_lexer_t *lex, mp_parse_input_kind_t input_kind,
         // check for SystemExit
         mp_obj_t exc = (mp_obj_t)nlr.ret_val;
         if (mp_obj_is_subclass_fast(mp_obj_get_type(exc), &mp_type_SystemExit)) {
+            // None is an exit value of 0; an int is its value; anything else is 1
             mp_obj_t exit_val = mp_obj_exception_get_value(exc);
-            mp_int_t val;
-            if (!mp_obj_get_int_maybe(exit_val, &val)) {
-                val = 0;
+            mp_int_t val = 0;
+            if (exit_val != mp_const_none && !mp_obj_get_int_maybe(exit_val, &val)) {
+                val = 1;
             }
             exit(val);
         }
@@ -221,8 +222,9 @@ int usage(char **argv) {
     return 1;
 }
 
+#if MICROPY_MEM_STATS
 STATIC mp_obj_t mem_info(void) {
-    printf("mem: total=%d, current=%d, peak=%d\n",
+    printf("mem: total=" UINT_FMT ", current=" UINT_FMT ", peak=" UINT_FMT "\n",
         m_get_total_bytes_allocated(), m_get_current_bytes_allocated(), m_get_peak_bytes_allocated());
     printf("stack: " UINT_FMT "\n", mp_stack_usage());
 #if MICROPY_ENABLE_GC
@@ -231,6 +233,7 @@ STATIC mp_obj_t mem_info(void) {
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(mem_info_obj, mem_info);
+#endif
 
 STATIC mp_obj_t qstr_info(void) {
     uint n_pool, n_qstr, n_str_data_bytes, n_total_bytes;
@@ -324,7 +327,9 @@ int main(int argc, char **argv) {
 
     mp_obj_list_init(mp_sys_argv, 0);
 
+    #if MICROPY_MEM_STATS
     mp_store_name(qstr_from_str("mem_info"), (mp_obj_t*)&mem_info_obj);
+    #endif
     mp_store_name(qstr_from_str("qstr_info"), (mp_obj_t*)&qstr_info_obj);
 
     // Here is some example code to create a class and instance of that class.
@@ -405,15 +410,6 @@ int main(int argc, char **argv) {
     //printf("total bytes = %d\n", m_get_total_bytes_allocated());
     return ret;
 }
-
-STATIC mp_obj_t mp_sys_exit(uint n_args, const mp_obj_t *args) {
-    int rc = 0;
-    if (n_args > 0) {
-        rc = mp_obj_get_int(args[0]);
-    }
-    nlr_raise(mp_obj_new_exception_arg1(&mp_type_SystemExit, mp_obj_new_int(rc)));
-}
-MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mp_sys_exit_obj, 0, 1, mp_sys_exit);
 
 uint mp_import_stat(const char *path) {
     struct stat st;

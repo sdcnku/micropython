@@ -72,6 +72,8 @@ Q(/sd)
 Q(/sd/lib)
 Q(millis)
 Q(micros)
+Q(elapsed_millis)
+Q(elapsed_micros)
 
 // for file class
 Q(seek)
@@ -148,6 +150,9 @@ Q(recv)
 
 // for Timer class
 Q(Timer)
+Q(init)
+Q(deinit)
+Q(channel)
 Q(counter)
 Q(prescaler)
 Q(period)
@@ -155,6 +160,31 @@ Q(callback)
 Q(freq)
 Q(mode)
 Q(div)
+Q(UP)
+Q(DOWN)
+Q(CENTER)
+Q(IC)
+Q(PWM)
+Q(PWM_INVERTED)
+Q(OC_TIMING)
+Q(OC_ACTIVE)
+Q(OC_INACTIVE)
+Q(OC_TOGGLE)
+Q(OC_FORCED_ACTIVE)
+Q(OC_FORCED_INACTIVE)
+Q(HIGH)
+Q(LOW)
+Q(RISING)
+Q(FALLING)
+Q(BOTH)
+
+// for TimerChannel class
+Q(TimerChannel)
+Q(pulse_width)
+Q(pulse_width_percent)
+Q(compare)
+Q(capture)
+Q(polarity)
 
 // for ExtInt class
 Q(ExtInt)
@@ -295,7 +325,7 @@ Q(text)
 Q(show)
 
 // for WIZnet5k class
-#if MICROPY_HW_ENABLE_WIZNET5K
+#if MICROPY_PY_WIZNET5K
 Q(wiznet5k)
 Q(WIZnet5k)
 Q(regs)

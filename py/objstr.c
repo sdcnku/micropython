@@ -92,8 +92,40 @@ void mp_str_print_quoted(void (*print)(void *env, const char *fmt, ...), void *e
     print(env, "%c", quote_char);
 }
 
+#if MICROPY_PY_UJSON
+void mp_str_print_json(void (*print)(void *env, const char *fmt, ...), void *env, const byte *str_data, mp_uint_t str_len) {
+    // for JSON spec, see http://www.ietf.org/rfc/rfc4627.txt
+    // if we are given a valid utf8-encoded string, we will print it in a JSON-conforming way
+    print(env, "\"");
+    for (const byte *s = str_data, *top = str_data + str_len; s < top; s++) {
+        if (*s == '"' || *s == '\\') {
+            print(env, "\\%c", *s);
+        } else if (*s >= 32) {
+            // this will handle normal and utf-8 encoded chars
+            print(env, "%c", *s);
+        } else if (*s == '\n') {
+            print(env, "\\n");
+        } else if (*s == '\r') {
+            print(env, "\\r");
+        } else if (*s == '\t') {
+            print(env, "\\t");
+        } else {
+            // this will handle control chars
+            print(env, "\\u%04x", *s);
+        }
+    }
+    print(env, "\"");
+}
+#endif
+
 STATIC void str_print(void (*print)(void *env, const char *fmt, ...), void *env, mp_obj_t self_in, mp_print_kind_t kind) {
     GET_STR_DATA_LEN(self_in, str_data, str_len);
+    #if MICROPY_PY_UJSON
+    if (kind == PRINT_JSON) {
+        mp_str_print_json(print, env, str_data, str_len);
+        return;
+    }
+    #endif
     bool is_bytes = MP_OBJ_IS_TYPE(self_in, &mp_type_bytes);
     if (kind == PRINT_STR && !is_bytes) {
         print(env, "%.*s", str_len, str_data);

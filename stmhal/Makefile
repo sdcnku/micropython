@@ -22,7 +22,6 @@ HAL_DIR=hal
 USBDEV_DIR=usbdev
 #USBHOST_DIR=usbhost
 FATFS_DIR=fatfs
-CC3K_DIR=cc3k
 DFU=../tools/dfu.py
 # may need to prefix dfu-util with sudo
 DFU_UTIL ?= dfu-util
@@ -40,7 +39,6 @@ INC += -I$(USBDEV_DIR)/core/inc
 INC += -I$(USBDEV_DIR)/class/cdc_msc_hid/inc
 #INC += -I$(USBHOST_DIR)
 INC += -I$(FATFS_DIR)/src
-INC += -I$(CC3K_DIR)
 
 CFLAGS += $(COPT)
 CFLAGS += -Iboards/$(BOARD)
@@ -50,8 +48,10 @@ LDFLAGS = --nostdlib -T stm32f405.ld -Map=$(@:.elf=.map) --cref
 SRC_LIB = $(addprefix lib/,\
 	libm/math.c \
 	libm/mathsincos.c \
+	libm/asinfacosf.c \
 	libm/atanf.c \
 	libm/atan2f.c \
+	libm/fmodf.c \
 	)
 
 SRC_C = \
@@ -169,19 +169,6 @@ SRC_FATFS = $(addprefix $(FATFS_DIR)/src/,\
 	option/ccsbcs.c \
 	)
 
-SRC_CC3K = $(addprefix $(CC3K_DIR)/,\
-	cc3000_common.c \
-	evnt_handler.c \
-	hci.c \
-	netapp.c \
-	nvmem.c \
-	security.c \
-	socket.c \
-	wlan.c \
-	ccspi.c \
-	pybcc3k.c \
-	)
-
 ifeq ($(MICROPY_PY_WIZNET5K),1)
 WIZNET5K_DIR=drivers/wiznet5k
 INC += -I$(TOP)/$(WIZNET5K_DIR)
@@ -195,6 +182,30 @@ SRC_MOD += $(addprefix $(WIZNET5K_DIR)/,\
 	)
 endif
 
+# for CC3000 module
+ifeq ($(MICROPY_PY_CC3K),1)
+CC3000_DIR=drivers/cc3000
+INC += -I$(TOP)/$(CC3000_DIR)/inc
+CFLAGS_MOD += -DMICROPY_PY_CC3K=1
+SRC_MOD += modcc3k.c
+SRC_MOD += $(addprefix $(CC3000_DIR)/src/,\
+	cc3000_common.c \
+	evnt_handler.c \
+	hci.c \
+	netapp.c \
+	nvmem.c \
+	security.c \
+	socket.c \
+	wlan.c \
+	ccspi.c \
+	inet_ntop.c \
+	inet_pton.c \
+	)
+#	patch.c \
+#	patch_prog.c \
+	)
+endif
+
 OBJ =
 OBJ += $(PY_O)
 OBJ += $(addprefix $(BUILD)/, $(SRC_LIB:.c=.o))
@@ -202,8 +213,6 @@ OBJ += $(addprefix $(BUILD)/, $(SRC_C:.c=.o))
 OBJ += $(addprefix $(BUILD)/, $(SRC_S:.s=.o))
 #OBJ += $(addprefix $(BUILD)/, $(SRC_HAL:.c=.o))
 OBJ += $(addprefix $(BUILD)/, $(SRC_USBDEV:.c=.o))
-#OBJ += $(addprefix $(BUILD)/, $(SRC_FATFS:.c=.o))
-#OBJ += $(addprefix $(BUILD)/, $(SRC_CC3K:.c=.o))
 OBJ += $(BUILD)/pins_$(BOARD).o
 
 all: $(OBJ)

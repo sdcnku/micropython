@@ -93,6 +93,12 @@ STATIC void uni_print_quoted(void (*print)(void *env, const char *fmt, ...), voi
 
 STATIC void uni_print(void (*print)(void *env, const char *fmt, ...), void *env, mp_obj_t self_in, mp_print_kind_t kind) {
     GET_STR_DATA_LEN(self_in, str_data, str_len);
+    #if MICROPY_PY_UJSON
+    if (kind == PRINT_JSON) {
+        mp_str_print_json(print, env, str_data, str_len);
+        return;
+    }
+    #endif
     if (kind == PRINT_STR) {
         print(env, "%.*s", str_len, str_data);
     } else {

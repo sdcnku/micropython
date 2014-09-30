@@ -174,9 +174,9 @@ static const char fresh_readme_txt[] =
 int main(void) {
     // TODO disable JTAG
 
-    // Stack limit should be less than real stack size, so we
-    // had chance to recover from limit hit.
-    mp_stack_set_limit(&_ram_end - &_heap_end - 512);
+    // Stack limit should be less than real stack size, so we have a chance
+    // to recover from limit hit.  (Limit is measured in bytes.)
+    mp_stack_set_limit((char*)&_ram_end - (char*)&_heap_end - 1024);
 
     /* STM32F4xx HAL library initialization:
          - Configure the Flash prefetch, instruction and Data caches
@@ -349,6 +349,9 @@ soft_reset:
             } else {
                 __fatal_error("could not create LFS");
             }
+
+            // set label
+            f_setlabel("/flash/pybflash");
 
             // create empty main.py
             FIL fp;
@@ -550,16 +553,3 @@ soft_reset:
     first_soft_reset = false;
     goto soft_reset;
 }
-
-/// \moduleref sys
-/// \function exit([retval])
-/// Raise a `SystemExit` exception.  If an argument is given, it is the
-/// value given to `SystemExit`.
-STATIC NORETURN mp_obj_t mp_sys_exit(uint n_args, const mp_obj_t *args) {
-    int rc = 0;
-    if (n_args > 0) {
-        rc = mp_obj_get_int(args[0]);
-    }
-    nlr_raise(mp_obj_new_exception_arg1(&mp_type_SystemExit, mp_obj_new_int(rc)));
-}
-MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mp_sys_exit_obj, 0, 1, mp_sys_exit);

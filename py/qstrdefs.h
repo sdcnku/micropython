@@ -77,6 +77,9 @@ Q(const)
 Q(native)
 Q(viper)
 Q(uint)
+Q(ptr)
+Q(ptr8)
+Q(ptr16)
 #endif
 
 #if MICROPY_EMIT_INLINE_THUMB
@@ -85,6 +88,8 @@ Q(label)
 Q(align)
 Q(data)
 #endif
+
+Q(builtins)
 
 Q(Ellipsis)
 Q(StopIteration)
@@ -100,7 +105,6 @@ Q(FileExistsError)
 Q(FileNotFoundError)
 Q(FloatingPointError)
 Q(GeneratorExit)
-Q(IOError)
 Q(ImportError)
 Q(IndentationError)
 Q(IndexError)
@@ -462,4 +466,10 @@ Q(deleter)
 #if MICROPY_PY_ZLIBD
 Q(zlibd)
 Q(decompress)
+#endif
+
+#if MICROPY_PY_UJSON
+Q(ujson)
+Q(dumps)
+Q(loads)
 #endif

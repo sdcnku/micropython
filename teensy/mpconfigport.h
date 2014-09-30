@@ -8,7 +8,6 @@
 #define MICROPY_ENABLE_GC           (1)
 #define MICROPY_ENABLE_FINALISER    (1)
 #define MICROPY_HELPER_REPL         (1)
-#define MICROPY_PY_BUILTINS_FLOAT   (1)
 #define MICROPY_ENABLE_SOURCE_LINE  (1)
 #define MICROPY_LONGINT_IMPL        (MICROPY_LONGINT_IMPL_MPZ)
 #define MICROPY_FLOAT_IMPL          (MICROPY_FLOAT_IMPL_FLOAT)
@@ -19,6 +18,12 @@
 #define MICROPY_PY_SYS_EXIT         (1)
 #define MICROPY_PY_SYS_STDFILES     (1)
 #define MICROPY_PY_CMATH            (1)
+
+#define MICROPY_TIMER_REG           (0)
+#define MICROPY_REG                 (MICROPY_TIMER_REG)
+
+#define MICROPY_ENABLE_EMERGENCY_EXCEPTION_BUF   (1)
+#define MICROPY_EMERGENCY_EXCEPTION_BUF_SIZE  (0)
 
 // extra built in names to add to the global namespace
 extern const struct _mp_obj_fun_builtin_t mp_builtin_help_obj;

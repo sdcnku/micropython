@@ -187,7 +187,8 @@ typedef enum {
     PRINT_STR = 0,
     PRINT_REPR = 1,
     PRINT_EXC = 2, // Special format for printing exception in unhandled exception message
-    PRINT_EXC_SUBCLASS = 4, // Internal flag for printing exception subclasses
+    PRINT_JSON = 3,
+    PRINT_EXC_SUBCLASS = 0x80, // Internal flag for printing exception subclasses
 } mp_print_kind_t;
 
 typedef void (*mp_print_fun_t)(void (*print)(void *env, const char *fmt, ...), void *env, mp_obj_t o, mp_print_kind_t kind);
@@ -325,7 +326,6 @@ extern const mp_obj_type_t mp_type_AttributeError;
 extern const mp_obj_type_t mp_type_EOFError;
 extern const mp_obj_type_t mp_type_Exception;
 extern const mp_obj_type_t mp_type_GeneratorExit;
-extern const mp_obj_type_t mp_type_IOError;
 extern const mp_obj_type_t mp_type_ImportError;
 extern const mp_obj_type_t mp_type_IndentationError;
 extern const mp_obj_type_t mp_type_IndexError;
@@ -369,6 +369,7 @@ mp_obj_t mp_obj_new_int(mp_int_t value);
 mp_obj_t mp_obj_new_int_from_uint(mp_uint_t value);
 mp_obj_t mp_obj_new_int_from_str_len(const char **str, mp_uint_t len, bool neg, mp_uint_t base);
 mp_obj_t mp_obj_new_int_from_ll(long long val); // this must return a multi-precision integer object (or raise an overflow exception)
+mp_obj_t mp_obj_new_int_from_ull(unsigned long long val); // this must return a multi-precision integer object (or raise an overflow exception)
 mp_obj_t mp_obj_new_str(const char* data, mp_uint_t len, bool make_qstr_if_not_already);
 mp_obj_t mp_obj_new_bytes(const byte* data, mp_uint_t len);
 #if MICROPY_PY_BUILTINS_FLOAT
@@ -456,7 +457,7 @@ mp_int_t mp_obj_int_get_checked(mp_const_obj_t self_in);
 #define mp_obj_is_native_exception_instance(o) (mp_obj_get_type(o)->make_new == mp_obj_exception_make_new)
 bool mp_obj_is_exception_type(mp_obj_t self_in);
 bool mp_obj_is_exception_instance(mp_obj_t self_in);
-bool mp_obj_exception_match(mp_obj_t exc, const mp_obj_type_t *exc_type);
+bool mp_obj_exception_match(mp_obj_t exc, mp_const_obj_t exc_type);
 void mp_obj_exception_clear_traceback(mp_obj_t self_in);
 void mp_obj_exception_add_traceback(mp_obj_t self_in, qstr file, mp_uint_t line, qstr block);
 void mp_obj_exception_get_traceback(mp_obj_t self_in, mp_uint_t *n, mp_uint_t **values);
@@ -486,6 +487,7 @@ typedef struct _mp_obj_float_t {
 } mp_obj_float_t;
 mp_float_t mp_obj_float_get(mp_obj_t self_in);
 mp_obj_t mp_obj_float_binary_op(mp_uint_t op, mp_float_t lhs_val, mp_obj_t rhs); // can return MP_OBJ_NULL if op not supported
+void mp_obj_float_divmod(mp_float_t *x, mp_float_t *y);
 
 // complex
 void mp_obj_complex_get(mp_obj_t self_in, mp_float_t *real, mp_float_t *imag);

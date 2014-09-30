@@ -190,7 +190,7 @@ void mp_delete_global(qstr qstr) {
 }
 
 mp_obj_t mp_unary_op(mp_uint_t op, mp_obj_t arg) {
-    DEBUG_OP_printf("unary %d %p\n", op, arg);
+    DEBUG_OP_printf("unary " UINT_FMT " %p\n", op, arg);
 
     if (MP_OBJ_IS_SMALL_INT(arg)) {
         mp_int_t val = MP_OBJ_SMALL_INT_VALUE(arg);
@@ -226,7 +226,7 @@ mp_obj_t mp_unary_op(mp_uint_t op, mp_obj_t arg) {
 }
 
 mp_obj_t mp_binary_op(mp_uint_t op, mp_obj_t lhs, mp_obj_t rhs) {
-    DEBUG_OP_printf("binary %d %p %p\n", op, lhs, rhs);
+    DEBUG_OP_printf("binary " UINT_FMT " %p %p\n", op, lhs, rhs);
 
     // TODO correctly distinguish inplace operators for mutable objects
     // lookup logic that CPython uses for +=:
@@ -263,18 +263,25 @@ mp_obj_t mp_binary_op(mp_uint_t op, mp_obj_t lhs, mp_obj_t rhs) {
     if (op == MP_BINARY_OP_EXCEPTION_MATCH) {
         // rhs must be issubclass(rhs, BaseException)
         if (mp_obj_is_exception_type(rhs)) {
-            // if lhs is an instance of an exception, then extract and use its type
-            if (mp_obj_is_exception_instance(lhs)) {
-                lhs = mp_obj_get_type(lhs);
-            }
-            if (mp_obj_is_subclass_fast(lhs, rhs)) {
+            if (mp_obj_exception_match(lhs, rhs)) {
                 return mp_const_true;
             } else {
                 return mp_const_false;
             }
+        } else if (MP_OBJ_IS_TYPE(rhs, &mp_type_tuple)) {
+            mp_obj_tuple_t *tuple = rhs;
+            for (mp_uint_t i = 0; i < tuple->len; i++) {
+                rhs = tuple->items[i];
+                if (!mp_obj_is_exception_type(rhs)) {
+                    goto unsupported_op;
+                }
+                if (mp_obj_exception_match(lhs, rhs)) {
+                    return mp_const_true;
+                }
+            }
+            return mp_const_false;
         }
-        assert(0);
-        return mp_const_false;
+        goto unsupported_op;
     }
 
     if (MP_OBJ_IS_SMALL_INT(lhs)) {
@@ -523,7 +530,7 @@ mp_obj_t mp_call_function_n_kw(mp_obj_t fun_in, mp_uint_t n_args, mp_uint_t n_kw
     // TODO improve this: fun object can specify its type and we parse here the arguments,
     // passing to the function arrays of fixed and keyword arguments
 
-    DEBUG_OP_printf("calling function %p(n_args=%d, n_kw=%d, args=%p)\n", fun_in, n_args, n_kw, args);
+    DEBUG_OP_printf("calling function %p(n_args=" UINT_FMT ", n_kw=" UINT_FMT ", args=%p)\n", fun_in, n_args, n_kw, args);
 
     // get the type
     mp_obj_type_t *type = mp_obj_get_type(fun_in);
@@ -539,7 +546,7 @@ mp_obj_t mp_call_function_n_kw(mp_obj_t fun_in, mp_uint_t n_args, mp_uint_t n_kw
 // args contains: fun  self/NULL  arg(0)  ...  arg(n_args-2)  arg(n_args-1)  kw_key(0)  kw_val(0)  ... kw_key(n_kw-1)  kw_val(n_kw-1)
 // if n_args==0 and n_kw==0 then there are only fun and self/NULL
 mp_obj_t mp_call_method_n_kw(mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
-    DEBUG_OP_printf("call method (fun=%p, self=%p, n_args=%u, n_kw=%u, args=%p)\n", args[0], args[1], n_args, n_kw, args);
+    DEBUG_OP_printf("call method (fun=%p, self=%p, n_args=" UINT_FMT ", n_kw=" UINT_FMT ", args=%p)\n", args[0], args[1], n_args, n_kw, args);
     int adjust = (args[1] == NULL) ? 0 : 1;
     return mp_call_function_n_kw(args[0], n_args + adjust, n_kw, args + 2 - adjust);
 }
@@ -732,7 +739,7 @@ too_long:
 void mp_unpack_ex(mp_obj_t seq_in, mp_uint_t num_in, mp_obj_t *items) {
     mp_uint_t num_left = num_in & 0xff;
     mp_uint_t num_right = (num_in >> 8) & 0xff;
-    DEBUG_OP_printf("unpack ex %d %d\n", num_left, num_right);
+    DEBUG_OP_printf("unpack ex " UINT_FMT " " UINT_FMT "\n", num_left, num_right);
     mp_uint_t seq_len;
     if (MP_OBJ_IS_TYPE(seq_in, &mp_type_tuple) || MP_OBJ_IS_TYPE(seq_in, &mp_type_list)) {
         mp_obj_t *seq_items;
@@ -1146,8 +1153,8 @@ void mp_globals_set(mp_obj_dict_t *d) {
     dict_globals = d;
 }
 
-void *m_malloc_fail(int num_bytes) {
-    DEBUG_printf("memory allocation failed, allocating %d bytes\n", num_bytes);
+void *m_malloc_fail(size_t num_bytes) {
+    DEBUG_printf("memory allocation failed, allocating " UINT_FMT " bytes\n", num_bytes);
     nlr_raise((mp_obj_t)&mp_const_MemoryError_obj);
 }
 
