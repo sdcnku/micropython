@@ -325,7 +325,6 @@ Q(text)
 Q(show)
 
 // for usocket module
-Q(usocket)
 Q(socket)
 Q(getaddrinfo)
 Q(AF_INET)
