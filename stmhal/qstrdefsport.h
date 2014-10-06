@@ -436,6 +436,7 @@ Q(CIF)
 Q(VGA)
 Q(SVGA)
 Q(SXGA)
+Q(UXGA)
 
 Q(reset)
 Q(snapshot)
