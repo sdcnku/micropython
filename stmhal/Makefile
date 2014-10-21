@@ -73,8 +73,6 @@ SRC_C = \
 	pin_defs_stmhal.c \
 	pin_named_pins.c \
 	bufhelper.c \
-	i2c.c \
-	spi.c \
 	uart.c \
 	usb.c \
 	printf.c \
@@ -85,7 +83,6 @@ SRC_C = \
 	help.c \
 	input.c \
 	modos.c \
-	modpyb.c \
 	modtime.c \
 	modselect.c \
 	modnetwork.c \
