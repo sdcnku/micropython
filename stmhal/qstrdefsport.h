@@ -377,6 +377,7 @@ Q(find_template)
 Q(find_features)
 Q(find_keypoints)
 Q(find_lbp)
+Q(find_eyes)
 Q(match_keypoints)
 Q(match_lbp)
 
