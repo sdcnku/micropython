@@ -16,7 +16,6 @@
 // Need to define here for usbd_cdc_interface.c (it needs CDC_IN_EP)
 #define CDC_IN_EP     (0x83)
 #define CDC_OUT_EP    (0x03)
-#define CDC_CMD_EP    (0x82)
 
 // only CDC_MSC and CDC_HID are available
 #define USBD_MODE_CDC (0x01)
