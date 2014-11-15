@@ -1,7 +1,8 @@
 #include "usbd_ioreq.h"
 #include "usbd_cdc_msc_hid.h"
 
-#define USBD_CONFIG_DESC_SIZE       (98+9)
+#define USBD_CONFIG_DESC_SIZE1      (107)
+#define USBD_CONFIG_DESC_SIZE2      (98)
 #define USB_CDC_HID_CONFIG_DESC_SIZ (100)
 #define CDC_IFACE_NUM               (0)
 #define MSC_IFACE_NUM               (2)
@@ -81,13 +82,13 @@ __ALIGN_BEGIN static uint8_t USBD_CDC_MSC_HID_DeviceQualifierDesc[USB_LEN_DEV_QU
 };
 
 // USB CDC MSC device Configuration Descriptor
-__ALIGN_BEGIN static uint8_t USBD_CONFIG_DESC1[USBD_CONFIG_DESC_SIZE] __ALIGN_END = {
+__ALIGN_BEGIN static uint8_t USBD_CONFIG_DESC1[USBD_CONFIG_DESC_SIZE1] __ALIGN_END = {
     //--------------------------------------------------------------------------
     // Configuration Descriptor
     0x09,                           // bLength: Configuration Descriptor size
     USB_DESC_TYPE_CONFIGURATION,    // bDescriptorType: Configuration
-    LOBYTE(USBD_CONFIG_DESC_SIZE),  // wTotalLength: no of returned bytes
-    HIBYTE(USBD_CONFIG_DESC_SIZE),
+    LOBYTE(USBD_CONFIG_DESC_SIZE1),  // wTotalLength: no of returned bytes
+    HIBYTE(USBD_CONFIG_DESC_SIZE1),
     0x04,                           // bNumInterfaces: 4 interfaces
     0x01,                           // bConfigurationValue: Configuration value
     0x00,                           // iConfiguration: Index of string descriptor describing the configuration
@@ -230,14 +231,14 @@ __ALIGN_BEGIN static uint8_t USBD_CONFIG_DESC1[USBD_CONFIG_DESC_SIZE] __ALIGN_EN
 };
 
 // USB CDC DEBUG device Configuration Descriptor
-__ALIGN_BEGIN static uint8_t USBD_CONFIG_DESC2[USBD_CONFIG_DESC_SIZE] __ALIGN_END = {
+__ALIGN_BEGIN static uint8_t USBD_CONFIG_DESC2[USBD_CONFIG_DESC_SIZE2] __ALIGN_END = {
     //--------------------------------------------------------------------------
     // Configuration Descriptor
     0x09,                           // bLength: Configuration Descriptor size
     USB_DESC_TYPE_CONFIGURATION,    // bDescriptorType: Configuration
-    LOBYTE(USBD_CONFIG_DESC_SIZE),  // wTotalLength: no of returned bytes
-    HIBYTE(USBD_CONFIG_DESC_SIZE),
-    0x04,                           // bNumInterfaces: 4 interfaces
+    LOBYTE(USBD_CONFIG_DESC_SIZE2),  // wTotalLength: no of returned bytes
+    HIBYTE(USBD_CONFIG_DESC_SIZE2),
+    0x03,                           // bNumInterfaces: 3 interfaces
     0x01,                           // bConfigurationValue: Configuration value
     0x00,                           // iConfiguration: Index of string descriptor describing the configuration
     0x80,                           // bmAttributes: bus powered; 0xc0 for self powered
@@ -331,20 +332,6 @@ __ALIGN_BEGIN static uint8_t USBD_CONFIG_DESC2[USBD_CONFIG_DESC_SIZE] __ALIGN_EN
     LOBYTE(CDC_DATA_FS_MAX_PACKET_SIZE),// wMaxPacketSize:
     HIBYTE(CDC_DATA_FS_MAX_PACKET_SIZE),
     0x00,                               // bInterval: ignore for Bulk transfer
-
-    //==========================================================================
-    // Dummy Interface Descriptor
-    // This is needed to keep the same debug interface number
-    //--------------------------------------------------------------------------
-    0x09,                               // bLength: Interface Descriptor size
-    USB_DESC_TYPE_INTERFACE,            // bDescriptorType: interface descriptor
-    MSC_IFACE_NUM,                      // bInterfaceNumber: Number of Interface
-    0x00,                               // bAlternateSetting: Alternate setting
-    0x00,                               // bNumEndpoints
-    0xFF,                               // bInterfaceClass: Vendor Specific
-    0x00,                               // bInterfaceSubClass
-    0x00,                               // nInterfaceProtocol
-    0x00,                               // iInterface
 
     //==========================================================================
     // OpenMV Debug Interface Descriptor
