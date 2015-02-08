@@ -192,9 +192,11 @@ static int8_t CDC_Itf_Control(uint8_t cmd, uint8_t* pbuf, uint16_t length) {
             if (baud == 12000000) {
                 debug_mode = 1;
                 dbg_xfer_length=0;
+                UserTxBufPtrIn = UserTxBufPtrOut = UserTxBufPtrOutShadow =0;
                 __HAL_TIM_DISABLE_IT(&TIM3_Handle, TIM_IT_UPDATE);
             } else {
                 debug_mode = 0;
+                UserTxBufPtrIn = UserTxBufPtrOut = UserTxBufPtrOutShadow =0;
                 __HAL_TIM_ENABLE_IT(&TIM3_Handle, TIM_IT_UPDATE);
             }
             break;
@@ -343,7 +345,7 @@ static int8_t CDC_Itf_Receive(uint8_t* Buf, uint32_t *Len) {
         } else if (Buf[0] == '\x30') { // command
             uint8_t request = Buf[1];
             dbg_xfer_length = *((uint32_t*)(Buf+2));
-            usbdbg_control(Buf, request, dbg_xfer_length);
+            usbdbg_control(Buf+6, request, dbg_xfer_length);
             if (dbg_xfer_length && (request & 0x80)) { //request has a device-to-host data phase
                 send_packet(); //prime tx buffer
             }
