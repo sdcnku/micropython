@@ -67,6 +67,14 @@
 /* Private variables ---------------------------------------------------------*/
 
 static __IO uint8_t dev_is_connected = 0; // indicates if we are connected
+static __IO uint8_t debug_mode = 0; 
+
+static uint32_t dbg_xfer_length=0;
+extern void usbdbg_data_in(void *buffer, int length);
+extern void usbdbg_data_out(void *buffer, int length);
+extern void usbdbg_control(void *buffer, uint8_t brequest, uint32_t wlength);
+#define DBG_MAX_PACKET  (64)
+__ALIGN_BEGIN static uint8_t dbg_xfer_buffer[DBG_MAX_PACKET] __ALIGN_END;
 
 static uint8_t UserRxBuffer[APP_RX_DATA_SIZE]; // received data from USB OUT endpoint is stored in this buffer
 static uint16_t UserRxBufCur = 0; // points to next available character in UserRxBuffer
@@ -90,12 +98,14 @@ static int8_t CDC_Itf_Init     (void);
 static int8_t CDC_Itf_DeInit   (void);
 static int8_t CDC_Itf_Control  (uint8_t cmd, uint8_t* pbuf, uint16_t length);
 static int8_t CDC_Itf_Receive  (uint8_t* pbuf, uint32_t *Len);
+static int8_t CDC_Itf_TxSent   ();
 
 const USBD_CDC_ItfTypeDef USBD_CDC_fops = {
     CDC_Itf_Init,
     CDC_Itf_DeInit,
     CDC_Itf_Control,
-    CDC_Itf_Receive
+    CDC_Itf_Receive,
+    CDC_Itf_TxSent
 };
 
 /* Private functions ---------------------------------------------------------*/
@@ -108,45 +118,8 @@ const USBD_CDC_ItfTypeDef USBD_CDC_fops = {
   */
 static int8_t CDC_Itf_Init(void)
 {
-#if 0
-  /*##-1- Configure the UART peripheral ######################################*/
-  /* Put the USART peripheral in the Asynchronous mode (UART Mode) */
-  /* USART configured as follow:
-      - Word Length = 8 Bits
-      - Stop Bit    = One Stop bit
-      - Parity      = No parity
-      - BaudRate    = 115200 baud
-      - Hardware flow control disabled (RTS and CTS signals) */
-  UartHandle.Instance        = USARTx;
-  UartHandle.Init.BaudRate   = 115200;
-  UartHandle.Init.WordLength = UART_WORDLENGTH_8B;
-  UartHandle.Init.StopBits   = UART_STOPBITS_1;
-  UartHandle.Init.Parity     = UART_PARITY_NONE;
-  UartHandle.Init.HwFlowCtl  = UART_HWCONTROL_NONE;
-  UartHandle.Init.Mode       = UART_MODE_TX_RX;
-  
-  if(HAL_UART_Init(&UartHandle) != HAL_OK)
-  {
-    /* Initialization Error */
-    Error_Handler();
-  }
-  
-  /*##-2- Put UART peripheral in IT reception process ########################*/
-  /* Any data received will be stored in "UserTxBuffer" buffer  */
-  if(HAL_UART_Receive_IT(&UartHandle, (uint8_t *)UserTxBuffer, 1) != HAL_OK)
-  {
-    /* Transfer error in reception process */
-    Error_Handler();
-  }
-  
-  /*##-3- Configure the TIM Base generation  #################################*/
-  now done in HAL_MspInit
-  TIM_Config();
-#endif
-  
-    /*##-4- Start the TIM Base generation in interrupt mode ####################*/
     /* Start Channel1 */
-    __HAL_TIM_ENABLE_IT(&TIM3_Handle, TIM_IT_UPDATE);
+    //__HAL_TIM_ENABLE_IT(&TIM3_Handle, TIM_IT_UPDATE);
   
     /*##-5- Set Application Buffers ############################################*/
     USBD_CDC_SetTxBuffer(&hUSBDDevice, UserTxBuffer, 0);
@@ -214,28 +187,20 @@ static int8_t CDC_Itf_Control(uint8_t cmd, uint8_t* pbuf, uint16_t length) {
             /* Add your code here */
             break;
 
-        case CDC_SET_LINE_CODING:
-            #if 0
-            LineCoding.bitrate    = (uint32_t)(pbuf[0] | (pbuf[1] << 8) |\
-                                    (pbuf[2] << 16) | (pbuf[3] << 24));
-            LineCoding.format     = pbuf[4];
-            LineCoding.paritytype = pbuf[5];
-            LineCoding.datatype   = pbuf[6];
-            /* Set the new configuration */
-            #endif
+        case CDC_SET_LINE_CODING: {
+            int baud = *((uint32_t*)pbuf);
+            if (baud == 12000000) {
+                debug_mode = 1;
+                dbg_xfer_length=0;
+                __HAL_TIM_DISABLE_IT(&TIM3_Handle, TIM_IT_UPDATE);
+            } else {
+                debug_mode = 0;
+                __HAL_TIM_ENABLE_IT(&TIM3_Handle, TIM_IT_UPDATE);
+            }
             break;
+        }
 
         case CDC_GET_LINE_CODING:
-            #if 0
-            pbuf[0] = (uint8_t)(LineCoding.bitrate);
-            pbuf[1] = (uint8_t)(LineCoding.bitrate >> 8);
-            pbuf[2] = (uint8_t)(LineCoding.bitrate >> 16);
-            pbuf[3] = (uint8_t)(LineCoding.bitrate >> 24);
-            pbuf[4] = LineCoding.format;
-            pbuf[5] = LineCoding.paritytype;
-            pbuf[6] = LineCoding.datatype;
-            #endif
-
             /* Add your code here */
             pbuf[0] = (uint8_t)(115200);
             pbuf[1] = (uint8_t)(115200 >> 8);
@@ -325,6 +290,41 @@ void USBD_CDC_HAL_TIM_PeriodElapsedCallback(void) {
     }
 }
 
+uint32_t usbd_cdc_tx_buf_len() {
+    uint32_t buffsize;
+    if (UserTxBufPtrOut > UserTxBufPtrIn) { // rollback
+        buffsize = APP_TX_DATA_SIZE - UserTxBufPtrOut;
+    } else {
+        buffsize = UserTxBufPtrIn - UserTxBufPtrOut;
+    }
+    return buffsize;
+}
+
+uint8_t *usbd_cdc_tx_buf(uint32_t bytes) {
+    uint8_t *tx_buf = (uint8_t*)&UserTxBuffer[UserTxBufPtrOutShadow];
+    UserTxBufPtrOutShadow = (UserTxBufPtrOutShadow + bytes) %APP_TX_DATA_SIZE;
+    return tx_buf;
+}
+
+static void send_packet() {
+    int bytes = MIN(dbg_xfer_length, CDC_DATA_FS_MAX_PACKET_SIZE);
+    usbdbg_data_in(dbg_xfer_buffer, bytes);
+    dbg_xfer_length -= bytes;
+    USBD_CDC_SetTxBuffer(&hUSBDDevice, dbg_xfer_buffer, bytes);
+    USBD_CDC_TransmitPacket(&hUSBDDevice);
+}
+
+static int8_t CDC_Itf_TxSent() {
+    if (debug_mode == 1) {
+        if (dbg_xfer_length) {
+            send_packet();
+        } else if (UserTxBufPtrOut != UserTxBufPtrOutShadow) {
+            UserTxBufPtrOut = UserTxBufPtrOutShadow;
+        }
+    } 
+    return USBD_OK;
+}
+
 /**
   * @brief  CDC_Itf_DataRx
   *         Data received over USB OUT endpoint is processed here.
@@ -335,10 +335,26 @@ void USBD_CDC_HAL_TIM_PeriodElapsedCallback(void) {
   *         free to modify it.
   */
 static int8_t CDC_Itf_Receive(uint8_t* Buf, uint32_t *Len) {
-#if 0
-    // this sends the data over the UART using DMA
-    HAL_UART_Transmit_DMA(&UartHandle, Buf, *Len);
-#endif
+    if (debug_mode == 1) {
+        if (dbg_xfer_length) {
+            int bytes = *Len;
+            usbdbg_data_out(Buf, bytes);
+            dbg_xfer_length -= bytes;
+        } else if (Buf[0] == '\x30') { // command
+            uint8_t request = Buf[1];
+            dbg_xfer_length = *((uint32_t*)(Buf+2));
+            usbdbg_control(Buf, request, dbg_xfer_length);
+            if (dbg_xfer_length && (request & 0x80)) { //request has a device-to-host data phase
+                send_packet(); //prime tx buffer
+            }
+        }
+
+        // initiate next USB packet transfer
+        USBD_CDC_SetRxBuffer(&hUSBDDevice, UserRxBuffer);
+        USBD_CDC_ReceivePacket(&hUSBDDevice);
+
+        return USBD_OK;
+    }
 
     // TODO improve this function to implement a circular buffer
 
@@ -474,12 +490,20 @@ void USBD_CDC_TxAlways(const uint8_t *buf, uint32_t len) {
 
 // Returns number of bytes in the rx buffer.
 int USBD_CDC_RxNum(void) {
+    if (debug_mode == 1) {
+        return 0;
+    }
+
     return UserRxBufLen - UserRxBufCur;
 }
 
 // timout in milliseconds.
 // Returns number of bytes read from the device.
 int USBD_CDC_Rx(uint8_t *buf, uint32_t len, uint32_t timeout) {
+    if (debug_mode == 1) {
+        return 0;
+    }
+
     // loop to read bytes
     for (uint32_t i = 0; i < len; i++) {
         // Wait until we have at least 1 byte to read
