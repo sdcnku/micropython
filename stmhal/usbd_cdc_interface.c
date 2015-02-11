@@ -69,6 +69,9 @@
 static __IO uint8_t dev_is_connected = 0; // indicates if we are connected
 static __IO uint8_t debug_mode = 0; 
 
+static uint32_t last_packet = 64;
+
+static uint32_t baudrate = 115200;
 static uint32_t dbg_xfer_length=0;
 extern void usbdbg_data_in(void *buffer, int length);
 extern void usbdbg_data_out(void *buffer, int length);
@@ -188,8 +191,8 @@ static int8_t CDC_Itf_Control(uint8_t cmd, uint8_t* pbuf, uint16_t length) {
             break;
 
         case CDC_SET_LINE_CODING: {
-            int baud = *((uint32_t*)pbuf);
-            if (baud == 12000000) {
+            baudrate = *((uint32_t*)pbuf);
+            if (baudrate == 12000000) {
                 debug_mode = 1;
                 dbg_xfer_length=0;
                 UserTxBufPtrIn = UserTxBufPtrOut = UserTxBufPtrOutShadow =0;
@@ -204,10 +207,10 @@ static int8_t CDC_Itf_Control(uint8_t cmd, uint8_t* pbuf, uint16_t length) {
 
         case CDC_GET_LINE_CODING:
             /* Add your code here */
-            pbuf[0] = (uint8_t)(115200);
-            pbuf[1] = (uint8_t)(115200 >> 8);
-            pbuf[2] = (uint8_t)(115200 >> 16);
-            pbuf[3] = (uint8_t)(115200 >> 24);
+            pbuf[0] = (uint8_t)(baudrate);
+            pbuf[1] = (uint8_t)(baudrate >> 8);
+            pbuf[2] = (uint8_t)(baudrate >> 16);
+            pbuf[3] = (uint8_t)(baudrate >> 24);
             pbuf[4] = 0; // stop bits (1)
             pbuf[5] = 0; // parity (none)
             pbuf[6] = 8; // number of bits (8)
@@ -310,6 +313,7 @@ uint8_t *usbd_cdc_tx_buf(uint32_t bytes) {
 
 static void send_packet() {
     int bytes = MIN(dbg_xfer_length, CDC_DATA_FS_MAX_PACKET_SIZE);
+    last_packet = bytes;
     usbdbg_data_in(dbg_xfer_buffer, bytes);
     dbg_xfer_length -= bytes;
     USBD_CDC_SetTxBuffer(&hUSBDDevice, dbg_xfer_buffer, bytes);
@@ -320,8 +324,15 @@ static int8_t CDC_Itf_TxSent() {
     if (debug_mode == 1) {
         if (dbg_xfer_length) {
             send_packet();
-        } else if (UserTxBufPtrOut != UserTxBufPtrOutShadow) {
-            UserTxBufPtrOut = UserTxBufPtrOutShadow;
+        } else {
+            if (UserTxBufPtrOut != UserTxBufPtrOutShadow) {
+                UserTxBufPtrOut = UserTxBufPtrOutShadow;
+            }
+            if (last_packet == CDC_DATA_FS_MAX_PACKET_SIZE) {
+                last_packet = 0;
+                USBD_CDC_SetTxBuffer(&hUSBDDevice, dbg_xfer_buffer, 0);
+                USBD_CDC_TransmitPacket(&hUSBDDevice);
+            }
         }
     } 
     return USBD_OK;
