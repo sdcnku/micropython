@@ -23,6 +23,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#ifndef __MICROPY_INCLUDED_PY_NLR_H__
+#define __MICROPY_INCLUDED_PY_NLR_H__
 
 // non-local return
 // exception handling, basically a stack of setjmp/longjmp buffers
@@ -31,12 +33,14 @@
 #include <setjmp.h>
 #include <assert.h>
 
+#include "py/mpconfig.h"
+
 typedef struct _nlr_buf_t nlr_buf_t;
 struct _nlr_buf_t {
     // the entries here must all be machine word size
     nlr_buf_t *prev;
     void *ret_val;
-#if !MICROPY_NLR_SETJMP
+#if !defined(MICROPY_NLR_SETJMP) || !MICROPY_NLR_SETJMP
 #if defined(__i386__)
     void *regs[6];
 #elif defined(__x86_64__)
@@ -46,6 +50,8 @@ struct _nlr_buf_t {
     void *regs[8];
   #endif
 #elif defined(__thumb2__) || defined(__thumb__) || defined(__arm__)
+    void *regs[10];
+#elif defined(__xtensa__)
     void *regs[10];
 #else
     #define MICROPY_NLR_SETJMP (1)
@@ -59,12 +65,13 @@ struct _nlr_buf_t {
 };
 
 #if MICROPY_NLR_SETJMP
-extern nlr_buf_t *nlr_setjmp_top;
+#include "py/mpstate.h"
+
 NORETURN void nlr_setjmp_jump(void *val);
 // nlr_push() must be defined as a macro, because "The stack context will be
 // invalidated if the function which called setjmp() returns."
-#define nlr_push(buf) ((buf)->prev = nlr_setjmp_top, nlr_setjmp_top = (buf), setjmp((buf)->jmpbuf))
-#define nlr_pop() { nlr_setjmp_top = nlr_setjmp_top->prev; }
+#define nlr_push(buf) ((buf)->prev = MP_STATE_VM(nlr_top), MP_STATE_VM(nlr_top) = (buf), setjmp((buf)->jmpbuf))
+#define nlr_pop() { MP_STATE_VM(nlr_top) = MP_STATE_VM(nlr_top)->prev; }
 #define nlr_jump(val) nlr_setjmp_jump(val)
 #else
 unsigned int nlr_push(nlr_buf_t *);
@@ -81,11 +88,28 @@ void nlr_jump_fail(void *val);
 #ifndef DEBUG
 #define nlr_raise(val) nlr_jump(val)
 #else
+#include "mpstate.h"
 #define nlr_raise(val) \
     do { \
+        /*printf("nlr_raise: nlr_top=%p\n", MP_STATE_VM(nlr_top)); \
+        fflush(stdout);*/ \
         void *_val = val; \
         assert(_val != NULL); \
         assert(mp_obj_is_exception_instance(_val)); \
         nlr_jump(_val); \
     } while (0)
+
+#if !MICROPY_NLR_SETJMP
+#define nlr_push(val) \
+    assert(MP_STATE_VM(nlr_top) != val),nlr_push(val)
+
+/*
+#define nlr_push(val) \
+    printf("nlr_push: before: nlr_top=%p, val=%p\n", MP_STATE_VM(nlr_top), val),assert(MP_STATE_VM(nlr_top) != val),nlr_push(val)
 #endif
+*/
+#endif
+
+#endif
+
+#endif // __MICROPY_INCLUDED_PY_NLR_H__

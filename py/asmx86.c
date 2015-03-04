@@ -29,13 +29,12 @@
 #include <assert.h>
 #include <string.h>
 
-#include "mpconfig.h"
-#include "misc.h"
+#include "py/mpconfig.h"
 
 // wrapper around everything in this file
 #if MICROPY_EMIT_X86
 
-#include "asmx86.h"
+#include "py/asmx86.h"
 
 /* all offsets are measured in multiples of 4 bytes */
 #define WORD_SIZE                (4)
@@ -50,9 +49,13 @@
 #define OPCODE_MOV_I32_TO_R32    (0xb8)
 //#define OPCODE_MOV_I32_TO_RM32   (0xc7)
 #define OPCODE_MOV_R8_TO_RM8     (0x88) /* /r */
-#define OPCODE_MOV_R32_TO_RM32   (0x89)
-#define OPCODE_MOV_RM32_TO_R32   (0x8b)
+#define OPCODE_MOV_R32_TO_RM32   (0x89) /* /r */
+#define OPCODE_MOV_RM32_TO_R32   (0x8b) /* /r */
+#define OPCODE_MOVZX_RM8_TO_R32  (0xb6) /* 0x0f 0xb6/r */
+#define OPCODE_MOVZX_RM16_TO_R32 (0xb7) /* 0x0f 0xb7/r */
 #define OPCODE_LEA_MEM_TO_R32    (0x8d) /* /r */
+#define OPCODE_AND_R32_TO_RM32   (0x21) /* /r */
+#define OPCODE_OR_R32_TO_RM32    (0x09) /* /r */
 #define OPCODE_XOR_R32_TO_RM32   (0x31) /* /r */
 #define OPCODE_ADD_R32_TO_RM32   (0x01)
 #define OPCODE_ADD_I32_TO_RM32   (0x81) /* /0 */
@@ -128,21 +131,21 @@ void asm_x86_free(asm_x86_t *as, bool free_code) {
 }
 
 void asm_x86_start_pass(asm_x86_t *as, mp_uint_t pass) {
-    as->pass = pass;
-    as->code_offset = 0;
     if (pass == ASM_X86_PASS_COMPUTE) {
         // reset all labels
         memset(as->label_offsets, -1, as->max_num_labels * sizeof(mp_uint_t));
-    }
-}
-
-void asm_x86_end_pass(asm_x86_t *as) {
-    if (as->pass == ASM_X86_PASS_COMPUTE) {
-        MP_PLAT_ALLOC_EXEC(as->code_offset, (void**) &as->code_base, &as->code_size);
-        if(as->code_base == NULL) {
+    } else if (pass == ASM_X86_PASS_EMIT) {
+        MP_PLAT_ALLOC_EXEC(as->code_offset, (void**)&as->code_base, &as->code_size);
+        if (as->code_base == NULL) {
             assert(0);
         }
     }
+    as->pass = pass;
+    as->code_offset = 0;
+}
+
+void asm_x86_end_pass(asm_x86_t *as) {
+    (void)as;
 }
 
 // all functions must go through this one to emit bytes
@@ -242,22 +245,32 @@ void asm_x86_mov_r32_r32(asm_x86_t *as, int dest_r32, int src_r32) {
     asm_x86_generic_r32_r32(as, dest_r32, src_r32, OPCODE_MOV_R32_TO_RM32);
 }
 
-void asm_x86_mov_r8_to_disp(asm_x86_t *as, int src_r32, int dest_r32, int dest_disp) {
+void asm_x86_mov_r8_to_mem8(asm_x86_t *as, int src_r32, int dest_r32, int dest_disp) {
     asm_x86_write_byte_1(as, OPCODE_MOV_R8_TO_RM8);
     asm_x86_write_r32_disp(as, src_r32, dest_r32, dest_disp);
 }
 
-void asm_x86_mov_r16_to_disp(asm_x86_t *as, int src_r32, int dest_r32, int dest_disp) {
+void asm_x86_mov_r16_to_mem16(asm_x86_t *as, int src_r32, int dest_r32, int dest_disp) {
     asm_x86_write_byte_2(as, OP_SIZE_PREFIX, OPCODE_MOV_R32_TO_RM32);
     asm_x86_write_r32_disp(as, src_r32, dest_r32, dest_disp);
 }
 
-void asm_x86_mov_r32_to_disp(asm_x86_t *as, int src_r32, int dest_r32, int dest_disp) {
+void asm_x86_mov_r32_to_mem32(asm_x86_t *as, int src_r32, int dest_r32, int dest_disp) {
     asm_x86_write_byte_1(as, OPCODE_MOV_R32_TO_RM32);
     asm_x86_write_r32_disp(as, src_r32, dest_r32, dest_disp);
 }
 
-STATIC void asm_x86_mov_disp_to_r32(asm_x86_t *as, int src_r32, int src_disp, int dest_r32) {
+void asm_x86_mov_mem8_to_r32zx(asm_x86_t *as, int src_r32, int src_disp, int dest_r32) {
+    asm_x86_write_byte_2(as, 0x0f, OPCODE_MOVZX_RM8_TO_R32);
+    asm_x86_write_r32_disp(as, dest_r32, src_r32, src_disp);
+}
+
+void asm_x86_mov_mem16_to_r32zx(asm_x86_t *as, int src_r32, int src_disp, int dest_r32) {
+    asm_x86_write_byte_2(as, 0x0f, OPCODE_MOVZX_RM16_TO_R32);
+    asm_x86_write_r32_disp(as, dest_r32, src_r32, src_disp);
+}
+
+void asm_x86_mov_mem32_to_r32(asm_x86_t *as, int src_r32, int src_disp, int dest_r32) {
     asm_x86_write_byte_1(as, OPCODE_MOV_RM32_TO_R32);
     asm_x86_write_r32_disp(as, dest_r32, src_r32, src_disp);
 }
@@ -287,6 +300,14 @@ void asm_x86_mov_i32_to_r32_aligned(asm_x86_t *as, int32_t src_i32, int dest_r32
     asm_x86_mov_i32_to_r32(as, src_i32, dest_r32);
 }
 
+void asm_x86_and_r32_r32(asm_x86_t *as, int dest_r32, int src_r32) {
+    asm_x86_generic_r32_r32(as, dest_r32, src_r32, OPCODE_AND_R32_TO_RM32);
+}
+
+void asm_x86_or_r32_r32(asm_x86_t *as, int dest_r32, int src_r32) {
+    asm_x86_generic_r32_r32(as, dest_r32, src_r32, OPCODE_OR_R32_TO_RM32);
+}
+
 void asm_x86_xor_r32_r32(asm_x86_t *as, int dest_r32, int src_r32) {
     asm_x86_generic_r32_r32(as, dest_r32, src_r32, OPCODE_XOR_R32_TO_RM32);
 }
@@ -303,7 +324,7 @@ void asm_x86_add_r32_r32(asm_x86_t *as, int dest_r32, int src_r32) {
     asm_x86_generic_r32_r32(as, dest_r32, src_r32, OPCODE_ADD_R32_TO_RM32);
 }
 
-void asm_x86_add_i32_to_r32(asm_x86_t *as, int src_i32, int dest_r32) {
+STATIC void asm_x86_add_i32_to_r32(asm_x86_t *as, int src_i32, int dest_r32) {
     if (SIGNED_FIT8(src_i32)) {
         asm_x86_write_byte_2(as, OPCODE_ADD_I8_TO_RM32, MODRM_R32(0) | MODRM_RM_REG | MODRM_RM_R32(dest_r32));
         asm_x86_write_byte_1(as, src_i32 & 0xff);
@@ -378,7 +399,7 @@ void asm_x86_label_assign(asm_x86_t *as, mp_uint_t label) {
     assert(label < as->max_num_labels);
     if (as->pass < ASM_X86_PASS_EMIT) {
         // assign label offset
-        assert(as->label_offsets[label] == -1);
+        assert(as->label_offsets[label] == (mp_uint_t)-1);
         as->label_offsets[label] = as->code_offset;
     } else {
         // ensure label offset has not changed from PASS_COMPUTE to PASS_EMIT
@@ -387,7 +408,7 @@ void asm_x86_label_assign(asm_x86_t *as, mp_uint_t label) {
     }
 }
 
-STATIC mp_uint_t get_label_dest(asm_x86_t *as, int label) {
+STATIC mp_uint_t get_label_dest(asm_x86_t *as, mp_uint_t label) {
     assert(label < as->max_num_labels);
     return as->label_offsets[label];
 }
@@ -395,7 +416,7 @@ STATIC mp_uint_t get_label_dest(asm_x86_t *as, int label) {
 void asm_x86_jmp_label(asm_x86_t *as, mp_uint_t label) {
     mp_uint_t dest = get_label_dest(as, label);
     mp_int_t rel = dest - as->code_offset;
-    if (dest != -1 && rel < 0) {
+    if (dest != (mp_uint_t)-1 && rel < 0) {
         // is a backwards jump, so we know the size of the jump on the first pass
         // calculate rel assuming 8 bit relative jump
         rel -= 2;
@@ -417,7 +438,7 @@ void asm_x86_jmp_label(asm_x86_t *as, mp_uint_t label) {
 void asm_x86_jcc_label(asm_x86_t *as, mp_uint_t jcc_type, mp_uint_t label) {
     mp_uint_t dest = get_label_dest(as, label);
     mp_int_t rel = dest - as->code_offset;
-    if (dest != -1 && rel < 0) {
+    if (dest != (mp_uint_t)-1 && rel < 0) {
         // is a backwards jump, so we know the size of the jump on the first pass
         // calculate rel assuming 8 bit relative jump
         rel -= 2;
@@ -464,12 +485,12 @@ void asm_x86_push_arg(asm_x86_t *as, int src_arg_num) {
 #endif
 
 void asm_x86_mov_arg_to_r32(asm_x86_t *as, int src_arg_num, int dest_r32) {
-    asm_x86_mov_disp_to_r32(as, ASM_X86_REG_EBP, 2 * WORD_SIZE + src_arg_num * WORD_SIZE, dest_r32);
+    asm_x86_mov_mem32_to_r32(as, ASM_X86_REG_EBP, 2 * WORD_SIZE + src_arg_num * WORD_SIZE, dest_r32);
 }
 
 #if 0
 void asm_x86_mov_r32_to_arg(asm_x86_t *as, int src_r32, int dest_arg_num) {
-    asm_x86_mov_r32_to_disp(as, src_r32, ASM_X86_REG_EBP, 2 * WORD_SIZE + dest_arg_num * WORD_SIZE);
+    asm_x86_mov_r32_to_mem32(as, src_r32, ASM_X86_REG_EBP, 2 * WORD_SIZE + dest_arg_num * WORD_SIZE);
 }
 #endif
 
@@ -478,7 +499,7 @@ void asm_x86_mov_r32_to_arg(asm_x86_t *as, int src_r32, int dest_arg_num) {
 //  - numbered 0 through as->num_locals-1
 //  - EBP points above the last local
 //
-//                          | EPB
+//                          | EBP
 //                          v
 //  l0  l1  l2  ...  l(n-1)
 //  ^                ^
@@ -489,11 +510,11 @@ STATIC int asm_x86_local_offset_from_ebp(asm_x86_t *as, int local_num) {
 }
 
 void asm_x86_mov_local_to_r32(asm_x86_t *as, int src_local_num, int dest_r32) {
-    asm_x86_mov_disp_to_r32(as, ASM_X86_REG_EBP, asm_x86_local_offset_from_ebp(as, src_local_num), dest_r32);
+    asm_x86_mov_mem32_to_r32(as, ASM_X86_REG_EBP, asm_x86_local_offset_from_ebp(as, src_local_num), dest_r32);
 }
 
 void asm_x86_mov_r32_to_local(asm_x86_t *as, int src_r32, int dest_local_num) {
-    asm_x86_mov_r32_to_disp(as, src_r32, ASM_X86_REG_EBP, asm_x86_local_offset_from_ebp(as, dest_local_num));
+    asm_x86_mov_r32_to_mem32(as, src_r32, ASM_X86_REG_EBP, asm_x86_local_offset_from_ebp(as, dest_local_num));
 }
 
 void asm_x86_mov_local_addr_to_r32(asm_x86_t *as, int local_num, int dest_r32) {

@@ -2,11 +2,16 @@ from pyb import UART
 
 uart = UART(1)
 uart = UART(1, 9600)
-uart = UART(1, 9600, bits=8, stop=1, parity=None)
+uart = UART(1, 9600, bits=8, parity=None, stop=1)
 print(uart)
 
-uart.init(1200)
+uart.init(2400)
 print(uart)
 
-uart.any()
-uart.send(1, timeout=500)
+print(uart.any())
+print(uart.write('123'))
+print(uart.write(b'abcd'))
+print(uart.writechar(1))
+
+# make sure this method exists
+uart.sendbreak()

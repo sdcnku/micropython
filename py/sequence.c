@@ -25,17 +25,12 @@
  * THE SOFTWARE.
  */
 
-#include <assert.h>
-#include <stdbool.h>
 #include <string.h>
 
-#include "mpconfig.h"
-#include "nlr.h"
-#include "misc.h"
-#include "qstr.h"
-#include "obj.h"
-#include "runtime0.h"
-#include "runtime.h"
+#include "py/nlr.h"
+#include "py/obj.h"
+#include "py/runtime0.h"
+#include "py/runtime.h"
 
 // Helpers for sequence types
 
@@ -44,7 +39,7 @@
 // Implements backend of sequence * integer operation. Assumes elements are
 // memory-adjacent in sequence.
 void mp_seq_multiply(const void *items, mp_uint_t item_sz, mp_uint_t len, mp_uint_t times, void *dest) {
-    for (int i = 0; i < times; i++) {
+    for (mp_uint_t i = 0; i < times; i++) {
         uint copy_sz = item_sz * len;
         memcpy(dest, items, copy_sz);
         dest = (char*)dest + copy_sz;
@@ -75,12 +70,12 @@ bool mp_seq_get_fast_slice_indexes(mp_uint_t len, mp_obj_t slice, mp_bound_slice
         if (start < 0) {
             start = 0;
         }
-    } else if (start > len) {
+    } else if ((mp_uint_t)start > len) {
         start = len;
     }
     if (stop < 0) {
         stop = len + stop;
-    } else if (stop > len) {
+    } else if ((mp_uint_t)stop > len) {
         stop = len;
     }
 
@@ -103,6 +98,8 @@ bool mp_seq_get_fast_slice_indexes(mp_uint_t len, mp_obj_t slice, mp_bound_slice
 #endif
 
 mp_obj_t mp_seq_extract_slice(mp_uint_t len, const mp_obj_t *seq, mp_bound_slice_t *indexes) {
+    (void)len; // TODO can we remove len from the arg list?
+
     mp_int_t start = indexes->start, stop = indexes->stop;
     mp_int_t step = indexes->step;
 
@@ -185,8 +182,8 @@ bool mp_seq_cmp_objs(mp_uint_t op, const mp_obj_t *items1, mp_uint_t len1, const
         }
     }
 
-    int len = len1 < len2 ? len1 : len2;
-    for (int i = 0; i < len; i++) {
+    mp_uint_t len = len1 < len2 ? len1 : len2;
+    for (mp_uint_t i = 0; i < len; i++) {
         // If current elements equal, can't decide anything - go on
         if (mp_obj_equal(items1[i], items2[i])) {
             continue;

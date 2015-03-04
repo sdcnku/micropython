@@ -28,12 +28,8 @@
 
 #include <stm32f4xx_hal.h>
 
-#include "mpconfig.h"
-#include "nlr.h"
-#include "misc.h"
-#include "qstr.h"
-#include "obj.h"
-#include "runtime.h"
+#include "py/nlr.h"
+#include "py/runtime.h"
 #include "sdcard.h"
 #include "pin.h"
 #include "genhdr/pins.h"
@@ -105,10 +101,13 @@ bool sdcard_power_on(void) {
     sd_handle.Init.HardwareFlowControl = SDIO_HARDWARE_FLOW_CONTROL_DISABLE;
     sd_handle.Init.ClockDiv            = SDIO_TRANSFER_CLK_DIV;
 
-    // init the SD interface
+    // init the SD interface, with retry if it's not ready yet
     HAL_SD_CardInfoTypedef cardinfo;
-    if (HAL_SD_Init(&sd_handle, &cardinfo) != SD_OK) {
-        goto error;
+    for (int retry = 10; HAL_SD_Init(&sd_handle, &cardinfo) != SD_OK; retry--) {
+        if (retry == 0) {
+            goto error;
+        }
+        HAL_Delay(50);
     }
 
     // configure the SD bus width for wide operation
@@ -283,7 +282,7 @@ STATIC mp_obj_t sd_read(mp_obj_t self, mp_obj_t block_num) {
     mp_uint_t ret = sdcard_read_blocks(dest, mp_obj_get_int(block_num), 1);
 
     if (ret != 0) {
-        m_free(dest, SDCARD_BLOCK_SIZE);
+        m_del(uint8_t, dest, SDCARD_BLOCK_SIZE);
         nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_Exception, "sdcard_read_blocks failed [%u]", ret));
     }
 

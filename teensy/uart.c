@@ -27,12 +27,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "mpconfig.h"
-#include "nlr.h"
-#include "misc.h"
-#include "qstr.h"
-#include "obj.h"
-#include "runtime.h"
+#include "py/nlr.h"
+#include "py/runtime.h"
 #include MICROPY_HAL_H
 #include "bufhelper.h"
 #include "uart.h"
@@ -175,35 +171,6 @@ bool uart_init(pyb_uart_obj_t *uart_obj, uint32_t baudrate) {
     uh->Init.OverSampling = UART_OVERSAMPLING_16;
 #endif
     return uart_init2(uart_obj);
-}
-
-void uart_deinit(pyb_uart_obj_t *uart_obj) {
-#if 0
-    uart_obj->is_enabled = false;
-    UART_HandleTypeDef *uart = &uart_obj->uart;
-    HAL_UART_DeInit(uart);
-    if (uart->Instance == USART1) {
-        __USART1_FORCE_RESET();
-        __USART1_RELEASE_RESET();
-        __USART1_CLK_DISABLE();
-    } else if (uart->Instance == USART2) {
-        __USART2_FORCE_RESET();
-        __USART2_RELEASE_RESET();
-        __USART2_CLK_DISABLE();
-    } else if (uart->Instance == USART3) {
-        __USART3_FORCE_RESET();
-        __USART3_RELEASE_RESET();
-        __USART3_CLK_DISABLE();
-    } else if (uart->Instance == UART4) {
-        __UART4_FORCE_RESET();
-        __UART4_RELEASE_RESET();
-        __UART4_CLK_DISABLE();
-    } else if (uart->Instance == USART6) {
-        __USART6_FORCE_RESET();
-        __USART6_RELEASE_RESET();
-        __USART6_CLK_DISABLE();
-    }
-#endif
 }
 
 bool uart_rx_any(pyb_uart_obj_t *uart_obj) {
@@ -390,8 +357,8 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_KW(pyb_uart_init_obj, 1, pyb_uart_init);
 /// \method deinit()
 /// Turn off the UART bus.
 STATIC mp_obj_t pyb_uart_deinit(mp_obj_t self_in) {
-    pyb_uart_obj_t *self = self_in;
-    uart_deinit(self);
+    //pyb_uart_obj_t *self = self_in;
+    // TODO
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(pyb_uart_deinit_obj, pyb_uart_deinit);

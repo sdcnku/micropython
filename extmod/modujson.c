@@ -28,14 +28,10 @@
 #include <unistd.h>
 #include <string.h>
 
-#include "mpconfig.h"
-#include "misc.h"
-#include "nlr.h"
-#include "qstr.h"
-#include "obj.h"
-#include "objlist.h"
-#include "parsenum.h"
-#include "runtime.h"
+#include "py/nlr.h"
+#include "py/objlist.h"
+#include "py/parsenum.h"
+#include "py/runtime.h"
 
 #if MICROPY_PY_UJSON
 
@@ -43,9 +39,7 @@ STATIC mp_obj_t mod_ujson_dumps(mp_obj_t obj) {
     vstr_t vstr;
     vstr_init(&vstr, 8);
     mp_obj_print_helper((void (*)(void *env, const char *fmt, ...))vstr_printf, &vstr, obj, PRINT_JSON);
-    mp_obj_t ret = mp_obj_new_str(vstr.buf, vstr.len, false);
-    vstr_clear(&vstr);
-    return ret;
+    return mp_obj_new_str_from_vstr(&mp_type_str, &vstr);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(mod_ujson_dumps_obj, mod_ujson_dumps);
 
@@ -85,6 +79,9 @@ STATIC mp_obj_t mod_ujson_loads(mp_obj_t obj) {
             case ',':
             case ':':
             case ' ':
+            case '\t':
+            case '\n':
+            case '\r':
                 s += 1;
                 goto cont;
             case 'n':
@@ -164,9 +161,9 @@ STATIC mp_obj_t mod_ujson_loads(mp_obj_t obj) {
                     vstr_add_byte(&vstr, *s);
                 }
                 if (flt) {
-                    next = mp_parse_num_decimal(vstr.buf, vstr.len, false, false);
+                    next = mp_parse_num_decimal(vstr.buf, vstr.len, false, false, NULL);
                 } else {
-                    next = mp_parse_num_integer(vstr.buf, vstr.len, 10);
+                    next = mp_parse_num_integer(vstr.buf, vstr.len, 10, NULL);
                 }
                 break;
             }
@@ -242,7 +239,8 @@ STATIC mp_obj_t mod_ujson_loads(mp_obj_t obj) {
         // unexpected chars
         goto fail;
     }
-    if (stack.len != 0) {
+    if (stack_top == MP_OBJ_NULL || stack.len != 0) {
+        // not exactly 1 object
         goto fail;
     }
     vstr_clear(&vstr);
@@ -259,16 +257,7 @@ STATIC const mp_map_elem_t mp_module_ujson_globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_loads), (mp_obj_t)&mod_ujson_loads_obj },
 };
 
-STATIC const mp_obj_dict_t mp_module_ujson_globals = {
-    .base = {&mp_type_dict},
-    .map = {
-        .all_keys_are_qstrs = 1,
-        .table_is_fixed_array = 1,
-        .used = MP_ARRAY_SIZE(mp_module_ujson_globals_table),
-        .alloc = MP_ARRAY_SIZE(mp_module_ujson_globals_table),
-        .table = (mp_map_elem_t*)mp_module_ujson_globals_table,
-    },
-};
+STATIC MP_DEFINE_CONST_DICT(mp_module_ujson_globals, mp_module_ujson_globals_table);
 
 const mp_obj_module_t mp_module_ujson = {
     .base = { &mp_type_module },

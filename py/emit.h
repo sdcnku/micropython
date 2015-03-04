@@ -24,6 +24,13 @@
  * THE SOFTWARE.
  */
 
+#ifndef __MICROPY_INCLUDED_PY_EMIT_H__
+#define __MICROPY_INCLUDED_PY_EMIT_H__
+
+#include "py/lexer.h"
+#include "py/scope.h"
+#include "py/runtime0.h"
+
 /* Notes on passes:
  * We don't know exactly the opcodes in pass 1 because they depend on the
  * closing over of variables (LOAD_CLOSURE, BUILD_TUPLE, MAKE_CLOSURE), which
@@ -70,11 +77,10 @@ typedef struct _emit_method_table_t {
     void (*import_star)(emit_t *emit);
     void (*load_const_tok)(emit_t *emit, mp_token_kind_t tok);
     void (*load_const_small_int)(emit_t *emit, mp_int_t arg);
-    void (*load_const_int)(emit_t *emit, qstr qst);
-    void (*load_const_dec)(emit_t *emit, qstr qst);
     void (*load_const_str)(emit_t *emit, qstr qst, bool bytes);
+    void (*load_const_obj)(emit_t *emit, void *obj);
     void (*load_null)(emit_t *emit);
-    void (*load_fast)(emit_t *emit, qstr qst, mp_uint_t id_flags, mp_uint_t local_num);
+    void (*load_fast)(emit_t *emit, qstr qst, mp_uint_t local_num);
     void (*load_deref)(emit_t *emit, qstr qst, mp_uint_t local_num);
     void (*load_name)(emit_t *emit, qstr qst);
     void (*load_global)(emit_t *emit, qstr qst);
@@ -100,10 +106,8 @@ typedef struct _emit_method_table_t {
     void (*rot_two)(emit_t *emit);
     void (*rot_three)(emit_t *emit);
     void (*jump)(emit_t *emit, mp_uint_t label);
-    void (*pop_jump_if_true)(emit_t *emit, mp_uint_t label);
-    void (*pop_jump_if_false)(emit_t *emit, mp_uint_t label);
-    void (*jump_if_true_or_pop)(emit_t *emit, mp_uint_t label);
-    void (*jump_if_false_or_pop)(emit_t *emit, mp_uint_t label);
+    void (*pop_jump_if)(emit_t *emit, bool cond, mp_uint_t label);
+    void (*jump_if_or_pop)(emit_t *emit, bool cond, mp_uint_t label);
     void (*break_loop)(emit_t *emit, mp_uint_t label, mp_uint_t except_depth);
     void (*continue_loop)(emit_t *emit, mp_uint_t label, mp_uint_t except_depth);
     void (*setup_with)(emit_t *emit, mp_uint_t label);
@@ -124,9 +128,13 @@ typedef struct _emit_method_table_t {
     void (*build_map)(emit_t *emit, mp_uint_t n_args);
     void (*store_map)(emit_t *emit);
     void (*map_add)(emit_t *emit, mp_uint_t map_stack_index);
+    #if MICROPY_PY_BUILTINS_SET
     void (*build_set)(emit_t *emit, mp_uint_t n_args);
     void (*set_add)(emit_t *emit, mp_uint_t set_stack_index);
+    #endif
+    #if MICROPY_PY_BUILTINS_SLICE
     void (*build_slice)(emit_t *emit, mp_uint_t n_args);
+    #endif
     void (*unpack_sequence)(emit_t *emit, mp_uint_t n_args);
     void (*unpack_ex)(emit_t *emit, mp_uint_t n_left, mp_uint_t n_right);
     void (*make_function)(emit_t *emit, scope_t *scope, mp_uint_t n_pos_defaults, mp_uint_t n_kw_defaults);
@@ -145,7 +153,7 @@ typedef struct _emit_method_table_t {
 
 #if MICROPY_EMIT_CPYTHON
     // these methods are only needed for emitcpy
-    void (*load_const_verbatim_str)(emit_t *emit, const char *str);
+    void (*load_const_verbatim_strn)(emit_t *emit, const char *str, mp_uint_t len);
     void (*load_closure)(emit_t *emit, qstr qst, mp_uint_t local_num);
     void (*setup_loop)(emit_t *emit, mp_uint_t label);
 #endif
@@ -182,10 +190,10 @@ void emit_native_arm_free(emit_t *emit);
 typedef struct _emit_inline_asm_t emit_inline_asm_t;
 
 typedef struct _emit_inline_asm_method_table_t {
-    void (*start_pass)(emit_inline_asm_t *emit, pass_kind_t pass, scope_t *scope);
-    bool (*end_pass)(emit_inline_asm_t *emit);
+    void (*start_pass)(emit_inline_asm_t *emit, pass_kind_t pass, scope_t *scope, mp_obj_t *error_slot);
+    void (*end_pass)(emit_inline_asm_t *emit);
     mp_uint_t (*count_params)(emit_inline_asm_t *emit, mp_uint_t n_params, mp_parse_node_t *pn_params);
-    void (*label)(emit_inline_asm_t *emit, mp_uint_t label_num, qstr label_id);
+    bool (*label)(emit_inline_asm_t *emit, mp_uint_t label_num, qstr label_id);
     void (*align)(emit_inline_asm_t *emit, mp_uint_t align);
     void (*data)(emit_inline_asm_t *emit, mp_uint_t bytesize, mp_uint_t val);
     void (*op)(emit_inline_asm_t *emit, qstr op, mp_uint_t n_args, mp_parse_node_t *pn_args);
@@ -195,3 +203,11 @@ extern const emit_inline_asm_method_table_t emit_inline_thumb_method_table;
 
 emit_inline_asm_t *emit_inline_thumb_new(mp_uint_t max_num_labels);
 void emit_inline_thumb_free(emit_inline_asm_t *emit);
+
+#if MICROPY_WARNINGS
+void mp_emitter_warning(pass_kind_t pass, const char *msg);
+#else
+#define mp_emitter_warning(pass, msg)
+#endif
+
+#endif // __MICROPY_INCLUDED_PY_EMIT_H__

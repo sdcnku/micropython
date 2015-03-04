@@ -3,29 +3,24 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "mpconfig.h"
-#include "misc.h"
-#include "qstr.h"
-#include "nlr.h"
-#include "lexer.h"
-#include "lexermemzip.h"
-#include "parse.h"
-#include "obj.h"
-#include "runtime.h"
-#include "gc.h"
+#include "py/nlr.h"
+#include "py/parse.h"
+#include "py/lexer.h"
+#include "py/runtime.h"
+#include "py/stackctrl.h"
+#include "py/gc.h"
 #include "gccollect.h"
 #include "pyexec.h"
 #include "readline.h"
+#include "lexermemzip.h"
 
 #include "Arduino.h"
 #include MICROPY_HAL_H
 
 #include "servo.h"
-#include "usb.h"
 #include "led.h"
 #include "uart.h"
 #include "pin.h"
-#include "pybstdio.h"
 
 
 extern uint32_t _heap_start;
@@ -46,8 +41,8 @@ void NORETURN __fatal_error(const char *msg) {
     led_state(2, 1);
     led_state(3, 1);
     led_state(4, 1);
-    stdout_tx_strn("\nFATAL ERROR:\n", 14);
-    stdout_tx_strn(msg, strlen(msg));
+    mp_hal_stdout_tx_strn("\nFATAL ERROR:\n", 14);
+    mp_hal_stdout_tx_strn(msg, strlen(msg));
     for (uint i = 0;;) {
         led_toggle(((i++) & 3) + 1);
         for (volatile uint delay = 0; delay < 10000000; delay++) {
@@ -259,6 +254,8 @@ int main(void) {
     #define SCB_CCR_STKALIGN (1 << 9)
     SCB_CCR |= SCB_CCR_STKALIGN;
 
+    mp_stack_set_limit(10240);
+
     pinMode(LED_BUILTIN, OUTPUT);
     led_init();
 
@@ -320,7 +317,7 @@ soft_reset:
         } else {
             vstr_add_str(vstr, mp_obj_str_get_str(pyb_config_main));
         }
-        if (!pyexec_file(vstr_str(vstr))) {
+        if (!pyexec_file(vstr_null_terminated_str(vstr))) {
             flash_error(3);
         }
         vstr_free(vstr);

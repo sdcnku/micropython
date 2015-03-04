@@ -33,13 +33,16 @@
 #define MICROPY_ALLOC_PATH_MAX      (128)
 #define MICROPY_EMIT_THUMB          (1)
 #define MICROPY_EMIT_INLINE_THUMB   (1)
+#define MICROPY_COMP_MODULE_CONST   (1)
 #define MICROPY_ENABLE_GC           (1)
 #define MICROPY_ENABLE_FINALISER    (1)
+#define MICROPY_STACK_CHECK         (1)
 #define MICROPY_HELPER_REPL         (1)
 #define MICROPY_ENABLE_SOURCE_LINE  (1)
 #define MICROPY_LONGINT_IMPL        (MICROPY_LONGINT_IMPL_MPZ)
 #define MICROPY_FLOAT_IMPL          (MICROPY_FLOAT_IMPL_FLOAT)
 #define MICROPY_OPT_COMPUTED_GOTO   (1)
+#define MICROPY_OPT_CACHE_MAP_LOOKUP_IN_BYTECODE (0)
 /* Enable FatFS LFNs
     0: Disable LFN feature.
     1: Enable LFN with static working buffer on the BSS. Always NOT reentrant.
@@ -48,16 +51,28 @@
 */
 #define MICROPY_ENABLE_LFN          (1)
 #define MICROPY_LFN_CODE_PAGE       (437) /* 1=SFN/ANSI 437=LFN/U.S.(OEM) */
-#define MICROPY_PY_BUILTINS_STR_UNICODE (0)
-#define MICROPY_PY_BUILTINS_FROZENSET (0)
-#define MICROPY_PY_SYS_EXIT         (0)
+#define MICROPY_STREAMS_NON_BLOCK   (1)
+#define MICROPY_MODULE_WEAK_LINKS   (1)
+#define MICROPY_CAN_OVERRIDE_BUILTINS (1)
+#define MICROPY_PY_BUILTINS_STR_UNICODE (1)
+#define MICROPY_PY_BUILTINS_MEMORYVIEW (1)
+#define MICROPY_PY_BUILTINS_FROZENSET (1)
+#define MICROPY_PY_BUILTINS_EXECFILE (1)
+#define MICROPY_PY_MICROPYTHON_MEM_INFO (1)
+#define MICROPY_PY_ARRAY_SLICE_ASSIGN (1)
+#define MICROPY_PY_SYS_EXIT         (1)
 #define MICROPY_PY_SYS_STDFILES     (1)
+#define MICROPY_PY_MATH_SPECIAL_FUNCTIONS (0)
 #define MICROPY_PY_CMATH            (0)
-#define MICROPY_PY_MATH             (0)
 #define MICROPY_PY_IO               (1)
-#define MICROPY_PY_IO_FILEIO        (0)
+#define MICROPY_PY_IO_FILEIO        (1)
+#define MICROPY_PY_UBINASCII        (0)
 #define MICROPY_PY_UCTYPES          (0)
-#define MICROPY_PY_ZLIBD            (0)
+#define MICROPY_PY_UZLIB            (0)
+#define MICROPY_PY_UJSON            (0)
+#define MICROPY_PY_URE              (0)
+#define MICROPY_PY_UHEAPQ           (0)
+#define MICROPY_PY_UHASHLIB         (0)
 
 #define MICROPY_ENABLE_EMERGENCY_EXCEPTION_BUF   (1)
 #define MICROPY_EMERGENCY_EXCEPTION_BUF_SIZE  (0)
@@ -72,31 +87,80 @@ extern const struct _mp_obj_fun_builtin_t mp_builtin_open_obj;
     { MP_OBJ_NEW_QSTR(MP_QSTR_open),    (mp_obj_t)&mp_builtin_open_obj },
 
 // extra built in modules to add to the list of known ones
+extern const struct _mp_obj_module_t stm_module;
+extern const struct _mp_obj_module_t mp_module_ubinascii;
+extern const struct _mp_obj_module_t mp_module_ure;
+extern const struct _mp_obj_module_t mp_module_uzlib;
+extern const struct _mp_obj_module_t mp_module_ujson;
+extern const struct _mp_obj_module_t mp_module_uheapq;
+extern const struct _mp_obj_module_t mp_module_uhashlib;
+extern const struct _mp_obj_module_t mp_module_uos;
+extern const struct _mp_obj_module_t mp_module_utime;
+extern const struct _mp_obj_module_t mp_module_uselect;
+extern const struct _mp_obj_module_t mp_module_usocket;
+extern const struct _mp_obj_module_t mp_module_network;
 extern const struct _mp_obj_module_t led_module;
 extern const struct _mp_obj_module_t time_module;
-extern const struct _mp_obj_module_t spi_module;
-extern const struct _mp_obj_module_t gpio_module;
-extern const struct _mp_obj_module_t uart_module;
-extern const struct _mp_obj_module_t wlan_module;
-extern const struct _mp_obj_module_t socket_module;
-extern const struct _mp_obj_module_t select_module;
 extern const struct _mp_obj_module_t mlx_module;
 extern const struct _mp_obj_module_t sensor_module;
+
+
 #define MICROPY_PORT_BUILTIN_MODULES \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_stm), (mp_obj_t)&stm_module }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_uos), (mp_obj_t)&mp_module_uos }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_utime), (mp_obj_t)&mp_module_utime }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_uselect), (mp_obj_t)&mp_module_uselect }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_usocket), (mp_obj_t)&mp_module_usocket }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_network), (mp_obj_t)&mp_module_network }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_led),     (mp_obj_t)&led_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_time),    (mp_obj_t)&time_module }, \
-    { MP_OBJ_NEW_QSTR(MP_QSTR_spi),     (mp_obj_t)&spi_module }, \
-    { MP_OBJ_NEW_QSTR(MP_QSTR_gpio),    (mp_obj_t)&gpio_module }, \
-    { MP_OBJ_NEW_QSTR(MP_QSTR_uart),    (mp_obj_t)&uart_module }, \
-    { MP_OBJ_NEW_QSTR(MP_QSTR_wlan),    (mp_obj_t)&wlan_module }, \
-    { MP_OBJ_NEW_QSTR(MP_QSTR_socket),  (mp_obj_t)&socket_module }, \
-    { MP_OBJ_NEW_QSTR(MP_QSTR_select),  (mp_obj_t)&select_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_mlx),     (mp_obj_t)&mlx_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_sensor),  (mp_obj_t)&sensor_module },
+
+
+#define MICROPY_PORT_BUILTIN_MODULE_WEAK_LINKS \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_os), (mp_obj_t)&mp_module_uos }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_time), (mp_obj_t)&mp_module_utime }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_select), (mp_obj_t)&mp_module_uselect }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_socket), (mp_obj_t)&mp_module_usocket }, \
 
 // extra constants
 //#define MICROPY_PORT_CONSTANTS
 //    { MP_OBJ_NEW_QSTR(MP_QSTR_stm), (mp_obj_t)&stm_module },
+
+#define PYB_EXTI_NUM_VECTORS (23)
+
+#define MP_STATE_PORT MP_STATE_VM
+
+#define MICROPY_PORT_ROOT_POINTERS \
+    const char *readline_hist[8]; \
+    \
+    mp_obj_t mp_const_vcp_interrupt; \
+    mp_obj_t pyb_hid_report_desc; \
+    \
+    mp_obj_t pyb_config_main; \
+    \
+    mp_obj_t pyb_switch_callback; \
+    \
+    mp_obj_t pin_class_mapper; \
+    mp_obj_t pin_class_map_dict; \
+    \
+    mp_obj_t pyb_extint_callback[PYB_EXTI_NUM_VECTORS]; \
+    \
+    /* Used to do callbacks to Python code on interrupt */ \
+    struct _pyb_timer_obj_t *pyb_timer_obj_all[14]; \
+    \
+    /* stdio is repeated on this UART object if it's not null */ \
+    struct _pyb_uart_obj_t *pyb_stdio_uart; \
+    \
+    /* pointers to all UART objects (if they have been created) */ \
+    struct _pyb_uart_obj_t *pyb_uart_obj_all[6]; \
+    \
+    /* pointers to all CAN objects (if they have been created) */ \
+    struct _pyb_can_obj_t *pyb_can_obj_all[2]; \
+    \
+    /* list of registered NICs */ \
+    mp_obj_list_t mod_network_nic_list; \
 
 // type definitions for the specific machine
 
@@ -111,6 +175,7 @@ typedef int mp_int_t; // must be pointer size
 typedef unsigned int mp_uint_t; // must be pointer size
 typedef void *machine_ptr_t; // must be of pointer size
 typedef const void *machine_const_ptr_t; // must be of pointer size
+typedef long mp_off_t;
 
 // We have inlined IRQ functions for efficiency (they are generally
 // 1 machine instruction).

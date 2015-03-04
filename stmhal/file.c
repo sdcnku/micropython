@@ -27,13 +27,9 @@
 #include <stdio.h>
 #include <errno.h>
 
-#include "mpconfig.h"
-#include "nlr.h"
-#include "misc.h"
-#include "qstr.h"
-#include "obj.h"
-#include "runtime.h"
-#include "stream.h"
+#include "py/nlr.h"
+#include "py/runtime.h"
+#include "py/stream.h"
 #include "file.h"
 #include "ff.h"
 
@@ -146,45 +142,38 @@ mp_obj_t file_obj___exit__(mp_uint_t n_args, const mp_obj_t *args) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(file_obj___exit___obj, 4, 4, file_obj___exit__);
 
-mp_obj_t file_obj_seek(mp_uint_t n_args, const mp_obj_t *args) {
-    pyb_file_obj_t *self = args[0];
-    mp_int_t offset = mp_obj_get_int(args[1]);
-    mp_int_t whence = 0;
-    if (n_args == 3) {
-        whence = mp_obj_get_int(args[2]);
+STATIC mp_uint_t file_obj_ioctl(mp_obj_t o_in, mp_uint_t request, mp_uint_t arg, int *errcode) {
+    pyb_file_obj_t *self = o_in;
+
+    if (request == MP_STREAM_SEEK) {
+        struct mp_stream_seek_t *s = (struct mp_stream_seek_t*)arg;
+
+        switch (s->whence) {
+            case 0: // SEEK_SET
+                f_lseek(&self->fp, s->offset);
+                break;
+
+            case 1: // SEEK_CUR
+                if (s->offset != 0) {
+                    *errcode = ENOTSUP;
+                    return MP_STREAM_ERROR;
+                }
+                // no-operation
+                break;
+
+            case 2: // SEEK_END
+                f_lseek(&self->fp, f_size(&self->fp) + s->offset);
+                break;
+        }
+
+        s->offset = f_tell(&self->fp);
+        return 0;
+
+    } else {
+        *errcode = EINVAL;
+        return MP_STREAM_ERROR;
     }
-
-    switch (whence) {
-        case 0: // SEEK_SET
-            f_lseek(&self->fp, offset);
-            break;
-
-        case 1: // SEEK_CUR
-            if (offset != 0) {
-                goto error;
-            }
-            // no-operation
-            break;
-
-        case 2: // SEEK_END
-            if (offset != 0) {
-                goto error;
-            }
-            f_lseek(&self->fp, f_size(&self->fp));
-            break;
-
-        default:
-            goto error;
-    }
-
-    return mp_obj_new_int_from_uint(f_tell(&self->fp));
-
-error:
-    // A bad whence is a ValueError, while offset!=0 is an io.UnsupportedOperation.
-    // But the latter inherits ValueError (as well as IOError), so we just raise ValueError.
-    nlr_raise(mp_obj_new_exception_msg(&mp_type_ValueError, "invalid whence and/or offset"));
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(file_obj_seek_obj, 2, 3, file_obj_seek);
 
 mp_obj_t file_obj_tell(mp_obj_t self_in) {
     pyb_file_obj_t *self = self_in;
@@ -192,49 +181,51 @@ mp_obj_t file_obj_tell(mp_obj_t self_in) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(file_obj_tell_obj, file_obj_tell);
 
-STATIC mp_obj_t file_obj_make_new(mp_obj_t type, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
-    mp_arg_check_num(n_args, n_kw, 1, 2, false);
+// Note: encoding is ignored for now; it's also not a valid kwarg for CPython's FileIO,
+// but by adding it here we can use one single mp_arg_t array for open() and FileIO's constructor
+STATIC const mp_arg_t file_open_args[] = {
+    { MP_QSTR_file, MP_ARG_OBJ | MP_ARG_REQUIRED, {.u_obj = mp_const_none} },
+    { MP_QSTR_mode, MP_ARG_OBJ, {.u_obj = MP_OBJ_NEW_QSTR(MP_QSTR_r)} },
+    { MP_QSTR_encoding, MP_ARG_OBJ | MP_ARG_KW_ONLY, {.u_obj = mp_const_none} },
+};
+#define FILE_OPEN_NUM_ARGS MP_ARRAY_SIZE(file_open_args)
 
-    const char *fname = mp_obj_str_get_str(args[0]);
-
+STATIC mp_obj_t file_open(mp_obj_t type, mp_arg_val_t *args) {
     int mode = 0;
-    if (n_args == 1) {
-        mode = FA_READ;
-    } else {
-        const char *mode_s = mp_obj_str_get_str(args[1]);
-        // TODO make sure only one of r, w, x, a, and b, t are specified
-        while (*mode_s) {
-            switch (*mode_s++) {
-                case 'r':
-                    mode |= FA_READ;
-                    break;
-                case 'w':
-                    mode |= FA_WRITE | FA_CREATE_ALWAYS;
-                    break;
-                case 'x':
-                    mode |= FA_WRITE | FA_CREATE_NEW;
-                    break;
-                case 'a':
-                    mode |= FA_WRITE | FA_OPEN_ALWAYS;
-                    break;
-                case '+':
-                    mode |= FA_READ | FA_WRITE;
-                    break;
-                #if MICROPY_PY_IO_FILEIO
-                case 'b':
-                    type = (mp_obj_t)&mp_type_fileio;
-                    break;
-                #endif
-                case 't':
-                    type = (mp_obj_t)&mp_type_textio;
-                    break;
-            }
+    const char *mode_s = mp_obj_str_get_str(args[1].u_obj);
+    // TODO make sure only one of r, w, x, a, and b, t are specified
+    while (*mode_s) {
+        switch (*mode_s++) {
+            case 'r':
+                mode |= FA_READ;
+                break;
+            case 'w':
+                mode |= FA_WRITE | FA_CREATE_ALWAYS;
+                break;
+            case 'x':
+                mode |= FA_WRITE | FA_CREATE_NEW;
+                break;
+            case 'a':
+                mode |= FA_WRITE | FA_OPEN_ALWAYS;
+                break;
+            case '+':
+                mode |= FA_READ | FA_WRITE;
+                break;
+            #if MICROPY_PY_IO_FILEIO
+            case 'b':
+                type = (mp_obj_t)&mp_type_fileio;
+                break;
+            #endif
+            case 't':
+                type = (mp_obj_t)&mp_type_textio;
+                break;
         }
     }
 
     pyb_file_obj_t *o = m_new_obj_with_finaliser(pyb_file_obj_t);
     o->base.type = type;
 
+    const char *fname = mp_obj_str_get_str(args[0].u_obj);
     FRESULT res = f_open(&o->fp, fname, mode);
     if (res != FR_OK) {
         m_del_obj(pyb_file_obj_t, o);
@@ -249,17 +240,24 @@ STATIC mp_obj_t file_obj_make_new(mp_obj_t type, mp_uint_t n_args, mp_uint_t n_k
     return o;
 }
 
+STATIC mp_obj_t file_obj_make_new(mp_obj_t type_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
+    mp_arg_val_t arg_vals[FILE_OPEN_NUM_ARGS];
+    mp_arg_parse_all_kw_array(n_args, n_kw, args, FILE_OPEN_NUM_ARGS, file_open_args, arg_vals);
+    return file_open(type_in, arg_vals);
+}
+
 // TODO gc hook to close the file if not already closed
 
 STATIC const mp_map_elem_t rawfile_locals_dict_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_read), (mp_obj_t)&mp_stream_read_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_readall), (mp_obj_t)&mp_stream_readall_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_readinto), (mp_obj_t)&mp_stream_readinto_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_readline), (mp_obj_t)&mp_stream_unbuffered_readline_obj},
     { MP_OBJ_NEW_QSTR(MP_QSTR_readlines), (mp_obj_t)&mp_stream_unbuffered_readlines_obj},
     { MP_OBJ_NEW_QSTR(MP_QSTR_write), (mp_obj_t)&mp_stream_write_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_flush), (mp_obj_t)&file_obj_flush_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_close), (mp_obj_t)&file_obj_close_obj },
-    { MP_OBJ_NEW_QSTR(MP_QSTR_seek), (mp_obj_t)&file_obj_seek_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_seek), (mp_obj_t)&mp_stream_seek_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_tell), (mp_obj_t)&file_obj_tell_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR___del__), (mp_obj_t)&file_obj_close_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR___enter__), (mp_obj_t)&mp_identity_obj },
@@ -272,6 +270,7 @@ STATIC MP_DEFINE_CONST_DICT(rawfile_locals_dict, rawfile_locals_dict_table);
 STATIC const mp_stream_p_t fileio_stream_p = {
     .read = file_obj_read,
     .write = file_obj_write,
+    .ioctl = file_obj_ioctl,
 };
 
 const mp_obj_type_t mp_type_fileio = {
@@ -289,6 +288,7 @@ const mp_obj_type_t mp_type_fileio = {
 STATIC const mp_stream_p_t textio_stream_p = {
     .read = file_obj_read,
     .write = file_obj_write,
+    .ioctl = file_obj_ioctl,
     .is_text = true,
 };
 
@@ -304,9 +304,10 @@ const mp_obj_type_t mp_type_textio = {
 };
 
 // Factory function for I/O stream classes
-STATIC mp_obj_t pyb_io_open(mp_uint_t n_args, const mp_obj_t *args) {
-    // TODO: analyze mode and buffering args and instantiate appropriate type
-    return file_obj_make_new((mp_obj_t)&mp_type_textio, n_args, 0, args);
+mp_obj_t mp_builtin_open(mp_uint_t n_args, const mp_obj_t *args, mp_map_t *kwargs) {
+    // TODO: analyze buffering args and instantiate appropriate type
+    mp_arg_val_t arg_vals[FILE_OPEN_NUM_ARGS];
+    mp_arg_parse_all(n_args, args, kwargs, FILE_OPEN_NUM_ARGS, file_open_args, arg_vals);
+    return file_open((mp_obj_t)&mp_type_textio, arg_vals);
 }
-
-MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mp_builtin_open_obj, 1, 2, pyb_io_open);
+MP_DEFINE_CONST_FUN_OBJ_KW(mp_builtin_open_obj, 1, mp_builtin_open);

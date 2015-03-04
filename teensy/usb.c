@@ -1,13 +1,8 @@
 #include <string.h>
-#include <stdint.h>
+
+#include "py/runtime.h"
 
 #include "Arduino.h"
-
-#include "mpconfig.h"
-#include "misc.h"
-#include "qstr.h"
-#include "obj.h"
-#include "runtime.h"
 
 #include "usb.h"
 #include "usb_serial.h"
@@ -20,12 +15,6 @@ bool usb_vcp_is_connected(void)
 bool usb_vcp_is_enabled(void)
 {
   return true;
-}
-
-void usb_vcp_set_interrupt_char(int c) {
-  // The teensy 3.1 usb stack doesn't currently have the notion of generating
-  // an exception when a certain character is received. That just means that
-  // you can't press Control-C and get your python script to stop.
 }
 
 int usb_vcp_rx_num(void) {

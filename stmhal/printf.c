@@ -28,28 +28,18 @@
 #include <string.h>
 #include <stdarg.h>
 
-#include "mpconfig.h"
-#include "std.h"
-#include "misc.h"
-#include "systick.h"
-#include "qstr.h"
-#include "obj.h"
-#include "pfenv.h"
-#if 0
-#include "lcd.h"
+#include "py/obj.h"
+#include "py/pfenv.h"
+#ifdef MICROPY_HAL_H
+#include MICROPY_HAL_H
 #endif
-#include "uart.h"
-#include "usb.h"
-#include "pybstdio.h"
 
 #if MICROPY_PY_BUILTINS_FLOAT
-#include "formatfloat.h"
+#include "py/formatfloat.h"
 #endif
 
-int pfenv_vprintf(const pfenv_t *pfenv, const char *fmt, va_list args);
-
-STATIC void stdout_print_strn(void *dummy_env, const char *str, unsigned int len) {
-    stdout_tx_strn_cooked(str, len);
+STATIC void stdout_print_strn(void *dummy_env, const char *str, mp_uint_t len) {
+    mp_hal_stdout_tx_strn_cooked(str, len);
 }
 
 STATIC const pfenv_t pfenv_stdout = {0, stdout_print_strn};
@@ -67,8 +57,9 @@ int vprintf(const char *fmt, va_list ap) {
 }
 
 #if MICROPY_DEBUG_PRINTERS
+mp_uint_t mp_verbose_flag = 1;
+
 int DEBUG_printf(const char *fmt, ...) {
-    (void)stream;
     va_list ap;
     va_start(ap, fmt);
     int ret = pfenv_vprintf(&pfenv_stdout, fmt, ap);
@@ -97,7 +88,7 @@ typedef struct _strn_pfenv_t {
     size_t remain;
 } strn_pfenv_t;
 
-void strn_print_strn(void *data, const char *str, unsigned int len) {
+STATIC void strn_print_strn(void *data, const char *str, mp_uint_t len) {
     strn_pfenv_t *strn_pfenv = data;
     if (len > strn_pfenv->remain) {
         len = strn_pfenv->remain;

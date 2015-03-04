@@ -28,15 +28,12 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "mpconfig.h"
-#include "nlr.h"
-#include "misc.h"
-#include "qstr.h"
-#include "obj.h"
-#include "runtime.h"
-#include "bc.h"
-#include "objgenerator.h"
-#include "objfun.h"
+#include "py/nlr.h"
+#include "py/obj.h"
+#include "py/runtime.h"
+#include "py/bc.h"
+#include "py/objgenerator.h"
+#include "py/objfun.h"
 
 /******************************************************************************/
 /* generator wrapper                                                          */
@@ -61,6 +58,9 @@ STATIC mp_obj_t gen_wrap_call(mp_obj_t self_in, mp_uint_t n_args, mp_uint_t n_kw
     const byte *code_info = self_fun->bytecode;
     mp_uint_t code_info_size = mp_decode_uint(&code_info);
     const byte *ip = self_fun->bytecode + code_info_size;
+
+    // bytecode prelude: skip arg names
+    ip += (self_fun->n_pos_args + self_fun->n_kwonly_args) * sizeof(mp_obj_t);
 
     // bytecode prelude: get state size and exception stack size
     mp_uint_t n_state = mp_decode_uint(&ip);
@@ -94,7 +94,8 @@ mp_obj_t mp_obj_new_gen_wrap(mp_obj_t fun) {
 /******************************************************************************/
 /* generator instance                                                         */
 
-void gen_instance_print(void (*print)(void *env, const char *fmt, ...), void *env, mp_obj_t self_in, mp_print_kind_t kind) {
+STATIC void gen_instance_print(void (*print)(void *env, const char *fmt, ...), void *env, mp_obj_t self_in, mp_print_kind_t kind) {
+    (void)kind;
     mp_obj_gen_instance_t *self = self_in;
     print(env, "<generator object '%s' at %p>", mp_obj_code_get_name(self->code_state.code_info), self_in);
 }
@@ -120,6 +121,7 @@ mp_vm_return_kind_t mp_obj_gen_resume(mp_obj_t self_in, mp_obj_t send_value, mp_
 
     switch (ret_kind) {
         case MP_VM_RETURN_NORMAL:
+        default:
             // Explicitly mark generator as completed. If we don't do this,
             // subsequent next() may re-execute statements after last yield
             // again and again, leading to side effects.
@@ -137,11 +139,6 @@ mp_vm_return_kind_t mp_obj_gen_resume(mp_obj_t self_in, mp_obj_t send_value, mp_
             self->code_state.ip = 0;
             *ret_val = self->code_state.state[self->code_state.n_state - 1];
             break;
-
-        default:
-            assert(0);
-            *ret_val = mp_const_none;
-            break;
     }
 
     return ret_kind;
@@ -151,6 +148,7 @@ STATIC mp_obj_t gen_resume_and_raise(mp_obj_t self_in, mp_obj_t send_value, mp_o
     mp_obj_t ret;
     switch (mp_obj_gen_resume(self_in, send_value, throw_value, &ret)) {
         case MP_VM_RETURN_NORMAL:
+        default:
             // Optimize return w/o value in case generator is used in for loop
             if (ret == mp_const_none || ret == MP_OBJ_STOP_ITERATION) {
                 return MP_OBJ_STOP_ITERATION;
@@ -173,14 +171,10 @@ STATIC mp_obj_t gen_resume_and_raise(mp_obj_t self_in, mp_obj_t send_value, mp_o
             } else {
                 nlr_raise(ret);
             }
-
-        default:
-            assert(0);
-            return mp_const_none;
     }
 }
 
-mp_obj_t gen_instance_iternext(mp_obj_t self_in) {
+STATIC mp_obj_t gen_instance_iternext(mp_obj_t self_in) {
     return gen_resume_and_raise(self_in, mp_const_none, MP_OBJ_NULL);
 }
 

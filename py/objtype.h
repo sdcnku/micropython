@@ -23,6 +23,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#ifndef __MICROPY_INCLUDED_PY_OBJTYPE_H__
+#define __MICROPY_INCLUDED_PY_OBJTYPE_H__
+
+#include "py/obj.h"
 
 // instance object
 // creating an instance of a class makes one of these objects
@@ -32,3 +36,13 @@ typedef struct _mp_obj_instance_t {
     mp_obj_t subobj[];
     // TODO maybe cache __getattr__ and __setattr__ for efficient lookup of them
 } mp_obj_instance_t;
+
+// these need to be exposed for MICROPY_OPT_CACHE_MAP_LOOKUP_IN_BYTECODE to work
+void mp_obj_instance_load_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest);
+bool mp_obj_instance_store_attr(mp_obj_t self_in, qstr attr, mp_obj_t value);
+
+// these need to be exposed so mp_obj_is_callable can work correctly
+bool mp_obj_instance_is_callable(mp_obj_t self_in);
+mp_obj_t mp_obj_instance_call(mp_obj_t self_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args);
+
+#endif // __MICROPY_INCLUDED_PY_OBJTYPE_H__

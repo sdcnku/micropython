@@ -7,11 +7,11 @@ PROG = cpy
 include ../py/py.mk
 
 INC =  -I.
-INC += -I$(PY_SRC)
+INC += -I..
 INC += -I$(BUILD)
 
 # compiler settings
-CFLAGS = $(INC) -Wall -Werror -ansi -std=gnu99 -DUNIX
+CFLAGS = $(INC) -Wall -Wpointer-arith -Werror -ansi -std=gnu99 -DUNIX
 LDFLAGS = -lm
 
 # Debugging/Optimization

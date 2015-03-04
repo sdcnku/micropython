@@ -24,18 +24,9 @@
  * THE SOFTWARE.
  */
 
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
 #include <assert.h>
 
-#include "mpconfig.h"
-#include "misc.h"
-#include "qstr.h"
-#include "obj.h"
-#include "parse.h"
-#include "emitglue.h"
-#include "scope.h"
+#include "py/scope.h"
 
 scope_t *scope_new(scope_kind_t kind, mp_parse_node_t pn, qstr source_file, mp_uint_t emit_options) {
     scope_t *scope = m_new0(scope_t, 1);
@@ -159,47 +150,9 @@ void scope_close_over_in_parents(scope_t *scope, qstr qst) {
     assert(0); // we should have found the variable in one of the parents
 }
 
-void scope_declare_global(scope_t *scope, qstr qst) {
-    if (scope->kind == SCOPE_MODULE) {
-        printf("SyntaxError?: can't declare global in outer code\n");
-        return;
-    }
-    bool added;
-    id_info_t *id_info = scope_find_or_add_id(scope, qst, &added);
-    if (!added) {
-        printf("SyntaxError?: identifier already declared something\n");
-        return;
-    }
-    id_info->kind = ID_INFO_KIND_GLOBAL_EXPLICIT;
-
-    // if the id exists in the global scope, set its kind to EXPLICIT_GLOBAL
-    id_info = scope_find_global(scope, qst);
-    if (id_info != NULL) {
-        id_info->kind = ID_INFO_KIND_GLOBAL_EXPLICIT;
-    }
-}
-
-void scope_declare_nonlocal(scope_t *scope, qstr qst) {
-    if (scope->kind == SCOPE_MODULE) {
-        printf("SyntaxError?: can't declare nonlocal in outer code\n");
-        return;
-    }
-    bool added;
-    id_info_t *id_info = scope_find_or_add_id(scope, qst, &added);
-    if (!added) {
-        printf("SyntaxError?: identifier already declared something\n");
-        return;
-    }
-    id_info_t *id_info2 = scope_find_local_in_parent(scope, qst);
-    if (id_info2 == NULL || !(id_info2->kind == ID_INFO_KIND_LOCAL || id_info2->kind == ID_INFO_KIND_CELL || id_info2->kind == ID_INFO_KIND_FREE)) {
-        printf("SyntaxError: no binding for nonlocal '%s' found\n", qstr_str(qst));
-        return;
-    }
-    id_info->kind = ID_INFO_KIND_FREE;
-    scope_close_over_in_parents(scope, qst);
-}
-
 #if MICROPY_EMIT_CPYTHON
+#include <stdio.h>
+
 void scope_print_info(scope_t *s) {
     if (s->kind == SCOPE_MODULE) {
         printf("code <module>\n");

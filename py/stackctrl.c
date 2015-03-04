@@ -24,39 +24,32 @@
  * THE SOFTWARE.
  */
 
-#include "mpconfig.h"
-#include "misc.h"
-#include "nlr.h"
-#include "qstr.h"
-#include "obj.h"
-#include "runtime.h"
-#include "stackctrl.h"
+#include "py/mpstate.h"
+#include "py/nlr.h"
+#include "py/obj.h"
+#include "py/stackctrl.h"
 
-// Stack top at the start of program
-char *stack_top;
-
-void mp_stack_ctrl_init() {
+void mp_stack_ctrl_init(void) {
     volatile int stack_dummy;
-    stack_top = (char*)&stack_dummy;
+    MP_STATE_VM(stack_top) = (char*)&stack_dummy;
 }
 
-mp_uint_t mp_stack_usage() {
+mp_uint_t mp_stack_usage(void) {
     // Assumes descending stack
     volatile int stack_dummy;
-    return stack_top - (char*)&stack_dummy;
+    return MP_STATE_VM(stack_top) - (char*)&stack_dummy;
 }
 
 #if MICROPY_STACK_CHECK
 
-static mp_uint_t stack_limit = 10240;
-
 void mp_stack_set_limit(mp_uint_t limit) {
-    stack_limit = limit;
+    MP_STATE_VM(stack_limit) = limit;
 }
 
-void mp_stack_check() {
-    if (mp_stack_usage() >= stack_limit) {
-        nlr_raise(mp_obj_new_exception_msg(&mp_type_RuntimeError, "maximum recursion depth exceeded"));
+void mp_stack_check(void) {
+    if (mp_stack_usage() >= MP_STATE_VM(stack_limit)) {
+        nlr_raise(mp_obj_new_exception_arg1(&mp_type_RuntimeError,
+            MP_OBJ_NEW_QSTR(MP_QSTR_maximum_space_recursion_space_depth_space_exceeded)));
     }
 }
 

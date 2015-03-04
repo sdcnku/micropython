@@ -24,28 +24,26 @@
  * THE SOFTWARE.
  */
 
-#include <stdint.h>
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
 
-#include "mpconfig.h"
-#include "nlr.h"
-#include "misc.h"
-#include "qstr.h"
-#include "parsenumbase.h"
-#include "obj.h"
-#include "smallint.h"
-#include "mpz.h"
-#include "objint.h"
-#include "runtime0.h"
-#include "runtime.h"
+#include "py/nlr.h"
+#include "py/parsenumbase.h"
+#include "py/smallint.h"
+#include "py/objint.h"
+#include "py/runtime0.h"
+#include "py/runtime.h"
+
+#if MICROPY_PY_BUILTINS_FLOAT
+#include <math.h>
+#endif
 
 #if MICROPY_LONGINT_IMPL == MICROPY_LONGINT_IMPL_MPZ
 
 #if MICROPY_PY_SYS_MAXSIZE
 // Export value for sys.maxsize
-#define DIG_MASK ((1L << MPZ_DIG_SIZE) - 1)
+#define DIG_MASK ((MPZ_LONG_1 << MPZ_DIG_SIZE) - 1)
 STATIC const mpz_dig_t maxsize_dig[MPZ_NUM_DIG_FOR_INT] = {
     (MP_SSIZE_MAX >> MPZ_DIG_SIZE * 0) & DIG_MASK,
     #if (MP_SSIZE_MAX >> MPZ_DIG_SIZE * 0) > DIG_MASK
@@ -81,12 +79,12 @@ STATIC mp_obj_int_t *mp_obj_int_new_mpz(void) {
 // formatted size will be in *fmt_size.
 //
 // This particular routine should only be called for the mpz representation of the int.
-char *mp_obj_int_formatted_impl(char **buf, int *buf_size, int *fmt_size, mp_const_obj_t self_in,
+char *mp_obj_int_formatted_impl(char **buf, mp_uint_t *buf_size, mp_uint_t *fmt_size, mp_const_obj_t self_in,
                                 int base, const char *prefix, char base_char, char comma) {
     assert(MP_OBJ_IS_TYPE(self_in, &mp_type_int));
     const mp_obj_int_t *self = self_in;
 
-    uint needed_size = mpz_as_str_size(&self->mpz, base, prefix, comma);
+    mp_uint_t needed_size = mpz_as_str_size(&self->mpz, base, prefix, comma);
     if (needed_size > *buf_size) {
         *buf = m_new(char, needed_size);
         *buf_size = needed_size;
@@ -298,6 +296,26 @@ mp_obj_t mp_obj_new_int_from_uint(mp_uint_t value) {
     return mp_obj_new_int_from_ll(value);
 }
 
+#if MICROPY_PY_BUILTINS_FLOAT
+mp_obj_t mp_obj_new_int_from_float(mp_float_t val) {
+    int cl = fpclassify(val);
+    if (cl == FP_INFINITE) {
+        nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_OverflowError, "can't convert inf to int"));
+    } else if (cl == FP_NAN) {
+        nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_ValueError, "can't convert NaN to int"));
+    } else {
+        mp_fp_as_int_class_t icl = mp_classify_fp_as_int(val);
+        if (icl == MP_FP_CLASS_FIT_SMALLINT) {
+            return MP_OBJ_NEW_SMALL_INT((mp_int_t)val);
+        } else {
+            mp_obj_int_t *o = mp_obj_int_new_mpz();
+            mpz_set_from_float(&o->mpz, val);
+            return o;
+        }
+    }
+}
+#endif
+
 mp_obj_t mp_obj_new_int_from_str_len(const char **str, mp_uint_t len, bool neg, mp_uint_t base) {
     mp_obj_int_t *o = mp_obj_int_new_mpz();
     mp_uint_t n = mpz_set_from_str(&o->mpz, *str, len, neg, base);
@@ -305,12 +323,12 @@ mp_obj_t mp_obj_new_int_from_str_len(const char **str, mp_uint_t len, bool neg, 
     return o;
 }
 
-mp_int_t mp_obj_int_get(mp_const_obj_t self_in) {
+mp_int_t mp_obj_int_get_truncated(mp_const_obj_t self_in) {
     if (MP_OBJ_IS_SMALL_INT(self_in)) {
         return MP_OBJ_SMALL_INT_VALUE(self_in);
     } else {
         const mp_obj_int_t *self = self_in;
-        // TODO this is a hack until we remove mp_obj_int_get function entirely
+        // hash returns actual int value if it fits in mp_int_t
         return mpz_hash(&self->mpz);
     }
 }

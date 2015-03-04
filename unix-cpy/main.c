@@ -29,17 +29,10 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "mpconfig.h"
-#include "nlr.h"
-#include "misc.h"
-#include "qstr.h"
-#include "lexer.h"
-#include "lexerunix.h"
-#include "parse.h"
-#include "obj.h"
-#include "parsehelper.h"
-#include "compile.h"
-#include "runtime.h"
+#include "py/nlr.h"
+#include "py/compile.h"
+#include "py/runtime.h"
+#include "py/pfenv.h"
 
 void do_file(const char *file) {
     mp_lexer_t *lex = mp_lexer_new_from_file(file);
@@ -49,25 +42,15 @@ void do_file(const char *file) {
 
     if (0) {
         // just tokenise
-        while (!mp_lexer_is_kind(lex, MP_TOKEN_END)) {
-            mp_token_show(mp_lexer_cur(lex));
+        while (lex->tok_kind != MP_TOKEN_END) {
+            mp_lexer_show_token(lex);
             mp_lexer_to_next(lex);
         }
         mp_lexer_free(lex);
 
     } else {
         // parse
-        mp_parse_error_kind_t parse_error_kind;
-        mp_parse_node_t pn = mp_parse(lex, MP_PARSE_FILE_INPUT, &parse_error_kind);
-
-        if (pn == MP_PARSE_NODE_NULL) {
-            // parse error
-            mp_parse_show_exception(lex, parse_error_kind);
-            mp_lexer_free(lex);
-            return;
-        }
-
-        mp_lexer_free(lex);
+        mp_parse_node_t pn = mp_parse(lex, MP_PARSE_FILE_INPUT);
 
         if (pn != MP_PARSE_NODE_NULL) {
             //printf("----------------\n");
@@ -75,13 +58,9 @@ void do_file(const char *file) {
             //printf("----------------\n");
 
             // compile
-            mp_obj_t module_fun = mp_compile(pn, 0, MP_EMIT_OPT_NONE, false);
+            mp_compile(pn, 0, MP_EMIT_OPT_NONE, false);
 
             //printf("----------------\n");
-
-            if (module_fun == mp_const_none) {
-                printf("compile error\n");
-            }
         }
     }
 }

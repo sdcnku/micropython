@@ -15,7 +15,9 @@
 #define MICROPY_HW_ENABLE_DAC       (1)
 #define MICROPY_HW_ENABLE_I2C1      (1)
 #define MICROPY_HW_ENABLE_SPI1      (1)
+#define MICROPY_HW_ENABLE_SPI2      (1)
 #define MICROPY_HW_ENABLE_SPI3      (0)
+#define MICROPY_HW_ENABLE_CAN       (1)
 
 // USRSW has no pullup or pulldown, and pressing the switch makes the input go low
 #define MICROPY_HW_USRSW_PIN        (pin_A13)
@@ -36,3 +38,6 @@
 #define MICROPY_HW_SDCARD_DETECT_PIN        (pin_C13)
 #define MICROPY_HW_SDCARD_DETECT_PULL       (GPIO_PULLDOWN)
 #define MICROPY_HW_SDCARD_DETECT_PRESENT    (GPIO_PIN_SET)
+
+// USB VBUS detect pin
+#define MICROPY_HW_USB_VBUS_DETECT_PIN (pin_A9)

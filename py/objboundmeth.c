@@ -26,12 +26,8 @@
 
 #include <string.h>
 
-#include "mpconfig.h"
-#include "nlr.h"
-#include "misc.h"
-#include "qstr.h"
-#include "obj.h"
-#include "runtime.h"
+#include "py/obj.h"
+#include "py/runtime.h"
 
 typedef struct _mp_obj_bound_meth_t {
     mp_obj_base_t base;
@@ -41,6 +37,7 @@ typedef struct _mp_obj_bound_meth_t {
 
 #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_DETAILED
 STATIC void bound_meth_print(void (*print)(void *env, const char *fmt, ...), void *env, mp_obj_t o_in, mp_print_kind_t kind) {
+    (void)kind;
     mp_obj_bound_meth_t *o = o_in;
     print(env, "<bound_method %p ", o);
     mp_obj_print_helper(print, env, o->self, PRINT_REPR);
@@ -50,12 +47,12 @@ STATIC void bound_meth_print(void (*print)(void *env, const char *fmt, ...), voi
 }
 #endif
 
-mp_obj_t bound_meth_call(mp_obj_t self_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
+STATIC mp_obj_t bound_meth_call(mp_obj_t self_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
     mp_obj_bound_meth_t *self = self_in;
 
     // need to insert self->self before all other args and then call self->meth
 
-    int n_total = n_args + 2 * n_kw;
+    mp_uint_t n_total = n_args + 2 * n_kw;
     if (n_total <= 4) {
         // use stack to allocate temporary args array
         mp_obj_t args2[5];

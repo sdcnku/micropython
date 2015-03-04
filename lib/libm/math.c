@@ -49,6 +49,11 @@ double __attribute__((pcs("aapcs"))) __aeabi_i2d(int32_t x) {
     return (float)x;
 }
 
+// TODO
+long long __attribute__((pcs("aapcs"))) __aeabi_f2lz(float x) {
+    return (long)x;
+}
+
 double __attribute__((pcs("aapcs"))) __aeabi_f2d(float x) {
     float_s_t fx={0};
     double_s_t dx={0};
@@ -111,19 +116,6 @@ static const float _M_LN10 = 2.30258509299404; // 0x40135d8e
 float log10f(float x) { return logf(x) / (float)_M_LN10; }
 
 float tanhf(float x) { return sinhf(x) / coshf(x); }
-
-// TODO we need import these functions from some library (eg musl or newlib)
-float acoshf(float x) { return 0.0; }
-float asinhf(float x) { return 0.0; }
-float atanhf(float x) { return 0.0; }
-float tanf(float x) { return 0.0; }
-float tgammaf(float x) { return 0.0; }
-float lgammaf(float x) { return 0.0; }
-float erff(float x) { return 0.0; }
-float erfcf(float x) { return 0.0; }
-float modff(float x, float *y) { return 0.0; }
-float frexpf(float x, int *exp) { return 0.0; }
-float ldexpf(float x, int exp) { return 0.0; }
 
 /*****************************************************************************/
 /*****************************************************************************/

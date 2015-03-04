@@ -30,12 +30,13 @@ CFLAGS_TEENSY = -DF_CPU=96000000 -DUSB_SERIAL -D__MK20DX256__
 CFLAGS_CORTEX_M4 = -mthumb -mtune=cortex-m4 -mcpu=cortex-m4 -msoft-float -mfloat-abi=soft -fsingle-precision-constant -Wdouble-promotion $(CFLAGS_TEENSY)
 
 INC =  -I.
-INC += -I$(PY_SRC)
+INC += -I..
 INC += -I../stmhal
+INC += -I../lib/mp-readline
 INC += -I$(BUILD)
 INC += -Icore
 
-CFLAGS = $(INC) -Wall -ansi -std=gnu99 -nostdlib $(CFLAGS_CORTEX_M4)
+CFLAGS = $(INC) -Wall -Wpointer-arith -ansi -std=gnu99 -nostdlib $(CFLAGS_CORTEX_M4)
 LDFLAGS = -nostdlib -T mk20dx256.ld -msoft-float -mfloat-abi=soft
 
 ifeq ($(USE_ARDUINO_TOOLCHAIN),1)
@@ -100,12 +101,15 @@ STM_SRC_C = $(addprefix stmhal/,\
 	printf.c \
 	pyexec.c \
 	pybstdio.c \
-	readline.c \
 	string0.c \
 	)
 
 STM_SRC_S = $(addprefix stmhal/,\
 	gchelper.s \
+	)
+
+LIB_SRC_C = $(addprefix lib/,\
+	mp-readline/readline.c \
 	)
 
 SRC_TEENSY = $(addprefix core/,\
@@ -120,6 +124,7 @@ SRC_TEENSY = $(addprefix core/,\
 	)
 
 OBJ = $(PY_O) $(addprefix $(BUILD)/, $(SRC_C:.c=.o) $(STM_SRC_C:.c=.o) $(STM_SRC_S:.s=.o) $(SRC_TEENSY:.c=.o))
+OBJ += $(addprefix $(BUILD)/, $(LIB_SRC_C:.c=.o))
 OBJ += $(BUILD)/pins_gen.o
 
 all: hex

@@ -29,21 +29,14 @@
 #include <string.h>
 #include <assert.h>
 
-#include "mpconfig.h"
-#include "nlr.h"
-#include "misc.h"
-#include "qstr.h"
-#include "obj.h"
-#include "objtuple.h"
-#include "objfun.h"
-#include "runtime0.h"
-#include "runtime.h"
-#include "bc.h"
-#include "stackctrl.h"
+#include "py/nlr.h"
+#include "py/objfun.h"
+#include "py/bc.h"
 
 #if 0 // print debugging info
 #define DEBUG_PRINT (1)
 #else // don't print debugging info
+#define DEBUG_PRINT (0)
 #define DEBUG_printf(...) (void)0
 #endif
 
@@ -61,9 +54,8 @@ mp_uint_t mp_decode_uint(const byte **ptr) {
 
 STATIC NORETURN void fun_pos_args_mismatch(mp_obj_fun_bc_t *f, mp_uint_t expected, mp_uint_t given) {
 #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
-    // Generic message, to be reused for other argument issues
-    nlr_raise(mp_obj_new_exception_msg(&mp_type_TypeError,
-        "argument num/types mismatch"));
+    // generic message, used also for other argument issues
+    mp_arg_error_terse_mismatch();
 #elif MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_NORMAL
     nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_TypeError,
         "function takes %d positional arguments but %d were given", expected, given));
@@ -75,9 +67,9 @@ STATIC NORETURN void fun_pos_args_mismatch(mp_obj_fun_bc_t *f, mp_uint_t expecte
 }
 
 #if DEBUG_PRINT
-STATIC void dump_args(const mp_obj_t *a, int sz) {
+STATIC void dump_args(const mp_obj_t *a, mp_uint_t sz) {
     DEBUG_printf("%p: ", a);
-    for (int i = 0; i < sz; i++) {
+    for (mp_uint_t i = 0; i < sz; i++) {
         DEBUG_printf("%p ", a[i]);
     }
     DEBUG_printf("\n");
@@ -93,7 +85,6 @@ void mp_setup_code_state(mp_code_state *code_state, mp_obj_t self_in, mp_uint_t 
     // usage for the common case of positional only args.
     mp_obj_fun_bc_t *self = self_in;
     mp_uint_t n_state = code_state->n_state;
-    const byte *ip = code_state->ip;
 
     code_state->code_info = self->bytecode;
     code_state->sp = &code_state->state[0] - 1;
@@ -125,7 +116,7 @@ void mp_setup_code_state(mp_code_state *code_state, mp_obj_t self_in, mp_uint_t 
         // Apply processing and check below only if we don't have kwargs,
         // otherwise, kw handling code below has own extensive checks.
         if (n_kw == 0 && !self->has_def_kw_args) {
-            if (n_args >= self->n_pos_args - self->n_def_args) {
+            if (n_args >= (mp_uint_t)(self->n_pos_args - self->n_def_args)) {
                 // given enough arguments, but may need to use some default arguments
                 for (mp_uint_t i = n_args; i < self->n_pos_args; i++) {
                     code_state->state[n_state - 1 - i] = self->extra_args[i - (self->n_pos_args - self->n_def_args)];
@@ -153,13 +144,21 @@ void mp_setup_code_state(mp_code_state *code_state, mp_obj_t self_in, mp_uint_t 
             *var_pos_kw_args = dict;
         }
 
+        // get pointer to arg_names array at start of bytecode prelude
+        const mp_obj_t *arg_names;
+        {
+            const byte *code_info = code_state->code_info;
+            mp_uint_t code_info_size = mp_decode_uint(&code_info);
+            arg_names = (const mp_obj_t*)(code_state->code_info + code_info_size);
+        }
+
         for (mp_uint_t i = 0; i < n_kw; i++) {
-            qstr arg_name = MP_OBJ_QSTR_VALUE(kwargs[2 * i]);
+            mp_obj_t wanted_arg_name = kwargs[2 * i];
             for (mp_uint_t j = 0; j < self->n_pos_args + self->n_kwonly_args; j++) {
-                if (arg_name == self->args[j]) {
+                if (wanted_arg_name == arg_names[j]) {
                     if (code_state->state[n_state - 1 - j] != MP_OBJ_NULL) {
                         nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_TypeError,
-                            "function got multiple values for argument '%s'", qstr_str(arg_name)));
+                            "function got multiple values for argument '%s'", qstr_str(MP_OBJ_QSTR_VALUE(wanted_arg_name))));
                     }
                     code_state->state[n_state - 1 - j] = kwargs[2 * i + 1];
                     goto continue2;
@@ -179,7 +178,7 @@ continue2:;
         // fill in defaults for positional args
         mp_obj_t *d = &code_state->state[n_state - self->n_pos_args];
         mp_obj_t *s = &self->extra_args[self->n_def_args - 1];
-        for (int i = self->n_def_args; i > 0; i--, d++, s--) {
+        for (mp_uint_t i = self->n_def_args; i > 0; i--, d++, s--) {
             if (*d == MP_OBJ_NULL) {
                 *d = *s;
             }
@@ -202,13 +201,13 @@ continue2:;
             if (code_state->state[n_state - 1 - self->n_pos_args - i] == MP_OBJ_NULL) {
                 mp_map_elem_t *elem = NULL;
                 if (self->has_def_kw_args) {
-                    elem = mp_map_lookup(&((mp_obj_dict_t*)self->extra_args[self->n_def_args])->map, MP_OBJ_NEW_QSTR(self->args[self->n_pos_args + i]), MP_MAP_LOOKUP);
+                    elem = mp_map_lookup(&((mp_obj_dict_t*)self->extra_args[self->n_def_args])->map, arg_names[self->n_pos_args + i], MP_MAP_LOOKUP);
                 }
                 if (elem != NULL) {
                     code_state->state[n_state - 1 - self->n_pos_args - i] = elem->value;
                 } else {
                     nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_TypeError,
-                        "function missing required keyword argument '%s'", qstr_str(self->args[self->n_pos_args + i])));
+                        "function missing required keyword argument '%s'", qstr_str(MP_OBJ_QSTR_VALUE(arg_names[self->n_pos_args + i]))));
                 }
             }
         }
@@ -225,6 +224,7 @@ continue2:;
     }
 
     // bytecode prelude: initialise closed over variables
+    const byte *ip = code_state->ip;
     for (mp_uint_t n_local = *ip++; n_local > 0; n_local--) {
         mp_uint_t local_num = *ip++;
         code_state->state[n_state - 1 - local_num] = mp_obj_new_cell(code_state->state[n_state - 1 - local_num]);

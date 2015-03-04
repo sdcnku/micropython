@@ -27,15 +27,11 @@
 
 #include <assert.h>
 #include <string.h>
-#include "mpconfig.h"
-#include "misc.h"
-#include "qstr.h"
-#include "obj.h"
-#include "builtin.h"
-#include "objtuple.h"
-#include "objstr.h"
-#include "binary.h"
-#include "parsenum.h"
+
+#include "py/builtin.h"
+#include "py/objtuple.h"
+#include "py/binary.h"
+#include "py/parsenum.h"
 
 #if MICROPY_PY_STRUCT
 
@@ -80,7 +76,7 @@ STATIC mp_uint_t get_fmt_num(const char **p) {
     while (unichar_isdigit(*++num)) {
         len++;
     }
-    mp_uint_t val = (mp_uint_t)MP_OBJ_SMALL_INT_VALUE(mp_parse_num_integer(*p, len, 10));
+    mp_uint_t val = (mp_uint_t)MP_OBJ_SMALL_INT_VALUE(mp_parse_num_integer(*p, len, 10, NULL));
     *p = num;
     return val;
 }
@@ -160,16 +156,17 @@ STATIC mp_obj_t struct_unpack(mp_obj_t fmt_in, mp_obj_t data_in) {
 }
 MP_DEFINE_CONST_FUN_OBJ_2(struct_unpack_obj, struct_unpack);
 
-STATIC mp_obj_t struct_pack(uint n_args, mp_obj_t *args) {
+STATIC mp_obj_t struct_pack(mp_uint_t n_args, const mp_obj_t *args) {
     // TODO: "The arguments must match the values required by the format exactly."
     const char *fmt = mp_obj_str_get_str(args[0]);
     char fmt_type = get_fmt_type(&fmt);
-    int size = MP_OBJ_SMALL_INT_VALUE(struct_calcsize(args[0]));
-    byte *p;
-    mp_obj_t res = mp_obj_str_builder_start(&mp_type_bytes, size, &p);
+    mp_int_t size = MP_OBJ_SMALL_INT_VALUE(struct_calcsize(args[0]));
+    vstr_t vstr;
+    vstr_init_len(&vstr, size);
+    byte *p = (byte*)vstr.buf;
     memset(p, 0, size);
 
-    for (uint i = 1; i < n_args; i++) {
+    for (mp_uint_t i = 1; i < n_args; i++) {
         mp_uint_t sz = 1;
         if (unichar_isdigit(*fmt)) {
             sz = get_fmt_num(&fmt);
@@ -194,7 +191,8 @@ STATIC mp_obj_t struct_pack(uint n_args, mp_obj_t *args) {
             mp_binary_set_val(fmt_type, *fmt++, args[i], &p);
         }
     }
-    return res;
+
+    return mp_obj_new_str_from_vstr(&mp_type_bytes, &vstr);
 }
 MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(struct_pack_obj, 1, MP_OBJ_FUN_ARGS_MAX, struct_pack);
 
@@ -205,16 +203,7 @@ STATIC const mp_map_elem_t mp_module_struct_globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_unpack), (mp_obj_t)&struct_unpack_obj },
 };
 
-STATIC const mp_obj_dict_t mp_module_struct_globals = {
-    .base = {&mp_type_dict},
-    .map = {
-        .all_keys_are_qstrs = 1,
-        .table_is_fixed_array = 1,
-        .used = MP_ARRAY_SIZE(mp_module_struct_globals_table),
-        .alloc = MP_ARRAY_SIZE(mp_module_struct_globals_table),
-        .table = (mp_map_elem_t*)mp_module_struct_globals_table,
-    },
-};
+STATIC MP_DEFINE_CONST_DICT(mp_module_struct_globals, mp_module_struct_globals_table);
 
 const mp_obj_module_t mp_module_struct = {
     .base = { &mp_type_module },

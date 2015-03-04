@@ -30,26 +30,23 @@
 #include <assert.h>
 #include <math.h>
 
-#include "mpconfig.h"
-#include "nlr.h"
-#include "misc.h"
-#include "qstr.h"
-#include "obj.h"
-#include "parsenum.h"
-#include "runtime0.h"
-#include "runtime.h"
+#include "py/nlr.h"
+#include "py/parsenum.h"
+#include "py/runtime0.h"
+#include "py/runtime.h"
 
 #if MICROPY_PY_BUILTINS_FLOAT
 
 #if MICROPY_FLOAT_IMPL == MICROPY_FLOAT_IMPL_FLOAT
-#include "formatfloat.h"
+#include "py/formatfloat.h"
 #endif
 
 STATIC void float_print(void (*print)(void *env, const char *fmt, ...), void *env, mp_obj_t o_in, mp_print_kind_t kind) {
+    (void)kind;
     mp_obj_float_t *o = o_in;
 #if MICROPY_FLOAT_IMPL == MICROPY_FLOAT_IMPL_FLOAT
     char buf[16];
-    format_float(o->value, buf, sizeof(buf), 'g', 7, '\0');
+    mp_format_float(o->value, buf, sizeof(buf), 'g', 7, '\0');
     print(env, "%s", buf);
     if (strchr(buf, '.') == NULL && strchr(buf, 'e') == NULL) {
         // Python floats always have decimal point
@@ -67,6 +64,7 @@ STATIC void float_print(void (*print)(void *env, const char *fmt, ...), void *en
 }
 
 STATIC mp_obj_t float_make_new(mp_obj_t type_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
+    (void)type_in;
     mp_arg_check_num(n_args, n_kw, 0, 1, false);
 
     switch (n_args) {
@@ -79,7 +77,7 @@ STATIC mp_obj_t float_make_new(mp_obj_t type_in, mp_uint_t n_args, mp_uint_t n_k
                 // a string, parse it
                 mp_uint_t l;
                 const char *s = mp_obj_str_get_data(args[0], &l);
-                return mp_parse_num_decimal(s, l, false, false);
+                return mp_parse_num_decimal(s, l, false, false, NULL);
             } else if (MP_OBJ_IS_TYPE(args[0], &mp_type_float)) {
                 // a float, just return it
                 return args[0];

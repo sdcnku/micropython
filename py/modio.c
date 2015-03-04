@@ -24,11 +24,7 @@
  * THE SOFTWARE.
  */
 
-#include "mpconfig.h"
-#include "misc.h"
-#include "qstr.h"
-#include "obj.h"
-#include "builtin.h"
+#include "py/builtin.h"
 
 #if MICROPY_PY_IO
 
@@ -42,9 +38,9 @@ STATIC const mp_map_elem_t mp_module_io_globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_open), (mp_obj_t)&mp_builtin_open_obj },
     #if MICROPY_PY_IO_FILEIO
     { MP_OBJ_NEW_QSTR(MP_QSTR_FileIO), (mp_obj_t)&mp_type_fileio },
-    #endif
     #if MICROPY_CPYTHON_COMPAT
     { MP_OBJ_NEW_QSTR(MP_QSTR_TextIOWrapper), (mp_obj_t)&mp_type_textio },
+    #endif
     #endif
     { MP_OBJ_NEW_QSTR(MP_QSTR_StringIO), (mp_obj_t)&mp_type_stringio },
     #if MICROPY_PY_IO_BYTESIO
@@ -52,16 +48,7 @@ STATIC const mp_map_elem_t mp_module_io_globals_table[] = {
     #endif
 };
 
-STATIC const mp_obj_dict_t mp_module_io_globals = {
-    .base = {&mp_type_dict},
-    .map = {
-        .all_keys_are_qstrs = 1,
-        .table_is_fixed_array = 1,
-        .used = MP_ARRAY_SIZE(mp_module_io_globals_table),
-        .alloc = MP_ARRAY_SIZE(mp_module_io_globals_table),
-        .table = (mp_map_elem_t*)mp_module_io_globals_table,
-    },
-};
+STATIC MP_DEFINE_CONST_DICT(mp_module_io_globals, mp_module_io_globals_table);
 
 const mp_obj_module_t mp_module_io = {
     .base = { &mp_type_module },

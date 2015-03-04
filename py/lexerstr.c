@@ -24,10 +24,7 @@
  * THE SOFTWARE.
  */
 
-#include "mpconfig.h"
-#include "misc.h"
-#include "qstr.h"
-#include "lexer.h"
+#include "py/lexer.h"
 
 typedef struct _mp_lexer_str_buf_t {
     mp_uint_t free_len;         // if > 0, src_beg will be freed when done by: m_free(src_beg, free_len)
@@ -46,13 +43,16 @@ STATIC mp_uint_t str_buf_next_byte(mp_lexer_str_buf_t *sb) {
 
 STATIC void str_buf_free(mp_lexer_str_buf_t *sb) {
     if (sb->free_len > 0) {
-        m_free((char*)sb->src_beg, sb->free_len);
+        m_del(char, (char*)sb->src_beg, sb->free_len);
     }
     m_del_obj(mp_lexer_str_buf_t, sb);
 }
 
 mp_lexer_t *mp_lexer_new_from_str_len(qstr src_name, const char *str, mp_uint_t len, mp_uint_t free_len) {
-    mp_lexer_str_buf_t *sb = m_new_obj(mp_lexer_str_buf_t);
+    mp_lexer_str_buf_t *sb = m_new_obj_maybe(mp_lexer_str_buf_t);
+    if (sb == NULL) {
+        return NULL;
+    }
     sb->free_len = free_len;
     sb->src_beg = str;
     sb->src_cur = str;

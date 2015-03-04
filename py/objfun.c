@@ -25,39 +25,27 @@
  * THE SOFTWARE.
  */
 
-#include <stdbool.h>
 #include <string.h>
 #include <assert.h>
 
-#include "mpconfig.h"
-#include "nlr.h"
-#include "misc.h"
-#include "qstr.h"
-#include "obj.h"
-#include "objtuple.h"
-#include "objfun.h"
-#include "runtime0.h"
-#include "runtime.h"
-#include "bc.h"
-#include "stackctrl.h"
+#include "py/nlr.h"
+#include "py/objtuple.h"
+#include "py/objfun.h"
+#include "py/runtime0.h"
+#include "py/runtime.h"
+#include "py/bc.h"
+#include "py/stackctrl.h"
 
 #if 0 // print debugging info
 #define DEBUG_PRINT (1)
 #else // don't print debugging info
+#define DEBUG_PRINT (0)
 #define DEBUG_printf(...) (void)0
 #endif
 
-// This binary_op method is used for all function types, and is also
-// used to determine if an object is of generic function type.
-mp_obj_t mp_obj_fun_binary_op(mp_uint_t op, mp_obj_t lhs_in, mp_obj_t rhs_in) {
-    switch (op) {
-        case MP_BINARY_OP_EQUAL:
-            // These objects can be equal only if it's the same underlying structure,
-            // we don't even need to check for 2nd arg type.
-            return MP_BOOL(lhs_in == rhs_in);
-    }
-    return MP_OBJ_NULL; // op not supported
-}
+// Note: the "name" entry in mp_obj_type_t for a function type must be
+// MP_QSTR_function because it is used to determine if an object is of generic
+// function type.
 
 /******************************************************************************/
 /* builtin functions                                                          */
@@ -95,11 +83,8 @@ STATIC mp_obj_t fun_builtin_call(mp_obj_t self_in, mp_uint_t n_args, mp_uint_t n
                 return ((mp_fun_2_t)self->fun)(args[0], args[1]);
 
             case 3:
-                return ((mp_fun_3_t)self->fun)(args[0], args[1], args[2]);
-
             default:
-                assert(0);
-                return mp_const_none;
+                return ((mp_fun_3_t)self->fun)(args[0], args[1], args[2]);
         }
 
     } else {
@@ -113,31 +98,7 @@ const mp_obj_type_t mp_type_fun_builtin = {
     { &mp_type_type },
     .name = MP_QSTR_function,
     .call = fun_builtin_call,
-    .binary_op = mp_obj_fun_binary_op,
 };
-
-#if 0 // currently unused, and semi-obsolete
-mp_obj_t mp_make_function_var(int n_args_min, mp_fun_var_t fun) {
-    mp_obj_fun_builtin_t *o = m_new_obj(mp_obj_fun_builtin_t);
-    o->base.type = &mp_type_fun_native;
-    o->is_kw = false;
-    o->n_args_min = n_args_min;
-    o->n_args_max = MP_OBJ_FUN_ARGS_MAX;
-    o->fun = fun;
-    return o;
-}
-
-// min and max are inclusive
-mp_obj_t mp_make_function_var_between(int n_args_min, int n_args_max, mp_fun_var_t fun) {
-    mp_obj_fun_builtin_t *o = m_new_obj(mp_obj_fun_builtin_t);
-    o->base.type = &mp_type_fun_native;
-    o->is_kw = false;
-    o->n_args_min = n_args_min;
-    o->n_args_max = n_args_max;
-    o->fun = fun;
-    return o;
-}
-#endif
 
 /******************************************************************************/
 /* byte code functions                                                        */
@@ -155,15 +116,16 @@ const char *mp_obj_fun_get_name(mp_const_obj_t fun_in) {
 
 #if MICROPY_CPYTHON_COMPAT
 STATIC void fun_bc_print(void (*print)(void *env, const char *fmt, ...), void *env, mp_obj_t o_in, mp_print_kind_t kind) {
+    (void)kind;
     mp_obj_fun_bc_t *o = o_in;
     print(env, "<function %s at 0x%x>", mp_obj_fun_get_name(o), o);
 }
 #endif
 
 #if DEBUG_PRINT
-STATIC void dump_args(const mp_obj_t *a, int sz) {
+STATIC void dump_args(const mp_obj_t *a, mp_uint_t sz) {
     DEBUG_printf("%p: ", a);
-    for (int i = 0; i < sz; i++) {
+    for (mp_uint_t i = 0; i < sz; i++) {
         DEBUG_printf("%p ", a[i]);
     }
     DEBUG_printf("\n");
@@ -175,7 +137,7 @@ STATIC void dump_args(const mp_obj_t *a, int sz) {
 // With this macro you can tune the maximum number of function state bytes
 // that will be allocated on the stack.  Any function that needs more
 // than this will use the heap.
-#define VM_MAX_STATE_ON_STACK (10 * sizeof(mp_uint_t))
+#define VM_MAX_STATE_ON_STACK (11 * sizeof(mp_uint_t))
 
 // Set this to enable a simple stack overflow check.
 #define VM_DETECT_STACK_OVERFLOW (0)
@@ -196,7 +158,10 @@ STATIC mp_obj_t fun_bc_call(mp_obj_t self_in, mp_uint_t n_args, mp_uint_t n_kw, 
     mp_uint_t code_info_size = mp_decode_uint(&code_info);
     const byte *ip = self->bytecode + code_info_size;
 
-    // bytecode prelude: state size and exception stack size; 16 bit uints
+    // bytecode prelude: skip arg names
+    ip += (self->n_pos_args + self->n_kwonly_args) * sizeof(mp_obj_t);
+
+    // bytecode prelude: state size and exception stack size
     mp_uint_t n_state = mp_decode_uint(&ip);
     mp_uint_t n_exc_stack = mp_decode_uint(&ip);
 
@@ -218,10 +183,10 @@ STATIC mp_obj_t fun_bc_call(mp_obj_t self_in, mp_uint_t n_args, mp_uint_t n_kw, 
     mp_setup_code_state(code_state, self_in, n_args, n_kw, args);
 
     // execute the byte code with the correct globals context
-    mp_obj_dict_t *old_globals = mp_globals_get();
+    code_state->old_globals = mp_globals_get();
     mp_globals_set(self->globals);
     mp_vm_return_kind_t vm_return_kind = mp_execute_bytecode(code_state, MP_OBJ_NULL);
-    mp_globals_set(old_globals);
+    mp_globals_set(code_state->old_globals);
 
 #if VM_DETECT_STACK_OVERFLOW
     if (vm_return_kind == MP_VM_RETURN_NORMAL) {
@@ -288,10 +253,9 @@ const mp_obj_type_t mp_type_fun_bc = {
     .print = fun_bc_print,
 #endif
     .call = fun_bc_call,
-    .binary_op = mp_obj_fun_binary_op,
 };
 
-mp_obj_t mp_obj_new_fun_bc(mp_uint_t scope_flags, qstr *args, mp_uint_t n_pos_args, mp_uint_t n_kwonly_args, mp_obj_t def_args_in, mp_obj_t def_kw_args, const byte *code) {
+mp_obj_t mp_obj_new_fun_bc(mp_uint_t scope_flags, mp_uint_t n_pos_args, mp_uint_t n_kwonly_args, mp_obj_t def_args_in, mp_obj_t def_kw_args, const byte *code) {
     mp_uint_t n_def_args = 0;
     mp_uint_t n_extra_args = 0;
     mp_obj_tuple_t *def_args = def_args_in;
@@ -306,7 +270,6 @@ mp_obj_t mp_obj_new_fun_bc(mp_uint_t scope_flags, qstr *args, mp_uint_t n_pos_ar
     mp_obj_fun_bc_t *o = m_new_obj_var(mp_obj_fun_bc_t, mp_obj_t, n_extra_args);
     o->base.type = &mp_type_fun_bc;
     o->globals = mp_globals_get();
-    o->args = args;
     o->n_pos_args = n_pos_args;
     o->n_kwonly_args = n_kwonly_args;
     o->n_def_args = n_def_args;
@@ -335,7 +298,7 @@ typedef struct _mp_obj_fun_native_t {
     // TODO add mp_map_t *globals
 } mp_obj_fun_native_t;
 
-typedef mp_obj_t (*native_fun_0_t)();
+typedef mp_obj_t (*native_fun_0_t)(void);
 typedef mp_obj_t (*native_fun_1_t)(mp_obj_t);
 typedef mp_obj_t (*native_fun_2_t)(mp_obj_t, mp_obj_t);
 typedef mp_obj_t (*native_fun_3_t)(mp_obj_t, mp_obj_t, mp_obj_t);
@@ -370,7 +333,6 @@ STATIC const mp_obj_type_t mp_type_fun_native = {
     { &mp_type_type },
     .name = MP_QSTR_function,
     .call = fun_native_call,
-    .binary_op = mp_obj_fun_binary_op,
 };
 
 mp_obj_t mp_obj_new_fun_native(mp_uint_t n_args, void *fun_data) {
@@ -396,7 +358,7 @@ typedef struct _mp_obj_fun_viper_t {
     mp_uint_t type_sig;
 } mp_obj_fun_viper_t;
 
-typedef mp_uint_t (*viper_fun_0_t)();
+typedef mp_uint_t (*viper_fun_0_t)(void);
 typedef mp_uint_t (*viper_fun_1_t)(mp_uint_t);
 typedef mp_uint_t (*viper_fun_2_t)(mp_uint_t, mp_uint_t);
 typedef mp_uint_t (*viper_fun_3_t)(mp_uint_t, mp_uint_t, mp_uint_t);
@@ -429,7 +391,6 @@ STATIC const mp_obj_type_t mp_type_fun_viper = {
     { &mp_type_type },
     .name = MP_QSTR_function,
     .call = fun_viper_call,
-    .binary_op = mp_obj_fun_binary_op,
 };
 
 mp_obj_t mp_obj_new_fun_viper(mp_uint_t n_args, void *fun_data, mp_uint_t type_sig) {
@@ -454,7 +415,7 @@ typedef struct _mp_obj_fun_asm_t {
     void *fun_data; // GC must be able to trace this pointer
 } mp_obj_fun_asm_t;
 
-typedef mp_uint_t (*inline_asm_fun_0_t)();
+typedef mp_uint_t (*inline_asm_fun_0_t)(void);
 typedef mp_uint_t (*inline_asm_fun_1_t)(mp_uint_t);
 typedef mp_uint_t (*inline_asm_fun_2_t)(mp_uint_t, mp_uint_t);
 typedef mp_uint_t (*inline_asm_fun_3_t)(mp_uint_t, mp_uint_t, mp_uint_t);
@@ -470,6 +431,8 @@ STATIC mp_uint_t convert_obj_for_inline_asm(mp_obj_t obj) {
         return 0;
     } else if (obj == mp_const_true) {
         return 1;
+    } else if (MP_OBJ_IS_TYPE(obj, &mp_type_int)) {
+        return mp_obj_int_get_truncated(obj);
     } else if (MP_OBJ_IS_STR(obj)) {
         // pointer to the string (it's probably constant though!)
         mp_uint_t l;
@@ -540,7 +503,6 @@ STATIC const mp_obj_type_t mp_type_fun_asm = {
     { &mp_type_type },
     .name = MP_QSTR_function,
     .call = fun_asm_call,
-    .binary_op = mp_obj_fun_binary_op,
 };
 
 mp_obj_t mp_obj_new_fun_asm(mp_uint_t n_args, void *fun_data) {

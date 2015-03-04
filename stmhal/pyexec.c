@@ -29,92 +29,88 @@
 #include <stdint.h>
 
 #include "std.h"
-#include "mpconfig.h"
-#include "nlr.h"
-#include "misc.h"
-#include "qstr.h"
-#include "misc.h"
-#include "lexer.h"
-#include "parse.h"
-#include "obj.h"
-#include "parsehelper.h"
-#include "compile.h"
-#include "runtime.h"
-#include "repl.h"
-#include "gc.h"
-#include "gccollect.h"
+#include "py/nlr.h"
+#include "py/compile.h"
+#include "py/runtime.h"
+#include "py/repl.h"
+#include "py/gc.h"
+#include "py/pfenv.h"
+#ifdef MICROPY_HAL_H
 #include MICROPY_HAL_H
-#include "systick.h"
+#endif
 #include "readline.h"
 #include "pyexec.h"
-#include "usb.h"
-#include "uart.h"
-#include "pybstdio.h"
 #include "genhdr/py-version.h"
 
 pyexec_mode_kind_t pyexec_mode_kind = PYEXEC_MODE_FRIENDLY_REPL;
 STATIC bool repl_display_debugging_info = 0;
 
+#define EXEC_FLAG_PRINT_EOF (1)
+#define EXEC_FLAG_ALLOW_DEBUGGING (2)
+#define EXEC_FLAG_IS_REPL (4)
+
 // parses, compiles and executes the code in the lexer
 // frees the lexer before returning
-bool parse_compile_execute(mp_lexer_t *lex, mp_parse_input_kind_t input_kind, bool is_repl) {
-    mp_parse_error_kind_t parse_error_kind;
-    mp_parse_node_t pn = mp_parse(lex, input_kind, &parse_error_kind);
-    qstr source_name = mp_lexer_source_name(lex);
-
-    if (pn == MP_PARSE_NODE_NULL) {
-        // parse error
-        mp_parse_show_exception(lex, parse_error_kind);
-        mp_lexer_free(lex);
-        return false;
-    }
-
-    mp_lexer_free(lex);
-
-    mp_obj_t module_fun = mp_compile(pn, source_name, MP_EMIT_OPT_NONE, is_repl);
-
-    if (module_fun == mp_const_none) {
-        return false;
-    }
+// EXEC_FLAG_PRINT_EOF prints 2 EOF chars: 1 after normal output, 1 after exception output
+// EXEC_FLAG_ALLOW_DEBUGGING allows debugging info to be printed after executing the code
+// EXEC_FLAG_IS_REPL is used for REPL inputs (flag passed on to mp_compile)
+STATIC int parse_compile_execute(mp_lexer_t *lex, mp_parse_input_kind_t input_kind, int exec_flags) {
+    int ret = 0;
+    uint32_t start = 0;
 
     nlr_buf_t nlr;
-    bool ret;
-    uint32_t start = HAL_GetTick();
     if (nlr_push(&nlr) == 0) {
-        usb_vcp_set_interrupt_char(VCP_CHAR_CTRL_C); // allow ctrl-C to interrupt us
+        // parse and compile the script
+        qstr source_name = lex->source_name;
+        mp_parse_node_t pn = mp_parse(lex, input_kind);
+        mp_obj_t module_fun = mp_compile(pn, source_name, MP_EMIT_OPT_NONE, exec_flags & EXEC_FLAG_IS_REPL);
+
+        // execute code
+        mp_hal_set_interrupt_char(CHAR_CTRL_C); // allow ctrl-C to interrupt us
+        start = HAL_GetTick();
         mp_call_function_0(module_fun);
-        usb_vcp_set_interrupt_char(VCP_CHAR_NONE); // disable interrupt
+        mp_hal_set_interrupt_char(-1); // disable interrupt
         nlr_pop();
-        ret = true;
+        ret = 1;
+        if (exec_flags & EXEC_FLAG_PRINT_EOF) {
+            mp_hal_stdout_tx_strn("\x04", 1);
+        }
     } else {
         // uncaught exception
         // FIXME it could be that an interrupt happens just before we disable it here
-        usb_vcp_set_interrupt_char(VCP_CHAR_NONE); // disable interrupt
-        mp_obj_print_exception((mp_obj_t)nlr.ret_val);
-        ret = false;
+        mp_hal_set_interrupt_char(-1); // disable interrupt
+        // print EOF after normal output
+        if (exec_flags & EXEC_FLAG_PRINT_EOF) {
+            mp_hal_stdout_tx_strn("\x04", 1);
+        }
+        // check for SystemExit
+        if (mp_obj_is_subclass_fast(mp_obj_get_type((mp_obj_t)nlr.ret_val), &mp_type_SystemExit)) {
+            // at the moment, the value of SystemExit is unused
+            ret = PYEXEC_FORCED_EXIT;
+        } else {
+            mp_obj_print_exception(printf_wrapper, NULL, (mp_obj_t)nlr.ret_val);
+            ret = 0;
+        }
     }
 
     // display debugging info if wanted
-    if (is_repl && repl_display_debugging_info) {
-        uint32_t ticks = HAL_GetTick() - start; // TODO implement a function that does this properly
-        printf("took %lu ms\n", ticks);
+    if ((exec_flags & EXEC_FLAG_ALLOW_DEBUGGING) && repl_display_debugging_info) {
+        mp_uint_t ticks = HAL_GetTick() - start; // TODO implement a function that does this properly
+        printf("took " UINT_FMT " ms\n", ticks);
         gc_collect();
         // qstr info
         {
-            uint n_pool, n_qstr, n_str_data_bytes, n_total_bytes;
+            mp_uint_t n_pool, n_qstr, n_str_data_bytes, n_total_bytes;
             qstr_pool_info(&n_pool, &n_qstr, &n_str_data_bytes, &n_total_bytes);
-            printf("qstr:\n  n_pool=%u\n  n_qstr=%u\n  n_str_data_bytes=%u\n  n_total_bytes=%u\n", n_pool, n_qstr, n_str_data_bytes, n_total_bytes);
+            printf("qstr:\n  n_pool=" UINT_FMT "\n  n_qstr=" UINT_FMT "\n  n_str_data_bytes=" UINT_FMT "\n  n_total_bytes=" UINT_FMT "\n", n_pool, n_qstr, n_str_data_bytes, n_total_bytes);
         }
 
         // GC info
-        {
-            gc_info_t info;
-            gc_info(&info);
-            printf("GC:\n");
-            printf("  " UINT_FMT " total\n", info.total);
-            printf("  " UINT_FMT " : " UINT_FMT "\n", info.used, info.free);
-            printf("  1=" UINT_FMT " 2=" UINT_FMT " m=" UINT_FMT "\n", info.num_1block, info.num_2block, info.max_block);
-        }
+        gc_dump_info();
+    }
+
+    if (exec_flags & EXEC_FLAG_PRINT_EOF) {
+        mp_hal_stdout_tx_strn("\x04", 1);
     }
 
     return ret;
@@ -125,26 +121,26 @@ int pyexec_raw_repl(void) {
     vstr_init(&line, 32);
 
 raw_repl_reset:
-    stdout_tx_str("raw REPL; CTRL-B to exit\r\n");
+    mp_hal_stdout_tx_str("raw REPL; CTRL-B to exit\r\n");
 
     for (;;) {
         vstr_reset(&line);
-        stdout_tx_str(">");
+        mp_hal_stdout_tx_str(">");
         for (;;) {
-            char c = stdin_rx_chr();
-            if (c == VCP_CHAR_CTRL_A) {
+            int c = mp_hal_stdin_rx_chr();
+            if (c == CHAR_CTRL_A) {
                 // reset raw REPL
                 goto raw_repl_reset;
-            } else if (c == VCP_CHAR_CTRL_B) {
+            } else if (c == CHAR_CTRL_B) {
                 // change to friendly REPL
-                stdout_tx_str("\r\n");
+                mp_hal_stdout_tx_str("\r\n");
                 vstr_clear(&line);
                 pyexec_mode_kind = PYEXEC_MODE_FRIENDLY_REPL;
                 return 0;
-            } else if (c == VCP_CHAR_CTRL_C) {
+            } else if (c == CHAR_CTRL_C) {
                 // clear line
                 vstr_reset(&line);
-            } else if (c == VCP_CHAR_CTRL_D) {
+            } else if (c == CHAR_CTRL_D) {
                 // input finished
                 break;
             } else if (c <= 127) {
@@ -154,26 +150,134 @@ raw_repl_reset:
         }
 
         // indicate reception of command
-        stdout_tx_str("OK");
+        mp_hal_stdout_tx_str("OK");
 
         if (line.len == 0) {
             // exit for a soft reset
-            stdout_tx_str("\r\n");
+            mp_hal_stdout_tx_str("\r\n");
             vstr_clear(&line);
-            return 1;
+            return PYEXEC_FORCED_EXIT;
         }
 
         mp_lexer_t *lex = mp_lexer_new_from_str_len(MP_QSTR__lt_stdin_gt_, line.buf, line.len, 0);
         if (lex == NULL) {
-            printf("MemoryError\n");
+            printf("\x04MemoryError\n\x04");
         } else {
-            parse_compile_execute(lex, MP_PARSE_FILE_INPUT, false);
+            int ret = parse_compile_execute(lex, MP_PARSE_FILE_INPUT, EXEC_FLAG_PRINT_EOF);
+            if (ret & PYEXEC_FORCED_EXIT) {
+                return ret;
+            }
         }
-
-        // indicate end of output with EOF character
-        stdout_tx_str("\004");
     }
 }
+
+#if MICROPY_REPL_EVENT_DRIVEN
+
+typedef struct _friendly_repl_t {
+    vstr_t line;
+    bool cont_line;
+} friendly_repl_t;
+
+friendly_repl_t repl;
+
+void pyexec_friendly_repl_init(void) {
+    vstr_init(&repl.line, 32);
+    repl.cont_line = false;
+    readline_init(&repl.line);
+    mp_hal_stdout_tx_str(">>> ");
+}
+
+void pyexec_friendly_repl_reset() {
+    repl.cont_line = false;
+    vstr_reset(&repl.line);
+    readline_init(&repl.line);
+}
+
+int pyexec_friendly_repl_process_char(int c) {
+    int ret = readline_process_char(c);
+
+    if (!repl.cont_line) {
+
+        if (ret == CHAR_CTRL_A) {
+            // change to raw REPL
+            pyexec_mode_kind = PYEXEC_MODE_RAW_REPL;
+            mp_hal_stdout_tx_str("\r\n");
+            vstr_clear(&repl.line);
+            return PYEXEC_SWITCH_MODE;
+        } else if (ret == CHAR_CTRL_B) {
+            // reset friendly REPL
+            mp_hal_stdout_tx_str("\r\n");
+            goto friendly_repl_reset;
+        } else if (ret == CHAR_CTRL_C) {
+            // break
+            mp_hal_stdout_tx_str("\r\n");
+            goto input_restart;
+        } else if (ret == CHAR_CTRL_D) {
+            // exit for a soft reset
+            mp_hal_stdout_tx_str("\r\n");
+            vstr_clear(&repl.line);
+            return PYEXEC_FORCED_EXIT;
+        } else if (vstr_len(&repl.line) == 0) {
+            //goto input_restart;
+        }
+
+        if (ret < 0) {
+            return 0;
+        }
+
+        if (!mp_repl_continue_with_input(vstr_null_terminated_str(&repl.line))) {
+            goto exec;
+        }
+
+        vstr_add_byte(&repl.line, '\n');
+        repl.cont_line = true;
+        mp_hal_stdout_tx_str("... ");
+        readline_note_newline();
+        return 0;
+
+    } else {
+
+        if (ret == CHAR_CTRL_C) {
+                // cancel everything
+                mp_hal_stdout_tx_str("\r\n");
+                repl.cont_line = false;
+                goto input_restart;
+        } else if (ret == CHAR_CTRL_D) {
+                // stop entering compound statement
+                goto exec;
+        }
+
+        if (ret < 0) {
+            return 0;
+        }
+
+        if (mp_repl_continue_with_input(vstr_null_terminated_str(&repl.line))) {
+            vstr_add_byte(&repl.line, '\n');
+            mp_hal_stdout_tx_str("... ");
+            readline_note_newline();
+            return 0;
+        }
+
+exec: ;
+        mp_lexer_t *lex = mp_lexer_new_from_str_len(MP_QSTR__lt_stdin_gt_, vstr_str(&repl.line), vstr_len(&repl.line), 0);
+        if (lex == NULL) {
+            printf("MemoryError\n");
+        } else {
+            int ret = parse_compile_execute(lex, MP_PARSE_SINGLE_INPUT, EXEC_FLAG_ALLOW_DEBUGGING | EXEC_FLAG_IS_REPL);
+            if (ret & PYEXEC_FORCED_EXIT) {
+                return ret;
+            }
+        }
+
+friendly_repl_reset: // TODO
+input_restart:
+        pyexec_friendly_repl_reset();
+        mp_hal_stdout_tx_str(">>> ");
+        return 0;
+    }
+}
+
+#else //MICROPY_REPL_EVENT_DRIVEN
 
 int pyexec_friendly_repl(void) {
     vstr_t line;
@@ -186,8 +290,8 @@ int pyexec_friendly_repl(void) {
 #endif
 
 friendly_repl_reset:
-    stdout_tx_str("Micro Python " MICROPY_GIT_TAG " on " MICROPY_BUILD_DATE "; " MICROPY_HW_BOARD_NAME " with " MICROPY_HW_MCU_NAME "\r\n");
-    stdout_tx_str("Type \"help()\" for more information.\r\n");
+    mp_hal_stdout_tx_str("Micro Python " MICROPY_GIT_TAG " on " MICROPY_BUILD_DATE "; " MICROPY_HW_BOARD_NAME " with " MICROPY_HW_MCU_NAME "\r\n");
+    mp_hal_stdout_tx_str("Type \"help()\" for more information.\r\n");
 
     // to test ctrl-C
     /*
@@ -196,7 +300,7 @@ friendly_repl_reset:
         for (;;) {
             nlr_buf_t nlr;
             printf("pyexec_repl: %p\n", x);
-            usb_vcp_set_interrupt_char(VCP_CHAR_CTRL_C);
+            mp_hal_set_interrupt_char(CHAR_CTRL_C);
             if (nlr_push(&nlr) == 0) {
                 for (;;) {
                 }
@@ -208,36 +312,41 @@ friendly_repl_reset:
     */
 
     for (;;) {
+    input_restart:
         vstr_reset(&line);
         int ret = readline(&line, ">>> ");
 
-        if (ret == VCP_CHAR_CTRL_A) {
+        if (ret == CHAR_CTRL_A) {
             // change to raw REPL
-            stdout_tx_str("\r\n");
+            mp_hal_stdout_tx_str("\r\n");
             vstr_clear(&line);
             pyexec_mode_kind = PYEXEC_MODE_RAW_REPL;
             return 0;
-        } else if (ret == VCP_CHAR_CTRL_B) {
+        } else if (ret == CHAR_CTRL_B) {
             // reset friendly REPL
-            stdout_tx_str("\r\n");
+            mp_hal_stdout_tx_str("\r\n");
             goto friendly_repl_reset;
-        } else if (ret == VCP_CHAR_CTRL_C) {
+        } else if (ret == CHAR_CTRL_C) {
             // break
-            stdout_tx_str("\r\n");
+            mp_hal_stdout_tx_str("\r\n");
             continue;
-        } else if (ret == VCP_CHAR_CTRL_D) {
+        } else if (ret == CHAR_CTRL_D) {
             // exit for a soft reset
-            stdout_tx_str("\r\n");
+            mp_hal_stdout_tx_str("\r\n");
             vstr_clear(&line);
-            return 1;
+            return PYEXEC_FORCED_EXIT;
         } else if (vstr_len(&line) == 0) {
             continue;
         }
 
-        while (mp_repl_continue_with_input(vstr_str(&line))) {
-            vstr_add_char(&line, '\n');
-            int ret = readline(&line, "... ");
-            if (ret == VCP_CHAR_CTRL_D) {
+        while (mp_repl_continue_with_input(vstr_null_terminated_str(&line))) {
+            vstr_add_byte(&line, '\n');
+            ret = readline(&line, "... ");
+            if (ret == CHAR_CTRL_C) {
+                // cancel everything
+                mp_hal_stdout_tx_str("\r\n");
+                goto input_restart;
+            } else if (ret == CHAR_CTRL_D) {
                 // stop entering compound statement
                 break;
             }
@@ -247,12 +356,17 @@ friendly_repl_reset:
         if (lex == NULL) {
             printf("MemoryError\n");
         } else {
-            parse_compile_execute(lex, MP_PARSE_SINGLE_INPUT, true);
+            ret = parse_compile_execute(lex, MP_PARSE_SINGLE_INPUT, EXEC_FLAG_ALLOW_DEBUGGING | EXEC_FLAG_IS_REPL);
+            if (ret & PYEXEC_FORCED_EXIT) {
+                return ret;
+            }
         }
     }
 }
 
-bool pyexec_file(const char *filename) {
+#endif //MICROPY_REPL_EVENT_DRIVEN
+
+int pyexec_file(const char *filename) {
     mp_lexer_t *lex = mp_lexer_new_from_file(filename);
 
     if (lex == NULL) {
@@ -260,7 +374,7 @@ bool pyexec_file(const char *filename) {
         return false;
     }
 
-    return parse_compile_execute(lex, MP_PARSE_FILE_INPUT, false);
+    return parse_compile_execute(lex, MP_PARSE_FILE_INPUT, 0);
 }
 
 static mp_obj_dict_t *old_locals, *old_globals;

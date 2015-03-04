@@ -30,21 +30,20 @@
 #include <assert.h>
 #include <string.h>
 
-#include "mpconfig.h"
-#include "misc.h"
-#include "qstr.h"
-#include "lexer.h"
-#include "parsenumbase.h"
-#include "parse.h"
-#include "smallint.h"
+#include "py/nlr.h"
+#include "py/lexer.h"
+#include "py/parse.h"
+#include "py/parsenum.h"
+#include "py/smallint.h"
 
-#define RULE_ACT_KIND_MASK      (0xf0)
 #define RULE_ACT_ARG_MASK       (0x0f)
+#define RULE_ACT_KIND_MASK      (0x30)
+#define RULE_ACT_ALLOW_IDENT    (0x40)
+#define RULE_ACT_ADD_BLANK      (0x80)
 #define RULE_ACT_OR             (0x10)
 #define RULE_ACT_AND            (0x20)
 #define RULE_ACT_LIST           (0x30)
 
-#define RULE_ARG_BLANK          (0x0000)
 #define RULE_ARG_KIND_MASK      (0xf000)
 #define RULE_ARG_ARG_MASK       (0x0fff)
 #define RULE_ARG_TOK            (0x1000)
@@ -52,7 +51,7 @@
 #define RULE_ARG_OPT_TOK        (0x3000)
 #define RULE_ARG_OPT_RULE       (0x4000)
 
-#define ADD_BLANK_NODE(rule_id) ((rule_id) == RULE_funcdef || (rule_id) == RULE_classdef || (rule_id) == RULE_comp_for || (rule_id) == RULE_lambdef || (rule_id) == RULE_lambdef_nocond)
+#define ADD_BLANK_NODE(rule) ((rule->act & RULE_ACT_ADD_BLANK) != 0)
 
 // (un)comment to use rule names; for debugging
 //#define USE_RULE_NAME (1)
@@ -67,14 +66,17 @@ typedef struct _rule_t {
 } rule_t;
 
 enum {
-    RULE_none = 0,
 #define DEF_RULE(rule, comp, kind, ...) RULE_##rule,
-#include "grammar.h"
+#include "py/grammar.h"
 #undef DEF_RULE
     RULE_maximum_number_of,
     RULE_string, // special node for non-interned string
+    RULE_bytes, // special node for non-interned bytes
+    RULE_const_object, // special node for a constant, generic Python object
 };
 
+#define ident                   (RULE_ACT_ALLOW_IDENT)
+#define blank                   (RULE_ACT_ADD_BLANK)
 #define or(n)                   (RULE_ACT_OR | n)
 #define and(n)                  (RULE_ACT_AND | n)
 #define one_or_more             (RULE_ACT_LIST | 2)
@@ -89,7 +91,7 @@ enum {
 #else
 #define DEF_RULE(rule, comp, kind, ...) static const rule_t rule_##rule = { RULE_##rule, kind, { __VA_ARGS__ } };
 #endif
-#include "grammar.h"
+#include "py/grammar.h"
 #undef or
 #undef and
 #undef list
@@ -102,16 +104,15 @@ enum {
 #undef DEF_RULE
 
 STATIC const rule_t *rules[] = {
-    NULL,
 #define DEF_RULE(rule, comp, kind, ...) &rule_##rule,
-#include "grammar.h"
+#include "py/grammar.h"
 #undef DEF_RULE
 };
 
 typedef struct _rule_stack_t {
-    mp_uint_t src_line : 24;
-    mp_uint_t rule_id : 8;
-    mp_uint_t arg_i : 32; // what should the bit-size be?
+    mp_uint_t src_line : BITS_PER_WORD - 8; // maximum bits storing source line number
+    mp_uint_t rule_id : 8; // this must be large enough to fit largest rule number
+    mp_uint_t arg_i; // this dictates the maximum nodes in a "list" of things
 } rule_stack_t;
 
 typedef struct _parser_t {
@@ -155,7 +156,7 @@ STATIC void push_rule_from_arg(parser_t *parser, mp_uint_t arg) {
     assert((arg & RULE_ARG_KIND_MASK) == RULE_ARG_RULE || (arg & RULE_ARG_KIND_MASK) == RULE_ARG_OPT_RULE);
     mp_uint_t rule_id = arg & RULE_ARG_ARG_MASK;
     assert(rule_id < RULE_maximum_number_of);
-    push_rule(parser, mp_lexer_cur(parser->lexer)->src_line, rules[rule_id], 0);
+    push_rule(parser, parser->lexer->tok_line, rules[rule_id], 0);
 }
 
 STATIC void pop_rule(parser_t *parser, const rule_t **rule, mp_uint_t *arg_i, mp_uint_t *src_line) {
@@ -170,7 +171,7 @@ mp_parse_node_t mp_parse_node_new_leaf(mp_int_t kind, mp_int_t arg) {
     if (kind == MP_PARSE_NODE_SMALL_INT) {
         return (mp_parse_node_t)(kind | (arg << 1));
     }
-    return (mp_parse_node_t)(kind | (arg << 5));
+    return (mp_parse_node_t)(kind | (arg << 4));
 }
 
 void mp_parse_node_free(mp_parse_node_t pn) {
@@ -178,21 +179,42 @@ void mp_parse_node_free(mp_parse_node_t pn) {
         mp_parse_node_struct_t *pns = (mp_parse_node_struct_t *)pn;
         mp_uint_t n = MP_PARSE_NODE_STRUCT_NUM_NODES(pns);
         mp_uint_t rule_id = MP_PARSE_NODE_STRUCT_KIND(pns);
-        if (rule_id == RULE_string) {
+        if (rule_id == RULE_string || rule_id == RULE_bytes) {
             m_del(char, (char*)pns->nodes[0], (mp_uint_t)pns->nodes[1]);
-            return;
-        }
-        bool adjust = ADD_BLANK_NODE(rule_id);
-        if (adjust) {
-            n--;
-        }
-        for (mp_uint_t i = 0; i < n; i++) {
-            mp_parse_node_free(pns->nodes[i]);
-        }
-        if (adjust) {
-            n++;
+        } else if (rule_id == RULE_const_object) {
+            // don't free the const object since it's probably used by the compiled code
+        } else {
+            bool adjust = ADD_BLANK_NODE(rules[rule_id]);
+            if (adjust) {
+                n--;
+            }
+            for (mp_uint_t i = 0; i < n; i++) {
+                mp_parse_node_free(pns->nodes[i]);
+            }
+            if (adjust) {
+                n++;
+            }
         }
         m_del_var(mp_parse_node_struct_t, mp_parse_node_t, n, pns);
+    }
+}
+
+int mp_parse_node_extract_list(mp_parse_node_t *pn, mp_uint_t pn_kind, mp_parse_node_t **nodes) {
+    if (MP_PARSE_NODE_IS_NULL(*pn)) {
+        *nodes = NULL;
+        return 0;
+    } else if (MP_PARSE_NODE_IS_LEAF(*pn)) {
+        *nodes = pn;
+        return 1;
+    } else {
+        mp_parse_node_struct_t *pns = (mp_parse_node_struct_t*)(*pn);
+        if (MP_PARSE_NODE_STRUCT_KIND(pns) != pn_kind) {
+            *nodes = pn;
+            return 1;
+        } else {
+            *nodes = pns->nodes;
+            return MP_PARSE_NODE_STRUCT_NUM_NODES(pns);
+        }
     }
 }
 
@@ -215,8 +237,6 @@ void mp_parse_node_print(mp_parse_node_t pn, mp_uint_t indent) {
         mp_uint_t arg = MP_PARSE_NODE_LEAF_ARG(pn);
         switch (MP_PARSE_NODE_LEAF_KIND(pn)) {
             case MP_PARSE_NODE_ID: printf("id(%s)\n", qstr_str(arg)); break;
-            case MP_PARSE_NODE_INTEGER: printf("int(%s)\n", qstr_str(arg)); break;
-            case MP_PARSE_NODE_DECIMAL: printf("dec(%s)\n", qstr_str(arg)); break;
             case MP_PARSE_NODE_STRING: printf("str(%s)\n", qstr_str(arg)); break;
             case MP_PARSE_NODE_BYTES: printf("bytes(%s)\n", qstr_str(arg)); break;
             case MP_PARSE_NODE_TOKEN: printf("tok(" INT_FMT ")\n", arg); break;
@@ -227,6 +247,10 @@ void mp_parse_node_print(mp_parse_node_t pn, mp_uint_t indent) {
         mp_parse_node_struct_t *pns = (mp_parse_node_struct_t*)pn;
         if (MP_PARSE_NODE_STRUCT_KIND(pns) == RULE_string) {
             printf("literal str(%.*s)\n", (int)pns->nodes[1], (char*)pns->nodes[0]);
+        } else if (MP_PARSE_NODE_STRUCT_KIND(pns) == RULE_bytes) {
+            printf("literal bytes(%.*s)\n", (int)pns->nodes[1], (char*)pns->nodes[0]);
+        } else if (MP_PARSE_NODE_STRUCT_KIND(pns) == RULE_const_object) {
+            printf("literal const(%p)\n", (mp_obj_t)pns->nodes[0]);
         } else {
             mp_uint_t n = MP_PARSE_NODE_STRUCT_NUM_NODES(pns);
 #ifdef USE_RULE_NAME
@@ -272,100 +296,79 @@ STATIC void push_result_node(parser_t *parser, mp_parse_node_t pn) {
         return;
     }
     if (parser->result_stack_top >= parser->result_stack_alloc) {
-        mp_parse_node_t *pn = m_renew_maybe(mp_parse_node_t, parser->result_stack, parser->result_stack_alloc, parser->result_stack_alloc + MICROPY_ALLOC_PARSE_RESULT_INC);
-        if (pn == NULL) {
+        mp_parse_node_t *stack = m_renew_maybe(mp_parse_node_t, parser->result_stack, parser->result_stack_alloc, parser->result_stack_alloc + MICROPY_ALLOC_PARSE_RESULT_INC);
+        if (stack == NULL) {
             memory_error(parser);
             return;
         }
-        parser->result_stack = pn;
+        parser->result_stack = stack;
         parser->result_stack_alloc += MICROPY_ALLOC_PARSE_RESULT_INC;
     }
     parser->result_stack[parser->result_stack_top++] = pn;
 }
 
-STATIC void push_result_string(parser_t *parser, mp_uint_t src_line, const char *str, mp_uint_t len) {
+STATIC mp_parse_node_t make_node_string_bytes(parser_t *parser, mp_uint_t src_line, mp_uint_t rule_kind, const char *str, mp_uint_t len) {
     mp_parse_node_struct_t *pn = m_new_obj_var_maybe(mp_parse_node_struct_t, mp_parse_node_t, 2);
     if (pn == NULL) {
         memory_error(parser);
-        return;
+        return MP_PARSE_NODE_NULL;
     }
     pn->source_line = src_line;
-    pn->kind_num_nodes = RULE_string | (2 << 8);
+    pn->kind_num_nodes = rule_kind | (2 << 8);
     char *p = m_new(char, len);
     memcpy(p, str, len);
     pn->nodes[0] = (mp_int_t)p;
     pn->nodes[1] = len;
-    push_result_node(parser, (mp_parse_node_t)pn);
+    return (mp_parse_node_t)pn;
 }
 
-STATIC void push_result_token(parser_t *parser, const mp_lexer_t *lex) {
-    const mp_token_t *tok = mp_lexer_cur(lex);
+STATIC mp_parse_node_t make_node_const_object(parser_t *parser, mp_uint_t src_line, mp_obj_t obj) {
+    mp_parse_node_struct_t *pn = m_new_obj_var_maybe(mp_parse_node_struct_t, mp_parse_node_t, 1);
+    if (pn == NULL) {
+        memory_error(parser);
+        return MP_PARSE_NODE_NULL;
+    }
+    pn->source_line = src_line;
+    pn->kind_num_nodes = RULE_const_object | (1 << 8);
+    pn->nodes[0] = (mp_uint_t)obj;
+    return (mp_parse_node_t)pn;
+}
+
+STATIC void push_result_token(parser_t *parser) {
     mp_parse_node_t pn;
-    if (tok->kind == MP_TOKEN_NAME) {
-        pn = mp_parse_node_new_leaf(MP_PARSE_NODE_ID, qstr_from_strn(tok->str, tok->len));
-    } else if (tok->kind == MP_TOKEN_NUMBER) {
-        bool dec = false;
-        bool small_int = true;
-        mp_int_t int_val = 0;
-        mp_uint_t len = tok->len;
-        const char *str = tok->str;
-        mp_uint_t base = 0;
-        mp_uint_t i = mp_parse_num_base(str, len, &base);
-        bool overflow = false;
-        for (; i < len; i++) {
-            mp_uint_t dig;
-            if (unichar_isdigit(str[i]) && str[i] - '0' < base) {
-                dig = str[i] - '0';
-            } else if (base == 16 && 'a' <= str[i] && str[i] <= 'f') {
-                dig = str[i] - 'a' + 10;
-            } else if (base == 16 && 'A' <= str[i] && str[i] <= 'F') {
-                dig = str[i] - 'A' + 10;
-            } else if (str[i] == '.' || str[i] == 'e' || str[i] == 'E' || str[i] == 'j' || str[i] == 'J') {
-                dec = true;
-                break;
-            } else {
-                small_int = false;
-                break;
-            }
-            // add next digi and check for overflow
-            if (mp_small_int_mul_overflow(int_val, base)) {
-                overflow = true;
-            }
-            int_val = int_val * base + dig;
-            if (!MP_SMALL_INT_FITS(int_val)) {
-                overflow = true;
-            }
-        }
-        if (dec) {
-            pn = mp_parse_node_new_leaf(MP_PARSE_NODE_DECIMAL, qstr_from_strn(str, len));
-        } else if (small_int && !overflow && MP_SMALL_INT_FITS(int_val)) {
-            pn = mp_parse_node_new_leaf(MP_PARSE_NODE_SMALL_INT, int_val);
+    mp_lexer_t *lex = parser->lexer;
+    if (lex->tok_kind == MP_TOKEN_NAME) {
+        pn = mp_parse_node_new_leaf(MP_PARSE_NODE_ID, qstr_from_strn(lex->vstr.buf, lex->vstr.len));
+    } else if (lex->tok_kind == MP_TOKEN_INTEGER) {
+        mp_obj_t o = mp_parse_num_integer(lex->vstr.buf, lex->vstr.len, 0, lex);
+        if (MP_OBJ_IS_SMALL_INT(o)) {
+            pn = mp_parse_node_new_leaf(MP_PARSE_NODE_SMALL_INT, MP_OBJ_SMALL_INT_VALUE(o));
         } else {
-            pn = mp_parse_node_new_leaf(MP_PARSE_NODE_INTEGER, qstr_from_strn(str, len));
+            pn = make_node_const_object(parser, lex->tok_line, o);
         }
-    } else if (tok->kind == MP_TOKEN_STRING) {
-        // Don't automatically intern all strings.  doc strings (which are usually large)
+    } else if (lex->tok_kind == MP_TOKEN_FLOAT_OR_IMAG) {
+        mp_obj_t o = mp_parse_num_decimal(lex->vstr.buf, lex->vstr.len, true, false, lex);
+        pn = make_node_const_object(parser, lex->tok_line, o);
+    } else if (lex->tok_kind == MP_TOKEN_STRING || lex->tok_kind == MP_TOKEN_BYTES) {
+        // Don't automatically intern all strings/bytes.  doc strings (which are usually large)
         // will be discarded by the compiler, and so we shouldn't intern them.
         qstr qst = MP_QSTR_NULL;
-        if (tok->len <= MICROPY_ALLOC_PARSE_INTERN_STRING_LEN) {
+        if (lex->vstr.len <= MICROPY_ALLOC_PARSE_INTERN_STRING_LEN) {
             // intern short strings
-            qst = qstr_from_strn(tok->str, tok->len);
+            qst = qstr_from_strn(lex->vstr.buf, lex->vstr.len);
         } else {
             // check if this string is already interned
-            qst = qstr_find_strn(tok->str, tok->len);
+            qst = qstr_find_strn(lex->vstr.buf, lex->vstr.len);
         }
         if (qst != MP_QSTR_NULL) {
             // qstr exists, make a leaf node
-            pn = mp_parse_node_new_leaf(MP_PARSE_NODE_STRING, qst);
+            pn = mp_parse_node_new_leaf(lex->tok_kind == MP_TOKEN_STRING ? MP_PARSE_NODE_STRING : MP_PARSE_NODE_BYTES, qst);
         } else {
-            // not interned, make a node holding a pointer to the string data
-            push_result_string(parser, mp_lexer_cur(lex)->src_line, tok->str, tok->len);
-            return;
+            // not interned, make a node holding a pointer to the string/bytes data
+            pn = make_node_string_bytes(parser, lex->tok_line, lex->tok_kind == MP_TOKEN_STRING ? RULE_string : RULE_bytes, lex->vstr.buf, lex->vstr.len);
         }
-    } else if (tok->kind == MP_TOKEN_BYTES) {
-        pn = mp_parse_node_new_leaf(MP_PARSE_NODE_BYTES, qstr_from_strn(tok->str, tok->len));
     } else {
-        pn = mp_parse_node_new_leaf(MP_PARSE_NODE_TOKEN, tok->kind);
+        pn = mp_parse_node_new_leaf(MP_PARSE_NODE_TOKEN, lex->tok_kind);
     }
     push_result_node(parser, pn);
 }
@@ -384,7 +387,7 @@ STATIC void push_result_rule(parser_t *parser, mp_uint_t src_line, const rule_t 
     push_result_node(parser, (mp_parse_node_t)pn);
 }
 
-mp_parse_node_t mp_parse(mp_lexer_t *lex, mp_parse_input_kind_t input_kind, mp_parse_error_kind_t *parse_error_kind_out) {
+mp_parse_node_t mp_parse(mp_lexer_t *lex, mp_parse_input_kind_t input_kind) {
 
     // initialise parser and allocate memory for its stacks
 
@@ -414,7 +417,7 @@ mp_parse_node_t mp_parse(mp_lexer_t *lex, mp_parse_input_kind_t input_kind, mp_p
         case MP_PARSE_EVAL_INPUT: top_level_rule = RULE_eval_input; break;
         default: top_level_rule = RULE_file_input;
     }
-    push_rule(&parser, mp_lexer_cur(lex)->src_line, rules[top_level_rule], 0);
+    push_rule(&parser, lex->tok_line, rules[top_level_rule], 0);
 
     // parse!
 
@@ -422,9 +425,6 @@ mp_parse_node_t mp_parse(mp_lexer_t *lex, mp_parse_input_kind_t input_kind, mp_p
     mp_uint_t rule_src_line; // source line for the first token matched by the current rule
     bool backtrack = false;
     const rule_t *rule = NULL;
-    mp_token_kind_t tok_kind;
-    bool emit_rule;
-    bool had_trailing_sep;
 
     for (;;) {
         next_rule:
@@ -454,23 +454,25 @@ mp_parse_node_t mp_parse(mp_lexer_t *lex, mp_parse_input_kind_t input_kind, mp_p
                 for (; i < n - 1; ++i) {
                     switch (rule->arg[i] & RULE_ARG_KIND_MASK) {
                         case RULE_ARG_TOK:
-                            if (mp_lexer_is_kind(lex, rule->arg[i] & RULE_ARG_ARG_MASK)) {
-                                push_result_token(&parser, lex);
+                            if (lex->tok_kind == (rule->arg[i] & RULE_ARG_ARG_MASK)) {
+                                push_result_token(&parser);
                                 mp_lexer_to_next(lex);
                                 goto next_rule;
                             }
                             break;
                         case RULE_ARG_RULE:
+                        rule_or_no_other_choice:
                             push_rule(&parser, rule_src_line, rule, i + 1); // save this or-rule
                             push_rule_from_arg(&parser, rule->arg[i]); // push child of or-rule
                             goto next_rule;
                         default:
                             assert(0);
+                            goto rule_or_no_other_choice; // to help flow control analysis
                     }
                 }
                 if ((rule->arg[i] & RULE_ARG_KIND_MASK) == RULE_ARG_TOK) {
-                    if (mp_lexer_is_kind(lex, rule->arg[i] & RULE_ARG_ARG_MASK)) {
-                        push_result_token(&parser, lex);
+                    if (lex->tok_kind == (rule->arg[i] & RULE_ARG_ARG_MASK)) {
+                        push_result_token(&parser);
                         mp_lexer_to_next(lex);
                     } else {
                         backtrack = true;
@@ -481,7 +483,7 @@ mp_parse_node_t mp_parse(mp_lexer_t *lex, mp_parse_input_kind_t input_kind, mp_p
                 }
                 break;
 
-            case RULE_ACT_AND:
+            case RULE_ACT_AND: {
 
                 // failed, backtrack if we can, else syntax error
                 if (backtrack) {
@@ -504,13 +506,13 @@ mp_parse_node_t mp_parse(mp_lexer_t *lex, mp_parse_input_kind_t input_kind, mp_p
                 // progress through the rule
                 for (; i < n; ++i) {
                     switch (rule->arg[i] & RULE_ARG_KIND_MASK) {
-                        case RULE_ARG_TOK:
+                        case RULE_ARG_TOK: {
                             // need to match a token
-                            tok_kind = rule->arg[i] & RULE_ARG_ARG_MASK;
-                            if (mp_lexer_is_kind(lex, tok_kind)) {
+                            mp_token_kind_t tok_kind = rule->arg[i] & RULE_ARG_ARG_MASK;
+                            if (lex->tok_kind == tok_kind) {
                                 // matched token
                                 if (tok_kind == MP_TOKEN_NAME) {
-                                    push_result_token(&parser, lex);
+                                    push_result_token(&parser);
                                 }
                                 mp_lexer_to_next(lex);
                             } else {
@@ -525,13 +527,16 @@ mp_parse_node_t mp_parse(mp_lexer_t *lex, mp_parse_input_kind_t input_kind, mp_p
                                 }
                             }
                             break;
+                        }
                         case RULE_ARG_RULE:
                         case RULE_ARG_OPT_RULE:
+                        rule_and_no_other_choice:
                             push_rule(&parser, rule_src_line, rule, i + 1); // save this and-rule
                             push_rule_from_arg(&parser, rule->arg[i]); // push child of and-rule
                             goto next_rule;
                         default:
                             assert(0);
+                            goto rule_and_no_other_choice; // to help flow control analysis
                     }
                 }
 
@@ -541,10 +546,10 @@ mp_parse_node_t mp_parse(mp_lexer_t *lex, mp_parse_input_kind_t input_kind, mp_p
 
                 // count number of arguments for the parse_node
                 i = 0;
-                emit_rule = false;
+                bool emit_rule = false;
                 for (mp_uint_t x = 0; x < n; ++x) {
                     if ((rule->arg[x] & RULE_ARG_KIND_MASK) == RULE_ARG_TOK) {
-                        tok_kind = rule->arg[x] & RULE_ARG_ARG_MASK;
+                        mp_token_kind_t tok_kind = rule->arg[x] & RULE_ARG_ARG_MASK;
                         if (tok_kind >= MP_TOKEN_NAME) {
                             emit_rule = true;
                         }
@@ -576,15 +581,17 @@ mp_parse_node_t mp_parse(mp_lexer_t *lex, mp_parse_input_kind_t input_kind, mp_p
                     emit_rule = true;
                 }
 
-                // never emit these rules if they have only 1 argument
-                // NOTE: can't put atom_paren here because we need it to distinguisg, for example, [a,b] from [(a,b)]
-                // TODO possibly put varargslist_name, varargslist_equal here as well
-                if (rule->rule_id == RULE_else_stmt || rule->rule_id == RULE_testlist_comp_3b || rule->rule_id == RULE_import_as_names_paren || rule->rule_id == RULE_typedargslist_name || rule->rule_id == RULE_typedargslist_colon || rule->rule_id == RULE_typedargslist_equal || rule->rule_id == RULE_dictorsetmaker_colon || rule->rule_id == RULE_classdef_2 || rule->rule_id == RULE_with_item_as || rule->rule_id == RULE_assert_stmt_extra || rule->rule_id == RULE_as_name || rule->rule_id == RULE_raise_stmt_from || rule->rule_id == RULE_vfpdef || rule->rule_id == RULE_funcdefrettype) {
+                // if a rule has the RULE_ACT_ALLOW_IDENT bit set then this
+                // rule should not be emitted if it has only 1 argument
+                // NOTE: can't set this flag for atom_paren because we need it
+                // to distinguish, for example, [a,b] from [(a,b)]
+                // TODO possibly set for: varargslist_name, varargslist_equal
+                if (rule->act & RULE_ACT_ALLOW_IDENT) {
                     emit_rule = false;
                 }
 
                 // always emit these rules, and add an extra blank node at the end (to be used by the compiler to store data)
-                if (ADD_BLANK_NODE(rule->rule_id)) {
+                if (ADD_BLANK_NODE(rule)) {
                     emit_rule = true;
                     push_result_node(&parser, MP_PARSE_NODE_NULL);
                     i += 1;
@@ -617,11 +624,13 @@ mp_parse_node_t mp_parse(mp_lexer_t *lex, mp_parse_input_kind_t input_kind, mp_p
                     push_result_rule(&parser, rule_src_line, rule, i);
                 }
                 break;
+            }
 
-            case RULE_ACT_LIST:
+            case RULE_ACT_LIST: {
                 // n=2 is: item item*
                 // n=1 is: item (sep item)*
                 // n=3 is: item (sep item)* [sep]
+                bool had_trailing_sep;
                 if (backtrack) {
                     list_backtrack:
                     had_trailing_sep = false;
@@ -657,11 +666,11 @@ mp_parse_node_t mp_parse(mp_lexer_t *lex, mp_parse_input_kind_t input_kind, mp_p
                         mp_uint_t arg = rule->arg[i & 1 & n];
                         switch (arg & RULE_ARG_KIND_MASK) {
                             case RULE_ARG_TOK:
-                                if (mp_lexer_is_kind(lex, arg & RULE_ARG_ARG_MASK)) {
+                                if (lex->tok_kind == (arg & RULE_ARG_ARG_MASK)) {
                                     if (i & 1 & n) {
                                         // separators which are tokens are not pushed to result stack
                                     } else {
-                                        push_result_token(&parser, lex);
+                                        push_result_token(&parser);
                                     }
                                     mp_lexer_to_next(lex);
                                     // got element of list, so continue parsing list
@@ -674,11 +683,13 @@ mp_parse_node_t mp_parse(mp_lexer_t *lex, mp_parse_input_kind_t input_kind, mp_p
                                 }
                                 break;
                             case RULE_ARG_RULE:
+                            rule_list_no_other_choice:
                                 push_rule(&parser, rule_src_line, rule, i + 1); // save this list-rule
                                 push_rule_from_arg(&parser, arg); // push child of list-rule
                                 goto next_rule;
                             default:
                                 assert(0);
+                                goto rule_list_no_other_choice; // to help flow control analysis
                         }
                     }
                 }
@@ -704,25 +715,27 @@ mp_parse_node_t mp_parse(mp_lexer_t *lex, mp_parse_input_kind_t input_kind, mp_p
                     push_result_rule(&parser, rule_src_line, rule, i);
                 }
                 break;
+            }
 
             default:
                 assert(0);
         }
     }
 
+    mp_obj_t exc;
     mp_parse_node_t result;
 
     // check if we had a memory error
     if (parser.had_memory_error) {
 memory_error:
-        *parse_error_kind_out = MP_PARSE_ERROR_MEMORY;
+        exc = mp_obj_new_exception_msg(&mp_type_MemoryError,
+            "parser could not allocate enough memory");
         result = MP_PARSE_NODE_NULL;
         goto finished;
-
     }
 
     // check we are at the end of the token stream
-    if (!mp_lexer_is_kind(lex, MP_TOKEN_END)) {
+    if (lex->tok_kind != MP_TOKEN_END) {
         goto syntax_error;
     }
 
@@ -734,28 +747,42 @@ memory_error:
 
     // get the root parse node that we created
     assert(parser.result_stack_top == 1);
+    exc = MP_OBJ_NULL;
     result = parser.result_stack[0];
 
 finished:
     // free the memory that we don't need anymore
     m_del(rule_stack_t, parser.rule_stack, parser.rule_stack_alloc);
     m_del(mp_parse_node_t, parser.result_stack, parser.result_stack_alloc);
+    // we also free the lexer on behalf of the caller (see below)
 
-    // return the result
-    return result;
+    if (exc != MP_OBJ_NULL) {
+        // had an error so raise the exception
+        // add traceback to give info about file name and location
+        // we don't have a 'block' name, so just pass the NULL qstr to indicate this
+        mp_obj_exception_add_traceback(exc, lex->source_name, lex->tok_line, MP_QSTR_NULL);
+        mp_lexer_free(lex);
+        nlr_raise(exc);
+    } else {
+        mp_lexer_free(lex);
+        return result;
+    }
 
 syntax_error:
-    if (mp_lexer_is_kind(lex, MP_TOKEN_INDENT)) {
-        *parse_error_kind_out = MP_PARSE_ERROR_UNEXPECTED_INDENT;
-    } else if (mp_lexer_is_kind(lex, MP_TOKEN_DEDENT_MISMATCH)) {
-        *parse_error_kind_out = MP_PARSE_ERROR_UNMATCHED_UNINDENT;
+    if (lex->tok_kind == MP_TOKEN_INDENT) {
+        exc = mp_obj_new_exception_msg(&mp_type_IndentationError,
+            "unexpected indent");
+    } else if (lex->tok_kind == MP_TOKEN_DEDENT_MISMATCH) {
+        exc = mp_obj_new_exception_msg(&mp_type_IndentationError,
+            "unindent does not match any outer indentation level");
     } else {
-        *parse_error_kind_out = MP_PARSE_ERROR_INVALID_SYNTAX;
+        exc = mp_obj_new_exception_msg(&mp_type_SyntaxError,
+            "invalid syntax");
 #ifdef USE_RULE_NAME
         // debugging: print the rule name that failed and the token
         printf("rule: %s\n", rule->rule_name);
 #if MICROPY_DEBUG_PRINTERS
-        mp_token_show(mp_lexer_cur(lex));
+        mp_lexer_show_token(lex);
 #endif
 #endif
     }

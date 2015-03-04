@@ -23,16 +23,22 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#ifndef __MICROPY_INCLUDED_PY_BINARY_H__
+#define __MICROPY_INCLUDED_PY_BINARY_H__
+
+#include "py/obj.h"
 
 // Use special typecode to differentiate repr() of bytearray vs array.array('B')
 // (underlyingly they're same).
 #define BYTEARRAY_TYPECODE 0
 
 int mp_binary_get_size(char struct_type, char val_type, mp_uint_t *palign);
-mp_obj_t mp_binary_get_val_array(char typecode, void *p, int index);
-void mp_binary_set_val_array(char typecode, void *p, int index, mp_obj_t val_in);
-void mp_binary_set_val_array_from_int(char typecode, void *p, int index, mp_int_t val);
+mp_obj_t mp_binary_get_val_array(char typecode, void *p, mp_uint_t index);
+void mp_binary_set_val_array(char typecode, void *p, mp_uint_t index, mp_obj_t val_in);
+void mp_binary_set_val_array_from_int(char typecode, void *p, mp_uint_t index, mp_int_t val);
 mp_obj_t mp_binary_get_val(char struct_type, char val_type, byte **ptr);
 void mp_binary_set_val(char struct_type, char val_type, mp_obj_t val_in, byte **ptr);
-long long mp_binary_get_int(mp_uint_t size, bool is_signed, bool big_endian, byte *p);
-void mp_binary_set_int(mp_uint_t val_sz, bool big_endian, byte *p, byte *val_ptr);
+long long mp_binary_get_int(mp_uint_t size, bool is_signed, bool big_endian, const byte *src);
+void mp_binary_set_int(mp_uint_t val_sz, bool big_endian, byte *dest, mp_uint_t val);
+
+#endif // __MICROPY_INCLUDED_PY_BINARY_H__

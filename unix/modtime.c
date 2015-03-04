@@ -30,11 +30,7 @@
 #include <sys/time.h>
 #include <math.h>
 
-#include "mpconfig.h"
-#include "misc.h"
-#include "qstr.h"
-#include "obj.h"
-#include "runtime.h"
+#include "py/runtime.h"
 
 #ifdef _WIN32
 void msec_sleep_tv(struct timeval *tv) {
@@ -56,12 +52,12 @@ void msec_sleep_tv(struct timeval *tv) {
 #endif
 
 #if defined(MP_CLOCKS_PER_SEC)
-#define CLOCK_DIV (MP_CLOCKS_PER_SEC / 1000.0)
+#define CLOCK_DIV (MP_CLOCKS_PER_SEC / 1000.0F)
 #else
 #error Unsupported clock() implementation
 #endif
 
-STATIC mp_obj_t mod_time_time() {
+STATIC mp_obj_t mod_time_time(void) {
 #if MICROPY_PY_BUILTINS_FLOAT
     struct timeval tv;
     gettimeofday(&tv, NULL);
@@ -74,7 +70,7 @@ STATIC mp_obj_t mod_time_time() {
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(mod_time_time_obj, mod_time_time);
 
 // Note: this is deprecated since CPy3.3, but pystone still uses it.
-STATIC mp_obj_t mod_time_clock() {
+STATIC mp_obj_t mod_time_clock(void) {
 #if MICROPY_PY_BUILTINS_FLOAT
     // float cannot represent full range of int32 precisely, so we pre-divide
     // int to reduce resolution, and then actually do float division hoping
@@ -102,25 +98,16 @@ STATIC mp_obj_t mod_time_sleep(mp_obj_t arg) {
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(mod_time_sleep_obj, mod_time_sleep);
 
 STATIC const mp_map_elem_t mp_module_time_globals_table[] = {
-    { MP_OBJ_NEW_QSTR(MP_QSTR___name__), MP_OBJ_NEW_QSTR(MP_QSTR_time) },
+    { MP_OBJ_NEW_QSTR(MP_QSTR___name__), MP_OBJ_NEW_QSTR(MP_QSTR_utime) },
     { MP_OBJ_NEW_QSTR(MP_QSTR_clock), (mp_obj_t)&mod_time_clock_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_sleep), (mp_obj_t)&mod_time_sleep_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_time), (mp_obj_t)&mod_time_time_obj },
 };
 
-STATIC const mp_obj_dict_t mp_module_time_globals = {
-    .base = {&mp_type_dict},
-    .map = {
-        .all_keys_are_qstrs = 1,
-        .table_is_fixed_array = 1,
-        .used = MP_ARRAY_SIZE(mp_module_time_globals_table),
-        .alloc = MP_ARRAY_SIZE(mp_module_time_globals_table),
-        .table = (mp_map_elem_t*)mp_module_time_globals_table,
-    },
-};
+STATIC MP_DEFINE_CONST_DICT(mp_module_time_globals, mp_module_time_globals_table);
 
 const mp_obj_module_t mp_module_time = {
     .base = { &mp_type_module },
-    .name = MP_QSTR_time,
+    .name = MP_QSTR_utime,
     .globals = (mp_obj_dict_t*)&mp_module_time_globals,
 };

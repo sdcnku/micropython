@@ -23,6 +23,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#ifndef __MICROPY_INCLUDED_PY_ASMX64_H__
+#define __MICROPY_INCLUDED_PY_ASMX64_H__
+
+#include "py/mpconfig.h"
+#include "py/misc.h"
 
 // AMD64 calling convention is:
 //  - args pass in: RDI, RSI, RDX, RCX, R08, R09
@@ -83,9 +88,14 @@ void asm_x64_mov_r64_r64(asm_x64_t* as, int dest_r64, int src_r64);
 void asm_x64_mov_i64_to_r64(asm_x64_t* as, int64_t src_i64, int dest_r64);
 void asm_x64_mov_i64_to_r64_optimised(asm_x64_t *as, int64_t src_i64, int dest_r64);
 void asm_x64_mov_i64_to_r64_aligned(asm_x64_t *as, int64_t src_i64, int dest_r64);
-void asm_x64_mov_r8_to_disp(asm_x64_t *as, int src_r64, int dest_r64, int dest_disp);
-void asm_x64_mov_r16_to_disp(asm_x64_t *as, int src_r64, int dest_r64, int dest_disp);
-void asm_x64_mov_r64_to_disp(asm_x64_t *as, int src_r64, int dest_r64, int dest_disp);
+void asm_x64_mov_r8_to_mem8(asm_x64_t *as, int src_r64, int dest_r64, int dest_disp);
+void asm_x64_mov_r16_to_mem16(asm_x64_t *as, int src_r64, int dest_r64, int dest_disp);
+void asm_x64_mov_r64_to_mem64(asm_x64_t *as, int src_r64, int dest_r64, int dest_disp);
+void asm_x64_mov_mem8_to_r64zx(asm_x64_t *as, int src_r64, int src_disp, int dest_r64);
+void asm_x64_mov_mem16_to_r64zx(asm_x64_t *as, int src_r64, int src_disp, int dest_r64);
+void asm_x64_mov_mem64_to_r64(asm_x64_t *as, int src_r64, int src_disp, int dest_r64);
+void asm_x64_and_r64_r64(asm_x64_t *as, int dest_r64, int src_r64);
+void asm_x64_or_r64_r64(asm_x64_t *as, int dest_r64, int src_r64);
 void asm_x64_xor_r64_r64(asm_x64_t *as, int dest_r64, int src_r64);
 void asm_x64_shl_r64_cl(asm_x64_t* as, int dest_r64);
 void asm_x64_sar_r64_cl(asm_x64_t* as, int dest_r64);
@@ -94,12 +104,14 @@ void asm_x64_sub_r64_r64(asm_x64_t* as, int dest_r64, int src_r64);
 void asm_x64_cmp_r64_with_r64(asm_x64_t* as, int src_r64_a, int src_r64_b);
 void asm_x64_test_r8_with_r8(asm_x64_t* as, int src_r64_a, int src_r64_b);
 void asm_x64_setcc_r8(asm_x64_t* as, int jcc_type, int dest_r8);
-void asm_x64_label_assign(asm_x64_t* as, int label);
-void asm_x64_jmp_label(asm_x64_t* as, int label);
-void asm_x64_jcc_label(asm_x64_t* as, int jcc_type, int label);
+void asm_x64_label_assign(asm_x64_t* as, mp_uint_t label);
+void asm_x64_jmp_label(asm_x64_t* as, mp_uint_t label);
+void asm_x64_jcc_label(asm_x64_t* as, int jcc_type, mp_uint_t label);
 void asm_x64_entry(asm_x64_t* as, int num_locals);
 void asm_x64_exit(asm_x64_t* as);
 void asm_x64_mov_local_to_r64(asm_x64_t* as, int src_local_num, int dest_r64);
 void asm_x64_mov_r64_to_local(asm_x64_t* as, int src_r64, int dest_local_num);
 void asm_x64_mov_local_addr_to_r64(asm_x64_t* as, int local_num, int dest_r64);
 void asm_x64_call_ind(asm_x64_t* as, void* ptr, int temp_r32);
+
+#endif // __MICROPY_INCLUDED_PY_ASMX64_H__

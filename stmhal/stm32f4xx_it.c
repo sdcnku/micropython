@@ -70,16 +70,15 @@
 #include "stm32f4xx_it.h"
 #include "stm32f4xx_hal.h"
 
-#include "mpconfig.h"
-#include "misc.h"
-#include "qstr.h"
-#include "obj.h"
+#include "py/obj.h"
 #include "extint.h"
 #include "timer.h"
+#include "uart.h"
 #include "storage.h"
+#include "can.h"
 
 extern void __fatal_error(const char*);
-extern PCD_HandleTypeDef hpcd;
+extern PCD_HandleTypeDef pcd_handle;
 extern DCMI_HandleTypeDef DCMIHandle;
 extern SPI_HandleTypeDef  SPIHandle;
 
@@ -209,7 +208,7 @@ void SysTick_Handler(void) {
 
 #if defined(OTG_XX_IRQHandler)
 void OTG_XX_IRQHandler(void) {
-    HAL_PCD_IRQHandler(&hpcd);
+    HAL_PCD_IRQHandler(&pcd_handle);
 }
 #endif
 
@@ -221,7 +220,7 @@ void OTG_XX_IRQHandler(void) {
 #if defined(OTG_XX_WKUP_IRQHandler)
 void OTG_XX_WKUP_IRQHandler(void) {
 
-  if ((&hpcd)->Init.low_power_enable) {
+  if ((&pcd_handle)->Init.low_power_enable) {
     /* Reset SLEEPDEEP bit of Cortex System Control Register */
     SCB->SCR &= (uint32_t)~((uint32_t)(SCB_SCR_SLEEPDEEP_Msk | SCB_SCR_SLEEPONEXIT_Msk));
 
@@ -248,7 +247,7 @@ void OTG_XX_WKUP_IRQHandler(void) {
     {}
 
     /* ungate PHY clock */
-     __HAL_PCD_UNGATE_PHYCLOCK((&hpcd));
+     __HAL_PCD_UNGATE_PHYCLOCK((&pcd_handle));
   }
 #ifdef USE_USB_FS
   /* Clear EXTI pending Bit*/
@@ -393,10 +392,49 @@ void DMA2_Stream1_IRQHandler(void) {
     HAL_DMA_IRQHandler(DCMIHandle.DMA_Handle);
 }
 
-void DMA2_Stream3_IRQHandler(void) {
-    HAL_DMA_IRQHandler(SPIHandle.hdmarx);
+//void DMA2_Stream3_IRQHandler(void) {
+//    HAL_DMA_IRQHandler(SPIHandle.hdmarx);
+//}
+//
+//void DMA2_Stream4_IRQHandler(void) {
+//    HAL_DMA_IRQHandler(SPIHandle.hdmatx);
+//}
+
+// UART/USART IRQ handlers
+void USART1_IRQHandler(void) {
+    uart_irq_handler(1);
 }
 
-void DMA2_Stream4_IRQHandler(void) {
-    HAL_DMA_IRQHandler(SPIHandle.hdmatx);
+void USART2_IRQHandler(void) {
+    uart_irq_handler(2);
 }
+
+void USART3_IRQHandler(void) {
+    uart_irq_handler(3);
+}
+
+void UART4_IRQHandler(void) {
+    uart_irq_handler(4);
+}
+
+void USART6_IRQHandler(void) {
+    uart_irq_handler(6);
+}
+
+#if MICROPY_HW_ENABLE_CAN
+void CAN1_RX0_IRQHandler(void) {
+    can_rx_irq_handler(PYB_CAN_1, CAN_FIFO0);
+}
+
+void CAN1_RX1_IRQHandler(void) {
+    can_rx_irq_handler(PYB_CAN_1, CAN_FIFO1);
+}
+
+void CAN2_RX0_IRQHandler(void) {
+    can_rx_irq_handler(PYB_CAN_2, CAN_FIFO0);
+}
+
+void CAN2_RX1_IRQHandler(void) {
+    can_rx_irq_handler(PYB_CAN_2, CAN_FIFO1);
+}
+#endif // MICROPY_HW_ENABLE_CAN

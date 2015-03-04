@@ -23,6 +23,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#ifndef __MICROPY_INCLUDED_PY_RUNTIME_H__
+#define __MICROPY_INCLUDED_PY_RUNTIME_H__
+
+#include "py/mpstate.h"
+#include "py/obj.h"
 
 typedef enum {
     MP_VM_RETURN_NORMAL,
@@ -46,10 +51,14 @@ typedef union _mp_arg_val_t {
 } mp_arg_val_t;
 
 typedef struct _mp_arg_t {
-    qstr qstr;
+    qstr qst;
     mp_uint_t flags;
     mp_arg_val_t defval;
 } mp_arg_t;
+
+// defined in objtype.c
+extern const qstr mp_unary_op_method_name[];
+extern const qstr mp_binary_op_method_name[];
 
 void mp_init(void);
 void mp_deinit(void);
@@ -57,28 +66,29 @@ void mp_deinit(void);
 void mp_arg_check_num(mp_uint_t n_args, mp_uint_t n_kw, mp_uint_t n_args_min, mp_uint_t n_args_max, bool takes_kw);
 void mp_arg_parse_all(mp_uint_t n_pos, const mp_obj_t *pos, mp_map_t *kws, mp_uint_t n_allowed, const mp_arg_t *allowed, mp_arg_val_t *out_vals);
 void mp_arg_parse_all_kw_array(mp_uint_t n_pos, mp_uint_t n_kw, const mp_obj_t *args, mp_uint_t n_allowed, const mp_arg_t *allowed, mp_arg_val_t *out_vals);
+NORETURN void mp_arg_error_terse_mismatch(void);
 NORETURN void mp_arg_error_unimpl_kw(void);
 
-mp_obj_dict_t *mp_locals_get(void);
-void mp_locals_set(mp_obj_dict_t *d);
-mp_obj_dict_t *mp_globals_get(void);
-void mp_globals_set(mp_obj_dict_t *d);
+static inline mp_obj_dict_t *mp_locals_get(void) { return MP_STATE_CTX(dict_locals); }
+static inline void mp_locals_set(mp_obj_dict_t *d) { MP_STATE_CTX(dict_locals) = d; }
+static inline mp_obj_dict_t *mp_globals_get(void) { return MP_STATE_CTX(dict_globals); }
+static inline void mp_globals_set(mp_obj_dict_t *d) { MP_STATE_CTX(dict_globals) = d; }
 
-mp_obj_t mp_load_name(qstr qstr);
-mp_obj_t mp_load_global(qstr qstr);
+mp_obj_t mp_load_name(qstr qst);
+mp_obj_t mp_load_global(qstr qst);
 mp_obj_t mp_load_build_class(void);
-void mp_store_name(qstr qstr, mp_obj_t obj);
-void mp_store_global(qstr qstr, mp_obj_t obj);
-void mp_delete_name(qstr qstr);
-void mp_delete_global(qstr qstr);
+void mp_store_name(qstr qst, mp_obj_t obj);
+void mp_store_global(qstr qst, mp_obj_t obj);
+void mp_delete_name(qstr qst);
+void mp_delete_global(qstr qst);
 
 mp_obj_t mp_unary_op(mp_uint_t op, mp_obj_t arg);
 mp_obj_t mp_binary_op(mp_uint_t op, mp_obj_t lhs, mp_obj_t rhs);
 
-mp_obj_t mp_load_const_int(qstr qstr);
-mp_obj_t mp_load_const_dec(qstr qstr);
-mp_obj_t mp_load_const_str(qstr qstr);
-mp_obj_t mp_load_const_bytes(qstr qstr);
+mp_obj_t mp_load_const_int(qstr qst);
+mp_obj_t mp_load_const_dec(qstr qst);
+mp_obj_t mp_load_const_str(qstr qst);
+mp_obj_t mp_load_const_bytes(qstr qst);
 
 mp_obj_t mp_call_function_0(mp_obj_t fun);
 mp_obj_t mp_call_function_1(mp_obj_t fun, mp_obj_t arg);
@@ -102,7 +112,6 @@ mp_vm_return_kind_t mp_resume(mp_obj_t self_in, mp_obj_t send_value, mp_obj_t th
 
 mp_obj_t mp_make_raise_obj(mp_obj_t o);
 
-mp_map_t *mp_loaded_modules_get(void);
 mp_obj_t mp_import_name(qstr name, mp_obj_t fromlist, mp_obj_t level);
 mp_obj_t mp_import_from(mp_obj_t module, qstr name);
 void mp_import_all(mp_obj_t module);
@@ -114,9 +123,15 @@ NORETURN void mp_not_implemented(const char *msg);
 mp_uint_t mp_convert_obj_to_native(mp_obj_t obj, mp_uint_t type);
 mp_obj_t mp_convert_native_to_obj(mp_uint_t val, mp_uint_t type);
 mp_obj_t mp_native_call_function_n_kw(mp_obj_t fun_in, mp_uint_t n_args_kw, const mp_obj_t *args);
-NORETURN void mp_native_raise(mp_obj_t o);
+void mp_native_raise(mp_obj_t o);
 
-extern struct _mp_obj_list_t mp_sys_path_obj;
-extern struct _mp_obj_list_t mp_sys_argv_obj;
-#define mp_sys_path ((mp_obj_t)&mp_sys_path_obj)
-#define mp_sys_argv ((mp_obj_t)&mp_sys_argv_obj)
+#define mp_sys_path ((mp_obj_t)&MP_STATE_VM(mp_sys_path_obj))
+#define mp_sys_argv ((mp_obj_t)&MP_STATE_VM(mp_sys_argv_obj))
+
+#if MICROPY_WARNINGS
+void mp_warning(const char *msg, ...);
+#else
+#define mp_warning(msg, ...)
+#endif
+
+#endif // __MICROPY_INCLUDED_PY_RUNTIME_H__

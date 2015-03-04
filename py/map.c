@@ -28,18 +28,26 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "mpconfig.h"
-#include "misc.h"
-#include "qstr.h"
-#include "obj.h"
-#include "runtime0.h"
+#include "py/mpconfig.h"
+#include "py/misc.h"
+#include "py/obj.h"
+
+// Fixed empty map. Useful when need to call kw-receiving functions
+// without any keywords from C, etc.
+const mp_map_t mp_const_empty_map = {
+    .all_keys_are_qstrs = 0,
+    .table_is_fixed_array = 1,
+    .used = 0,
+    .alloc = 0,
+    .table = NULL,
+};
 
 // approximatelly doubling primes; made with Mathematica command: Table[Prime[Floor[(1.7)^n]], {n, 3, 24}]
 // prefixed with zero for the empty case.
 STATIC uint32_t doubling_primes[] = {0, 7, 19, 43, 89, 179, 347, 647, 1229, 2297, 4243, 7829, 14347, 26017, 47149, 84947, 152443, 273253, 488399, 869927, 1547173, 2745121, 4861607};
 
 STATIC mp_uint_t get_doubling_prime_greater_or_equal_to(mp_uint_t x) {
-    for (int i = 0; i < MP_ARRAY_SIZE(doubling_primes); i++) {
+    for (size_t i = 0; i < MP_ARRAY_SIZE(doubling_primes); i++) {
         if (doubling_primes[i] >= x) {
             return doubling_primes[i];
         }
@@ -243,6 +251,8 @@ mp_map_elem_t* mp_map_lookup(mp_map_t *map, mp_obj_t index, mp_map_lookup_kind_t
 /******************************************************************************/
 /* set                                                                        */
 
+#if MICROPY_PY_BUILTINS_SET
+
 void mp_set_init(mp_set_t *set, mp_uint_t n) {
     set->alloc = n;
     set->used = 0;
@@ -358,7 +368,9 @@ void mp_set_clear(mp_set_t *set) {
     set->table = NULL;
 }
 
-#if DEBUG_PRINT
+#endif // MICROPY_PY_BUILTINS_SET
+
+#if defined(DEBUG_PRINT) && DEBUG_PRINT
 void mp_map_dump(mp_map_t *map) {
     for (mp_uint_t i = 0; i < map->alloc; i++) {
         if (map->table[i].key != NULL) {

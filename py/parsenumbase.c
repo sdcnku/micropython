@@ -24,14 +24,15 @@
  * THE SOFTWARE.
  */
 
-#include "mpconfig.h"
-#include "misc.h"
-#include "parsenumbase.h"
+#include "py/parsenum.h"
 
 // find real radix base, and strip preceding '0x', '0o' and '0b'
 // puts base in *base, and returns number of bytes to skip the prefix
 mp_uint_t mp_parse_num_base(const char *str, mp_uint_t len, mp_uint_t *base) {
     const byte *p = (const byte*)str;
+    if (len <= 1) {
+        goto no_prefix;
+    }
     unichar c = *(p++);
     if ((*base == 0 || *base == 16) && c == '0') {
         c = *(p++);
@@ -58,10 +59,11 @@ mp_uint_t mp_parse_num_base(const char *str, mp_uint_t len, mp_uint_t *base) {
             p -= 2;
         }
     } else {
+        p--;
+    no_prefix:
         if (*base == 0) {
             *base = 10;
         }
-        p--;
     }
     return p - (const byte*)str;
 }

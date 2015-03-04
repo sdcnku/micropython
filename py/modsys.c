@@ -24,31 +24,24 @@
  * THE SOFTWARE.
  */
 
-#include <stdint.h>
-
-#include "mpconfig.h"
-#include "nlr.h"
-#include "misc.h"
-#include "qstr.h"
-#include "obj.h"
-#include "builtin.h"
-#include "runtime.h"
-#include "objlist.h"
-#include "objtuple.h"
-#include "objstr.h"
-#include "mpz.h"
-#include "objint.h"
+#include "py/mpstate.h"
+#include "py/nlr.h"
+#include "py/builtin.h"
+#include "py/objlist.h"
+#include "py/objtuple.h"
+#include "py/objstr.h"
+#include "py/objint.h"
+#include "py/pfenv.h"
+#include "py/stream.h"
 
 #if MICROPY_PY_SYS
 
 /// \module sys - system specific functions
 
-// These two lists must be initialised per port (after the call to mp_init).
-// TODO document these properly, they aren't constants or functions...
-/// \constant path - a mutable list of directories to search for imported modules
-mp_obj_list_t mp_sys_path_obj;
-/// \constant argv - a mutable list of arguments this program started with
-mp_obj_list_t mp_sys_argv_obj;
+// defined per port; type of these is irrelevant, just need pointer
+extern mp_uint_t mp_sys_stdin_obj;
+extern mp_uint_t mp_sys_stdout_obj;
+extern mp_uint_t mp_sys_stderr_obj;
 
 /// \constant version - Python language version that this implementation conforms to, as a string
 STATIC const MP_DEFINE_STR_OBJ(version_obj, "3.4.0");
@@ -78,11 +71,30 @@ STATIC mp_obj_t mp_sys_exit(mp_uint_t n_args, const mp_obj_t *args) {
 }
 MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mp_sys_exit_obj, 0, 1, mp_sys_exit);
 
+STATIC mp_obj_t mp_sys_print_exception(mp_uint_t n_args, const mp_obj_t *args) {
+    #if MICROPY_PY_IO
+    mp_obj_t stream_obj = &mp_sys_stdout_obj;
+    if (n_args > 1) {
+        stream_obj = args[1];
+    }
+
+    pfenv_t pfenv;
+    pfenv.data = stream_obj;
+    pfenv.print_strn = (void (*)(void *, const char *, mp_uint_t))mp_stream_write;
+    mp_obj_print_exception((void (*)(void *env, const char *fmt, ...))pfenv_printf, &pfenv, args[0]);
+    #else
+    mp_obj_print_exception(printf_wrapper, NULL, args[0]);
+    #endif
+
+    return mp_const_none;
+}
+MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mp_sys_print_exception_obj, 1, 2, mp_sys_print_exception);
+
 STATIC const mp_map_elem_t mp_module_sys_globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR___name__), MP_OBJ_NEW_QSTR(MP_QSTR_sys) },
 
-    { MP_OBJ_NEW_QSTR(MP_QSTR_path), (mp_obj_t)&mp_sys_path_obj },
-    { MP_OBJ_NEW_QSTR(MP_QSTR_argv), (mp_obj_t)&mp_sys_argv_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_path), (mp_obj_t)&MP_STATE_VM(mp_sys_path_obj) },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_argv), (mp_obj_t)&MP_STATE_VM(mp_sys_argv_obj) },
     { MP_OBJ_NEW_QSTR(MP_QSTR_version), (mp_obj_t)&version_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_version_info), (mp_obj_t)&mp_sys_version_info_obj },
 #ifdef MICROPY_PY_SYS_PLATFORM
@@ -118,18 +130,15 @@ STATIC const mp_map_elem_t mp_module_sys_globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_stdout), (mp_obj_t)&mp_sys_stdout_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_stderr), (mp_obj_t)&mp_sys_stderr_obj },
 #endif
+
+    /*
+     * Extensions to CPython
+     */
+
+    { MP_OBJ_NEW_QSTR(MP_QSTR_print_exception), (mp_obj_t)&mp_sys_print_exception_obj },
 };
 
-STATIC const mp_obj_dict_t mp_module_sys_globals = {
-    .base = {&mp_type_dict},
-    .map = {
-        .all_keys_are_qstrs = 1,
-        .table_is_fixed_array = 1,
-        .used = MP_ARRAY_SIZE(mp_module_sys_globals_table),
-        .alloc = MP_ARRAY_SIZE(mp_module_sys_globals_table),
-        .table = (mp_map_elem_t*)mp_module_sys_globals_table,
-    },
-};
+STATIC MP_DEFINE_CONST_DICT(mp_module_sys_globals, mp_module_sys_globals_table);
 
 const mp_obj_module_t mp_module_sys = {
     .base = { &mp_type_module },

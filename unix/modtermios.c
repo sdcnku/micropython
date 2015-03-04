@@ -29,13 +29,9 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include "mpconfig.h"
-#include "misc.h"
-#include "nlr.h"
-#include "qstr.h"
-#include "obj.h"
-#include "runtime.h"
-#include "objlist.h"
+#include "py/nlr.h"
+#include "py/objlist.h"
+#include "py/runtime.h"
 
 #define RAISE_ERRNO(err_flag, error_val) \
     { if (err_flag == -1) \
@@ -137,16 +133,7 @@ STATIC const mp_map_elem_t mp_module_termios_globals_table[] = {
 #undef C
 };
 
-STATIC const mp_obj_dict_t mp_module_termios_globals = {
-    .base = {&mp_type_dict},
-    .map = {
-        .all_keys_are_qstrs = 1,
-        .table_is_fixed_array = 1,
-        .used = MP_ARRAY_SIZE(mp_module_termios_globals_table),
-        .alloc = MP_ARRAY_SIZE(mp_module_termios_globals_table),
-        .table = (mp_map_elem_t*)mp_module_termios_globals_table,
-    },
-};
+STATIC MP_DEFINE_CONST_DICT(mp_module_termios_globals, mp_module_termios_globals_table);
 
 const mp_obj_module_t mp_module_termios = {
     .base = { &mp_type_module },

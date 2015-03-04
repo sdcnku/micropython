@@ -27,30 +27,25 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "mpconfig.h"
-#include "misc.h"
-#include "qstr.h"
-#include "obj.h"
-#include "mpz.h"
-#include "objint.h"
-#include "pfenv.h"
+#include "py/objint.h"
+#include "py/pfenv.h"
 
 #if MICROPY_FLOAT_IMPL == MICROPY_FLOAT_IMPL_DOUBLE
 #include <stdio.h>
 #endif
 
 #if MICROPY_PY_BUILTINS_FLOAT
-#include "formatfloat.h"
+#include "py/formatfloat.h"
 #endif
 
 static const char pad_spaces[] = "                ";
 static const char pad_zeroes[] = "0000000000000000";
 
-void pfenv_vstr_add_strn(void *data, const char *str, unsigned int len){
+void pfenv_vstr_add_strn(void *data, const char *str, mp_uint_t len){
     vstr_add_strn(data, str, len);
 }
 
-int pfenv_print_strn(const pfenv_t *pfenv, const char *str, unsigned int len, int flags, char fill, int width) {
+int pfenv_print_strn(const pfenv_t *pfenv, const char *str, mp_uint_t len, int flags, char fill, int width) {
     int left_pad = 0;
     int right_pad = 0;
     int pad = width - len;
@@ -184,6 +179,8 @@ int pfenv_print_int(const pfenv_t *pfenv, mp_uint_t x, int sgn, int base, int ba
 }
 
 int pfenv_print_mp_int(const pfenv_t *pfenv, mp_obj_t x, int sgn, int base, int base_char, int flags, char fill, int width, int prec) {
+    (void)sgn; // TODO why is sgn unused?
+
     if (!MP_OBJ_IS_INT(x)) {
         // This will convert booleans to int, or raise an error for
         // non-integer types.
@@ -234,8 +231,8 @@ int pfenv_print_mp_int(const pfenv_t *pfenv, mp_obj_t x, int sgn, int base, int 
     // enough, a dynamic one will be allocated.
     char stack_buf[sizeof(mp_int_t) * 4];
     char *buf = stack_buf;
-    int buf_size = sizeof(stack_buf);
-    int fmt_size = 0;
+    mp_uint_t buf_size = sizeof(stack_buf);
+    mp_uint_t fmt_size = 0;
     char *str;
 
     if (prec > 1) {
@@ -311,7 +308,7 @@ int pfenv_print_mp_int(const pfenv_t *pfenv, mp_obj_t x, int sgn, int base, int 
     }
 
     if (buf != stack_buf) {
-        m_free(buf, buf_size);
+        m_del(char, buf, buf_size);
     }
     return len;
 }
@@ -331,7 +328,7 @@ int pfenv_print_float(const pfenv_t *pfenv, mp_float_t f, char fmt, int flags, c
     }
     int len;
 #if MICROPY_FLOAT_IMPL == MICROPY_FLOAT_IMPL_FLOAT
-    len = format_float(f, buf, sizeof(buf), fmt, prec, sign);
+    len = mp_format_float(f, buf, sizeof(buf), fmt, prec, sign);
 #elif MICROPY_FLOAT_IMPL == MICROPY_FLOAT_IMPL_DOUBLE
     char fmt_buf[6];
     char *fmt_s = fmt_buf;
@@ -346,12 +343,15 @@ int pfenv_print_float(const pfenv_t *pfenv, mp_float_t f, char fmt, int flags, c
     *fmt_s = '\0';
 
     len = snprintf(buf, sizeof(buf), fmt_buf, prec, f);
+    if (len < 0) {
+        len = 0;
+    }
 #else
 #error Unknown MICROPY FLOAT IMPL
 #endif
     char *s = buf;
 
-    if ((flags & PF_FLAG_ADD_PERCENT) && (len + 1) < sizeof(buf)) {
+    if ((flags & PF_FLAG_ADD_PERCENT) && (size_t)(len + 1) < sizeof(buf)) {
         buf[len++] = '%';
         buf[len] = '\0';
     }

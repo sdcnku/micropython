@@ -24,22 +24,17 @@
  * THE SOFTWARE.
  */
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 
-#include "mpconfig.h"
-#include "misc.h"
-#include "mpz.h"
+#include "py/mpz.h"
 
 #if MICROPY_LONGINT_IMPL == MICROPY_LONGINT_IMPL_MPZ
 
 #define DIG_SIZE (MPZ_DIG_SIZE)
-#define DIG_MASK ((1L << DIG_SIZE) - 1)
-#define DIG_MSB  (1L << (DIG_SIZE - 1))
-#define DIG_BASE (1L << DIG_SIZE)
+#define DIG_MASK ((MPZ_LONG_1 << DIG_SIZE) - 1)
+#define DIG_MSB  (MPZ_LONG_1 << (DIG_SIZE - 1))
+#define DIG_BASE (MPZ_LONG_1 << DIG_SIZE)
 
 /*
  mpz is an arbitrary precision integer type with a public API.
@@ -58,7 +53,7 @@
    returns sign(i - j)
    assumes i, j are normalised
 */
-STATIC mp_int_t mpn_cmp(const mpz_dig_t *idig, mp_uint_t ilen, const mpz_dig_t *jdig, mp_uint_t jlen) {
+STATIC int mpn_cmp(const mpz_dig_t *idig, mp_uint_t ilen, const mpz_dig_t *jdig, mp_uint_t jlen) {
     if (ilen < jlen) { return -1; }
     if (ilen > jlen) { return 1; }
 
@@ -203,10 +198,10 @@ STATIC mp_uint_t mpn_sub(mpz_dig_t *idig, const mpz_dig_t *jdig, mp_uint_t jlen,
 
 /* computes i = j & k
    returns number of digits in i
-   assumes enough memory in i; assumes normalised j, k; assumes jlen >= klen
+   assumes enough memory in i; assumes normalised j, k; assumes jlen >= klen (jlen argument not needed)
    can have i, j, k pointing to same memory
 */
-STATIC mp_uint_t mpn_and(mpz_dig_t *idig, const mpz_dig_t *jdig, mp_uint_t jlen, const mpz_dig_t *kdig, mp_uint_t klen) {
+STATIC mp_uint_t mpn_and(mpz_dig_t *idig, const mpz_dig_t *jdig, const mpz_dig_t *kdig, mp_uint_t klen) {
     mpz_dig_t *oidig = idig;
 
     for (; klen > 0; --klen, ++idig, ++jdig, ++kdig) {
@@ -361,7 +356,7 @@ STATIC void mpn_div(mpz_dig_t *num_dig, mp_uint_t *num_len, mpz_dig_t *den_dig, 
 
     // handle simple cases
     {
-        mp_int_t cmp = mpn_cmp(num_dig, *num_len, den_dig, den_len);
+        int cmp = mpn_cmp(num_dig, *num_len, den_dig, den_len);
         if (cmp == 0) {
             *num_len = 0;
             quo_dig[0] = 1;
@@ -595,6 +590,14 @@ mpz_t *mpz_from_ll(long long val, bool is_signed) {
     return z;
 }
 
+#if MICROPY_PY_BUILTINS_FLOAT
+mpz_t *mpz_from_float(mp_float_t val) {
+    mpz_t *z = mpz_zero();
+    mpz_set_from_float(z, val);
+    return z;
+}
+#endif
+
 mpz_t *mpz_from_str(const char *str, mp_uint_t len, bool neg, mp_uint_t base) {
     mpz_t *z = mpz_zero();
     mpz_set_from_str(z, str, len, neg, base);
@@ -650,6 +653,11 @@ void mpz_set(mpz_t *dest, const mpz_t *src) {
 }
 
 void mpz_set_from_int(mpz_t *z, mp_int_t val) {
+    if (val == 0) {
+        z->len = 0;
+        return;
+    }
+
     mpz_need_dig(z, MPZ_NUM_DIG_FOR_INT);
 
     mp_uint_t uval;
@@ -686,6 +694,73 @@ void mpz_set_from_ll(mpz_t *z, long long val, bool is_signed) {
         uval >>= DIG_SIZE;
     }
 }
+
+#if MICROPY_PY_BUILTINS_FLOAT
+void mpz_set_from_float(mpz_t *z, mp_float_t src) {
+#if MICROPY_FLOAT_IMPL == MICROPY_FLOAT_IMPL_DOUBLE
+typedef uint64_t mp_float_int_t;
+#elif MICROPY_FLOAT_IMPL == MICROPY_FLOAT_IMPL_FLOAT
+typedef uint32_t mp_float_int_t;
+#endif
+    union {
+        mp_float_t f;
+        struct { mp_float_int_t frc:MP_FLOAT_FRAC_BITS, exp:MP_FLOAT_EXP_BITS, sgn:1; } p;
+    } u = {src};
+
+    z->neg = u.p.sgn;
+    if (u.p.exp == 0) {
+        // value == 0 || value < 1
+        mpz_set_from_int(z, 0);
+    } else if (u.p.exp == ((1 << MP_FLOAT_EXP_BITS) - 1)) {
+        // u.p.frc == 0 indicates inf, else NaN
+        // should be handled by caller
+        mpz_set_from_int(z, 0);
+    } else {
+        const int adj_exp = (int)u.p.exp - MP_FLOAT_EXP_BIAS;
+        if (adj_exp < 0) {
+            // value < 1 , truncates to 0
+            mpz_set_from_int(z, 0);
+        } else if (adj_exp == 0) {
+            // 1 <= value < 2 , so truncates to 1
+            mpz_set_from_int(z, 1);
+        } else {
+            // 2 <= value
+            const int dig_cnt = (adj_exp + 1 + (DIG_SIZE - 1)) / DIG_SIZE;
+            const unsigned int rem = adj_exp % DIG_SIZE;
+            int dig_ind, shft;
+            mp_float_int_t frc = u.p.frc | ((mp_float_int_t)1 << MP_FLOAT_FRAC_BITS);
+
+            if (adj_exp < MP_FLOAT_FRAC_BITS) {
+                shft = 0;
+                dig_ind = 0;
+                frc >>= MP_FLOAT_FRAC_BITS - adj_exp;
+            } else {
+                shft = (rem - MP_FLOAT_FRAC_BITS) % DIG_SIZE;
+                dig_ind = (adj_exp - MP_FLOAT_FRAC_BITS) / DIG_SIZE;
+            }
+            mpz_need_dig(z, dig_cnt);
+            z->len = dig_cnt;
+            if (dig_ind != 0) {
+                memset(z->dig, 0, dig_ind * sizeof(mpz_dig_t));
+            }
+            if (shft != 0) {
+                z->dig[dig_ind++] = (frc << shft) & DIG_MASK;
+                frc >>= DIG_SIZE - shft;
+            }
+#if DIG_SIZE < (MP_FLOAT_FRAC_BITS + 1)
+            while (dig_ind != dig_cnt) {
+                z->dig[dig_ind++] = frc & DIG_MASK;
+                frc >>= DIG_SIZE;
+            }
+#else
+            if (dig_ind != dig_cnt) {
+                z->dig[dig_ind] = frc;
+            }
+#endif
+        }
+    }
+}
+#endif
 
 // returns number of bytes from str that were processed
 mp_uint_t mpz_set_from_str(mpz_t *z, const char *str, mp_uint_t len, bool neg, mp_uint_t base) {
@@ -728,6 +803,9 @@ bool mpz_is_zero(const mpz_t *z) {
     return z->len == 0;
 }
 
+#if 0
+these functions are unused
+
 bool mpz_is_pos(const mpz_t *z) {
     return z->len > 0 && z->neg == 0;
 }
@@ -743,9 +821,14 @@ bool mpz_is_odd(const mpz_t *z) {
 bool mpz_is_even(const mpz_t *z) {
     return z->len == 0 || (z->dig[0] & 1) == 0;
 }
+#endif
 
-mp_int_t mpz_cmp(const mpz_t *z1, const mpz_t *z2) {
-    mp_int_t cmp = z2->neg - z1->neg;
+int mpz_cmp(const mpz_t *z1, const mpz_t *z2) {
+    // to catch comparison of -0 with +0
+    if (z1->len == 0 && z2->len == 0) {
+        return 0;
+    }
+    int cmp = (int)z2->neg - (int)z1->neg;
     if (cmp != 0) {
         return cmp;
     }
@@ -842,6 +925,17 @@ mpz_t *mpz_pow(const mpz_t *lhs, const mpz_t *rhs) {
     mpz_pow_inpl(z, lhs, rhs);
     return z;
 }
+
+/* computes new integers in quo and rem such that:
+       quo * rhs + rem = lhs
+       0 <= rem < rhs
+   can have lhs, rhs the same
+*/
+void mpz_divmod(const mpz_t *lhs, const mpz_t *rhs, mpz_t **quo, mpz_t **rem) {
+    *quo = mpz_zero();
+    *rem = mpz_zero();
+    mpz_divmod_inpl(*quo, *rem, lhs, rhs);
+}
 #endif
 
 /* computes dest = abs(z)
@@ -871,11 +965,17 @@ void mpz_not_inpl(mpz_t *dest, const mpz_t *z) {
     if (dest != z) {
         mpz_set(dest, z);
     }
-    if (dest->neg) {
+    if (dest->len == 0) {
+        mpz_need_dig(dest, 1);
+        dest->dig[0] = 1;
+        dest->len = 1;
+        dest->neg = 1;
+    } else if (dest->neg) {
         dest->neg = 0;
         mpz_dig_t k = 1;
         dest->len = mpn_sub(dest->dig, dest->dig, dest->len, &k, 1);
     } else {
+        mpz_need_dig(dest, dest->len + 1);
         mpz_dig_t k = 1;
         dest->len = mpn_add(dest->dig, dest->dig, dest->len, &k, 1);
         dest->neg = 1;
@@ -924,7 +1024,14 @@ void mpz_shr_inpl(mpz_t *dest, const mpz_t *lhs, mp_int_t rhs) {
                 round_up = 1;
             }
             if (round_up) {
-                dest->len = mpn_add(dest->dig, dest->dig, dest->len, &round_up, 1);
+                if (dest->len == 0) {
+                    // dest == 0, so need to add 1 by hand (answer will be -1)
+                    dest->dig[0] = 1;
+                    dest->len = 1;
+                } else {
+                    // dest > 0, so can use mpn_add to add 1
+                    dest->len = mpn_add(dest->dig, dest->dig, dest->len, &round_up, 1);
+                }
             }
         }
     }
@@ -993,7 +1100,7 @@ void mpz_and_inpl(mpz_t *dest, const mpz_t *lhs, const mpz_t *rhs) {
             }
             // do the and'ing
             mpz_need_dig(dest, rhs->len);
-            dest->len = mpn_and(dest->dig, lhs->dig, lhs->len, rhs->dig, rhs->len);
+            dest->len = mpn_and(dest->dig, lhs->dig, rhs->dig, rhs->len);
             dest->neg = 0;
         } else {
             // TODO both args are negative
@@ -1113,7 +1220,7 @@ void mpz_pow_inpl(mpz_t *dest, const mpz_t *lhs, const mpz_t *rhs) {
     mpz_set_from_int(dest, 1);
 
     while (n->len > 0) {
-        if (mpz_is_odd(n)) {
+        if ((n->dig[0] & 1) != 0) {
             mpz_mul_inpl(dest, dest, x);
         }
         n->len = mpn_shr(n->dig, n->dig, n->len, 1);
@@ -1126,6 +1233,9 @@ void mpz_pow_inpl(mpz_t *dest, const mpz_t *lhs, const mpz_t *rhs) {
     mpz_free(x);
     mpz_free(n);
 }
+
+#if 0
+these functions are unused
 
 /* computes gcd(z1, z2)
    based on Knuth's modified gcd algorithm (I think?)
@@ -1202,17 +1312,7 @@ mpz_t *mpz_lcm(const mpz_t *z1, const mpz_t *z2) {
     rem->neg = 0;
     return rem;
 }
-
-/* computes new integers in quo and rem such that:
-       quo * rhs + rem = lhs
-       0 <= rem < rhs
-   can have lhs, rhs the same
-*/
-void mpz_divmod(const mpz_t *lhs, const mpz_t *rhs, mpz_t **quo, mpz_t **rem) {
-    *quo = mpz_zero();
-    *rem = mpz_zero();
-    mpz_divmod_inpl(*quo, *rem, lhs, rhs);
-}
+#endif
 
 /* computes new integers in quo and rem such that:
        quo * rhs + rem = lhs
@@ -1270,7 +1370,7 @@ mp_int_t mpz_hash(const mpz_t *z) {
     mp_int_t val = 0;
     mpz_dig_t *d = z->dig + z->len;
 
-    while (--d >= z->dig) {
+    while (d-- > z->dig) {
         val = (val << DIG_SIZE) | *d;
     }
 
@@ -1282,10 +1382,10 @@ mp_int_t mpz_hash(const mpz_t *z) {
 }
 
 bool mpz_as_int_checked(const mpz_t *i, mp_int_t *value) {
-    mp_int_t val = 0;
+    mp_uint_t val = 0;
     mpz_dig_t *d = i->dig + i->len;
 
-    while (--d >= i->dig) {
+    while (d-- > i->dig) {
         if (val > (~(WORD_MSBIT_HIGH) >> DIG_SIZE)) {
             // will overflow
             return false;
@@ -1310,7 +1410,7 @@ bool mpz_as_uint_checked(const mpz_t *i, mp_uint_t *value) {
     mp_uint_t val = 0;
     mpz_dig_t *d = i->dig + i->len;
 
-    while (--d >= i->dig) {
+    while (d-- > i->dig) {
         if (val > (~(WORD_MSBIT_HIGH) >> (DIG_SIZE - 1))) {
             // will overflow
             return false;
@@ -1327,7 +1427,7 @@ mp_float_t mpz_as_float(const mpz_t *i) {
     mp_float_t val = 0;
     mpz_dig_t *d = i->dig + i->len;
 
-    while (--d >= i->dig) {
+    while (d-- > i->dig) {
         val = val * DIG_BASE + *d;
     }
 

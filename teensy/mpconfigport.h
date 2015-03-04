@@ -7,6 +7,7 @@
 #define MICROPY_EMIT_INLINE_THUMB   (1)
 #define MICROPY_ENABLE_GC           (1)
 #define MICROPY_ENABLE_FINALISER    (1)
+#define MICROPY_STACK_CHECK         (1)
 #define MICROPY_HELPER_REPL         (1)
 #define MICROPY_ENABLE_SOURCE_LINE  (1)
 #define MICROPY_LONGINT_IMPL        (MICROPY_LONGINT_IMPL_MPZ)
@@ -44,6 +45,14 @@ extern const struct _mp_obj_module_t time_module;
 #define MICROPY_PORT_CONSTANTS \
     { MP_OBJ_NEW_QSTR(MP_QSTR_pyb), (mp_obj_t)&pyb_module }, \
 
+#define MP_STATE_PORT MP_STATE_VM
+
+#define MICROPY_PORT_ROOT_POINTERS \
+    const char *readline_hist[8]; \
+    mp_obj_t pin_class_mapper; \
+    mp_obj_t pin_class_map_dict; \
+    struct _pyb_uart_obj_t *pyb_stdio_uart; \
+
 // type definitions for the specific machine
 
 #define BYTES_PER_WORD (4)
@@ -55,6 +64,7 @@ typedef int32_t mp_int_t; // must be pointer size
 typedef unsigned int mp_uint_t; // must be pointer size
 typedef void *machine_ptr_t; // must be of pointer size
 typedef const void *machine_const_ptr_t; // must be of pointer size
+typedef long mp_off_t;
 
 // We have inlined IRQ functions for efficiency (they are generally
 // 1 machine instruction).

@@ -10,7 +10,7 @@ Connecting your pyboard
 Connect your pyboard to your PC (Windows, Mac or Linux) with a micro USB cable.
 There is only one way that the cable will connect, so you can't get it wrong.
 
-<img src="/static/doc/pyboard-usb-micro.jpg" alt="pyboard with USB micro cable" style="width:200px; border:1px solid black; display:inline-block;"/>
+.. image:: img/pyboard_usb_micro.jpg
 
 When the pyboard is connected to your PC it will power on and enter the start up
 process (the boot process).  The green LED should light up for half a second or
@@ -46,16 +46,16 @@ a window (or command line) should be showing the files on the pyboard drive.
 The drive you are looking at is known as ``/flash`` by the pyboard, and should contain
 the following 4 files:
 
-  - [``boot.py``](/static/doc/fresh-pyboard/boot.py) -- this script is executed when the pyboard boots up.  It sets
+* `boot.py <http://micropython.org/resources/fresh-pyboard/boot.py>`_ -- this script is executed when the pyboard boots up.  It sets
     up various configuration options for the pyboard.
 
-  - [``main.py``](/static/doc/fresh-pyboard/main.py) -- this is the main script that will contain your Python program.
+* `main.py <http://micropython.org/resources/fresh-pyboard/main.py>`_ -- this is the main script that will contain your Python program.
     It is executed after ``boot.py``.
 
-  - [``README.txt``](/static/doc/fresh-pyboard/README.txt) -- this contains some very basic information about getting
+* `README.txt <http://micropython.org/resources/fresh-pyboard/README.txt>`_ -- this contains some very basic information about getting
     started with the pyboard.
 
-  - [``pybcdc.inf``](/static/doc/fresh-pyboard/pybcdc.inf) -- this is a Windows driver file to configure the serial USB
+* `pybcdc.inf <http://micropython.org/resources/fresh-pyboard/pybcdc.inf>`_ -- this is a Windows driver file to configure the serial USB
     device.  More about this in the next tutorial.
 
 Editing ``main.py``

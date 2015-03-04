@@ -27,14 +27,11 @@
 #include <assert.h>
 #include <string.h>
 #include <stdint.h>
-#include "mpconfig.h"
-#include "misc.h"
-#include "nlr.h"
-#include "qstr.h"
-#include "obj.h"
-#include "runtime.h"
-#include "objtuple.h"
-#include "binary.h"
+
+#include "py/nlr.h"
+#include "py/runtime.h"
+#include "py/objtuple.h"
+#include "py/binary.h"
 
 #if MICROPY_PY_UCTYPES
 
@@ -101,11 +98,16 @@ enum {
 
 // Here we need to set sign bit right
 #define TYPE2SMALLINT(x, nbits) ((((int)x) << (32 - nbits)) >> 1)
-#define GET_TYPE(x, nbits) (((x) >> (31 - nbits)) & ((1 << nbits) - 1));
+#define GET_TYPE(x, nbits) (((x) >> (31 - nbits)) & ((1 << nbits) - 1))
 // Bit 0 is "is_signed"
 #define GET_SCALAR_SIZE(val_type) (1 << ((val_type) >> 1))
 #define VALUE_MASK(type_nbits) ~((int)0x80000000 >> type_nbits)
 
+#define IS_SCALAR_ARRAY(tuple_desc) ((tuple_desc)->len == 2)
+// We cannot apply the below to INT8, as their range [-128, 127]
+#define IS_SCALAR_ARRAY_OF_BYTES(tuple_desc) (GET_TYPE(MP_OBJ_SMALL_INT_VALUE((tuple_desc)->items[1]), VAL_TYPE_BITS) == UINT8)
+
+// "struct" in uctypes context means "structural", i.e. aggregate, type.
 STATIC const mp_obj_type_t uctypes_struct_type;
 
 typedef struct _mp_obj_uctypes_struct_t {
@@ -115,11 +117,12 @@ typedef struct _mp_obj_uctypes_struct_t {
     uint32_t flags;
 } mp_obj_uctypes_struct_t;
 
-STATIC NORETURN void syntax_error() {
+STATIC NORETURN void syntax_error(void) {
     nlr_raise(mp_obj_new_exception_msg(&mp_type_TypeError, "syntax error in uctypes descriptor"));
 }
 
 STATIC mp_obj_t uctypes_struct_make_new(mp_obj_t type_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
+    (void)n_kw;
     if (n_args < 2 || n_args > 3) {
         syntax_error();
     }
@@ -135,6 +138,7 @@ STATIC mp_obj_t uctypes_struct_make_new(mp_obj_t type_in, mp_uint_t n_args, mp_u
 }
 
 STATIC void uctypes_struct_print(void (*print)(void *env, const char *fmt, ...), void *env, mp_obj_t self_in, mp_print_kind_t kind) {
+    (void)kind;
     mp_obj_uctypes_struct_t *self = self_in;
     const char *typen = "unk";
     if (MP_OBJ_IS_TYPE(self->desc, &mp_type_dict)) {
@@ -153,6 +157,10 @@ STATIC void uctypes_struct_print(void (*print)(void *env, const char *fmt, ...),
     print(env, "<struct %s %p>", typen, self->addr);
 }
 
+// Get size of any type descriptor
+STATIC mp_uint_t uctypes_struct_size(mp_obj_t desc_in, mp_uint_t *max_field_size);
+
+// Get size of scalar type descriptor
 static inline mp_uint_t uctypes_struct_scalar_size(int val_type) {
     if (val_type == FLOAT32) {
         return 4;
@@ -161,11 +169,60 @@ static inline mp_uint_t uctypes_struct_scalar_size(int val_type) {
     }
 }
 
+// Get size of aggregate type descriptor
+STATIC mp_uint_t uctypes_struct_agg_size(mp_obj_tuple_t *t, mp_uint_t *max_field_size) {
+    mp_uint_t total_size = 0;
+
+    mp_int_t offset_ = MP_OBJ_SMALL_INT_VALUE(t->items[0]);
+    mp_uint_t agg_type = GET_TYPE(offset_, AGG_TYPE_BITS);
+
+    switch (agg_type) {
+        case STRUCT:
+            return uctypes_struct_size(t->items[1], max_field_size);
+        case PTR:
+            if (sizeof(void*) > *max_field_size) {
+                *max_field_size = sizeof(void*);
+            }
+            return sizeof(void*);
+        case ARRAY: {
+            mp_int_t arr_sz = MP_OBJ_SMALL_INT_VALUE(t->items[1]);
+            uint val_type = GET_TYPE(arr_sz, VAL_TYPE_BITS);
+            arr_sz &= VALUE_MASK(VAL_TYPE_BITS);
+            mp_uint_t item_s;
+            if (t->len == 2) {
+                // Elements of array are scalar
+                item_s = GET_SCALAR_SIZE(val_type);
+                if (item_s > *max_field_size) {
+                    *max_field_size = item_s;
+                }
+            } else {
+                // Elements of array are aggregates
+                item_s = uctypes_struct_size(t->items[2], max_field_size);
+            }
+
+            return item_s * arr_sz;
+        }
+        default:
+            assert(0);
+    }
+
+    return total_size;
+}
+
 STATIC mp_uint_t uctypes_struct_size(mp_obj_t desc_in, mp_uint_t *max_field_size) {
     mp_obj_dict_t *d = desc_in;
     mp_uint_t total_size = 0;
 
     if (!MP_OBJ_IS_TYPE(desc_in, &mp_type_dict)) {
+        if (MP_OBJ_IS_TYPE(desc_in, &mp_type_tuple)) {
+            return uctypes_struct_agg_size((mp_obj_tuple_t*)desc_in, max_field_size);
+        } else if (MP_OBJ_IS_SMALL_INT(desc_in)) {
+            // We allow sizeof on both type definitions and structures/structure fields,
+            // but scalar structure field is lowered into native Python int, so all
+            // type info is lost. So, we cannot say if it's scalar type description,
+            // or such lowered scalar.
+            nlr_raise(mp_obj_new_exception_msg(&mp_type_TypeError, "Cannot unambiguously get sizeof scalar"));
+        }
         syntax_error();
     }
 
@@ -189,48 +246,10 @@ STATIC mp_uint_t uctypes_struct_size(mp_obj_t desc_in, mp_uint_t *max_field_size
                 }
                 mp_obj_tuple_t *t = (mp_obj_tuple_t*)v;
                 mp_int_t offset = MP_OBJ_SMALL_INT_VALUE(t->items[0]);
-                mp_uint_t agg_type = GET_TYPE(offset, AGG_TYPE_BITS);
                 offset &= VALUE_MASK(AGG_TYPE_BITS);
-
-                switch (agg_type) {
-                    case STRUCT: {
-                        mp_uint_t s = uctypes_struct_size(t->items[1], max_field_size);
-                        if (offset + s > total_size) {
-                            total_size = offset + s;
-                        }
-                        break;
-                    }
-                    case PTR: {
-                        if (offset + sizeof(void*) > total_size) {
-                            total_size = offset + sizeof(void*);
-                        }
-                        if (sizeof(void*) > *max_field_size) {
-                            *max_field_size = sizeof(void*);
-                        }
-                        break;
-                    }
-                    case ARRAY: {
-                        mp_int_t arr_sz = MP_OBJ_SMALL_INT_VALUE(t->items[1]);
-                        uint val_type = GET_TYPE(arr_sz, VAL_TYPE_BITS);
-                        arr_sz &= VALUE_MASK(VAL_TYPE_BITS);
-                        mp_uint_t item_s;
-                        if (t->len == 2) {
-                            item_s = GET_SCALAR_SIZE(val_type);
-                            if (item_s > *max_field_size) {
-                                *max_field_size = item_s;
-                            }
-                        } else {
-                            item_s = uctypes_struct_size(t->items[2], max_field_size);
-                        }
-
-                        mp_uint_t byte_sz = item_s * arr_sz;
-                        if (offset + byte_sz > total_size) {
-                            total_size = offset + byte_sz;
-                        }
-                        break;
-                    }
-                    default:
-                        assert(0);
+                mp_uint_t s = uctypes_struct_agg_size(t, max_field_size);
+                if (offset + s > total_size) {
+                    total_size = offset + s;
                 }
             }
         }
@@ -243,7 +262,13 @@ STATIC mp_uint_t uctypes_struct_size(mp_obj_t desc_in, mp_uint_t *max_field_size
 
 STATIC mp_obj_t uctypes_struct_sizeof(mp_obj_t obj_in) {
     mp_uint_t max_field_size = 0;
+    if (MP_OBJ_IS_TYPE(obj_in, &mp_type_bytearray)) {
+        return mp_obj_len(obj_in);
+    }
+    // We can apply sizeof either to structure definition (a dict)
+    // or to instantiated structure
     if (MP_OBJ_IS_TYPE(obj_in, &uctypes_struct_type)) {
+        // Extract structure definition
         mp_obj_uctypes_struct_t *obj = obj_in;
         obj_in = obj->desc;
     }
@@ -401,7 +426,7 @@ STATIC mp_obj_t uctypes_struct_attr_op(mp_obj_t self_in, qstr attr, mp_obj_t set
                     set_aligned_basic(val_type & 6, self->addr + offset, val);
                 } else {
                     mp_binary_set_int(GET_SCALAR_SIZE(val_type & 7), self->flags == LAYOUT_BIG_ENDIAN,
-                        self->addr + offset, (byte*)&val);
+                        self->addr + offset, val);
                 }
                 return set_val; // just !MP_OBJ_NULL
             }
@@ -435,7 +460,14 @@ STATIC mp_obj_t uctypes_struct_attr_op(mp_obj_t self_in, qstr attr, mp_obj_t set
             o->flags = self->flags;
             return o;
         }
-        case PTR: case ARRAY: {
+        case ARRAY: {
+            mp_uint_t dummy;
+            if (IS_SCALAR_ARRAY(sub) && IS_SCALAR_ARRAY_OF_BYTES(sub)) {
+                return mp_obj_new_bytearray_by_ref(uctypes_struct_agg_size(sub, &dummy), self->addr + offset);
+            }
+            // Fall thru to return uctypes struct object
+        }
+        case PTR: {
             mp_obj_uctypes_struct_t *o = m_new_obj(mp_obj_uctypes_struct_t);
             o->base.type = &uctypes_struct_type;
             o->desc = sub;
@@ -526,7 +558,7 @@ STATIC mp_obj_t uctypes_struct_subscr(mp_obj_t self_in, mp_obj_t index_in, mp_ob
 /// \function addressof()
 /// Return address of object's data (applies to object providing buffer
 /// interface).
-mp_obj_t uctypes_struct_addressof(mp_obj_t buf) {
+STATIC mp_obj_t uctypes_struct_addressof(mp_obj_t buf) {
     mp_buffer_info_t bufinfo;
     mp_get_buffer_raise(buf, &bufinfo, MP_BUFFER_READ);
     return mp_obj_new_int((mp_int_t)bufinfo.buf);
@@ -537,8 +569,8 @@ MP_DEFINE_CONST_FUN_OBJ_1(uctypes_struct_addressof_obj, uctypes_struct_addressof
 /// Capture memory at given address of given size as bytearray. Memory is
 /// captured by reference (and thus memory pointed by bytearray may change
 /// or become invalid at later time). Use bytes_at() to capture by value.
-mp_obj_t uctypes_struct_bytearray_at(mp_obj_t ptr, mp_obj_t size) {
-    return mp_obj_new_bytearray_by_ref(mp_obj_int_get(size), (void*)mp_obj_int_get(ptr));
+STATIC mp_obj_t uctypes_struct_bytearray_at(mp_obj_t ptr, mp_obj_t size) {
+    return mp_obj_new_bytearray_by_ref(mp_obj_int_get_truncated(size), (void*)mp_obj_int_get_truncated(ptr));
 }
 MP_DEFINE_CONST_FUN_OBJ_2(uctypes_struct_bytearray_at_obj, uctypes_struct_bytearray_at);
 
@@ -546,8 +578,8 @@ MP_DEFINE_CONST_FUN_OBJ_2(uctypes_struct_bytearray_at_obj, uctypes_struct_bytear
 /// Capture memory at given address of given size as bytes. Memory is
 /// captured by value, i.e. copied. Use bytearray_at() to capture by reference
 /// ("zero copy").
-mp_obj_t uctypes_struct_bytes_at(mp_obj_t ptr, mp_obj_t size) {
-    return mp_obj_new_bytes((void*)mp_obj_int_get(ptr), mp_obj_int_get(size));
+STATIC mp_obj_t uctypes_struct_bytes_at(mp_obj_t ptr, mp_obj_t size) {
+    return mp_obj_new_bytes((void*)mp_obj_int_get_truncated(ptr), mp_obj_int_get_truncated(size));
 }
 MP_DEFINE_CONST_FUN_OBJ_2(uctypes_struct_bytes_at_obj, uctypes_struct_bytes_at);
 
@@ -616,16 +648,7 @@ STATIC const mp_map_elem_t mp_module_uctypes_globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_ARRAY), MP_OBJ_NEW_SMALL_INT(TYPE2SMALLINT(ARRAY, AGG_TYPE_BITS)) },
 };
 
-STATIC const mp_obj_dict_t mp_module_uctypes_globals = {
-    .base = {&mp_type_dict},
-    .map = {
-        .all_keys_are_qstrs = 1,
-        .table_is_fixed_array = 1,
-        .used = MP_ARRAY_SIZE(mp_module_uctypes_globals_table),
-        .alloc = MP_ARRAY_SIZE(mp_module_uctypes_globals_table),
-        .table = (mp_map_elem_t*)mp_module_uctypes_globals_table,
-    },
-};
+STATIC MP_DEFINE_CONST_DICT(mp_module_uctypes_globals, mp_module_uctypes_globals_table);
 
 const mp_obj_module_t mp_module_uctypes = {
     .base = { &mp_type_module },

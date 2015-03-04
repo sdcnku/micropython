@@ -35,16 +35,13 @@
 /* Includes ------------------------------------------------------------------*/
 
 #include <stdbool.h>
+#include <stdint.h>
 
-#include "stm32f4xx_hal.h"
 #include "usbd_cdc_msc_hid.h"
 #include "usbd_cdc_interface.h"
 #include "pendsv.h"
 
-#include "mpconfig.h"
-#include "misc.h"
-#include "qstr.h"
-#include "obj.h"
+#include "py/obj.h"
 #include "usb.h"
 
 // CDC control commands
@@ -90,11 +87,8 @@ static uint16_t UserTxBufPtrOutShadow = 0; // shadow of above
 static uint8_t UserTxBufPtrWaitCount = 0; // used to implement a timeout waiting for low-level USB driver
 static uint8_t UserTxNeedEmptyPacket = 0; // used to flush the USB IN endpoint if the last packet was exactly the endpoint packet size
 
-static int user_interrupt_char = VCP_CHAR_NONE;
+static int user_interrupt_char = -1;
 static void *user_interrupt_data = NULL;
-
-/* USB handler declaration */
-extern USBD_HandleTypeDef hUSBDDevice;
 
 /* Private function prototypes -----------------------------------------------*/
 static int8_t CDC_Itf_Init     (void);
@@ -135,7 +129,7 @@ static int8_t CDC_Itf_Init(void)
      * may be called before this init function to set these values.
      * This can happen if the USB enumeration occurs after the call to
      * USBD_CDC_SetInterrupt.
-    user_interrupt_char = VCP_CHAR_NONE;
+    user_interrupt_char = -1;
     user_interrupt_data = NULL;
     */
 
@@ -380,7 +374,7 @@ static int8_t CDC_Itf_Receive(uint8_t* Buf, uint32_t *Len) {
 
     uint32_t delta_len;
 
-    if (user_interrupt_char == VCP_CHAR_NONE) {
+    if (user_interrupt_char == -1) {
         // no special interrupt character
         delta_len = *Len;
 
@@ -393,18 +387,14 @@ static int8_t CDC_Itf_Receive(uint8_t* Buf, uint32_t *Len) {
         for (; src < buf_top; src++) {
             if (*src == user_interrupt_char) {
                 char_found = true;
+                // raise exception when interrupts are finished
+                pendsv_nlr_jump(user_interrupt_data);
             } else {
                 if (char_found) {
                     *dest = *src;
                 }
                 dest++;
             }
-        }
-
-        if (char_found) {
-            // raise exception when interrupts are finished
-            user_interrupt_char = VCP_CHAR_NONE;
-            pendsv_nlr_jump(user_interrupt_data);
         }
 
         // length of remaining characters
@@ -433,6 +423,14 @@ int USBD_CDC_IsConnected(void) {
 void USBD_CDC_SetInterrupt(int chr, void *data) {
     user_interrupt_char = chr;
     user_interrupt_data = data;
+}
+
+int USBD_CDC_TxHalfEmpty(void) {
+    int32_t tx_waiting = (int32_t)UserTxBufPtrIn - (int32_t)UserTxBufPtrOut;
+    if (tx_waiting < 0) {
+        tx_waiting += APP_TX_DATA_SIZE;
+    }
+    return tx_waiting <= APP_TX_DATA_SIZE / 2;
 }
 
 // timout in milliseconds.
@@ -521,7 +519,7 @@ int USBD_CDC_Rx(uint8_t *buf, uint32_t len, uint32_t timeout) {
     for (uint32_t i = 0; i < len; i++) {
         // Wait until we have at least 1 byte to read
         uint32_t start = HAL_GetTick();
-        while (!dev_is_connected || UserRxBufLen == UserRxBufCur) {
+        while (UserRxBufLen == UserRxBufCur) {
             // Wraparound of tick is taken care of by 2's complement arithmetic.
             if (HAL_GetTick() - start >= timeout) {
                 // timeout

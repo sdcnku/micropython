@@ -32,6 +32,15 @@
 // For reference, x86-64 callee save regs are:
 //      rbx, rbp, rsp, r12, r13, r14, r15
 
+// the offset of nlr_top within mp_state_ctx_t
+#define NLR_TOP_OFFSET (2 * 8)
+
+#if defined(__APPLE__) && defined(__MACH__)
+#define NLR_TOP (_mp_state_ctx + NLR_TOP_OFFSET)
+#else
+#define NLR_TOP (mp_state_ctx + NLR_TOP_OFFSET)
+#endif
+
     .file   "nlr.s"
     .text
 
@@ -64,9 +73,9 @@ _nlr_push:
     movq    %r13, 56(%rdi)          # store %r13 into nlr_buf
     movq    %r14, 64(%rdi)          # store %r14 into nlr_buf
     movq    %r15, 72(%rdi)          # store %r15 into nlr_buf
-    movq    nlr_top(%rip), %rax     # get last nlr_buf
+    movq    NLR_TOP(%rip), %rax     # get last nlr_buf
     movq    %rax, (%rdi)            # store it
-    movq    %rdi, nlr_top(%rip)     # stor new nlr_buf (to make linked list)
+    movq    %rdi, NLR_TOP(%rip)     # stor new nlr_buf (to make linked list)
     xorq    %rax, %rax              # return 0, normal return
     ret                             # return
 #if !(defined(__APPLE__) && defined(__MACH__))
@@ -84,9 +93,9 @@ nlr_pop:
     .globl  _nlr_pop
 _nlr_pop:
 #endif
-    movq    nlr_top(%rip), %rax     # get nlr_top into %rax
+    movq    NLR_TOP(%rip), %rax     # get nlr_top into %rax
     movq    (%rax), %rax            # load prev nlr_buf
-    movq    %rax, nlr_top(%rip)     # store prev nlr_buf (to unlink list)
+    movq    %rax, NLR_TOP(%rip)     # store prev nlr_buf (to unlink list)
     ret                             # return
 #if !(defined(__APPLE__) && defined(__MACH__))
     .size   nlr_pop, .-nlr_pop
@@ -104,12 +113,12 @@ nlr_jump:
     _nlr_jump:
 #endif
     movq    %rdi, %rax              # put return value in %rax
-    movq    nlr_top(%rip), %rdi     # get nlr_top into %rdi
+    movq    NLR_TOP(%rip), %rdi     # get nlr_top into %rdi
     test    %rdi, %rdi              # check for nlr_top being NULL
     je      .fail                   # fail if nlr_top is NULL
     movq    %rax, 8(%rdi)           # store return value
     movq    (%rdi), %rax            # load prev nlr_buf
-    movq    %rax, nlr_top(%rip)     # store prev nlr_buf (to unlink list)
+    movq    %rax, NLR_TOP(%rip)     # store prev nlr_buf (to unlink list)
     movq    72(%rdi), %r15          # load saved %r15
     movq    64(%rdi), %r14          # load saved %r14
     movq    56(%rdi), %r13          # load saved %r13
@@ -130,15 +139,6 @@ nlr_jump:
 #else
     je      _nlr_jump_fail          # transfer control to nlr_jump_fail
 #endif
-
-/**************************************/
-// local variable nlr_top
-
-#if !(defined(__APPLE__) && defined(__MACH__))
-    .bss
-    .local  nlr_top
-#endif
-    .comm   nlr_top,8,8
 
 #else // !defined(__CYGWIN__)
 
@@ -164,9 +164,9 @@ nlr_push:
     movq    %r15, 72(%rcx)          # store %r15 into
     movq    %rdi, 80(%rcx)          # store %rdr into
     movq    %rsi, 88(%rcx)          # store %rsi into
-    movq    nlr_top(%rip), %rax     # get last nlr_buf
+    movq    NLR_TOP(%rip), %rax     # get last nlr_buf
     movq    %rax, (%rcx)            # store it
-    movq    %rcx, nlr_top(%rip)     # stor new nlr_buf (to make linked list)
+    movq    %rcx, NLR_TOP(%rip)     # stor new nlr_buf (to make linked list)
     xorq    %rax, %rax              # return 0, normal return
     ret                             # return
 
@@ -175,9 +175,9 @@ nlr_push:
 
     .globl  nlr_pop
 nlr_pop:
-    movq    nlr_top(%rip), %rax     # get nlr_top into %rax
+    movq    NLR_TOP(%rip), %rax     # get nlr_top into %rax
     movq    (%rax), %rax            # load prev nlr_buf
-    movq    %rax, nlr_top(%rip)     # store prev nlr_buf (to unlink list)
+    movq    %rax, NLR_TOP(%rip)     # store prev nlr_buf (to unlink list)
     ret                             # return
 
 /**************************************/
@@ -186,12 +186,12 @@ nlr_pop:
     .globl  nlr_jump
 nlr_jump:
     movq    %rcx, %rax              # put return value in %rax
-    movq    nlr_top(%rip), %rcx     # get nlr_top into %rcx
+    movq    NLR_TOP(%rip), %rcx     # get nlr_top into %rcx
     test    %rcx, %rcx              # check for nlr_top being NULL
     je      .fail                   # fail if nlr_top is NULL
     movq    %rax, 8(%rcx)           # store return value
     movq    (%rcx), %rax            # load prev nlr_buf
-    movq    %rax, nlr_top(%rip)     # store prev nlr_buf (to unlink list)
+    movq    %rax, NLR_TOP(%rip)     # store prev nlr_buf (to unlink list)
     movq    72(%rcx), %r15          # load saved %r15
     movq    64(%rcx), %r14          # load saved %r14
     movq    56(%rcx), %r13          # load saved %r13
@@ -209,12 +209,6 @@ nlr_jump:
 .fail:
     movq    %rax, %rcx              # put argument back in first-arg register
     je      nlr_jump_fail           # transfer control to nlr_jump_fail
-
-/**************************************/
-// local variable nlr_top
-
-    .bss
-    .comm   nlr_top,8,8
 
 #endif // !defined(__CYGWIN__)
 

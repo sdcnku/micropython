@@ -27,25 +27,36 @@
 #include <stdlib.h>
 #include <stm32f4xx_hal.h>
 
-#include "mpconfig.h"
-#include "misc.h"
-#include "qstr.h"
-#include "obj.h"
+#include "py/mpstate.h"
+#include "py/runtime.h"
 #include "pendsv.h"
 
-static void *pendsv_object = NULL;
+// Note: this can contain point to the heap but is not traced by GC.
+// This is okay because we only ever set it to mp_const_vcp_interrupt
+// which is in the root-pointer set.
+STATIC void *pendsv_object;
 
 void pendsv_init(void) {
     // set PendSV interrupt at lowest priority
     HAL_NVIC_SetPriority(PendSV_IRQn, 0xf, 0xf);
 }
 
-// call this function to raise a pending exception during an interrupt
-// it will wait until all interrupts are finished then raise the given
-// exception object using nlr_jump in the context of the top-level thread
+// Call this function to raise a pending exception during an interrupt.
+// It will first try to raise the exception "softly" by setting the
+// mp_pending_exception variable and hoping that the VM will notice it.
+// If this function is called a second time (ie with the mp_pending_exception
+// variable already set) then it will force the exception by using the hardware
+// PENDSV feature.  This will wait until all interrupts are finished then raise
+// the given exception object using nlr_jump in the context of the top-level
+// thread.
 void pendsv_nlr_jump(void *o) {
-    pendsv_object = o;
-    SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
+    if (MP_STATE_VM(mp_pending_exception) == MP_OBJ_NULL) {
+        MP_STATE_VM(mp_pending_exception) = o;
+    } else {
+        MP_STATE_VM(mp_pending_exception) = MP_OBJ_NULL;
+        pendsv_object = o;
+        SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
+    }
 }
 
 // since we play tricks with the stack, the compiler must not generate a

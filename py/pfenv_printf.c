@@ -25,19 +25,14 @@
  */
 
 #include <assert.h>
-#include <stdio.h>
-#include <stdint.h>
 #include <string.h>
 #include <stdarg.h>
+#include <stdio.h>
 
-#include "mpconfig.h"
-#include "misc.h"
-#include "qstr.h"
-#include "obj.h"
-#include "pfenv.h"
+#include "py/pfenv.h"
 
 #if MICROPY_PY_BUILTINS_FLOAT
-#include "formatfloat.h"
+#include "py/formatfloat.h"
 #endif
 
 int pfenv_vprintf(const pfenv_t *pfenv, const char *fmt, va_list args) {
@@ -146,12 +141,14 @@ int pfenv_vprintf(const pfenv_t *pfenv, const char *fmt, va_list args) {
                 chrs += pfenv_print_int(pfenv, va_arg(args, int), 1, 10, 'a', flags, fill, width);
                 break;
             case 'x':
-            case 'p': // ?
                 chrs += pfenv_print_int(pfenv, va_arg(args, int), 0, 16, 'a', flags, fill, width);
                 break;
             case 'X':
-            case 'P': // ?
                 chrs += pfenv_print_int(pfenv, va_arg(args, int), 0, 16, 'A', flags, fill, width);
+                break;
+            case 'p':
+            case 'P': // don't bother to handle upcase for 'P'
+                chrs += pfenv_print_int(pfenv, va_arg(args, mp_uint_t), 0, 16, 'a', flags, fill, width);
                 break;
 #if MICROPY_PY_BUILTINS_FLOAT
             case 'e':
@@ -196,4 +193,12 @@ int pfenv_printf(const pfenv_t *pfenv, const char *fmt, ...) {
     int ret = pfenv_vprintf(pfenv, fmt, ap);
     va_end(ap);
     return ret;
+}
+
+void printf_wrapper(void *env, const char *fmt, ...) {
+    (void)env;
+    va_list args;
+    va_start(args, fmt);
+    vprintf(fmt, args);
+    va_end(args);
 }

@@ -29,8 +29,8 @@ class Lexer:
     regexs = (
         ('#define hex', re.compile(r'#define +(?P<id>[A-Z0-9_]+) +\(\(uint32_t\)(?P<hex>0x[0-9A-F]+)\)($| +/\*)')),
         ('#define X', re.compile(r'#define +(?P<id>[A-Z0-9_]+) +(?P<id2>[A-Z0-9_]+)($| +/\*)')),
-        ('#define X+hex', re.compile(r'#define +(?P<id>[A-Z0-9_]+) +\((?P<id2>[A-Z0-9_]+) \+ (?P<hex>0x[0-9A-F]+)\)($| +/\*)')),
-        ('#define typedef', re.compile(r'#define +(?P<id>[A-Z0-9_]+) +\(\([A-Za-z0-9_]+_TypeDef \*\) (?P<id2>[A-Z0-9_]+)\)($| +/\*)')),
+        ('#define X+hex', re.compile(r'#define +(?P<id>[A-Za-z0-9_]+) +\((?P<id2>[A-Z0-9_]+) \+ (?P<hex>0x[0-9A-F]+)\)($| +/\*)')),
+        ('#define typedef', re.compile(r'#define +(?P<id>[A-Z0-9_]+(ext)?) +\(\([A-Za-z0-9_]+_TypeDef \*\) (?P<id2>[A-Za-z0-9_]+)\)($| +/\*)')),
         ('typedef struct', re.compile(r'typedef struct$')),
         ('{', re.compile(r'{$')),
         ('}', re.compile(r'}$')),
@@ -145,23 +145,14 @@ STATIC const mp_map_elem_t stm_%s_globals_table[] = {
 
     print("""};
 
-STATIC const mp_obj_dict_t stm_%s_globals = {
-    .base = {&mp_type_dict},
-    .map = {
-        .all_keys_are_qstrs = 1,
-        .table_is_fixed_array = 1,
-        .used = sizeof(stm_%s_globals_table) / sizeof(mp_map_elem_t),
-        .alloc = sizeof(stm_%s_globals_table) / sizeof(mp_map_elem_t),
-        .table = (mp_map_elem_t*)stm_%s_globals_table,
-    },
-};
+STATIC MP_DEFINE_CONST_DICT(stm_%s_globals, stm_%s_globals_table);
 
 const mp_obj_module_t stm_%s_obj = {
     .base = { &mp_type_module },
     .name = MP_QSTR_%s,
     .globals = (mp_obj_dict_t*)&stm_%s_globals,
 };
-""" % (mod_name_lower, mod_name_lower, mod_name_lower, mod_name_lower, mod_name_lower, mod_name_upper, mod_name_lower))
+""" % (mod_name_lower, mod_name_lower, mod_name_lower, mod_name_upper, mod_name_lower))
 
 def main():
     cmd_parser = argparse.ArgumentParser(description='Extract ST constants from a C header file.')

@@ -23,6 +23,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#ifndef __MICROPY_INCLUDED_PY_GC_H__
+#define __MICROPY_INCLUDED_PY_GC_H__
+
+#include <stdint.h>
+
+#include "py/mpconfig.h"
+#include "py/misc.h"
 
 void gc_init(void *start, void *end);
 
@@ -40,7 +47,7 @@ void gc_collect_end(void);
 
 void *gc_alloc(mp_uint_t n_bytes, bool has_finaliser);
 void gc_free(void *ptr);
-mp_uint_t gc_nbytes(void *ptr);
+mp_uint_t gc_nbytes(const void *ptr);
 void *gc_realloc(void *ptr, mp_uint_t n_bytes);
 
 typedef struct _gc_info_t {
@@ -55,3 +62,5 @@ typedef struct _gc_info_t {
 void gc_info(gc_info_t *info);
 void gc_dump_info(void);
 void gc_dump_alloc_table(void);
+
+#endif // __MICROPY_INCLUDED_PY_GC_H__

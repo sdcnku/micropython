@@ -29,36 +29,44 @@
 #include <string.h>
 #include <errno.h>
 
-#include "stm32f4xx_hal.h"
-
-#include "mpconfig.h"
-#include "nlr.h"
-#include "misc.h"
-#include "qstr.h"
-#include "obj.h"
-#include "objlist.h"
-#include "runtime.h"
+#include "py/nlr.h"
+#include "py/objlist.h"
+#include "py/runtime.h"
 #include "modnetwork.h"
 
-mp_obj_list_t mod_network_nic_list;
+/// \module network - network configuration
+///
+/// This module provides network drivers and routing configuration.
 
 void mod_network_init(void) {
-    mp_obj_list_init(&mod_network_nic_list, 0);
+    mp_obj_list_init(&MP_STATE_PORT(mod_network_nic_list), 0);
 }
 
 void mod_network_register_nic(mp_obj_t nic) {
-    for (mp_uint_t i = 0; i < mod_network_nic_list.len; i++) {
-        if (mod_network_nic_list.items[i] == nic) {
+    for (mp_uint_t i = 0; i < MP_STATE_PORT(mod_network_nic_list).len; i++) {
+        if (MP_STATE_PORT(mod_network_nic_list).items[i] == nic) {
             // nic already registered
             return;
         }
     }
     // nic not registered so add to list
-    mp_obj_list_append(&mod_network_nic_list, nic);
+    mp_obj_list_append(&MP_STATE_PORT(mod_network_nic_list), nic);
+}
+
+mp_obj_t mod_network_find_nic(const uint8_t *ip) {
+    // find a NIC that is suited to given IP address
+    for (mp_uint_t i = 0; i < MP_STATE_PORT(mod_network_nic_list).len; i++) {
+        mp_obj_t nic = MP_STATE_PORT(mod_network_nic_list).items[i];
+        // TODO check IP suitability here
+        //mod_network_nic_type_t *nic_type = (mod_network_nic_type_t*)mp_obj_get_type(nic);
+        return nic;
+    }
+
+    nlr_raise(mp_obj_new_exception_msg(&mp_type_OSError, "no available NIC"));
 }
 
 STATIC mp_obj_t network_route(void) {
-    return &mod_network_nic_list;
+    return &MP_STATE_PORT(mod_network_nic_list);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(network_route_obj, network_route);
 
@@ -66,25 +74,16 @@ STATIC const mp_map_elem_t mp_module_network_globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR___name__), MP_OBJ_NEW_QSTR(MP_QSTR_network) },
 
     #if MICROPY_PY_WIZNET5K
-    { MP_OBJ_NEW_QSTR(MP_QSTR_WIZnet5k), (mp_obj_t)&mod_network_nic_type_wiznet5k },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_WIZNET5K), (mp_obj_t)&mod_network_nic_type_wiznet5k },
     #endif
     #if MICROPY_PY_CC3K
-    { MP_OBJ_NEW_QSTR(MP_QSTR_CC3k), (mp_obj_t)&mod_network_nic_type_cc3k },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_CC3K), (mp_obj_t)&mod_network_nic_type_cc3k },
     #endif
 
     { MP_OBJ_NEW_QSTR(MP_QSTR_route), (mp_obj_t)&network_route_obj },
 };
 
-STATIC const mp_obj_dict_t mp_module_network_globals = {
-    .base = {&mp_type_dict},
-    .map = {
-        .all_keys_are_qstrs = 1,
-        .table_is_fixed_array = 1,
-        .used = MP_ARRAY_SIZE(mp_module_network_globals_table),
-        .alloc = MP_ARRAY_SIZE(mp_module_network_globals_table),
-        .table = (mp_map_elem_t*)mp_module_network_globals_table,
-    },
-};
+STATIC MP_DEFINE_CONST_DICT(mp_module_network_globals, mp_module_network_globals_table);
 
 const mp_obj_module_t mp_module_network = {
     .base = { &mp_type_module },
@@ -95,18 +94,32 @@ const mp_obj_module_t mp_module_network = {
 /******************************************************************************/
 // Miscellaneous helpers
 
+void mod_network_convert_ipv4_endianness(uint8_t *ip) {
+    uint8_t ip0 = ip[0]; ip[0] = ip[3]; ip[3] = ip0;
+    uint8_t ip1 = ip[1]; ip[1] = ip[2]; ip[2] = ip1;
+}
+
+// Takes an address of the form '192.168.0.1' and converts it to network format
+// in out_ip (big endian, so the 192 is the first byte).
 void mod_network_parse_ipv4_addr(mp_obj_t addr_in, uint8_t *out_ip) {
-    const char *addr_str = mp_obj_str_get_str(addr_in);
+    mp_uint_t addr_len;
+    const char *addr_str = mp_obj_str_get_data(addr_in, &addr_len);
+    if (addr_len == 0) {
+        // special case of no address given
+        memset(out_ip, 0, MOD_NETWORK_IPADDR_BUF_SIZE);
+        return;
+    }
     const char *s = addr_str;
+    const char *s_top = addr_str + addr_len;
     for (mp_uint_t i = 0;; i++) {
         mp_uint_t val = 0;
-        for (; *s && *s != '.'; s++) {
+        for (; s < s_top && *s != '.'; s++) {
             val = val * 10 + *s - '0';
         }
         out_ip[i] = val;
-        if (i == 3 && *s == '\0') {
+        if (i == 3 && s == s_top) {
             return;
-        } else if (i < 3 && *s == '.') {
+        } else if (i < 3 && s < s_top && *s == '.') {
             s++;
         } else {
             nlr_raise(mp_obj_new_exception_msg(&mp_type_ValueError, "invalid IP address"));

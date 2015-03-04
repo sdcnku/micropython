@@ -26,13 +26,9 @@
 
 #include <stdlib.h>
 
-#include "mpconfig.h"
-#include "nlr.h"
-#include "misc.h"
-#include "qstr.h"
-#include "obj.h"
-#include "runtime0.h"
-#include "runtime.h"
+#include "py/nlr.h"
+#include "py/runtime0.h"
+#include "py/runtime.h"
 
 /******************************************************************************/
 /* range iterator                                                             */
@@ -63,7 +59,7 @@ STATIC const mp_obj_type_t range_it_type = {
     .iternext = range_it_iternext,
 };
 
-mp_obj_t mp_obj_new_range_iterator(int cur, int stop, int step) {
+STATIC mp_obj_t mp_obj_new_range_iterator(mp_int_t cur, mp_int_t stop, mp_int_t step) {
     mp_obj_range_it_t *o = m_new_obj(mp_obj_range_it_t);
     o->base.type = &range_it_type;
     o->cur = cur;
@@ -84,6 +80,7 @@ typedef struct _mp_obj_range_t {
 } mp_obj_range_t;
 
 STATIC void range_print(void (*print)(void *env, const char *fmt, ...), void *env, mp_obj_t self_in, mp_print_kind_t kind) {
+    (void)kind;
     mp_obj_range_t *self = self_in;
     print(env, "range(%d, %d", self->start, self->stop);
     if (self->step == 1) {
@@ -97,7 +94,7 @@ STATIC mp_obj_t range_make_new(mp_obj_t type_in, mp_uint_t n_args, mp_uint_t n_k
     mp_arg_check_num(n_args, n_kw, 1, 3, false);
 
     mp_obj_range_t *o = m_new_obj(mp_obj_range_t);
-    o->base.type = &mp_type_range;
+    o->base.type = type_in;
     o->start = 0;
     o->step = 1;
 

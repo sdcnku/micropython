@@ -23,6 +23,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#ifndef __MICROPY_INCLUDED_PY_ASMX86_H__
+#define __MICROPY_INCLUDED_PY_ASMX86_H__
+
+#include "py/mpconfig.h"
+#include "py/misc.h"
 
 // x86 cdecl calling convention is:
 //  - args passed on the stack in reverse order
@@ -80,9 +85,14 @@ void* asm_x86_get_code(asm_x86_t* as);
 void asm_x86_mov_r32_r32(asm_x86_t* as, int dest_r32, int src_r32);
 void asm_x86_mov_i32_to_r32(asm_x86_t *as, int32_t src_i32, int dest_r32);
 void asm_x86_mov_i32_to_r32_aligned(asm_x86_t *as, int32_t src_i32, int dest_r32);
-void asm_x86_mov_r8_to_disp(asm_x86_t *as, int src_r32, int dest_r32, int dest_disp);
-void asm_x86_mov_r16_to_disp(asm_x86_t *as, int src_r32, int dest_r32, int dest_disp);
-void asm_x86_mov_r32_to_disp(asm_x86_t *as, int src_r32, int dest_r32, int dest_disp);
+void asm_x86_mov_r8_to_mem8(asm_x86_t *as, int src_r32, int dest_r32, int dest_disp);
+void asm_x86_mov_r16_to_mem16(asm_x86_t *as, int src_r32, int dest_r32, int dest_disp);
+void asm_x86_mov_r32_to_mem32(asm_x86_t *as, int src_r32, int dest_r32, int dest_disp);
+void asm_x86_mov_mem8_to_r32zx(asm_x86_t *as, int src_r32, int src_disp, int dest_r32);
+void asm_x86_mov_mem16_to_r32zx(asm_x86_t *as, int src_r32, int src_disp, int dest_r32);
+void asm_x86_mov_mem32_to_r32(asm_x86_t *as, int src_r32, int src_disp, int dest_r32);
+void asm_x86_and_r32_r32(asm_x86_t *as, int dest_r32, int src_r32);
+void asm_x86_or_r32_r32(asm_x86_t *as, int dest_r32, int src_r32);
 void asm_x86_xor_r32_r32(asm_x86_t *as, int dest_r32, int src_r32);
 void asm_x86_shl_r32_cl(asm_x86_t* as, int dest_r32);
 void asm_x86_sar_r32_cl(asm_x86_t* as, int dest_r32);
@@ -101,3 +111,5 @@ void asm_x86_mov_local_to_r32(asm_x86_t* as, int src_local_num, int dest_r32);
 void asm_x86_mov_r32_to_local(asm_x86_t* as, int src_r32, int dest_local_num);
 void asm_x86_mov_local_addr_to_r32(asm_x86_t* as, int local_num, int dest_r32);
 void asm_x86_call_ind(asm_x86_t* as, void* ptr, mp_uint_t n_args, int temp_r32);
+
+#endif // __MICROPY_INCLUDED_PY_ASMX86_H__

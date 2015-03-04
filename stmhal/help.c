@@ -26,11 +26,8 @@
 
 #include <stdio.h>
 
-#include "mpconfig.h"
-#include "nlr.h"
-#include "misc.h"
-#include "qstr.h"
-#include "obj.h"
+#include "py/nlr.h"
+#include "py/obj.h"
 
 STATIC const char *help_text =
 "Welcome to Micro Python!\n"
@@ -39,8 +36,8 @@ STATIC const char *help_text =
 "\n"
 "Quick overview of commands for the board:\n"
 "  pyb.info()    -- print some general information\n"
-"  pyb.gc()      -- run the garbage collector\n"
 "  pyb.delay(n)  -- wait for n milliseconds\n"
+"  pyb.millis()  -- get number of milliseconds since hard reset\n"
 "  pyb.Switch()  -- create a switch object\n"
 "                   Switch methods: (), callback(f)\n"
 "  pyb.LED(n)    -- create an LED object for LED n (n=1,2,3,4)\n"

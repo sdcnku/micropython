@@ -26,20 +26,17 @@
 
 #include <stdio.h>
 
-#include "mpconfig.h"
-#include "misc.h"
-#include "gc.h"
+#include "py/mpstate.h"
+#include "py/gc.h"
 
 #if MICROPY_ENABLE_GC
-
-extern char *stack_top;
 
 #if MICROPY_GCREGS_SETJMP
 #include <setjmp.h>
 
 typedef jmp_buf regs_t;
 
-void gc_helper_get_regs(regs_t arr) {
+STATIC void gc_helper_get_regs(regs_t arr) {
     setjmp(arr);
 }
 
@@ -52,7 +49,7 @@ void gc_helper_get_regs(regs_t arr) {
 #ifdef __x86_64__
 typedef mp_uint_t regs_t[6];
 
-void gc_helper_get_regs(regs_t arr) {
+STATIC void gc_helper_get_regs(regs_t arr) {
     register long rbx asm ("rbx");
     register long rbp asm ("rbp");
     register long r12 asm ("r12");
@@ -85,7 +82,7 @@ void gc_helper_get_regs(regs_t arr) {
 #ifdef __i386__
 typedef mp_uint_t regs_t[4];
 
-void gc_helper_get_regs(regs_t arr) {
+STATIC void gc_helper_get_regs(regs_t arr) {
     register long ebx asm ("ebx");
     register long esi asm ("esi");
     register long edi asm ("edi");
@@ -100,7 +97,7 @@ void gc_helper_get_regs(regs_t arr) {
 #if defined(__thumb2__) || defined(__thumb__) || defined(__arm__)
 typedef mp_uint_t regs_t[10];
 
-void gc_helper_get_regs(regs_t arr) {
+STATIC void gc_helper_get_regs(regs_t arr) {
     register long r4 asm ("r4");
     register long r5 asm ("r5");
     register long r6 asm ("r6");
@@ -129,23 +126,14 @@ void gc_collect(void) {
     //gc_dump_info();
 
     gc_collect_start();
-    // this traces the .bss section
-#if defined( __CYGWIN__ )
-#define BSS_START __bss_start__
-#elif defined( _MSC_VER ) || defined( __MINGW32__ )
-#define BSS_START *bss_start
-#define _end *bss_end
-#else
-#define BSS_START __bss_start
-#endif
-    extern char BSS_START, _end;
-    //printf(".bss: %p-%p\n", &BSS_START, &_end);
-    gc_collect_root((void**)&BSS_START, ((mp_uint_t)&_end - (mp_uint_t)&BSS_START) / sizeof(mp_uint_t));
     regs_t regs;
     gc_helper_get_regs(regs);
     // GC stack (and regs because we captured them)
     void **regs_ptr = (void**)(void*)&regs;
-    gc_collect_root(regs_ptr, ((mp_uint_t)stack_top - (mp_uint_t)&regs) / sizeof(mp_uint_t));
+    gc_collect_root(regs_ptr, ((mp_uint_t)MP_STATE_VM(stack_top) - (mp_uint_t)&regs) / sizeof(mp_uint_t));
+    #if MICROPY_EMIT_NATIVE
+    mp_unix_mark_exec();
+    #endif
     gc_collect_end();
 
     //printf("-----\n");

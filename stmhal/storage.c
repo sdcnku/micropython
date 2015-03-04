@@ -28,15 +28,12 @@
 #include <string.h>
 #include <stm32f4xx_hal.h>
 
-#include "mpconfig.h"
-#include "misc.h"
+#include "py/obj.h"
+#include "py/gc.h"
 #include "systick.h"
-#include "qstr.h"
-#include "obj.h"
 #include "led.h"
 #include "flash.h"
 #include "storage.h"
-#include "gc.h"
 
 extern char _heap_end;
 //#define CACHE_MEM_START_ADDR    (&_heap_end)    // FS cache in CCM

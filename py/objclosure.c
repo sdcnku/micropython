@@ -26,13 +26,8 @@
 
 #include <string.h>
 
-#include "mpconfig.h"
-#include "nlr.h"
-#include "misc.h"
-#include "qstr.h"
-#include "obj.h"
-#include "objtuple.h"
-#include "runtime.h"
+#include "py/obj.h"
+#include "py/runtime.h"
 
 typedef struct _mp_obj_closure_t {
     mp_obj_base_t base;
@@ -41,12 +36,12 @@ typedef struct _mp_obj_closure_t {
     mp_obj_t closed[];
 } mp_obj_closure_t;
 
-mp_obj_t closure_call(mp_obj_t self_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
+STATIC mp_obj_t closure_call(mp_obj_t self_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
     mp_obj_closure_t *self = self_in;
 
     // need to concatenate closed-over-vars and args
 
-    int n_total = self->n_closed + n_args + 2 * n_kw;
+    mp_uint_t n_total = self->n_closed + n_args + 2 * n_kw;
     if (n_total <= 5) {
         // use stack to allocate temporary args array
         mp_obj_t args2[5];
@@ -66,9 +61,12 @@ mp_obj_t closure_call(mp_obj_t self_in, mp_uint_t n_args, mp_uint_t n_kw, const 
 
 #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_DETAILED
 STATIC void closure_print(void (*print)(void *env, const char *fmt, ...), void *env, mp_obj_t o_in, mp_print_kind_t kind) {
+    (void)kind;
     mp_obj_closure_t *o = o_in;
-    print(env, "<closure %s at %p, n_closed=%u ", mp_obj_fun_get_name(o->fun), o, o->n_closed);
-    for (int i = 0; i < o->n_closed; i++) {
+    print(env, "<closure ");
+    mp_obj_print_helper(print, env, o->fun, PRINT_REPR);
+    print(env, " at %p, n_closed=%u ", o, o->n_closed);
+    for (mp_uint_t i = 0; i < o->n_closed; i++) {
         if (o->closed[i] == MP_OBJ_NULL) {
             print(env, "(nil)");
         } else {

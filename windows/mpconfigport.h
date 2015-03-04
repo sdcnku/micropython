@@ -35,8 +35,10 @@
 #define MICROPY_EMIT_X64            (0)
 #define MICROPY_EMIT_THUMB          (0)
 #define MICROPY_EMIT_INLINE_THUMB   (0)
+#define MICROPY_COMP_MODULE_CONST   (1)
 #define MICROPY_ENABLE_GC           (1)
 #define MICROPY_ENABLE_FINALISER    (1)
+#define MICROPY_STACK_CHECK         (1)
 #define MICROPY_MEM_STATS           (1)
 #define MICROPY_DEBUG_PRINTERS      (1)
 #define MICROPY_HELPER_REPL         (1)
@@ -46,8 +48,12 @@
 #define MICROPY_LONGINT_IMPL        (MICROPY_LONGINT_IMPL_MPZ)
 #define MICROPY_STREAMS_NON_BLOCK   (1)
 #define MICROPY_OPT_COMPUTED_GOTO   (0)
-#define MICROPY_PY_BUILTINS_STR_UNICODE (0)
+#define MICROPY_CAN_OVERRIDE_BUILTINS (1)
+#define MICROPY_PY_BUILTINS_STR_UNICODE (1)
+#define MICROPY_PY_BUILTINS_MEMORYVIEW (1)
 #define MICROPY_PY_BUILTINS_FROZENSET (1)
+#define MICROPY_PY_BUILTINS_COMPILE (1)
+#define MICROPY_PY_MICROPYTHON_MEM_INFO (1)
 #define MICROPY_PY_SYS_EXIT         (1)
 #define MICROPY_PY_SYS_PLATFORM     "win32"
 #define MICROPY_PY_SYS_MAXSIZE      (1)
@@ -57,8 +63,12 @@
 #define MICROPY_PY_GC_COLLECT_RETVAL (1)
 
 #define MICROPY_PY_UCTYPES          (1)
-#define MICROPY_PY_ZLIBD            (1)
+#define MICROPY_PY_UZLIB            (1)
 #define MICROPY_PY_UJSON            (1)
+#define MICROPY_PY_URE              (1)
+#define MICROPY_PY_UHEAPQ           (1)
+#define MICROPY_PY_UHASHLIB         (1)
+#define MICROPY_PY_UBINASCII        (1)
 
 #define MICROPY_ERROR_REPORTING     (MICROPY_ERROR_REPORTING_DETAILED)
 #ifdef _MSC_VER
@@ -66,7 +76,7 @@
 #endif
 
 #define MICROPY_ENABLE_EMERGENCY_EXCEPTION_BUF   (1)
-#define MICROPY_EMERGENCY_EXCEPTION_BUF_SIZE     (128)
+#define MICROPY_EMERGENCY_EXCEPTION_BUF_SIZE     (256)
 
 #define MICROPY_PORT_INIT_FUNC      init()
 #define MICROPY_PORT_DEINIT_FUNC    deinit()
@@ -87,6 +97,17 @@ typedef unsigned int mp_uint_t; // must be pointer size
 #endif
 
 #define BYTES_PER_WORD sizeof(mp_int_t)
+
+// Just assume Windows is little-endian - mingw32 gcc doesn't
+// define standard endianness macros.
+#define MP_ENDIANNESS_LITTLE (1)
+
+// Cannot include <sys/types.h>, as it may lead to symbol name clashes
+#if _FILE_OFFSET_BITS == 64 && !defined(__LP64__)
+typedef long long mp_off_t;
+#else
+typedef long mp_off_t;
+#endif
 
 typedef void *machine_ptr_t; // must be of pointer size
 typedef const void *machine_const_ptr_t; // must be of pointer size
@@ -125,6 +146,8 @@ void msec_sleep(double msec);
 // CL specific overrides from mpconfig
 
 #define NORETURN                    __declspec(noreturn)
+#define MP_LIKELY(x)                (x)
+#define MP_UNLIKELY(x)              (x)
 #define MICROPY_PORT_CONSTANTS      { "dummy", 0 } //can't have zero-sized array
 #ifdef _WIN64
 #define MP_SSIZE_MAX                _I64_MAX
@@ -146,7 +169,8 @@ void msec_sleep(double msec);
 #define S_ISDIR(m)                  (((m) & S_IFMT) == S_IFDIR)
 
 
-// Put static/global variables in sections with a known name we can lookup for the GC
+// Put static/global variables in sections with a known name
+// This used to be required for GC, not the case anymore but keep it as it makes the map file easier to inspect
 // For this to work this header must be included by all sources, which is the case normally
 #define MICROPY_PORT_DATASECTION "upydata"
 #define MICROPY_PORT_BSSSECTION "upybss"
@@ -162,9 +186,4 @@ void msec_sleep(double msec);
 // Functions implemented in platform code
 
 int snprintf(char *dest, size_t count, const char *format, ...);
-#endif
-
-// MingW specifics
-#ifdef __MINGW32__
-#define MICROPY_PORT_BSSSECTION ".bss"
 #endif

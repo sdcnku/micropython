@@ -29,12 +29,12 @@
 #include <assert.h>
 #include <string.h>
 
-#include "mpconfig.h"
-#include "misc.h"
-#include "asmarm.h"
+#include "py/mpconfig.h"
 
 // wrapper around everything in this file
 #if MICROPY_EMIT_ARM
+
+#include "py/asmarm.h"
 
 #define SIGNED_FIT24(x) (((x) & 0xff800000) == 0) || (((x) & 0xff000000) == 0xff000000)
 
@@ -70,20 +70,20 @@ void asm_arm_free(asm_arm_t *as, bool free_code) {
 }
 
 void asm_arm_start_pass(asm_arm_t *as, uint pass) {
-    as->pass = pass;
-    as->code_offset = 0;
     if (pass == ASM_ARM_PASS_COMPUTE) {
         memset(as->label_offsets, -1, as->max_num_labels * sizeof(mp_uint_t));
+    } else if (pass == ASM_ARM_PASS_EMIT) {
+        MP_PLAT_ALLOC_EXEC(as->code_offset, (void**)&as->code_base, &as->code_size);
+        if (as->code_base == NULL) {
+            assert(0);
+        }
     }
+    as->pass = pass;
+    as->code_offset = 0;
 }
 
 void asm_arm_end_pass(asm_arm_t *as) {
-    if (as->pass == ASM_ARM_PASS_COMPUTE) {
-        MP_PLAT_ALLOC_EXEC(as->code_offset, (void**) &as->code_base, &as->code_size);
-        if(as->code_base == NULL) {
-            assert(0);
-        }
-    } else if(as->pass == ASM_ARM_PASS_EMIT) {
+    if (as->pass == ASM_ARM_PASS_EMIT) {
 #ifdef __arm__
         // flush I- and D-cache
         asm volatile(
@@ -173,6 +173,21 @@ STATIC uint asm_arm_op_sub_imm(uint rd, uint rn, uint imm) {
 STATIC uint asm_arm_op_sub_reg(uint rd, uint rn, uint rm) {
     // sub rd, rn, rm
     return 0x0400000 | (rn << 16) | (rd << 12) | rm;
+}
+
+STATIC uint asm_arm_op_and_reg(uint rd, uint rn, uint rm) {
+    // and rd, rn, rm
+    return 0x0000000 | (rn << 16) | (rd << 12) | rm;
+}
+
+STATIC uint asm_arm_op_eor_reg(uint rd, uint rn, uint rm) {
+    // eor rd, rn, rm
+    return 0x0200000 | (rn << 16) | (rd << 12) | rm;
+}
+
+STATIC uint asm_arm_op_orr_reg(uint rd, uint rn, uint rm) {
+    // orr rd, rn, rm
+    return 0x1800000 | (rn << 16) | (rd << 12) | rm;
 }
 
 void asm_arm_bkpt(asm_arm_t *as) {
@@ -267,8 +282,9 @@ void asm_arm_mov_reg_i32(asm_arm_t *as, uint rd, int imm) {
     // TODO: There are more variants of immediate values
     if ((imm & 0xFF) == imm) {
         emit_al(as, asm_arm_op_mov_imm(rd, imm));
-    } else if (imm < 0 && ((-imm) & 0xFF) == -imm) {
-        emit_al(as, asm_arm_op_mvn_imm(rd, -imm));
+    } else if (imm < 0 && imm >= -256) {
+        // mvn is "move not", not "move negative"
+        emit_al(as, asm_arm_op_mvn_imm(rd, ~imm));
     } else {
         //Insert immediate into code and jump over it
         emit_al(as, 0x59f0000 | (rd << 12)); // ldr rd, [pc]
@@ -297,10 +313,9 @@ void asm_arm_cmp_reg_reg(asm_arm_t *as, uint rd, uint rn) {
     emit_al(as, 0x1500000 | (rd << 16) | rn);
 }
 
-void asm_arm_less_op(asm_arm_t *as, uint rd, uint rn, uint rm) {
-    asm_arm_cmp_reg_reg(as, rn, rm); // cmp rn, rm
-    emit(as, asm_arm_op_mov_imm(rd, 1) | ASM_ARM_CC_LT); // movlt rd, #1
-    emit(as, asm_arm_op_mov_imm(rd, 0) | ASM_ARM_CC_GE); // movge rd, #0
+void asm_arm_setcc_reg(asm_arm_t *as, uint rd, uint cond) {
+    emit(as, asm_arm_op_mov_imm(rd, 1) | cond); // movCOND rd, #1
+    emit(as, asm_arm_op_mov_imm(rd, 0) | (cond ^ (1 << 28))); // mov!COND rd, #0
 }
 
 void asm_arm_add_reg_reg_reg(asm_arm_t *as, uint rd, uint rn, uint rm) {
@@ -313,9 +328,80 @@ void asm_arm_sub_reg_reg_reg(asm_arm_t *as, uint rd, uint rn, uint rm) {
     emit_al(as, asm_arm_op_sub_reg(rd, rn, rm));
 }
 
+void asm_arm_and_reg_reg_reg(asm_arm_t *as, uint rd, uint rn, uint rm) {
+    // and rd, rn, rm
+    emit_al(as, asm_arm_op_and_reg(rd, rn, rm));
+}
+
+void asm_arm_eor_reg_reg_reg(asm_arm_t *as, uint rd, uint rn, uint rm) {
+    // eor rd, rn, rm
+    emit_al(as, asm_arm_op_eor_reg(rd, rn, rm));
+}
+
+void asm_arm_orr_reg_reg_reg(asm_arm_t *as, uint rd, uint rn, uint rm) {
+    // orr rd, rn, rm
+    emit_al(as, asm_arm_op_orr_reg(rd, rn, rm));
+}
+
 void asm_arm_mov_reg_local_addr(asm_arm_t *as, uint rd, int local_num) {
     // add rd, sp, #local_num*4
     emit_al(as, asm_arm_op_add_imm(rd, ASM_ARM_REG_SP, local_num << 2));
+}
+
+void asm_arm_lsl_reg_reg(asm_arm_t *as, uint rd, uint rs) {
+    // mov rd, rd, lsl rs
+    emit_al(as, 0x1a00010 | (rd << 12) | (rs << 8) | rd);
+}
+
+void asm_arm_asr_reg_reg(asm_arm_t *as, uint rd, uint rs) {
+    // mov rd, rd, asr rs
+    emit_al(as, 0x1a00050 | (rd << 12) | (rs << 8) | rd);
+}
+
+void asm_arm_ldr_reg_reg(asm_arm_t *as, uint rd, uint rn) {
+    // ldr rd, [rn]
+    emit_al(as, 0x5900000 | (rn << 16) | (rd << 12));
+}
+
+void asm_arm_ldrh_reg_reg(asm_arm_t *as, uint rd, uint rn) {
+    // ldrh rd, [rn]
+    emit_al(as, 0x1d000b0 | (rn << 16) | (rd << 12));
+}
+
+void asm_arm_ldrb_reg_reg(asm_arm_t *as, uint rd, uint rn) {
+    // ldrb rd, [rn]
+    emit_al(as, 0x5d00000 | (rn << 16) | (rd << 12));
+}
+
+void asm_arm_str_reg_reg(asm_arm_t *as, uint rd, uint rm) {
+    // str rd, [rm]
+    emit_al(as, 0x5800000 | (rm << 16) | (rd << 12));
+}
+
+void asm_arm_strh_reg_reg(asm_arm_t *as, uint rd, uint rm) {
+    // strh rd, [rm]
+    emit_al(as, 0x1c000b0 | (rm << 16) | (rd << 12));
+}
+
+void asm_arm_strb_reg_reg(asm_arm_t *as, uint rd, uint rm) {
+    // strb rd, [rm]
+    emit_al(as, 0x5c00000 | (rm << 16) | (rd << 12));
+}
+
+void asm_arm_str_reg_reg_reg(asm_arm_t *as, uint rd, uint rm, uint rn) {
+    // str rd, [rm, rn, lsl #2]
+    emit_al(as, 0x7800100 | (rm << 16) | (rd << 12) | rn);
+}
+
+void asm_arm_strh_reg_reg_reg(asm_arm_t *as, uint rd, uint rm, uint rn) {
+    // strh doesn't support scaled register index
+    emit_al(as, 0x1a00080 | (ASM_ARM_REG_R8 << 12) | rn); // mov r8, rn, lsl #1
+    emit_al(as, 0x18000b0 | (rm << 16) | (rd << 12) | ASM_ARM_REG_R8); // strh rd, [rm, r8]
+}
+
+void asm_arm_strb_reg_reg_reg(asm_arm_t *as, uint rd, uint rm, uint rn) {
+    // strb rd, [rm, rn]
+    emit_al(as, 0x7c00000 | (rm << 16) | (rd << 12) | rn);
 }
 
 void asm_arm_bcc_label(asm_arm_t *as, int cond, uint label) {

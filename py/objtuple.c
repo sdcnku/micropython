@@ -27,14 +27,10 @@
 #include <string.h>
 #include <assert.h>
 
-#include "mpconfig.h"
-#include "nlr.h"
-#include "misc.h"
-#include "qstr.h"
-#include "obj.h"
-#include "runtime0.h"
-#include "runtime.h"
-#include "objtuple.h"
+#include "py/nlr.h"
+#include "py/objtuple.h"
+#include "py/runtime0.h"
+#include "py/runtime.h"
 
 STATIC mp_obj_t mp_obj_new_tuple_iterator(mp_obj_tuple_t *tuple, mp_uint_t cur);
 
@@ -66,6 +62,8 @@ void mp_obj_tuple_print(void (*print)(void *env, const char *fmt, ...), void *en
 }
 
 STATIC mp_obj_t mp_obj_tuple_make_new(mp_obj_t type_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
+    (void)type_in;
+
     mp_arg_check_num(n_args, n_kw, 0, 1, false);
 
     switch (n_args) {
@@ -97,7 +95,7 @@ STATIC mp_obj_t mp_obj_tuple_make_new(mp_obj_t type_in, mp_uint_t n_args, mp_uin
             }
 
             mp_obj_t tuple = mp_obj_new_tuple(len, items);
-            m_free(items, alloc);
+            m_del(mp_obj_t, items, alloc);
 
             return tuple;
         }

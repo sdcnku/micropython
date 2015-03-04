@@ -28,16 +28,10 @@
 #include <string.h>
 #include <stm32f4xx_hal.h>
 
-#include "mpconfig.h"
-#include "nlr.h"
-#include "misc.h"
+#include "py/nlr.h"
+#include "py/runtime.h"
 
 #if MICROPY_HW_HAS_LCD
-
-#include "qstr.h"
-#include "parse.h"
-#include "obj.h"
-#include "runtime.h"
 
 #include "pin.h"
 #include "genhdr/pins.h"
@@ -389,7 +383,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_2(pyb_lcd_light_obj, pyb_lcd_light);
 /// Write the string `str` to the screen.  It will appear immediately.
 STATIC mp_obj_t pyb_lcd_write(mp_obj_t self_in, mp_obj_t str) {
     pyb_lcd_obj_t *self = self_in;
-    uint len;
+    mp_uint_t len;
     const char *data = mp_obj_str_get_data(str, &len);
     lcd_write_strn(self, data, len);
     return mp_const_none;
@@ -461,7 +455,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(pyb_lcd_pixel_obj, 4, 4, pyb_lcd_pixe
 STATIC mp_obj_t pyb_lcd_text(mp_uint_t n_args, const mp_obj_t *args) {
     // extract arguments
     pyb_lcd_obj_t *self = args[0];
-    uint len;
+    mp_uint_t len;
     const char *data = mp_obj_str_get_data(args[1], &len);
     int x0 = mp_obj_get_int(args[2]);
     int y0 = mp_obj_get_int(args[3]);

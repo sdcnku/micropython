@@ -24,20 +24,9 @@
  * THE SOFTWARE.
  */
 
-#include <stdlib.h>
-#include <stdint.h>
 #include <assert.h>
 
-#include "mpconfig.h"
-#include "misc.h"
-#include "qstr.h"
-#include "lexer.h"
-#include "parse.h"
-#include "obj.h"
-#include "emitglue.h"
-#include "scope.h"
-#include "runtime0.h"
-#include "emit.h"
+#include "py/emit.h"
 
 struct _emit_t {
     scope_t *scope;
@@ -53,6 +42,7 @@ void emit_pass1_free(emit_t *emit) {
 }
 
 STATIC void emit_pass1_dummy(emit_t *emit) {
+    (void)emit;
 }
 
 STATIC void emit_pass1_start_pass(emit_t *emit, pass_kind_t pass, scope_t *scope) {
@@ -61,9 +51,11 @@ STATIC void emit_pass1_start_pass(emit_t *emit, pass_kind_t pass, scope_t *scope
 }
 
 STATIC void emit_pass1_end_pass(emit_t *emit) {
+    (void)emit;
 }
 
 STATIC bool emit_pass1_last_emit_was_return_value(emit_t *emit) {
+    (void)emit;
     return false;
 }
 
@@ -198,12 +190,13 @@ const emit_method_table_t emit_pass1_method_table = {
     (void*)emit_pass1_dummy,
     (void*)emit_pass1_dummy,
     (void*)emit_pass1_dummy,
+    #if MICROPY_PY_BUILTINS_SET
     (void*)emit_pass1_dummy,
     (void*)emit_pass1_dummy,
+    #endif
+    #if MICROPY_PY_BUILTINS_SLICE
     (void*)emit_pass1_dummy,
-    (void*)emit_pass1_dummy,
-    (void*)emit_pass1_dummy,
-    (void*)emit_pass1_dummy,
+    #endif
     (void*)emit_pass1_dummy,
     (void*)emit_pass1_dummy,
     (void*)emit_pass1_dummy,

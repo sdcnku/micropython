@@ -114,6 +114,12 @@ __attribute__(( always_inline )) static inline void __WFI(void) {
 
 uint32_t HAL_GetTick(void);
 void     HAL_Delay(uint32_t Delay);
+void mp_hal_set_interrupt_char(int c);
+
+int mp_hal_stdin_rx_chr(void);
+void mp_hal_stdout_tx_str(const char *str);
+void mp_hal_stdout_tx_strn(const char *str, uint32_t len);
+void mp_hal_stdout_tx_strn_cooked(const char *str, uint32_t len);
 
 void HAL_GPIO_Init(GPIO_TypeDef *GPIOx, GPIO_InitTypeDef *init);
 

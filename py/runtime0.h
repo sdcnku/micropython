@@ -23,6 +23,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#ifndef __MICROPY_INCLUDED_PY_RUNTIME0_H__
+#define __MICROPY_INCLUDED_PY_RUNTIME0_H__
 
 // taken from python source, Include/code.h
 // These must fit in 8 bits; see scope.h
@@ -105,8 +107,6 @@ typedef enum {
 typedef enum {
     MP_F_CONVERT_OBJ_TO_NATIVE = 0,
     MP_F_CONVERT_NATIVE_TO_OBJ,
-    MP_F_LOAD_CONST_INT,
-    MP_F_LOAD_CONST_DEC,
     MP_F_LOAD_CONST_STR,
     MP_F_LOAD_CONST_BYTES,
     MP_F_LOAD_NAME,
@@ -152,3 +152,5 @@ typedef enum {
 } mp_fun_kind_t;
 
 extern void *const mp_fun_table[MP_F_NUMBER_OF];
+
+#endif // __MICROPY_INCLUDED_PY_RUNTIME0_H__

@@ -29,14 +29,11 @@
 #include <mk20dx128.h>
 #include "Arduino.h"
 
-#include "mpconfig.h"
-#include "misc.h"
+#include "py/obj.h"
+#include "py/gc.h"
 
 #include "teensy_hal.h"
 
-#include "qstr.h"
-#include "obj.h"
-#include "gc.h"
 #include "gccollect.h"
 #include "irq.h"
 #include "systick.h"
@@ -59,7 +56,6 @@
 #include "dac.h"
 #include "usb.h"
 #include "portmodules.h"
-#include "pybstdio.h"
 
 /// \module pyb - functions related to the pyboard
 ///
@@ -354,16 +350,7 @@ STATIC const mp_map_elem_t pyb_module_globals_table[] = {
 //#endif
 };
 
-STATIC const mp_obj_dict_t pyb_module_globals = {
-    .base = {&mp_type_dict},
-    .map = {
-        .all_keys_are_qstrs = 1,
-        .table_is_fixed_array = 1,
-        .used = MP_ARRAY_SIZE(pyb_module_globals_table),
-        .alloc = MP_ARRAY_SIZE(pyb_module_globals_table),
-        .table = (mp_map_elem_t*)pyb_module_globals_table,
-    },
-};
+STATIC MP_DEFINE_CONST_DICT(pyb_module_globals, pyb_module_globals_table);
 
 const mp_obj_module_t pyb_module = {
     .base = { &mp_type_module },

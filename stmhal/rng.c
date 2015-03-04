@@ -28,10 +28,7 @@
 
 #include "stm32f4xx_hal.h"
 
-#include "mpconfig.h"
-#include "misc.h"
-#include "qstr.h"
-#include "obj.h"
+#include "py/obj.h"
 #include "rng.h"
 
 #if MICROPY_HW_ENABLE_RNG
@@ -58,6 +55,19 @@ uint32_t rng_get(void) {
     return HAL_RNG_GetRandomNumber(&RNGHandle);
 }
 
+uint32_t rng_randint(uint32_t min, uint32_t max) {
+    uint32_t rand=0;
+    if (min==max) {
+        return 0;
+    }
+
+    // Wait until the RNG is ready
+    while (HAL_RNG_GetState(&RNGHandle) != RNG_FLAG_DRDY);
+
+    rand = HAL_RNG_GetRandomNumber(&RNGHandle);
+    return (rand%(max-min))+min;
+}
+
 /// \function rng()
 /// Return a 30-bit hardware generated random number.
 STATIC mp_obj_t pyb_rng_get(void) {
@@ -68,5 +78,11 @@ STATIC mp_obj_t pyb_rng_get(void) {
 }
 
 MP_DEFINE_CONST_FUN_OBJ_0(pyb_rng_get_obj, pyb_rng_get);
+
+STATIC mp_obj_t pyb_rng_randint(mp_obj_t min, mp_obj_t max) {
+    return mp_obj_new_int(rng_randint(mp_obj_get_int(min), mp_obj_get_int(max)));
+}
+
+MP_DEFINE_CONST_FUN_OBJ_2(pyb_rng_randint_obj, pyb_rng_randint);
 
 #endif // MICROPY_HW_ENABLE_RNG

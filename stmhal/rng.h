@@ -26,5 +26,6 @@
 
 void rng_init0(void);
 uint32_t rng_get(void);
+uint32_t rng_randint(uint32_t min, uint32_t max);
 
 MP_DECLARE_CONST_FUN_OBJ(pyb_rng_get_obj);

@@ -27,12 +27,8 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "mpconfig.h"
-#include "misc.h"
-#include "qstr.h"
-#include "obj.h"
-#include "objtuple.h"
-#include "runtime.h"
+#include "py/objtuple.h"
+#include "py/runtime.h"
 
 typedef struct _mp_obj_zip_t {
     mp_obj_base_t base;
@@ -44,7 +40,7 @@ STATIC mp_obj_t zip_make_new(mp_obj_t type_in, mp_uint_t n_args, mp_uint_t n_kw,
     mp_arg_check_num(n_args, n_kw, 0, MP_OBJ_FUN_ARGS_MAX, false);
 
     mp_obj_zip_t *o = m_new_obj_var(mp_obj_zip_t, mp_obj_t, n_args);
-    o->base.type = &mp_type_zip;
+    o->base.type = type_in;
     o->n_iters = n_args;
     for (mp_uint_t i = 0; i < n_args; i++) {
         o->iters[i] = mp_getiter(args[i]);

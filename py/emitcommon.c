@@ -28,16 +28,7 @@
 #include <stdint.h>
 #include <assert.h>
 
-#include "mpconfig.h"
-#include "misc.h"
-#include "qstr.h"
-#include "lexer.h"
-#include "parse.h"
-#include "runtime0.h"
-#include "obj.h"
-#include "emitglue.h"
-#include "scope.h"
-#include "emit.h"
+#include "py/emit.h"
 
 #define EMIT(fun, ...) (emit_method_table->fun(emit, __VA_ARGS__))
 
@@ -53,7 +44,7 @@ void emit_common_load_id(emit_t *emit, const emit_method_table_t *emit_method_ta
     } else if (id->kind == ID_INFO_KIND_GLOBAL_EXPLICIT) {
         EMIT(load_global, qst);
     } else if (id->kind == ID_INFO_KIND_LOCAL) {
-        EMIT(load_fast, qst, id->flags, id->local_num);
+        EMIT(load_fast, qst, id->local_num);
     } else if (id->kind == ID_INFO_KIND_CELL || id->kind == ID_INFO_KIND_FREE) {
         EMIT(load_deref, qst, id->local_num);
     } else {

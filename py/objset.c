@@ -28,14 +28,10 @@
 #include <string.h>
 #include <assert.h>
 
-#include "mpconfig.h"
-#include "nlr.h"
-#include "misc.h"
-#include "qstr.h"
-#include "obj.h"
-#include "runtime.h"
-#include "runtime0.h"
-#include "builtin.h"
+#include "py/nlr.h"
+#include "py/runtime.h"
+#include "py/runtime0.h"
+#include "py/builtin.h"
 
 #if MICROPY_PY_BUILTINS_SET
 
@@ -84,6 +80,7 @@ STATIC void check_set(mp_obj_t o) {
 }
 
 STATIC void set_print(void (*print)(void *env, const char *fmt, ...), void *env, mp_obj_t self_in, mp_print_kind_t kind) {
+    (void)kind;
     mp_obj_set_t *self = self_in;
     #if MICROPY_PY_BUILTINS_FROZENSET
     bool is_frozen = MP_OBJ_IS_TYPE(self_in, &mp_type_frozenset);
