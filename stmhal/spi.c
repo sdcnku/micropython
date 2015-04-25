@@ -197,10 +197,10 @@ void spi_init(SPI_HandleTypeDef *spi, bool enable_nss_pin) {
 #endif
 #if MICROPY_HW_ENABLE_SPI3
     } else if (spi->Instance == SPI3) {
-        pins[0] = &pin_A4;
-        pins[1] = &pin_B3;
-        pins[2] = &pin_B4;
-        pins[3] = &pin_B5;
+        pins[0] = &pin_A15;
+        pins[1] = &pin_C10;
+        pins[2] = &pin_C11;
+        pins[3] = &pin_C12;
         GPIO_InitStructure.Alternate = GPIO_AF6_SPI3;
         // enable the SPI clock
         __SPI3_CLK_ENABLE();
