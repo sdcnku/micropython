@@ -412,7 +412,7 @@ bool pyexec_str(vstr_t *str) {
         return false;
     } else {
         /* exec code */
-        parse_compile_execute(lex, MP_PARSE_FILE_INPUT, true);
+        parse_compile_execute(lex, MP_PARSE_FILE_INPUT, 0);
         return true;
     }
 }
