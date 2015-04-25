@@ -57,8 +57,8 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
-#define APP_RX_DATA_SIZE  1024 // I think this must be at least CDC_DATA_FS_OUT_PACKET_SIZE=64 (APP_RX_DATA_SIZE was 2048)
-#define APP_TX_DATA_SIZE  1024 // I think this can be any value (was 2048)
+#define APP_RX_DATA_SIZE  512 // I think this must be at least CDC_DATA_FS_OUT_PACKET_SIZE=64 (APP_RX_DATA_SIZE was 2048)
+#define APP_TX_DATA_SIZE  512 // I think this can be any value (was 2048)
 
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
