@@ -98,6 +98,8 @@ SRC_C = \
 	pin_defs_stmhal.c \
 	pin_named_pins.c \
 	bufhelper.c \
+	i2c.c \
+	spi.c \
 	uart.c \
 	can.c \
 	usb.c \
