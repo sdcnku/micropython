@@ -66,7 +66,7 @@
 static __IO uint8_t dev_is_connected = 0; // indicates if we are connected
 static __IO uint8_t debug_mode = 0; 
 
-static uint32_t last_packet = 64;
+static uint32_t last_packet = 0;
 
 static uint32_t baudrate = 115200;
 static uint32_t dbg_xfer_length=0;
@@ -231,7 +231,7 @@ static int8_t CDC_Itf_Control(uint8_t cmd, uint8_t* pbuf, uint16_t length) {
   * @retval None
   */
 void USBD_CDC_HAL_TIM_PeriodElapsedCallback(void) {
-    if (!dev_is_connected) {
+    if (debug_mode || !dev_is_connected) {
         // CDC device is not connected to a host, so we are unable to send any data
         return;
     }
@@ -291,17 +291,17 @@ void USBD_CDC_HAL_TIM_PeriodElapsedCallback(void) {
 
 uint32_t usbd_cdc_tx_buf_len() {
     uint32_t buffsize;
-    if (UserTxBufPtrOut > UserTxBufPtrIn) { // rollback
-        buffsize = APP_TX_DATA_SIZE - UserTxBufPtrOut;
+    if (UserTxBufPtrOutShadow > UserTxBufPtrIn) { // rollback
+        buffsize = APP_TX_DATA_SIZE - UserTxBufPtrOutShadow;
     } else {
-        buffsize = UserTxBufPtrIn - UserTxBufPtrOut;
+        buffsize = UserTxBufPtrIn - UserTxBufPtrOutShadow;
     }
     return buffsize;
 }
 
 uint8_t *usbd_cdc_tx_buf(uint32_t bytes) {
-    uint8_t *tx_buf = (uint8_t*)&UserTxBuffer[UserTxBufPtrOutShadow];
-    UserTxBufPtrOutShadow = (UserTxBufPtrOutShadow + bytes) %APP_TX_DATA_SIZE;
+    uint8_t *tx_buf = UserTxBuffer+UserTxBufPtrOutShadow;
+    UserTxBufPtrOutShadow = (UserTxBufPtrOutShadow + bytes) % APP_TX_DATA_SIZE;
     return tx_buf;
 }
 
