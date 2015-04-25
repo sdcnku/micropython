@@ -40,6 +40,13 @@ typedef enum {
     PYB_LED_G = 2,
     PYB_LED_B = 3,
     PYB_LED_O = 4,
+    //OpenMV
+    LED_RED=1,
+    LED_GREEN=2,
+    LED_BLUE=3,
+#ifdef OPENMV2
+    LED_IR=4,
+#endif
 } pyb_led_t;
 
 void led_init(void);
