@@ -59,6 +59,13 @@ void pendsv_nlr_jump(void *o) {
     }
 }
 
+// This will always force the exception by using the hardware PENDSV 
+void pendsv_nlr_jump_hard(void *o) {
+    MP_STATE_VM(mp_pending_exception) = MP_OBJ_NULL;
+    pendsv_object = o;
+    SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
+}
+
 // since we play tricks with the stack, the compiler must not generate a
 // prelude for this function
 void pendsv_isr_handler(void) __attribute__((naked));
