@@ -74,6 +74,10 @@ void led_init(void) {
     for (int led = 0; led < NUM_LEDS; led++) {
         const pin_obj_t *led_pin = pyb_led_obj[led].led_pin;
         MICROPY_HW_LED_OFF(led_pin);
+        if (led == 3) {
+            //IR is inverted
+            MICROPY_HW_LED_ON(led_pin);
+        }
         GPIO_InitStructure.Pin = led_pin->pin_mask;
         HAL_GPIO_Init(led_pin->gpio, &GPIO_InitStructure);
     }
@@ -121,12 +125,20 @@ void led_state(pyb_led_t led, int state) {
 #endif
     const pin_obj_t *led_pin = pyb_led_obj[led - 1].led_pin;
     //printf("led_state(%d,%d)\n", led, state);
-    if (state == 0) {
+    if (state == 0) { // Note LED4 (IR LED on OMV2 is inverted
         // turn LED off
-        MICROPY_HW_LED_OFF(led_pin);
+        if (led == 4) {
+            MICROPY_HW_LED_ON(led_pin);
+        } else {
+            MICROPY_HW_LED_OFF(led_pin);
+        }
     } else {
         // turn LED on
-        MICROPY_HW_LED_ON(led_pin);
+        if (led == 4) {
+            MICROPY_HW_LED_OFF(led_pin);
+        } else {
+            MICROPY_HW_LED_ON(led_pin);
+        }
     }
 }
 
