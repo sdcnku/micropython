@@ -378,20 +378,22 @@ int pyexec_file(const char *filename) {
 }
 
 static mp_obj_dict_t *old_locals, *old_globals;
-static mp_obj_dict_t new_locals, new_globals;
+static mp_obj_dict_t *new_locals, *new_globals;
 void pyexec_push_scope() {
     old_locals = mp_locals_get();
     old_globals = mp_globals_get();
 
     /* create new scope */
-    mp_obj_dict_init(&new_locals, 1);
-    mp_obj_dict_init(&new_globals, old_globals->map.alloc);
-    new_globals.map.used = old_globals->map.used;
-    memcpy(new_globals.map.table, old_globals->map.table, old_globals->map.alloc * sizeof(mp_map_elem_t));
+    new_locals = mp_obj_new_dict(1);
+    new_globals = mp_obj_new_dict(old_globals->map.alloc);
+    new_globals->map.used = old_globals->map.used;
+    new_globals->map.all_keys_are_qstrs = old_globals->map.all_keys_are_qstrs;
+    new_globals->map.table_is_fixed_array = 0;
+    memcpy(new_globals->map.table, old_globals->map.table, old_globals->map.alloc * sizeof(mp_map_elem_t));
 
     /* set new scope */
-    mp_locals_set(&new_locals);
-    mp_globals_set(&new_globals);
+    mp_locals_set(new_locals);
+    mp_globals_set(new_globals);
 }
 
 void pyexec_pop_scope() {
@@ -400,8 +402,8 @@ void pyexec_pop_scope() {
     mp_globals_set(old_globals);
 
     /* cleanup */
-    mp_map_free(&new_locals.map);
-    mp_map_free(&new_globals.map);
+    //mp_map_free(new_locals->map);
+    //mp_map_free(new_globals->map);
 }
 
 
