@@ -880,4 +880,6 @@ Q(mlx)
 Q(init)
 Q(read)
 Q(read_raw)
+Q(RAINBOW)
+Q(GRAYSCALE)
 
