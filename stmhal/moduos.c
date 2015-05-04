@@ -115,19 +115,6 @@ STATIC mp_obj_t os_listdir(mp_uint_t n_args, const mp_obj_t *args) {
         path = "";
     }
 
-    // "hack" to list root directory
-    if (path[0] == '/' && path[1] == '\0') {
-        mp_obj_t dir_list = mp_obj_new_list(0, NULL);
-        mp_obj_list_append(dir_list, MP_OBJ_NEW_QSTR(MP_QSTR_flash));
-        if (sd_in_root()) {
-            mp_obj_list_append(dir_list, MP_OBJ_NEW_QSTR(MP_QSTR_sd));
-        }
-        if (fs_user_mount != NULL) {
-            mp_obj_list_append(dir_list, mp_obj_new_str(fs_user_mount->str + 1, fs_user_mount->len - 1, false));
-        }
-        return dir_list;
-    }
-
     FRESULT res;
     FILINFO fno;
     DIR dir;
