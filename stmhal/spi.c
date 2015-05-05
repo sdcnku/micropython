@@ -147,7 +147,7 @@ void spi_init(SPI_HandleTypeDef *spi, bool enable_nss_pin) {
     // init the GPIO lines
     GPIO_InitTypeDef GPIO_InitStructure;
     GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStructure.Speed = GPIO_SPEED_FAST;
+    GPIO_InitStructure.Speed = GPIO_SPEED_LOW;
     GPIO_InitStructure.Pull = spi->Init.CLKPolarity == SPI_POLARITY_LOW ? GPIO_PULLDOWN : GPIO_PULLUP;
 
     DMA_HandleTypeDef *rx_dma, *tx_dma;
@@ -524,8 +524,10 @@ STATIC mp_obj_t pyb_spi_send(mp_uint_t n_args, const mp_obj_t *pos_args, mp_map_
 
     // send the data
     HAL_StatusTypeDef status;
-    if (query_irq() == IRQ_STATE_DISABLED) {
+    if (bufinfo.len == 1) {
+        mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
         status = HAL_SPI_Transmit(self->spi, bufinfo.buf, bufinfo.len, args[1].u_int);
+        MICROPY_END_ATOMIC_SECTION(atomic_state);
     } else {
         status = HAL_SPI_Transmit_DMA(self->spi, bufinfo.buf, bufinfo.len);
         if (status == HAL_OK) {
@@ -570,8 +572,10 @@ STATIC mp_obj_t pyb_spi_recv(mp_uint_t n_args, const mp_obj_t *pos_args, mp_map_
 
     // receive the data
     HAL_StatusTypeDef status;
-    if (query_irq() == IRQ_STATE_DISABLED) {
+    if (vstr.len==1) {
+        mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
         status = HAL_SPI_Receive(self->spi, (uint8_t*)vstr.buf, vstr.len, args[1].u_int);
+        MICROPY_END_ATOMIC_SECTION(atomic_state);
     } else {
         status = HAL_SPI_Receive_DMA(self->spi, (uint8_t*)vstr.buf, vstr.len);
         if (status == HAL_OK) {
