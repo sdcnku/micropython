@@ -36,10 +36,10 @@
 #include "storage.h"
 
 extern char _heap_end;
-//#define CACHE_MEM_START_ADDR    (&_heap_end)    // FS cache in CCM
+//#define CACHE_MEM_START_ADDR    (&_heap_end)  // FS cache in CCM
 const void *CACHE_MEM_START_ADDR=NULL;
-#define FLASH_PART1_RES_BLOCKS   (1)             // Reserve 1 block for MBR
-#define FLASH_PART1_NUM_BLOCKS  (64)            // (16k+16k)/512
+#define FLASH_PART1_RES_BLOCKS  (1)             // Reserve 1 block for MBR
+#define FLASH_PART1_NUM_BLOCKS  (96)            // (16k+16+16)*1024/512
 #define FLASH_MEM_START_ADDR    (0x08004000)    // FS offset, sector 1
 
 #define FLASH_FLAG_DIRTY        (1)
