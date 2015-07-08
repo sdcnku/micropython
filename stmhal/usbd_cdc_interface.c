@@ -60,6 +60,8 @@
 #define APP_RX_DATA_SIZE  512 // I think this must be at least CDC_DATA_FS_OUT_PACKET_SIZE=64 (APP_RX_DATA_SIZE was 2048)
 #define APP_TX_DATA_SIZE  512 // I think this can be any value (was 2048)
 
+#define IDE_BAUDRATE_SLOW    (921600)
+#define IDE_BAUDRATE_FAST    (12000000)
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 
@@ -186,7 +188,8 @@ static int8_t CDC_Itf_Control(uint8_t cmd, uint8_t* pbuf, uint16_t length) {
 
         case CDC_SET_LINE_CODING: {
             baudrate = *((uint32_t*)pbuf);
-            if (baudrate == 12000000) {
+            // The slow baudrate can be used on OSs that don't support custom baudrates
+            if (baudrate == IDE_BAUDRATE_SLOW || baudrate == IDE_BAUDRATE_FAST) {
                 debug_mode = 1;
                 dbg_xfer_length=0;
                 UserTxBufPtrIn = UserTxBufPtrOut = UserTxBufPtrOutShadow =0;
