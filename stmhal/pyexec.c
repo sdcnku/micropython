@@ -26,9 +26,9 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <stdint.h>
 
-#include "std.h"
 #include "py/nlr.h"
 #include "py/compile.h"
 #include "py/runtime.h"
@@ -463,7 +463,7 @@ void pyexec_push_scope() {
     new_globals = mp_obj_new_dict(old_globals->map.alloc);
     new_globals->map.used = old_globals->map.used;
     new_globals->map.all_keys_are_qstrs = old_globals->map.all_keys_are_qstrs;
-    new_globals->map.table_is_fixed_array = 0;
+    new_globals->map.is_fixed = 0;
     memcpy(new_globals->map.table, old_globals->map.table, old_globals->map.alloc * sizeof(mp_map_elem_t));
 
     /* set new scope */
