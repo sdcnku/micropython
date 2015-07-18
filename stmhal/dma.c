@@ -63,12 +63,12 @@ void DMA1_Stream5_IRQHandler(void) { if (dma_handle[5] != NULL) { HAL_DMA_IRQHan
 void DMA1_Stream6_IRQHandler(void) { if (dma_handle[6] != NULL) { HAL_DMA_IRQHandler(dma_handle[6]); } }
 void DMA1_Stream7_IRQHandler(void) { if (dma_handle[7] != NULL) { HAL_DMA_IRQHandler(dma_handle[7]); } }
 void DMA2_Stream0_IRQHandler(void) { if (dma_handle[8] != NULL) { HAL_DMA_IRQHandler(dma_handle[8]); } }
-void DMA2_Stream2_IRQHandler(void) { if (dma_handle[10] != NULL) { HAL_DMA_IRQHandler(dma_handle[10]); } }
-void DMA2_Stream3_IRQHandler(void) { if (dma_handle[11] != NULL) { HAL_DMA_IRQHandler(dma_handle[11]); } }
-void DMA2_Stream4_IRQHandler(void) { if (dma_handle[12] != NULL) { HAL_DMA_IRQHandler(dma_handle[12]); } }
-void DMA2_Stream5_IRQHandler(void) { if (dma_handle[13] != NULL) { HAL_DMA_IRQHandler(dma_handle[13]); } }
-void DMA2_Stream6_IRQHandler(void) { if (dma_handle[14] != NULL) { HAL_DMA_IRQHandler(dma_handle[14]); } }
-void DMA2_Stream7_IRQHandler(void) { if (dma_handle[15] != NULL) { HAL_DMA_IRQHandler(dma_handle[15]); } }
+void DMA2_Stream2_IRQHandler(void) { if (dma_handle[9] != NULL) { HAL_DMA_IRQHandler(dma_handle[9]); } }
+void DMA2_Stream3_IRQHandler(void) { if (dma_handle[10] != NULL) { HAL_DMA_IRQHandler(dma_handle[10]); } }
+void DMA2_Stream4_IRQHandler(void) { if (dma_handle[11] != NULL) { HAL_DMA_IRQHandler(dma_handle[11]); } }
+void DMA2_Stream5_IRQHandler(void) { if (dma_handle[12] != NULL) { HAL_DMA_IRQHandler(dma_handle[12]); } }
+void DMA2_Stream6_IRQHandler(void) { if (dma_handle[13] != NULL) { HAL_DMA_IRQHandler(dma_handle[13]); } }
+void DMA2_Stream7_IRQHandler(void) { if (dma_handle[14] != NULL) { HAL_DMA_IRQHandler(dma_handle[14]); } }
 
 static int get_dma_id(DMA_Stream_TypeDef *dma_stream) {
     if ((uint32_t)dma_stream < DMA2_BASE) {
