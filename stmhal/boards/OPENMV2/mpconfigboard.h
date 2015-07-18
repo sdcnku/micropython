@@ -17,6 +17,24 @@
 #define MICROPY_HW_ENABLE_SPI3      (0)
 #define MICROPY_HW_ENABLE_CC3K      (0)
 
+#define MICROPY_HW_CLK_PLLM (6)
+#define MICROPY_HW_CLK_PLLN (360)
+#define MICROPY_HW_CLK_PLLQ (15)
+#define MICROPY_HW_CLK_PLLP (RCC_PLLP_DIV4)
+
+// UART config
+#define MICROPY_HW_UART3_PORT (GPIOB)
+#define MICROPY_HW_UART3_PINS (GPIO_PIN_10 | GPIO_PIN_11)
+#define MICROPY_HW_UART3_RTS  (GPIO_PIN_14)
+#define MICROPY_HW_UART3_CTS  (GPIO_PIN_13)
+
+// I2C busses
+#define MICROPY_HW_I2C2_SCL (pin_B10)
+#define MICROPY_HW_I2C2_SDA (pin_B11)
+
+// USB config
+#define MICROPY_HW_USB_VBUS_DETECT_PIN (pin_A9)
+
 // USRSW is pulled low. Pressing the button makes the input go high.
 #define MICROPY_HW_USRSW_PIN        (pin_A0)
 #define MICROPY_HW_USRSW_PULL       (GPIO_NOPULL)

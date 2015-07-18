@@ -6,7 +6,6 @@
 #include "py/compile.h"
 #include "py/runtime.h"
 #include "py/repl.h"
-#include "py/pfenv.h"
 #include "py/gc.h"
 #include "pyexec.h"
 
@@ -26,7 +25,7 @@ void do_str(const char *src) {
         nlr_pop();
     } else {
         // uncaught exception
-        mp_obj_print_exception(printf_wrapper, NULL, (mp_obj_t)nlr.ret_val);
+        mp_obj_print_exception(&mp_plat_print, (mp_obj_t)nlr.ret_val);
     }
 }
 
@@ -42,10 +41,10 @@ int main(int argc, char **argv) {
     #endif
     mp_init();
     #if MICROPY_REPL_EVENT_DRIVEN
-    pyexec_friendly_repl_init();
+    pyexec_event_repl_init();
     for (;;) {
-        int c = stdin_rx_chr();
-        if (pyexec_friendly_repl_process_char(c)) {
+        int c = mp_hal_stdin_rx_chr();
+        if (pyexec_event_repl_process_char(c)) {
             break;
         }
     }

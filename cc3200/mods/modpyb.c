@@ -25,11 +25,11 @@
  * THE SOFTWARE.
  */
 
-
-#include <std.h>
 #include <stdint.h>
+#include "std.h"
 
 #include "py/mpstate.h"
+#include "py/runtime.h"
 #include MICROPY_HAL_H
 #include "irq.h"
 #include "inc/hw_types.h"
@@ -37,14 +37,17 @@
 #include "inc/hw_ints.h"
 #include "inc/hw_memmap.h"
 #include "inc/hw_uart.h"
+#include "rom_map.h"
 #include "prcm.h"
 #include "pyexec.h"
 #include "pybuart.h"
 #include "pybpin.h"
 #include "pybrtc.h"
-#include "pybsystick.h"
+#include "mpsystick.h"
 #include "simplelink.h"
+#include "modnetwork.h"
 #include "modwlan.h"
+#include "moduos.h"
 #include "telnet.h"
 #include "ff.h"
 #include "diskio.h"
@@ -53,15 +56,19 @@
 #include "portable.h"
 #include "task.h"
 #include "mpexception.h"
+#include "mpcallback.h"
 #include "random.h"
-#include "pybextint.h"
 #include "pybadc.h"
 #include "pybi2c.h"
 #include "pybsd.h"
 #include "pybwdt.h"
+#include "pybsleep.h"
+#include "pybspi.h"
+#include "pybtimer.h"
 #include "utils.h"
 #include "gccollect.h"
 #include "mperror.h"
+#include "genhdr/mpversion.h"
 
 
 #ifdef DEBUG
@@ -70,24 +77,22 @@ extern OsiTaskHandle    svTaskHandle;
 extern OsiTaskHandle    xSimpleLinkSpawnTaskHndl;
 #endif
 
+
 /// \module pyb - functions related to the pyboard
 ///
 /// The `pyb` module contains specific functions related to the pyboard.
 
-/// \function hard_reset()
-/// Resets the pyboard in a manner similar to pushing the external RESET
-/// button.
-STATIC mp_obj_t pyb_hard_reset(void) {
-#if (MICROPY_PORT_HAS_TELNET || MICROPY_PORT_HAS_FTP)
-    // disable wlan services
-    wlan_stop_servers();
-#endif
-    wlan_stop();
-    // perform a SoC reset
-    PRCMSOCReset();
+/// \function reset()
+/// Resets the pyboard in a manner similar to pushing the external
+/// reset button.
+STATIC mp_obj_t pyb_reset(void) {
+    // disable wlan
+    wlan_stop(SL_STOP_TIMEOUT_LONG);
+    // reset the cpu and it's peripherals
+    MAP_PRCMMCUReset(true);
     return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_0(pyb_hard_reset_obj, pyb_hard_reset);
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(pyb_reset_obj, pyb_reset);
 
 #ifdef DEBUG
 /// \function info([dump_alloc_table])
@@ -118,29 +123,24 @@ STATIC mp_obj_t pyb_info(uint n_args, const mp_obj_t *args) {
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(pyb_info_obj, 0, 1, pyb_info);
 #endif
 
-/// \function unique_id()
-/// Returns a string of 6 bytes (48 bits), which is the unique MAC address of the SoC
-STATIC mp_obj_t pyb_mac(void) {
-    uint8_t mac[6];
-    wlan_get_mac (mac);
-    return mp_obj_new_bytes(mac, 6);
-}
-STATIC MP_DEFINE_CONST_FUN_OBJ_0(pyb_mac_obj, pyb_mac);
-
 /// \function freq()
 /// Returns the CPU frequency: (F_CPU).
 STATIC mp_obj_t pyb_freq(void) {
-    return mp_obj_new_int(HAL_FCPU_HZ);
+    mp_obj_t tuple[1] = {
+       mp_obj_new_int(HAL_FCPU_HZ),
+    };
+    return mp_obj_new_tuple(1, tuple);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(pyb_freq_obj, pyb_freq);
 
-/// \function sync()
-/// Sync all file systems.
-STATIC mp_obj_t pyb_sync(void) {
-    sflash_disk_flush();
-    return mp_const_none;
+/// \function unique_id()
+/// Returns a string of 6 bytes (48 bits), which is the unique ID for the MCU.
+STATIC mp_obj_t pyb_unique_id(void) {
+    uint8_t mac[SL_BSSID_LENGTH];
+    wlan_get_mac (mac);
+    return mp_obj_new_bytes(mac, SL_BSSID_LENGTH);
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_0(pyb_sync_obj, pyb_sync);
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(pyb_unique_id_obj, pyb_unique_id);
 
 /// \function millis()
 /// Returns the number of milliseconds since the board was last reset.
@@ -226,18 +226,6 @@ STATIC mp_obj_t pyb_udelay(mp_obj_t usec_in) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(pyb_udelay_obj, pyb_udelay);
 
-STATIC mp_obj_t pyb_stop(void) {
-    return mp_const_none;
-}
-
-MP_DEFINE_CONST_FUN_OBJ_0(pyb_stop_obj, pyb_stop);
-
-STATIC mp_obj_t pyb_standby(void) {
-    return mp_const_none;
-}
-
-MP_DEFINE_CONST_FUN_OBJ_0(pyb_standby_obj, pyb_standby);
-
 /// \function repl_uart(uart)
 /// Get or set the UART object that the REPL is repeated on.
 STATIC mp_obj_t pyb_repl_uart(uint n_args, const mp_obj_t *args) {
@@ -260,79 +248,24 @@ STATIC mp_obj_t pyb_repl_uart(uint n_args, const mp_obj_t *args) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(pyb_repl_uart_obj, 0, 1, pyb_repl_uart);
 
-/// \function mkdisk('path')
-/// Formats the selected drive, useful when the filesystem has been damaged beyond repair
-STATIC mp_obj_t pyb_mkdisk(mp_obj_t path_o) {
-    const char *path = mp_obj_str_get_str(path_o);
-    if (FR_OK != f_mkfs(path, 1, 0)) {
-        nlr_raise(mp_obj_new_exception_msg(&mp_type_OSError, mpexception_os_operation_failed));
-    }
-    return mp_const_none;
-}
-STATIC MP_DEFINE_CONST_FUN_OBJ_1(pyb_mkdisk_obj, pyb_mkdisk);
-
-/// \function wdt_enable('msec')
-/// Enabled the watchdog timer with msec timeout value
-STATIC mp_obj_t pyb_enable_wdt(mp_obj_t msec_in) {
-    mp_int_t msec = mp_obj_get_int(msec_in);
-    pybwdt_ret_code_t ret;
-    ret = pybwdt_enable (msec);
-    if (ret == E_PYBWDT_IS_RUNNING) {
-        nlr_raise(mp_obj_new_exception_msg(&mp_type_OSError, mpexception_os_request_not_possible));
-    }
-    else if (ret == E_PYBWDT_INVALID_TIMEOUT) {
-        nlr_raise(mp_obj_new_exception_msg(&mp_type_ValueError, mpexception_value_invalid_arguments));
-    }
-    return mp_const_none;
-}
-STATIC MP_DEFINE_CONST_FUN_OBJ_1(pyb_enable_wdt_obj, pyb_enable_wdt);
-
-/// \function wdt_kick()
-/// Kicks the watchdog timer
-STATIC mp_obj_t pyb_kick_wdt(void) {
-    pybwdt_kick ();
-    return mp_const_none;
-}
-STATIC MP_DEFINE_CONST_FUN_OBJ_0(pyb_kick_wdt_obj, pyb_kick_wdt);
-
-/// \function enable_heartbeat()
-/// Enables the heartbeat signal
-STATIC mp_obj_t pyb_enable_heartbeat(void) {
-    mperror_enable_heartbeat ();
-    return mp_const_none;
-}
-STATIC MP_DEFINE_CONST_FUN_OBJ_0(pyb_enable_heartbeat_obj, pyb_enable_heartbeat);
-
-/// \function disable_heartbeat()
-/// Disables the heartbeat signal
-STATIC mp_obj_t pyb_disable_heartbeat(void) {
-    mperror_disable_heartbeat ();
-    return mp_const_none;
-}
-STATIC MP_DEFINE_CONST_FUN_OBJ_0(pyb_disable_heartbeat_obj, pyb_disable_heartbeat);
-
 MP_DECLARE_CONST_FUN_OBJ(pyb_main_obj); // defined in main.c
 
 STATIC const mp_map_elem_t pyb_module_globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR___name__),            MP_OBJ_NEW_QSTR(MP_QSTR_pyb) },
 
-    { MP_OBJ_NEW_QSTR(MP_QSTR_hard_reset),          (mp_obj_t)&pyb_hard_reset_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_reset),               (mp_obj_t)&pyb_reset_obj },
 #ifdef DEBUG
     { MP_OBJ_NEW_QSTR(MP_QSTR_info),                (mp_obj_t)&pyb_info_obj },
 #endif
-    { MP_OBJ_NEW_QSTR(MP_QSTR_mac),                 (mp_obj_t)&pyb_mac_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_freq),                (mp_obj_t)&pyb_freq_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_unique_id),           (mp_obj_t)&pyb_unique_id_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_repl_info),           (mp_obj_t)&pyb_set_repl_info_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_repl_uart),           (mp_obj_t)&pyb_repl_uart_obj },
 
-    { MP_OBJ_NEW_QSTR(MP_QSTR_wfi),                 (mp_obj_t)&pyb_wfi_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_disable_irq),         (mp_obj_t)&pyb_disable_irq_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_enable_irq),          (mp_obj_t)&pyb_enable_irq_obj },
 
-    { MP_OBJ_NEW_QSTR(MP_QSTR_stop),                (mp_obj_t)&pyb_stop_obj },
-    { MP_OBJ_NEW_QSTR(MP_QSTR_standby),             (mp_obj_t)&pyb_standby_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_main),                (mp_obj_t)&pyb_main_obj },
-
-    { MP_OBJ_NEW_QSTR(MP_QSTR_repl_uart),           (mp_obj_t)&pyb_repl_uart_obj },
 
     { MP_OBJ_NEW_QSTR(MP_QSTR_millis),              (mp_obj_t)&pyb_millis_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_elapsed_millis),      (mp_obj_t)&pyb_elapsed_millis_obj },
@@ -340,12 +273,6 @@ STATIC const mp_map_elem_t pyb_module_globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_elapsed_micros),      (mp_obj_t)&pyb_elapsed_micros_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_delay),               (mp_obj_t)&pyb_delay_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_udelay),              (mp_obj_t)&pyb_udelay_obj },
-    { MP_OBJ_NEW_QSTR(MP_QSTR_sync),                (mp_obj_t)&pyb_sync_obj },
-    { MP_OBJ_NEW_QSTR(MP_QSTR_mkdisk),              (mp_obj_t)&pyb_mkdisk_obj },
-    { MP_OBJ_NEW_QSTR(MP_QSTR_enable_wdt),          (mp_obj_t)&pyb_enable_wdt_obj },
-    { MP_OBJ_NEW_QSTR(MP_QSTR_kick_wdt),            (mp_obj_t)&pyb_kick_wdt_obj },
-    { MP_OBJ_NEW_QSTR(MP_QSTR_enable_heartbeat),    (mp_obj_t)&pyb_enable_heartbeat_obj },
-    { MP_OBJ_NEW_QSTR(MP_QSTR_disable_heartbeat),   (mp_obj_t)&pyb_disable_heartbeat_obj },
 
 #if MICROPY_HW_ENABLE_RNG
     { MP_OBJ_NEW_QSTR(MP_QSTR_rng),                 (mp_obj_t)&pyb_rng_get_obj },
@@ -356,10 +283,14 @@ STATIC const mp_map_elem_t pyb_module_globals_table[] = {
 #endif
 
     { MP_OBJ_NEW_QSTR(MP_QSTR_Pin),                 (mp_obj_t)&pin_type },
-    { MP_OBJ_NEW_QSTR(MP_QSTR_ExtInt),              (mp_obj_t)&extint_type },
     { MP_OBJ_NEW_QSTR(MP_QSTR_ADC),                 (mp_obj_t)&pyb_adc_type },
     { MP_OBJ_NEW_QSTR(MP_QSTR_I2C),                 (mp_obj_t)&pyb_i2c_type },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_SPI),                 (mp_obj_t)&pyb_spi_type },
     { MP_OBJ_NEW_QSTR(MP_QSTR_UART),                (mp_obj_t)&pyb_uart_type },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_Timer),               (mp_obj_t)&pyb_timer_type },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_WDT),                 (mp_obj_t)&pyb_wdt_type },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_Sleep),               (mp_obj_t)&pyb_sleep_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_HeartBeat),           (mp_obj_t)&pyb_heartbeat_type },
 
 #if MICROPY_HW_HAS_SDCARD
     { MP_OBJ_NEW_QSTR(MP_QSTR_SD),                  (mp_obj_t)&pyb_sd_type },

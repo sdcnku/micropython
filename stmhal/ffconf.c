@@ -27,13 +27,9 @@
 #include <string.h>
 
 #include "py/obj.h"
-#include "ff.h"
+#include "lib/fatfs/ff.h"
 #include "ffconf.h"
 #include "fsusermount.h"
-
-#if _FS_RPATH
-extern BYTE ff_CurrVol;
-#endif
 
 STATIC bool check_path(const TCHAR **path, const char *mount_point_str, mp_uint_t mount_point_len) {
     if (strncmp(*path, mount_point_str, mount_point_len) == 0) {

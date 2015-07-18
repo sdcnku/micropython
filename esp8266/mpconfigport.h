@@ -14,6 +14,7 @@
 #define MICROPY_HELPER_REPL         (1)
 #define MICROPY_HELPER_LEXER_UNIX   (0)
 #define MICROPY_ENABLE_SOURCE_LINE  (1)
+#define MICROPY_MODULE_WEAK_LINKS   (1)
 #define MICROPY_PY_BUILTINS_STR_UNICODE (1)
 #define MICROPY_PY_BUILTINS_BYTEARRAY (1)
 #define MICROPY_PY_BUILTINS_MEMORYVIEW (1)
@@ -36,6 +37,7 @@
 #define MICROPY_LONGINT_IMPL        (MICROPY_LONGINT_IMPL_LONGLONG)
 #define MICROPY_FLOAT_IMPL          (MICROPY_FLOAT_IMPL_NONE)
 #define MICROPY_ERROR_REPORTING     (MICROPY_ERROR_REPORTING_TERSE)
+#define MICROPY_MODULE_FROZEN       (1)
 
 // type definitions for the specific machine
 
@@ -52,6 +54,9 @@ typedef void *machine_ptr_t; // must be of pointer size
 typedef const void *machine_const_ptr_t; // must be of pointer size
 typedef long mp_off_t;
 
+void mp_hal_stdout_tx_strn_cooked(const char *str, mp_uint_t len);
+#define MP_PLAT_PRINT_STRN(str, len) mp_hal_stdout_tx_strn_cooked(str, len)
+
 // extra built in names to add to the global namespace
 extern const struct _mp_obj_fun_builtin_t mp_builtin_open_obj;
 #define MICROPY_PORT_BUILTINS \
@@ -60,15 +65,29 @@ extern const struct _mp_obj_fun_builtin_t mp_builtin_open_obj;
 // extra built in modules to add to the list of known ones
 extern const struct _mp_obj_module_t pyb_module;
 extern const struct _mp_obj_module_t esp_module;
+extern const struct _mp_obj_module_t network_module;
+extern const struct _mp_obj_module_t utime_module;
+extern const struct _mp_obj_module_t uos_module;
 
 #define MICROPY_PORT_BUILTIN_MODULES \
     { MP_OBJ_NEW_QSTR(MP_QSTR_pyb), (mp_obj_t)&pyb_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_esp), (mp_obj_t)&esp_module }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_network), (mp_obj_t)&network_module }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_utime), (mp_obj_t)&utime_module }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_uos), (mp_obj_t)&uos_module }, \
+
+#define MICROPY_PORT_BUILTIN_MODULE_WEAK_LINKS \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_time), (mp_obj_t)&utime_module }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_os), (mp_obj_t)&uos_module }, \
 
 #define MP_STATE_PORT MP_STATE_VM
 
 #define MICROPY_PORT_ROOT_POINTERS \
-    const char *readline_hist[8];
+    const char *readline_hist[8]; \
+    \
+    /* Singleton instance of scan callback, meaning that there can
+       be only one concurrent AP scan. */ \
+    mp_obj_t scan_cb_obj; \
 
 // We need to provide a declaration/definition of alloca()
 #include <alloca.h>
@@ -78,3 +97,4 @@ extern const struct _mp_obj_module_t esp_module;
 #define MICROPY_HAL_H "esp_mphal.h"
 #define MICROPY_HW_BOARD_NAME "ESP module"
 #define MICROPY_HW_MCU_NAME "ESP8266"
+#define MICROPY_PY_SYS_PLATFORM "ESP8266"

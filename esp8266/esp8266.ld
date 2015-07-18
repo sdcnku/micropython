@@ -5,7 +5,7 @@ MEMORY
     dport0_0_seg : org = 0x3ff00000, len = 0x10
     dram0_0_seg :  org = 0x3ffe8000, len = 0x14000
     iram1_0_seg :  org = 0x40100000, len = 0x8000
-    irom0_0_seg :  org = 0x40210000, len = 0x40000
+    irom0_0_seg :  org = 0x40210000, len = 0x5A000
 }
 
 /* define the top of RAM */
@@ -21,6 +21,11 @@ PHDRS
 }
 
 ENTRY(call_user_start)
+EXTERN(_DebugExceptionVector)
+EXTERN(_DoubleExceptionVector)
+EXTERN(_KernelExceptionVector)
+EXTERN(_NMIExceptionVector)
+EXTERN(_UserExceptionVector)
 
 PROVIDE(_memmap_vecbase_reset = 0x40000000);
 
@@ -79,9 +84,13 @@ SECTIONS
         *pyexec.o(.literal*, .text*)
         *readline.o(.literal*, .text*)
         *pybstdio.o(.literal*, .text*)
-        *modpyb.o(.literal*, .text*)
         *gccollect.o(.literal* .text*)
         *gchelper.o(.literal* .text*)
+        *modpyb.o(.literal*, .text*)
+        *modpybpin.o(.literal*, .text*)
+        *modpybrtc.o(.literal*, .text*)
+        *modesp.o(.literal* .text*)
+        *modutime.o(.literal* .text*)
 
         /* we put as much rodata as possible in this section */
         /* note that only rodata accessed as a machine word is allowed here */
@@ -97,6 +106,30 @@ SECTIONS
     {
         _stext = .;
         _text_start = ABSOLUTE(.);
+        *(.UserEnter.text)
+        . = ALIGN(16);
+        *(.DebugExceptionVector.text)
+        . = ALIGN(16);
+        *(.NMIExceptionVector.text)
+        . = ALIGN(16);
+        *(.KernelExceptionVector.text)
+        LONG(0)
+        LONG(0)
+        LONG(0)
+        LONG(0)
+        . = ALIGN(16);
+        *(.UserExceptionVector.text)
+        LONG(0)
+        LONG(0)
+        LONG(0)
+        LONG(0)
+        . = ALIGN(16);
+        *(.DoubleExceptionVector.text)
+        LONG(0)
+        LONG(0)
+        LONG(0)
+        LONG(0)
+        . = ALIGN (16);
         *(.entry.text)
         *(.init.literal)
         *(.init)

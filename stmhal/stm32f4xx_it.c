@@ -71,6 +71,7 @@
 #include "stm32f4xx_hal.h"
 
 #include "py/obj.h"
+#include "pendsv.h"
 #include "extint.h"
 #include "timer.h"
 #include "uart.h"
@@ -210,7 +211,6 @@ void DebugMon_Handler(void) {
   * @retval None
   */
 void PendSV_Handler(void) {
-    extern void pendsv_isr_handler(void);
     pendsv_isr_handler();
 }
 
@@ -389,7 +389,8 @@ void TAMP_STAMP_IRQHandler(void) {
 }
 
 void RTC_WKUP_IRQHandler(void) {
-    Handle_EXTI_Irq(EXTI_RTC_WAKEUP);
+    RTC->ISR &= ~(1 << 10); // clear wakeup interrupt flag
+    Handle_EXTI_Irq(EXTI_RTC_WAKEUP); // clear EXTI flag and execute optional callback
 }
 
 void TIM2_IRQHandler(void) {
@@ -453,6 +454,10 @@ void USART3_IRQHandler(void) {
 
 void UART4_IRQHandler(void) {
     uart_irq_handler(4);
+}
+
+void UART5_IRQHandler(void) {
+    uart_irq_handler(5);
 }
 
 void USART6_IRQHandler(void) {

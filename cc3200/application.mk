@@ -20,6 +20,8 @@ APP_INC += -I$(BUILD)
 APP_INC += -I$(BUILD)/genhdr
 APP_INC += -I../lib/fatfs
 APP_INC += -I../lib/mp-readline
+APP_INC += -I../lib/netutils
+APP_INC += -I../lib/timeutils
 APP_INC += -I../stmhal
 
 APP_CPPDEFINES = -Dgcc -DTARGET_IS_CC3200 -DSL_FULL -DUSE_FREERTOS
@@ -73,28 +75,33 @@ APP_HAL_SRC_C = $(addprefix hal/,\
 	)
 
 APP_MISC_SRC_C = $(addprefix misc/,\
+	antenna.c \
 	FreeRTOSHooks.c \
 	pin_named_pins.c \
 	help.c \
+	mpcallback.c \
 	mperror.c \
 	mpexception.c \
-	pin_defs_cc3200.c \
+	mpsystick.c \
 	)
 
 APP_MODS_SRC_C = $(addprefix mods/,\
 	modnetwork.c \
+	moduhashlib.c \
+	modubinascii.c \
 	modpyb.c \
 	moduos.c \
 	modusocket.c \
 	modutime.c \
 	modwlan.c \
 	pybadc.c \
-	pybextint.c \
-	pybi2c.c \
 	pybpin.c \
+	pybi2c.c \
 	pybrtc.c \
 	pybsd.c \
-	pybsystick.c \
+	pybsleep.c \
+	pybspi.c \
+	pybtimer.c \
 	pybuart.c \
 	pybwdt.c \
 	)
@@ -120,6 +127,7 @@ APP_TELNET_SRC_C = $(addprefix telnet/,\
 	)
 	
 APP_UTIL_SRC_C = $(addprefix util/,\
+	cryptohash.c \
 	fifo.c \
 	gccollect.c \
 	random.c \
@@ -128,6 +136,7 @@ APP_UTIL_SRC_C = $(addprefix util/,\
 	
 APP_UTIL_SRC_S = $(addprefix util/,\
 	gchelper.s \
+	sleeprestore.s \
 	)
 	
 APP_MAIN_SRC_C = \
@@ -137,7 +146,11 @@ APP_MAIN_SRC_C = \
 	
 APP_LIB_SRC_C = $(addprefix lib/,\
 	fatfs/ff.c \
+	fatfs/option/ccsbcs.c \
+	libc/string0.c \
 	mp-readline/readline.c \
+	netutils/netutils.c \
+	timeutils/timeutils.c \
 	)
 	
 APP_STM_SRC_C = $(addprefix stmhal/,\
@@ -151,7 +164,6 @@ APP_STM_SRC_C = $(addprefix stmhal/,\
 	printf.c \
 	pyexec.c \
 	pybstdio.c \
-	string0.c \
 	)
 
 OBJ = $(PY_O) $(addprefix $(BUILD)/, $(APP_FATFS_SRC_C:.c=.o) $(APP_RTOS_SRC_C:.c=.o) $(APP_FTP_SRC_C:.c=.o) $(APP_HAL_SRC_C:.c=.o) $(APP_MISC_SRC_C:.c=.o))
@@ -185,6 +197,7 @@ $(BUILD)/FreeRTOS/Source/%.o: CFLAGS += -Os
 $(BUILD)/ftp/%.o: CFLAGS += -Os
 $(BUILD)/hal/%.o: CFLAGS += -Os
 $(BUILD)/misc/%.o: CFLAGS += -Os
+$(BUILD)/mods/%.o: CFLAGS += -Os
 $(BUILD)/py/%.o: CFLAGS += -Os
 $(BUILD)/simplelink/%.o: CFLAGS += -Os
 $(BUILD)/drivers/cc3100/%.o: CFLAGS += -Os
@@ -203,7 +216,7 @@ endif
 SHELL = bash
 APP_SIGN = appsign.sh
 
-all: $(BUILD)/MCUIMG.BIN
+all: $(BUILD)/mcuimg.bin
 
 $(BUILD)/application.axf: $(OBJ) $(LINKER_SCRIPT)
 	$(ECHO) "LINK $@"
@@ -214,7 +227,7 @@ $(BUILD)/application.bin: $(BUILD)/application.axf
 	$(ECHO) "Create $@"
 	$(Q)$(OBJCOPY) -O binary $< $@
 
-$(BUILD)/MCUIMG.BIN: $(BUILD)/application.bin
+$(BUILD)/mcuimg.bin: $(BUILD)/application.bin
 	$(ECHO) "Create $@"
 	$(Q)$(SHELL) $(APP_SIGN) $(BOARD) $(BTYPE)
 

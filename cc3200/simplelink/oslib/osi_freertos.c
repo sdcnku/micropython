@@ -275,6 +275,7 @@ OsiReturnVal_e osi_LockObjCreate(OsiLockObj_t* pLockObj)
 	\note
 	\warning
 */
+__attribute__ ((section (".boot")))
 OsiReturnVal_e osi_TaskCreate(P_OSI_TASK_ENTRY pEntry,const signed char * const pcName,
                               unsigned short usStackDepth, void *pvParameters,
                               unsigned long uxPriority,OsiTaskHandle* pTaskHandle)
@@ -449,13 +450,14 @@ void vSimpleLinkSpawnTask(void *pvParameters)
 	\note
 	\warning
 */
+__attribute__ ((section (".boot")))
 OsiReturnVal_e VStartSimpleLinkSpawnTask(unsigned portBASE_TYPE uxPriority)
 {
     xSimpleLinkSpawnQueue = xQueueCreate( slQUEUE_SIZE, sizeof( tSimpleLinkSpawnMsg ) );
     ASSERT (xSimpleLinkSpawnQueue != NULL);
 
     ASSERT (pdPASS == xTaskCreate( vSimpleLinkSpawnTask, ( portCHAR * ) "SLSPAWN",\
-    					           768 / sizeof(portSTACK_TYPE), NULL, uxPriority, &xSimpleLinkSpawnTaskHndl ));
+    					           736 / sizeof(portSTACK_TYPE), NULL, uxPriority, &xSimpleLinkSpawnTaskHndl ));
 
     return OSI_OK;
 }
@@ -666,6 +668,7 @@ void osi_ExitCritical(void)
 	\note
 	\warning
 */
+__attribute__ ((section (".boot")))
 void osi_start()
 {
     vTaskStartScheduler();
@@ -690,11 +693,9 @@ void osi_Sleep(unsigned int MilliSecs)
 	\note
 	\warning
 */
-unsigned long osi_TaskDisable(void)
+void osi_TaskDisable(void)
 {
    vTaskSuspendAll();
-
-   return OSI_OK;
 }
 
 
@@ -705,7 +706,7 @@ unsigned long osi_TaskDisable(void)
 	\note
 	\warning
 */
-void osi_TaskEnable(unsigned long key)
+void osi_TaskEnable(void)
 {
    xTaskResumeAll();
 }

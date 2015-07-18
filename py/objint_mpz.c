@@ -96,12 +96,10 @@ char *mp_obj_int_formatted_impl(char **buf, mp_uint_t *buf_size, mp_uint_t *fmt_
     return str;
 }
 
-mp_int_t mp_obj_int_hash(mp_obj_t self_in) {
-    if (MP_OBJ_IS_SMALL_INT(self_in)) {
-        return MP_OBJ_SMALL_INT_VALUE(self_in);
-    }
+void mp_obj_int_to_bytes_impl(mp_obj_t self_in, bool big_endian, mp_uint_t len, byte *buf) {
+    assert(MP_OBJ_IS_TYPE(self_in, &mp_type_int));
     mp_obj_int_t *self = self_in;
-    return mpz_hash(&self->mpz);
+    mpz_as_bytes(&self->mpz, big_endian, len, buf);
 }
 
 bool mp_obj_int_is_positive(mp_obj_t self_in) {
@@ -112,10 +110,32 @@ bool mp_obj_int_is_positive(mp_obj_t self_in) {
     return !self->mpz.neg;
 }
 
+// This must handle int and bool types, and must raise a
+// TypeError if the argument is not integral
+mp_obj_t mp_obj_int_abs(mp_obj_t self_in) {
+    if (MP_OBJ_IS_TYPE(self_in, &mp_type_int)) {
+        mp_obj_int_t *self = self_in;
+        mp_obj_int_t *self2 = mp_obj_int_new_mpz();
+        mpz_abs_inpl(&self2->mpz, &self->mpz);
+        return self2;
+    } else {
+        mp_int_t val = mp_obj_get_int(self_in);
+        if (val == MP_SMALL_INT_MIN) {
+            return mp_obj_new_int_from_ll(-val);
+        } else {
+            if (val < 0) {
+                val = -val;
+            }
+            return MP_OBJ_NEW_SMALL_INT(val);
+        }
+    }
+}
+
 mp_obj_t mp_obj_int_unary_op(mp_uint_t op, mp_obj_t o_in) {
     mp_obj_int_t *o = o_in;
     switch (op) {
         case MP_UNARY_OP_BOOL: return MP_BOOL(!mpz_is_zero(&o->mpz));
+        case MP_UNARY_OP_HASH: return MP_OBJ_NEW_SMALL_INT(mpz_hash(&o->mpz));
         case MP_UNARY_OP_POSITIVE: return o_in;
         case MP_UNARY_OP_NEGATIVE: { mp_obj_int_t *o2 = mp_obj_int_new_mpz(); mpz_neg_inpl(&o2->mpz, &o->mpz); return o2; }
         case MP_UNARY_OP_INVERT: { mp_obj_int_t *o2 = mp_obj_int_new_mpz(); mpz_not_inpl(&o2->mpz, &o->mpz); return o2; }
@@ -242,6 +262,17 @@ mp_obj_t mp_obj_int_binary_op(mp_uint_t op, mp_obj_t lhs_in, mp_obj_t rhs_in) {
                 mpz_pow_inpl(&res->mpz, zlhs, zrhs);
                 break;
 
+            case MP_BINARY_OP_DIVMOD: {
+                mp_obj_int_t *quo = mp_obj_int_new_mpz();
+                mpz_divmod_inpl(&quo->mpz, &res->mpz, zlhs, zrhs);
+                // Check signs and do Python style modulo
+                if (zlhs->neg != zrhs->neg) {
+                    mpz_add_inpl(&res->mpz, &res->mpz, zrhs);
+                }
+                mp_obj_t tuple[2] = {quo, res};
+                return mp_obj_new_tuple(2, tuple);
+            }
+
             default:
                 return MP_OBJ_NULL; // op not supported
         }
@@ -293,7 +324,7 @@ mp_obj_t mp_obj_new_int_from_uint(mp_uint_t value) {
     if ((value & (WORD_MSBIT_HIGH | (WORD_MSBIT_HIGH >> 1))) == 0) {
         return MP_OBJ_NEW_SMALL_INT(value);
     }
-    return mp_obj_new_int_from_ll(value);
+    return mp_obj_new_int_from_ull(value);
 }
 
 #if MICROPY_PY_BUILTINS_FLOAT

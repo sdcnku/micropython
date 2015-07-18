@@ -30,11 +30,12 @@
 #include "py/nlr.h"
 #include "py/obj.h"
 #include "py/objtuple.h"
-#include "systick.h"
+#include "py/objstr.h"
+#include "genhdr/mpversion.h"
+#include "lib/fatfs/ff.h"
+#include "lib/fatfs/diskio.h"
+#include "timeutils.h"
 #include "rng.h"
-#include "storage.h"
-#include "ff.h"
-#include "diskio.h"
 #include "file.h"
 #include "sdcard.h"
 #include "fsusermount.h"
@@ -65,6 +66,31 @@ STATIC bool sd_in_root(void) {
     return false;
 #endif
 }
+
+STATIC const qstr os_uname_info_fields[] = {
+    MP_QSTR_sysname, MP_QSTR_nodename,
+    MP_QSTR_release, MP_QSTR_version, MP_QSTR_machine
+};
+STATIC const MP_DEFINE_STR_OBJ(os_uname_info_sysname_obj, "pyboard");
+STATIC const MP_DEFINE_STR_OBJ(os_uname_info_nodename_obj, "pyboard");
+STATIC const MP_DEFINE_STR_OBJ(os_uname_info_release_obj, MICROPY_VERSION_STRING);
+STATIC const MP_DEFINE_STR_OBJ(os_uname_info_version_obj, MICROPY_GIT_TAG " on " MICROPY_BUILD_DATE);
+STATIC const MP_DEFINE_STR_OBJ(os_uname_info_machine_obj, MICROPY_HW_BOARD_NAME " with " MICROPY_HW_MCU_NAME);
+STATIC MP_DEFINE_ATTRTUPLE(
+    os_uname_info_obj,
+    os_uname_info_fields,
+    5,
+    (mp_obj_t)&os_uname_info_sysname_obj,
+    (mp_obj_t)&os_uname_info_nodename_obj,
+    (mp_obj_t)&os_uname_info_release_obj,
+    (mp_obj_t)&os_uname_info_version_obj,
+    (mp_obj_t)&os_uname_info_machine_obj
+);
+
+STATIC mp_obj_t os_uname(void) {
+    return (mp_obj_t)&os_uname_info_obj;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(os_uname_obj, os_uname);
 
 /// \function chdir(path)
 /// Change current directory.
@@ -201,6 +227,22 @@ STATIC mp_obj_t os_remove(mp_obj_t path_o) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(os_remove_obj, os_remove);
 
+/// \function rename(old_path, new_path)
+/// Rename a file
+STATIC mp_obj_t os_rename(mp_obj_t path_in, mp_obj_t path_out) {
+    const char *old_path = mp_obj_str_get_str(path_in);
+    const char *new_path = mp_obj_str_get_str(path_out);
+    FRESULT res = f_rename(old_path, new_path);
+    switch (res) {
+        case FR_OK:
+            return mp_const_none;
+        default:
+            nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_OSError, "Error renaming file '%s' to '%s'", old_path, new_path));
+    }
+
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_2(os_rename_obj, os_rename);
+
 /// \function rmdir(path)
 /// Remove a directory.
 STATIC mp_obj_t os_rmdir(mp_obj_t path_o) {
@@ -268,7 +310,7 @@ STATIC mp_obj_t os_stat(mp_obj_t path_in) {
     } else {
         mode |= 0x8000; // stat.S_IFREG
     }
-    mp_int_t seconds = mod_time_seconds_since_2000(
+    mp_int_t seconds = timeutils_seconds_since_2000(
         1980 + ((fno.fdate >> 9) & 0x7f),
         (fno.fdate >> 5) & 0x0f,
         fno.fdate & 0x1f,
@@ -297,11 +339,12 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_1(os_stat_obj, os_stat);
 /// \function sync()
 /// Sync all filesystems.
 STATIC mp_obj_t os_sync(void) {
-    storage_flush();
+    disk_ioctl(0, CTRL_SYNC, NULL);
+    disk_ioctl(1, CTRL_SYNC, NULL);
     disk_ioctl(2, CTRL_SYNC, NULL);
     return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_0(os_sync_obj, os_sync);
+MP_DEFINE_CONST_FUN_OBJ_0(mod_os_sync_obj, os_sync);
 
 #if MICROPY_HW_ENABLE_RNG
 /// \function urandom(n)
@@ -322,16 +365,19 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_1(os_urandom_obj, os_urandom);
 STATIC const mp_map_elem_t os_module_globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR___name__), MP_OBJ_NEW_QSTR(MP_QSTR_uos) },
 
+    { MP_OBJ_NEW_QSTR(MP_QSTR_uname), (mp_obj_t)&os_uname_obj },
+
     { MP_OBJ_NEW_QSTR(MP_QSTR_chdir), (mp_obj_t)&os_chdir_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_getcwd), (mp_obj_t)&os_getcwd_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_listdir), (mp_obj_t)&os_listdir_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_mkdir), (mp_obj_t)&os_mkdir_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_remove), (mp_obj_t)&os_remove_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_rename),(mp_obj_t)&os_rename_obj},
     { MP_OBJ_NEW_QSTR(MP_QSTR_rmdir), (mp_obj_t)&os_rmdir_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_stat), (mp_obj_t)&os_stat_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_unlink), (mp_obj_t)&os_remove_obj }, // unlink aliases to remove
 
-    { MP_OBJ_NEW_QSTR(MP_QSTR_sync), (mp_obj_t)&os_sync_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_sync), (mp_obj_t)&mod_os_sync_obj },
 
     /// \constant sep - separation character used in paths
     { MP_OBJ_NEW_QSTR(MP_QSTR_sep), MP_OBJ_NEW_QSTR(MP_QSTR__slash_) },

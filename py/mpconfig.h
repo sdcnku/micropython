@@ -49,6 +49,25 @@
 // values below.
 
 /*****************************************************************************/
+/* Object representation                                                     */
+
+// A Micro Python object is a machine word having the following form:
+//  - xxxx...xxx1 : a small int, bits 1 and above are the value
+//  - xxxx...xx10 : a qstr, bits 2 and above are the value
+//  - xxxx...xx00 : a pointer to an mp_obj_base_t (unless a fake object)
+#define MICROPY_OBJ_REPR_A (0)
+
+// A Micro Python object is a machine word having the following form:
+//  - xxxx...xx01 : a small int, bits 2 and above are the value
+//  - xxxx...xx11 : a qstr, bits 2 and above are the value
+//  - xxxx...xxx0 : a pointer to an mp_obj_base_t (unless a fake object)
+#define MICROPY_OBJ_REPR_B (1)
+
+#ifndef MICROPY_OBJ_REPR
+#define MICROPY_OBJ_REPR (MICROPY_OBJ_REPR_A)
+#endif
+
+/*****************************************************************************/
 /* Memory allocation policy                                                  */
 
 // Number of words allocated (in BSS) to the GC stack (minimum is 1)
@@ -112,11 +131,30 @@
 #define MICROPY_MODULE_DICT_SIZE (1)
 #endif
 
+// Whether realloc/free should be passed allocated memory region size
+// You must enable this if MICROPY_MEM_STATS is enabled
+#ifndef MICROPY_MALLOC_USES_ALLOCATED_SIZE
+#define MICROPY_MALLOC_USES_ALLOCATED_SIZE (0)
+#endif
+
 // Number of bytes used to store qstr length
 // Dictates hard limit on maximum Python identifier length, but 1 byte
 // (limit of 255 bytes in an identifier) should be enough for everyone
 #ifndef MICROPY_QSTR_BYTES_IN_LEN
 #define MICROPY_QSTR_BYTES_IN_LEN (1)
+#endif
+
+// Avoid using C stack when making Python function calls. C stack still
+// may be used if there's no free heap.
+#ifndef MICROPY_STACKLESS
+#define MICROPY_STACKLESS (0)
+#endif
+
+// Never use C stack when making Python function calls. This may break
+// testsuite as will subtly change which exception is thrown in case
+// of too deep recursion and other similar cases.
+#ifndef MICROPY_STACKLESS_STRICT
+#define MICROPY_STACKLESS_STRICT (0)
 #endif
 
 /*****************************************************************************/
@@ -148,6 +186,11 @@
 #define MICROPY_EMIT_INLINE_THUMB (0)
 #endif
 
+// Whether to enable float support in the Thumb2 inline assembler
+#ifndef MICROPY_EMIT_INLINE_THUMB_FLOAT
+#define MICROPY_EMIT_INLINE_THUMB_FLOAT (1)
+#endif
+
 // Whether to emit ARM native code
 #ifndef MICROPY_EMIT_ARM
 #define MICROPY_EMIT_ARM (0)
@@ -167,6 +210,18 @@
 // Whether to enable constant optimisation; id = const(value)
 #ifndef MICROPY_COMP_CONST
 #define MICROPY_COMP_CONST (1)
+#endif
+
+// Whether to enable optimisation of: a, b = c, d
+// Costs 124 bytes (Thumb2)
+#ifndef MICROPY_COMP_DOUBLE_TUPLE_ASSIGN
+#define MICROPY_COMP_DOUBLE_TUPLE_ASSIGN (1)
+#endif
+
+// Whether to enable optimisation of: a, b, c = d, e, f
+// Cost 156 bytes (Thumb2)
+#ifndef MICROPY_COMP_TRIPLE_TUPLE_ASSIGN
+#define MICROPY_COMP_TRIPLE_TUPLE_ASSIGN (0)
 #endif
 
 /*****************************************************************************/
@@ -341,9 +396,25 @@ typedef double mp_float_t;
 /*****************************************************************************/
 /* Fine control over Python builtins, classes, modules, etc                  */
 
+// Whether to implement attributes on functions
+#ifndef MICROPY_PY_FUNCTION_ATTRS
+#define MICROPY_PY_FUNCTION_ATTRS (0)
+#endif
+
+// Whether to support descriptors (__get__ and __set__)
+// This costs some code size and makes all load attrs and store attrs slow
+#ifndef MICROPY_PY_DESCRIPTORS
+#define MICROPY_PY_DESCRIPTORS (0)
+#endif
+
 // Whether str object is proper unicode
 #ifndef MICROPY_PY_BUILTINS_STR_UNICODE
 #define MICROPY_PY_BUILTINS_STR_UNICODE (0)
+#endif
+
+// Whether str.splitlines() method provided
+#ifndef MICROPY_PY_BUILTINS_STR_SPLITLINES
+#define MICROPY_PY_BUILTINS_STR_SPLITLINES (0)
 #endif
 
 // Whether to support bytearray object
@@ -376,6 +447,12 @@ typedef double mp_float_t;
 #define MICROPY_PY_BUILTINS_PROPERTY (1)
 #endif
 
+// Whether to implement the start/stop/step attributes (readback) on
+// the "range" builtin type. Rarely used, and costs ~60 bytes (x86).
+#ifndef MICROPY_PY_BUILTINS_RANGE_ATTRS
+#define MICROPY_PY_BUILTINS_RANGE_ATTRS (1)
+#endif
+
 // Whether to support complete set of special methods
 // for user classes, otherwise only the most used
 #ifndef MICROPY_PY_ALL_SPECIAL_METHODS
@@ -387,9 +464,24 @@ typedef double mp_float_t;
 #define MICROPY_PY_BUILTINS_COMPILE (0)
 #endif
 
+// Whether to support enumerate function(type)
+#ifndef MICROPY_PY_BUILTINS_ENUMERATE
+#define MICROPY_PY_BUILTINS_ENUMERATE (1)
+#endif
+
 // Whether to support the Python 2 execfile function
 #ifndef MICROPY_PY_BUILTINS_EXECFILE
 #define MICROPY_PY_BUILTINS_EXECFILE (0)
+#endif
+
+// Whether to support reversed function(type)
+#ifndef MICROPY_PY_BUILTINS_REVERSED
+#define MICROPY_PY_BUILTINS_REVERSED (1)
+#endif
+
+// Whether to define "NotImplemented" special constant
+#ifndef MICROPY_PY_BUILTINS_NOTIMPLEMENTED
+#define MICROPY_PY_BUILTINS_NOTIMPLEMENTED (0)
 #endif
 
 // Whether to set __file__ for imported modules
@@ -415,9 +507,20 @@ typedef double mp_float_t;
 #define MICROPY_PY_ARRAY_SLICE_ASSIGN (0)
 #endif
 
+// Whether to support attrtuple type (MicroPython extension)
+// It provides space-efficient tuples with attribute access
+#ifndef MICROPY_PY_ATTRTUPLE
+#define MICROPY_PY_ATTRTUPLE (1)
+#endif
+
 // Whether to provide "collections" module
 #ifndef MICROPY_PY_COLLECTIONS
 #define MICROPY_PY_COLLECTIONS (1)
+#endif
+
+// Whether to provide "collections.OrderedDict" type
+#ifndef MICROPY_PY_COLLECTIONS_ORDEREDDICT
+#define MICROPY_PY_COLLECTIONS_ORDEREDDICT (0)
 #endif
 
 // Whether to provide "math" module
@@ -475,6 +578,12 @@ typedef double mp_float_t;
 #define MICROPY_PY_SYS_MAXSIZE (0)
 #endif
 
+// Whether to provide "sys.exc_info" function
+// Avoid enabling this, this function is Python2 heritage
+#ifndef MICROPY_PY_SYS_EXC_INFO
+#define MICROPY_PY_SYS_EXC_INFO (0)
+#endif
+
 // Whether to provide "sys.exit" function
 #ifndef MICROPY_PY_SYS_EXIT
 #define MICROPY_PY_SYS_EXIT (0)
@@ -485,6 +594,11 @@ typedef double mp_float_t;
 #define MICROPY_PY_SYS_STDFILES (0)
 #endif
 
+// Whether to provide sys.{stdin,stdout,stderr}.buffer object
+// This is implemented per-port
+#ifndef MICROPY_PY_SYS_STDIO_BUFFER
+#define MICROPY_PY_SYS_STDIO_BUFFER (0)
+#endif
 
 // Extended modules
 
@@ -514,6 +628,10 @@ typedef double mp_float_t;
 
 #ifndef MICROPY_PY_UBINASCII
 #define MICROPY_PY_UBINASCII (0)
+#endif
+
+#ifndef MICROPY_PY_MACHINE
+#define MICROPY_PY_MACHINE (0)
 #endif
 
 /*****************************************************************************/
@@ -593,7 +711,16 @@ typedef double mp_float_t;
   #elif defined(__BIG_ENDIAN__) || defined(__BIG_ENDIAN) || defined (_BIG_ENDIAN)
     #define MP_ENDIANNESS_LITTLE (0)
   #else
-    #error endianness not defined and cannot detect it
+    #include <endian.h>
+      #if defined(__BYTE_ORDER)
+        #if __BYTE_ORDER == __LITTLE_ENDIAN
+          #define MP_ENDIANNESS_LITTLE (1)
+        #else
+          #define MP_ENDIANNESS_LITTLE (0)
+        #endif
+      #else
+        #error endianness not defined and cannot detect it
+      #endif
   #endif
   #define MP_ENDIANNESS_BIG (!MP_ENDIANNESS_LITTLE)
 #endif
@@ -604,15 +731,20 @@ typedef double mp_float_t;
 #define MICROPY_MAKE_POINTER_CALLABLE(p) (p)
 #endif
 
-// If these MP_PLAT_* macros are overridden then the memory allocated by them
+// If these MP_PLAT_*_EXEC macros are overridden then the memory allocated by them
 // must be somehow reachable for marking by the GC, since the native code
 // generators store pointers to GC managed memory in the code.
 #ifndef MP_PLAT_ALLOC_EXEC
-#define MP_PLAT_ALLOC_EXEC(min_size, ptr, size) do { *ptr = m_new(byte, min_size); *size = min_size; } while(0)
+#define MP_PLAT_ALLOC_EXEC(min_size, ptr, size) do { *ptr = m_new(byte, min_size); *size = min_size; } while (0)
 #endif
 
 #ifndef MP_PLAT_FREE_EXEC
 #define MP_PLAT_FREE_EXEC(ptr, size) m_del(byte, ptr, size)
+#endif
+
+// This macro is used to do all output (except when MICROPY_PY_IO is defined)
+#ifndef MP_PLAT_PRINT_STRN
+#define MP_PLAT_PRINT_STRN(str, len) printf("%.*s", (int)len, str)
 #endif
 
 #ifndef MP_SSIZE_MAX

@@ -1,8 +1,12 @@
-[![Build Status][travis-img]][travis-repo] [![Coverage Status][coveralls-img]][coveralls-repo]
+[![Build Status][travis-img]][travis-repo] [![Coverage Status][coveralls-img]][coveralls-repo] [![Issue Stats][istats-pr-img]][istats-pr-repo] [![Issue Stats][istats-issue-img]][istats-issue-repo]
 [travis-img]:  https://travis-ci.org/micropython/micropython.png?branch=master
 [travis-repo]: https://travis-ci.org/micropython/micropython
 [coveralls-img]:  https://coveralls.io/repos/micropython/micropython/badge.png?branch=master
 [coveralls-repo]: https://coveralls.io/r/micropython/micropython?branch=master
+[istats-pr-img]: http://issuestats.com/github/micropython/micropython/badge/pr
+[istats-pr-repo]: http://issuestats.com/github/micropython/micropython
+[istats-issue-img]: http://issuestats.com/github/micropython/micropython/badge/issue
+[istats-issue-repo]: http://issuestats.com/github/micropython/micropython
 
 The Micro Python project
 ========================
@@ -40,6 +44,8 @@ Additional components:
   mostly to control code size.
 - teensy/ -- a version of Micro Python that runs on the Teensy 3.1
   (preliminary but functional).
+- pic16bit/ -- a version of Micro Python for 16-bit PIC microcontrollers.
+- cc3200/ -- a version of Micro Python that runs on the CC3200 from TI.
 - unix-cpy/ -- a version of Micro Python that outputs bytecode (for testing).
 - tests/ -- test framework and test scripts.
 - tools/ -- various tools, including the pyboard.py module.
@@ -115,6 +121,8 @@ preferably in a virtualenv:
 
 In `micropython/docs`, build the docs:
 
-    make html
+    make MICROPY_PORT=<port_name> BUILDDIR=<port_name>/build html
 
-You'll find the index page at `micropython/docs/build/html/index.html`.
+Where `<port_name>` can be `unix`, `pyboard`, `wipy` or `esp8266`.
+
+You'll find the index page at `micropython/docs/<port_name>/build/html/index.html`.

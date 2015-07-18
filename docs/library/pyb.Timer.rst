@@ -18,6 +18,13 @@ Example usage to toggle an LED at a fixed frequency::
     tim.init(freq=2)                # trigger at 2Hz
     tim.callback(lambda t:pyb.LED(1).toggle())
 
+Example using named function for the callback::
+
+    def tick(timer):                # we will receive the timer object when being called
+        print(timer.counter())      # show current timer's counter value
+    tim = pyb.Timer(4, freq=1)      # create a timer object using timer 4 - trigger at 1Hz
+    tim.callback(tick)              # set the callback to our tick function
+
 Further examples::
 
     tim = pyb.Timer(4, freq=100)    # freq in Hz
@@ -32,6 +39,10 @@ Further examples::
 the servo driver, and Timer 6 is used for timed ADC/DAC reading/writing.
 It is recommended to use the other timers in your programs.
 
+*Note:* Memory can't be allocated during a callback (an interrupt) and so
+exceptions raised within a callback don't give much information.  See
+:func:`micropython.alloc_emergency_exception_buf` for how to get around this
+limitation.
 
 Constructors
 ------------
@@ -76,14 +87,17 @@ Methods
        - ``Timer.OC_FORCED_ACTIVE`` --- the pin is forced active (compare match is ignored).
        - ``Timer.OC_FORCED_INACTIVE`` --- the pin is forced inactive (compare match is ignored).
        - ``Timer.IC`` --- configure the timer in Input Capture mode.
-   
+       - ``Timer.ENC_A`` --- configure the timer in Encoder mode. The counter only changes when CH1 changes.
+       - ``Timer.ENC_B`` --- configure the timer in Encoder mode. The counter only changes when CH2 changes.
+       - ``Timer.ENC_AB`` --- configure the timer in Encoder mode. The counter changes when CH1 or CH2 changes.
+
      - ``callback`` - as per TimerChannel.callback()
    
      - ``pin`` None (the default) or a Pin object. If specified (and not None)
        this will cause the alternate function of the the indicated pin
        to be configured for this timer channel. An error will be raised if
        the pin doesn't support any alternate functions for this timer channel.
-   
+
    Keyword arguments for Timer.PWM modes:
    
      - ``pulse_width`` - determines the initial pulse width value to use.
@@ -94,12 +108,14 @@ Methods
      - ``compare`` - determines the initial value of the compare register.
    
      - ``polarity`` can be one of:
+
        - ``Timer.HIGH`` - output is active high
        - ``Timer.LOW`` - output is acive low
    
    Optional keyword arguments for Timer.IC modes:
    
      - ``polarity`` can be one of:
+
        - ``Timer.RISING`` - captures on rising edge.
        - ``Timer.FALLING`` - captures on falling edge.
        - ``Timer.BOTH`` - captures on both edges.
@@ -107,11 +123,19 @@ Methods
      Note that capture only works on the primary channel, and not on the
      complimentary channels.
    
+   Notes for Timer.ENC modes:
+
+     - Requires 2 pins, so one or both pins will need to be configured to use
+       the appropriate timer AF using the Pin API.
+     - Read the encoder value using the timer.counter() method.
+     - Only works on CH1 and CH2 (and not on CH1N or CH2N)
+     - The channel number is ignored when setting the encoder mode.
+       
    PWM Example::
    
        timer = pyb.Timer(2, freq=1000)
-       ch2 = timer.channel(2, pyb.Timer.PWM, pin=pyb.Pin.board.X2, pulse_width=210000)
-       ch3 = timer.channel(3, pyb.Timer.PWM, pin=pyb.Pin.board.X3, pulse_width=420000)
+       ch2 = timer.channel(2, pyb.Timer.PWM, pin=pyb.Pin.board.X2, pulse_width=8000)
+       ch3 = timer.channel(3, pyb.Timer.PWM, pin=pyb.Pin.board.X3, pulse_width=16000)
 
 .. method:: timer.counter([value])
 

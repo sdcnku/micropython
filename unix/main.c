@@ -30,6 +30,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <unistd.h>
 #include <ctype.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -43,8 +44,8 @@
 #include "py/repl.h"
 #include "py/gc.h"
 #include "py/stackctrl.h"
-#include "py/pfenv.h"
-#include "genhdr/py-version.h"
+#include "genhdr/mpversion.h"
+#include "unix_mphal.h"
 #include "input.h"
 
 // Command line options, with their defaults
@@ -58,21 +59,12 @@ mp_uint_t mp_verbose_flag = 0;
 long heap_size = 128*1024 * (sizeof(mp_uint_t) / 4);
 #endif
 
-#ifndef _WIN32
-#include <signal.h>
-
-STATIC void sighandler(int signum) {
-    if (signum == SIGINT) {
-        mp_obj_exception_clear_traceback(MP_STATE_VM(keyboard_interrupt_obj));
-        MP_STATE_VM(mp_pending_exception) = MP_STATE_VM(keyboard_interrupt_obj);
-        // disable our handler so next we really die
-        struct sigaction sa;
-        sa.sa_handler = SIG_DFL;
-        sigemptyset(&sa.sa_mask);
-        sigaction(SIGINT, &sa, NULL);
-    }
+STATIC void stderr_print_strn(void *env, const char *str, mp_uint_t len) {
+    (void)env;
+    fwrite(str, len, 1, stderr);
 }
-#endif
+
+const mp_print_t mp_stderr_print = {NULL, stderr_print_strn};
 
 #define FORCED_EXIT (0x100)
 // If exc is SystemExit, return value where FORCED_EXIT bit set,
@@ -91,7 +83,7 @@ STATIC int handle_uncaught_exception(mp_obj_t exc) {
     }
 
     // Report all other exceptions
-    mp_obj_print_exception(printf_wrapper, NULL, exc);
+    mp_obj_print_exception(&mp_stderr_print, exc);
     return 1;
 }
 
@@ -104,14 +96,7 @@ STATIC int execute_from_lexer(mp_lexer_t *lex, mp_parse_input_kind_t input_kind,
         return 1;
     }
 
-    #ifndef _WIN32
-    // enable signal handler
-    struct sigaction sa;
-    sa.sa_handler = sighandler;
-    sigemptyset(&sa.sa_mask);
-    sigaction(SIGINT, &sa, NULL);
-    sa.sa_handler = SIG_DFL;
-    #endif
+    mp_hal_set_interrupt_char(CHAR_CTRL_C);
 
     nlr_buf_t nlr;
     if (nlr_push(&nlr) == 0) {
@@ -138,20 +123,13 @@ STATIC int execute_from_lexer(mp_lexer_t *lex, mp_parse_input_kind_t input_kind,
             mp_call_function_0(module_fun);
         }
 
-        #ifndef _WIN32
-        // disable signal handler
-        sigaction(SIGINT, &sa, NULL);
-        #endif
-
+        mp_hal_set_interrupt_char(-1);
         nlr_pop();
         return 0;
 
     } else {
         // uncaught exception
-        #ifndef _WIN32
-        // disable signal handler
-        sigaction(SIGINT, &sa, NULL);
-        #endif
+        mp_hal_set_interrupt_char(-1);
         return handle_uncaught_exception((mp_obj_t)nlr.ret_val);
     }
 }
@@ -171,7 +149,7 @@ STATIC char *strjoin(const char *s1, int sep_char, const char *s2) {
 }
 
 STATIC int do_repl(void) {
-    printf("Micro Python " MICROPY_GIT_TAG " on " MICROPY_BUILD_DATE "; " MICROPY_PY_SYS_PLATFORM " version\n");
+    mp_hal_stdout_tx_str("Micro Python " MICROPY_GIT_TAG " on " MICROPY_BUILD_DATE "; " MICROPY_PY_SYS_PLATFORM " version\n");
 
     for (;;) {
         char *line = prompt(">>> ");
@@ -301,7 +279,7 @@ STATIC void set_sys_argv(char *argv[], int argc, int start_arg) {
 #endif
 
 int main(int argc, char **argv) {
-    mp_stack_set_limit(32768);
+    mp_stack_set_limit(40000 * (BYTES_PER_WORD / 4));
 
     pre_process_options(argc, argv);
 
@@ -320,7 +298,11 @@ int main(int argc, char **argv) {
     char *home = getenv("HOME");
     char *path = getenv("MICROPYPATH");
     if (path == NULL) {
+        #ifdef MICROPY_PY_SYS_PATH_DEFAULT
+        path = MICROPY_PY_SYS_PATH_DEFAULT;
+        #else
         path = "~/.micropython/lib:/usr/lib/micropython";
+        #endif
     }
     mp_uint_t path_num = 1; // [0] is for current dir (or base dir of the script)
     for (char *p = path; p != NULL; p = strchr(p, PATHLIST_SEP_CHAR)) {
@@ -354,6 +336,13 @@ int main(int argc, char **argv) {
     }
 
     mp_obj_list_init(mp_sys_argv, 0);
+
+    #if defined(MICROPY_UNIX_COVERAGE)
+    {
+        MP_DECLARE_CONST_FUN_OBJ(extra_coverage_obj);
+        mp_store_global(QSTR_FROM_STR_STATIC("extra_coverage"), (mp_obj_t)&extra_coverage_obj);
+    }
+    #endif
 
     // Here is some example code to create a class and instance of that class.
     // First is the Python, then the C code.
@@ -459,7 +448,14 @@ int main(int argc, char **argv) {
     }
 
     if (ret == NOTHING_EXECUTED) {
-        ret = do_repl();
+        if (isatty(0)) {
+            prompt_read_history();
+            ret = do_repl();
+            prompt_write_history();
+        } else {
+            mp_lexer_t *lex = mp_lexer_new_from_fd(MP_QSTR__lt_stdin_gt_, 0, false);
+            ret = execute_from_lexer(lex, MP_PARSE_FILE_INPUT, false);
+        }
     }
 
     #if MICROPY_PY_MICROPYTHON_MEM_INFO

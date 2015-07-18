@@ -88,7 +88,7 @@ DiskInfo_t sd_disk_info =  {CARD_TYPE_UNKNOWN, CARD_VERSION_1, CARD_CAP_CLASS_SD
 static unsigned int CardSendCmd (unsigned int ulCmd, unsigned int ulArg) {
     unsigned long ulStatus;
 
-    // Clear interrupt status
+    // Clear the interrupt status
     MAP_SDHostIntClear(SDHOST_BASE,0xFFFFFFFF);
 
     // Send command
@@ -284,6 +284,22 @@ DSTATUS sd_disk_init (void) {
     }
 
     return sd_disk_info.bStatus;
+}
+
+//*****************************************************************************
+//
+//! De-initializes the physical drive
+//!
+//! This function de-initializes the physical drive
+//*****************************************************************************
+void sd_disk_deinit (void) {
+    sd_disk_info.ucCardType = CARD_TYPE_UNKNOWN;
+    sd_disk_info.ulVersion = CARD_VERSION_1;
+    sd_disk_info.ulCapClass = CARD_CAP_CLASS_SDSC;
+    sd_disk_info.ulNofBlock = 0;
+    sd_disk_info.ulBlockSize = 0;
+    sd_disk_info.bStatus = STA_NOINIT;
+    sd_disk_info.usRCA = 0;
 }
 
 //*****************************************************************************

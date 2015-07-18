@@ -66,6 +66,11 @@ Q(__add__)
 Q(__sub__)
 Q(__repr__)
 Q(__str__)
+#if MICROPY_PY_DESCRIPTORS
+Q(__get__)
+Q(__set__)
+Q(__delete__)
+#endif
 Q(__getattr__)
 Q(__del__)
 Q(__call__)
@@ -81,6 +86,9 @@ Q(__truediv__)
 Q(__floordiv__)
 Q(__iadd__)
 Q(__isub__)
+Q(__invert__)
+Q(__neg__)
+Q(__pos__)
 #endif
 
 Q(micropython)
@@ -107,6 +115,9 @@ Q(builtins)
 
 Q(Ellipsis)
 Q(StopIteration)
+#if MICROPY_PY_BUILTINS_NOTIMPLEMENTED
+Q(NotImplemented)
+#endif
 
 Q(BaseException)
 Q(ArithmeticError)
@@ -136,6 +147,9 @@ Q(SystemExit)
 Q(TypeError)
 Q(UnboundLocalError)
 Q(ValueError)
+#if MICROPY_EMIT_NATIVE
+Q(ViperTypeError)
+#endif
 Q(ZeroDivisionError)
 #if MICROPY_PY_BUILTINS_STR_UNICODE
 Q(UnicodeError)
@@ -147,6 +161,10 @@ Q(True)
 Q(object)
 
 Q(NoneType)
+
+#if MICROPY_PY_COLLECTIONS_ORDEREDDICT
+Q(OrderedDict)
+#endif
 
 Q(abs)
 Q(all)
@@ -166,9 +184,6 @@ Q(memoryview)
 #endif
 Q(bytes)
 Q(callable)
-#if MICROPY_PY_STRUCT
-Q(calcsize)
-#endif
 Q(chr)
 Q(classmethod)
 Q(_collections)
@@ -245,6 +260,11 @@ Q(single)
 Q(sep)
 Q(end)
 
+#if MICROPY_PY_BUILTINS_RANGE_ATTRS
+Q(step)
+Q(stop)
+#endif
+
 Q(clear)
 Q(copy)
 Q(fromkeys)
@@ -283,6 +303,11 @@ Q(find)
 Q(rfind)
 Q(rindex)
 Q(split)
+#if MICROPY_PY_BUILTINS_STR_SPLITLINES
+Q(splitlines)
+Q(keepends)
+Q(\n)
+#endif
 Q(rsplit)
 Q(startswith)
 Q(endswith)
@@ -423,22 +448,34 @@ Q(platform)
 Q(stdin)
 Q(stdout)
 Q(stderr)
+#if MICROPY_PY_SYS_STDIO_BUFFER
+Q(buffer)
+#endif
 Q(version)
 Q(version_info)
+#if MICROPY_PY_ATTRTUPLE
+Q(name)
+#endif
+Q(implementation)
 #if MICROPY_PY_SYS_MAXSIZE
 Q(maxsize)
+#endif
+#if MICROPY_PY_SYS_EXC_INFO
+Q(exc_info)
 #endif
 Q(print_exception)
 #endif
 
 #if MICROPY_PY_STRUCT
-Q(struct)
+Q(ustruct)
 Q(pack)
 Q(unpack)
+Q(calcsize)
 #endif
 
 #if MICROPY_PY_UCTYPES
 Q(uctypes)
+Q(struct)
 Q(sizeof)
 Q(addressof)
 Q(bytes_at)
@@ -543,11 +580,19 @@ Q(heapify)
 Q(uhashlib)
 Q(update)
 Q(digest)
-Q(hexdigest)
 Q(sha256)
 #endif
 
 #if MICROPY_PY_UBINASCII
 Q(ubinascii)
 Q(hexlify)
+Q(unhexlify)
+#endif
+
+#if MICROPY_PY_MACHINE
+Q(machine)
+Q(mem)
+Q(mem8)
+Q(mem16)
+Q(mem32)
 #endif

@@ -32,45 +32,44 @@
 #include "py/runtime0.h"
 #include "py/runtime.h"
 #include "py/stackctrl.h"
+#include "py/frozenmod.h"
 #include "py/gc.h"
 #include "pyexec.h"
 #include "gccollect.h"
 #include MICROPY_HAL_H
+#include "user_interface.h"
 
 STATIC char heap[16384];
 
-void user_init(void) {
-soft_reset:
+STATIC void mp_reset(void) {
     mp_stack_set_limit(10240);
     mp_hal_init();
     gc_init(heap, heap + sizeof(heap));
-    gc_collect_init();
     mp_init();
     mp_obj_list_init(mp_sys_path, 0);
     mp_obj_list_init(mp_sys_argv, 0);
-
-    printf("\n");
-
-#if MICROPY_REPL_EVENT_DRIVEN
-    pyexec_friendly_repl_init();
-    uart_task_init();
-    return;
-    goto soft_reset;
-#else
-    for (;;) {
-        if (pyexec_mode_kind == PYEXEC_MODE_RAW_REPL) {
-            if (pyexec_raw_repl() != 0) {
-                break;
-            }
-        } else {
-            if (pyexec_friendly_repl() != 0) {
-                break;
-            }
-        }
-    }
-
-    goto soft_reset;
+#if MICROPY_MODULE_FROZEN
+    mp_lexer_t *lex = mp_find_frozen_module("main", 4);
+    mp_parse_compile_execute(lex, MP_PARSE_FILE_INPUT, mp_globals_get(), mp_locals_get());
 #endif
+}
+
+void soft_reset(void) {
+    mp_hal_stdout_tx_str("PYB: soft reset\r\n");
+    mp_hal_udelay(10000); // allow UART to flush output
+    mp_reset();
+    pyexec_event_repl_init();
+}
+
+void init_done(void) {
+    mp_reset();
+    mp_hal_stdout_tx_str("\r\n");
+    pyexec_event_repl_init();
+    uart_task_init();
+}
+
+void user_init(void) {
+    system_init_done_cb(init_done);
 }
 
 mp_lexer_t *mp_lexer_new_from_file(const char *filename) {

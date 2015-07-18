@@ -29,15 +29,19 @@
 
 #include "py/nlr.h"
 #include "py/smallint.h"
+#include "py/objint.h"
 #include "py/objstr.h"
 #include "py/runtime0.h"
 #include "py/runtime.h"
 #include "py/builtin.h"
 #include "py/stream.h"
-#include "py/pfenv.h"
 
 #if MICROPY_PY_BUILTINS_FLOAT
 #include <math.h>
+#endif
+
+#if MICROPY_PY_IO
+extern struct _mp_dummy_t mp_sys_stdout_obj; // type is irrelevant, just need pointer
 #endif
 
 // args[0] is function from class body
@@ -86,12 +90,8 @@ STATIC mp_obj_t mp_builtin___build_class__(mp_uint_t n_args, const mp_obj_t *arg
 MP_DEFINE_CONST_FUN_OBJ_VAR(mp_builtin___build_class___obj, 2, mp_builtin___build_class__);
 
 STATIC mp_obj_t mp_builtin_abs(mp_obj_t o_in) {
-    if (MP_OBJ_IS_SMALL_INT(o_in)) {
-        mp_int_t val = MP_OBJ_SMALL_INT_VALUE(o_in);
-        if (val < 0) {
-            val = -val;
-        }
-        return MP_OBJ_NEW_SMALL_INT(val);
+    if (0) {
+        // dummy
 #if MICROPY_PY_BUILTINS_FLOAT
     } else if (MP_OBJ_IS_TYPE(o_in, &mp_type_float)) {
         mp_float_t value = mp_obj_float_get(o_in);
@@ -109,8 +109,8 @@ STATIC mp_obj_t mp_builtin_abs(mp_obj_t o_in) {
 #endif
 #endif
     } else {
-        assert(0);
-        return mp_const_none;
+        // this will raise a TypeError if the argument is not integral
+        return mp_obj_int_abs(o_in);
     }
 }
 MP_DEFINE_CONST_FUN_OBJ_1(mp_builtin_abs_obj, mp_builtin_abs);
@@ -230,50 +230,13 @@ STATIC mp_obj_t mp_builtin_dir(mp_uint_t n_args, const mp_obj_t *args) {
 MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mp_builtin_dir_obj, 0, 1, mp_builtin_dir);
 
 STATIC mp_obj_t mp_builtin_divmod(mp_obj_t o1_in, mp_obj_t o2_in) {
-    // TODO handle big int
-    if (MP_OBJ_IS_SMALL_INT(o1_in) && MP_OBJ_IS_SMALL_INT(o2_in)) {
-        mp_int_t i1 = MP_OBJ_SMALL_INT_VALUE(o1_in);
-        mp_int_t i2 = MP_OBJ_SMALL_INT_VALUE(o2_in);
-        if (i2 == 0) {
-            #if MICROPY_PY_BUILTINS_FLOAT
-            zero_division_error:
-            #endif
-            nlr_raise(mp_obj_new_exception_msg(&mp_type_ZeroDivisionError, "division by zero"));
-        }
-        mp_obj_t args[2];
-        args[0] = MP_OBJ_NEW_SMALL_INT(mp_small_int_floor_divide(i1, i2));
-        args[1] = MP_OBJ_NEW_SMALL_INT(mp_small_int_modulo(i1, i2));
-        return mp_obj_new_tuple(2, args);
-    #if MICROPY_PY_BUILTINS_FLOAT
-    } else if (MP_OBJ_IS_TYPE(o1_in, &mp_type_float) || MP_OBJ_IS_TYPE(o2_in, &mp_type_float)) {
-        mp_float_t f1 = mp_obj_get_float(o1_in);
-        mp_float_t f2 = mp_obj_get_float(o2_in);
-        if (f2 == 0.0) {
-            goto zero_division_error;
-        }
-        mp_obj_float_divmod(&f1, &f2);
-        mp_obj_t tuple[2] = {
-            mp_obj_new_float(f1),
-            mp_obj_new_float(f2),
-        };
-        return mp_obj_new_tuple(2, tuple);
-    #endif
-    } else {
-        if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
-            nlr_raise(mp_obj_new_exception_msg(&mp_type_TypeError,
-                "unsupported operand type(s) for divmod()"));
-        } else {
-            nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_TypeError,
-                "unsupported operand type(s) for divmod(): '%s' and '%s'",
-                mp_obj_get_type_str(o1_in), mp_obj_get_type_str(o2_in)));
-        }
-    }
+    return mp_binary_op(MP_BINARY_OP_DIVMOD, o1_in, o2_in);
 }
 MP_DEFINE_CONST_FUN_OBJ_2(mp_builtin_divmod_obj, mp_builtin_divmod);
 
 STATIC mp_obj_t mp_builtin_hash(mp_obj_t o_in) {
-    // TODO hash will generally overflow small integer; can we safely truncate it?
-    return mp_obj_new_int(mp_obj_hash(o_in));
+    // result is guaranteed to be a (small) int
+    return mp_unary_op(MP_UNARY_OP_HASH, o_in);
 }
 MP_DEFINE_CONST_FUN_OBJ_1(mp_builtin_hash_obj, mp_builtin_hash);
 
@@ -351,9 +314,12 @@ STATIC mp_obj_t mp_builtin_ord(mp_obj_t o_in) {
     mp_uint_t len;
     const char *str = mp_obj_str_get_data(o_in, &len);
     #if MICROPY_PY_BUILTINS_STR_UNICODE
-    len = unichar_charlen(str, len);
-    if (len == 1) {
-        if (MP_OBJ_IS_STR(o_in) && UTF8_IS_NONASCII(*str)) {
+    if (MP_OBJ_IS_STR(o_in)) {
+        len = unichar_charlen(str, len);
+        if (len == 1) {
+            if (!UTF8_IS_NONASCII(*str)) {
+                goto return_first_byte;
+            }
             mp_int_t ord = *str++ & 0x7F;
             for (mp_int_t mask = 0x40; ord & mask; mask >>= 1) {
                 ord &= ~mask;
@@ -362,8 +328,12 @@ STATIC mp_obj_t mp_builtin_ord(mp_obj_t o_in) {
                 ord = (ord << 6) | (*str++ & 0x3F);
             }
             return mp_obj_new_int(ord);
-        } else {
-            return mp_obj_new_int(((const byte*)str)[0]);
+        }
+    } else {
+        // a bytes object
+        if (len == 1) {
+        return_first_byte:
+            return MP_OBJ_NEW_SMALL_INT(((const byte*)str)[0]);
         }
     }
     #else
@@ -406,35 +376,32 @@ STATIC mp_obj_t mp_builtin_print(mp_uint_t n_args, const mp_obj_t *args, mp_map_
         end_data = mp_obj_str_get_data(end_elem->value, &end_len);
     }
     #if MICROPY_PY_IO
-    extern mp_uint_t mp_sys_stdout_obj; // type is irrelevant, just need pointer
     mp_obj_t stream_obj = &mp_sys_stdout_obj;
     mp_map_elem_t *file_elem = mp_map_lookup(kwargs, MP_OBJ_NEW_QSTR(MP_QSTR_file), MP_MAP_LOOKUP);
     if (file_elem != NULL && file_elem->value != mp_const_none) {
         stream_obj = file_elem->value;
     }
 
-    pfenv_t pfenv;
-    pfenv.data = stream_obj;
-    pfenv.print_strn = (void (*)(void *, const char *, mp_uint_t))mp_stream_write;
+    mp_print_t print = {stream_obj, (mp_print_strn_t)mp_stream_write};
     #endif
     for (mp_uint_t i = 0; i < n_args; i++) {
         if (i > 0) {
             #if MICROPY_PY_IO
             mp_stream_write(stream_obj, sep_data, sep_len);
             #else
-            printf("%.*s", (int)sep_len, sep_data);
+            mp_print_strn(&mp_plat_print, sep_data, sep_len, 0, 0, 0);
             #endif
         }
         #if MICROPY_PY_IO
-        mp_obj_print_helper((void (*)(void *env, const char *fmt, ...))pfenv_printf, &pfenv, args[i], PRINT_STR);
+        mp_obj_print_helper(&print, args[i], PRINT_STR);
         #else
-        mp_obj_print(args[i], PRINT_STR);
+        mp_obj_print_helper(&mp_plat_print, args[i], PRINT_STR);
         #endif
     }
     #if MICROPY_PY_IO
     mp_stream_write(stream_obj, end_data, end_len);
     #else
-    printf("%.*s", (int)end_len, end_data);
+    mp_print_strn(&mp_plat_print, end_data, end_len, 0, 0, 0);
     #endif
     return mp_const_none;
 }
@@ -443,15 +410,11 @@ MP_DEFINE_CONST_FUN_OBJ_KW(mp_builtin_print_obj, 0, mp_builtin_print);
 STATIC mp_obj_t mp_builtin___repl_print__(mp_obj_t o) {
     if (o != mp_const_none) {
         #if MICROPY_PY_IO
-        extern mp_uint_t mp_sys_stdout_obj; // type is irrelevant, just need pointer
-        pfenv_t pfenv;
-        pfenv.data = &mp_sys_stdout_obj;
-        pfenv.print_strn = (void (*)(void *, const char *, mp_uint_t))mp_stream_write;
-        mp_obj_print_helper((void (*)(void *env, const char *fmt, ...))pfenv_printf, &pfenv, o, PRINT_REPR);
-        mp_stream_write(&mp_sys_stdout_obj, "\n", 1);
+        mp_obj_print_helper(&mp_sys_stdout_print, o, PRINT_REPR);
+        mp_print_str(&mp_sys_stdout_print, "\n");
         #else
-        mp_obj_print(o, PRINT_REPR);
-        printf("\n");
+        mp_obj_print_helper(&mp_plat_print, o, PRINT_REPR);
+        mp_print_str(&mp_plat_print, "\n");
         #endif
     }
     return mp_const_none;
@@ -460,18 +423,27 @@ MP_DEFINE_CONST_FUN_OBJ_1(mp_builtin___repl_print___obj, mp_builtin___repl_print
 
 STATIC mp_obj_t mp_builtin_repr(mp_obj_t o_in) {
     vstr_t vstr;
-    vstr_init(&vstr, 16);
-    mp_obj_print_helper((void (*)(void *env, const char *fmt, ...))vstr_printf, &vstr, o_in, PRINT_REPR);
+    mp_print_t print;
+    vstr_init_print(&vstr, 16, &print);
+    mp_obj_print_helper(&print, o_in, PRINT_REPR);
     return mp_obj_new_str_from_vstr(&mp_type_str, &vstr);
 }
 MP_DEFINE_CONST_FUN_OBJ_1(mp_builtin_repr_obj, mp_builtin_repr);
 
-STATIC mp_obj_t mp_builtin_round(mp_obj_t o_in) {
-    // TODO support second arg
+STATIC mp_obj_t mp_builtin_round(mp_uint_t n_args, const mp_obj_t *args) {
+    // TODO really support second arg
+    mp_obj_t o_in = args[0];
     if (MP_OBJ_IS_INT(o_in)) {
         return o_in;
     }
 #if MICROPY_PY_BUILTINS_FLOAT
+    mp_int_t num_dig = 0;
+    if (n_args > 1) {
+        num_dig = mp_obj_get_int(args[1]);
+        if (num_dig > 0) {
+            mp_not_implemented("round(..., N>0)");
+        }
+    }
     mp_float_t val = mp_obj_get_float(o_in);
     mp_float_t rounded = MICROPY_FLOAT_C_FUN(round)(val);
     mp_int_t r = rounded;
@@ -481,12 +453,15 @@ STATIC mp_obj_t mp_builtin_round(mp_obj_t o_in) {
     } else if (val - rounded == -0.5) {
         r &= ~1;
     }
+    if (n_args > 1) {
+        return mp_obj_new_float(r);
+    }
 #else
     mp_int_t r = mp_obj_get_int(o_in);
 #endif
     return mp_obj_new_int(r);
 }
-MP_DEFINE_CONST_FUN_OBJ_1(mp_builtin_round_obj, mp_builtin_round);
+MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mp_builtin_round_obj, 1, 2, mp_builtin_round);
 
 STATIC mp_obj_t mp_builtin_sum(mp_uint_t n_args, const mp_obj_t *args) {
     assert(1 <= n_args && n_args <= 2);
@@ -584,7 +559,9 @@ STATIC const mp_map_elem_t mp_module_builtins_globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_complex), (mp_obj_t)&mp_type_complex },
 #endif
     { MP_OBJ_NEW_QSTR(MP_QSTR_dict), (mp_obj_t)&mp_type_dict },
+    #if MICROPY_PY_BUILTINS_ENUMERATE
     { MP_OBJ_NEW_QSTR(MP_QSTR_enumerate), (mp_obj_t)&mp_type_enumerate },
+    #endif
     { MP_OBJ_NEW_QSTR(MP_QSTR_filter), (mp_obj_t)&mp_type_filter },
 #if MICROPY_PY_BUILTINS_FLOAT
     { MP_OBJ_NEW_QSTR(MP_QSTR_float), (mp_obj_t)&mp_type_float },
@@ -603,7 +580,9 @@ STATIC const mp_map_elem_t mp_module_builtins_globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_property), (mp_obj_t)&mp_type_property },
 #endif
     { MP_OBJ_NEW_QSTR(MP_QSTR_range), (mp_obj_t)&mp_type_range },
+    #if MICROPY_PY_BUILTINS_REVERSED
     { MP_OBJ_NEW_QSTR(MP_QSTR_reversed), (mp_obj_t)&mp_type_reversed },
+    #endif
 #if MICROPY_PY_BUILTINS_SET
     { MP_OBJ_NEW_QSTR(MP_QSTR_set), (mp_obj_t)&mp_type_set },
 #endif
@@ -618,6 +597,9 @@ STATIC const mp_map_elem_t mp_module_builtins_globals_table[] = {
 
     // built-in objects
     { MP_OBJ_NEW_QSTR(MP_QSTR_Ellipsis), (mp_obj_t)&mp_const_ellipsis_obj },
+    #if MICROPY_PY_BUILTINS_NOTIMPLEMENTED
+    { MP_OBJ_NEW_QSTR(MP_QSTR_NotImplemented), (mp_obj_t)&mp_const_notimplemented_obj },
+    #endif
 
     // built-in user functions
     { MP_OBJ_NEW_QSTR(MP_QSTR_abs), (mp_obj_t)&mp_builtin_abs_obj },
@@ -671,6 +653,7 @@ STATIC const mp_map_elem_t mp_module_builtins_globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_ImportError), (mp_obj_t)&mp_type_ImportError },
     { MP_OBJ_NEW_QSTR(MP_QSTR_IndentationError), (mp_obj_t)&mp_type_IndentationError },
     { MP_OBJ_NEW_QSTR(MP_QSTR_IndexError), (mp_obj_t)&mp_type_IndexError },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_KeyboardInterrupt), (mp_obj_t)&mp_type_KeyboardInterrupt },
     { MP_OBJ_NEW_QSTR(MP_QSTR_KeyError), (mp_obj_t)&mp_type_KeyError },
     { MP_OBJ_NEW_QSTR(MP_QSTR_LookupError), (mp_obj_t)&mp_type_LookupError },
     { MP_OBJ_NEW_QSTR(MP_QSTR_MemoryError), (mp_obj_t)&mp_type_MemoryError },
@@ -687,6 +670,9 @@ STATIC const mp_map_elem_t mp_module_builtins_globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_UnicodeError), (mp_obj_t)&mp_type_UnicodeError },
     #endif
     { MP_OBJ_NEW_QSTR(MP_QSTR_ValueError), (mp_obj_t)&mp_type_ValueError },
+    #if MICROPY_EMIT_NATIVE
+    { MP_OBJ_NEW_QSTR(MP_QSTR_ViperTypeError), (mp_obj_t)&mp_type_ViperTypeError },
+    #endif
     { MP_OBJ_NEW_QSTR(MP_QSTR_ZeroDivisionError), (mp_obj_t)&mp_type_ZeroDivisionError },
     // Somehow CPython managed to have OverflowError not inherit from ValueError ;-/
     // TODO: For MICROPY_CPYTHON_COMPAT==0 use ValueError to avoid exc proliferation

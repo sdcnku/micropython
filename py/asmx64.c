@@ -176,6 +176,10 @@ STATIC byte *asm_x64_get_cur_to_write_bytes(asm_x64_t *as, int num_bytes_to_writ
     }
 }
 
+mp_uint_t asm_x64_get_code_pos(asm_x64_t *as) {
+    return as->code_offset;
+}
+
 mp_uint_t asm_x64_get_code_size(asm_x64_t *as) {
     return as->code_size;
 }
@@ -222,6 +226,21 @@ STATIC void asm_x64_write_word64(asm_x64_t *as, int64_t w64) {
     c[7] = IMM64_L7(w64);
 }
 
+// align must be a multiple of 2
+void asm_x64_align(asm_x64_t* as, mp_uint_t align) {
+    // TODO fill unused data with NOPs?
+    as->code_offset = (as->code_offset + align - 1) & (~(align - 1));
+}
+
+void asm_x64_data(asm_x64_t* as, mp_uint_t bytesize, mp_uint_t val) {
+    byte *c = asm_x64_get_cur_to_write_bytes(as, bytesize);
+    // machine is little endian
+    for (uint i = 0; i < bytesize; i++) {
+        *c++ = val;
+        val >>= 8;
+    }
+}
+
 /* unused
 STATIC void asm_x64_write_word32_to(asm_x64_t *as, int offset, int w32) {
     byte* c;
@@ -235,8 +254,14 @@ STATIC void asm_x64_write_word32_to(asm_x64_t *as, int offset, int w32) {
 */
 
 STATIC void asm_x64_write_r64_disp(asm_x64_t *as, int r64, int disp_r64, int disp_offset) {
-    assert(disp_r64 < 8);
     assert(disp_r64 != ASM_X64_REG_RSP);
+
+    if (disp_r64 == ASM_X64_REG_R12) {
+        // special case for r12; not fully implemented
+        assert(SIGNED_FIT8(disp_offset));
+        asm_x64_write_byte_3(as, MODRM_R64(r64) | MODRM_RM_DISP8 | MODRM_RM_R64(disp_r64), 0x24, IMM32_L0(disp_offset));
+        return;
+    }
 
     if (disp_offset == 0 && disp_r64 != ASM_X64_REG_RBP) {
         asm_x64_write_byte_1(as, MODRM_R64(r64) | MODRM_RM_DISP0 | MODRM_RM_R64(disp_r64));
@@ -317,8 +342,7 @@ void asm_x64_mov_r16_to_mem16(asm_x64_t *as, int src_r64, int dest_r64, int dest
 
 void asm_x64_mov_r64_to_mem64(asm_x64_t *as, int src_r64, int dest_r64, int dest_disp) {
     // use REX prefix for 64 bit operation
-    assert(dest_r64 < 8);
-    asm_x64_write_byte_2(as, REX_PREFIX | REX_W | (src_r64 < 8 ? 0 : REX_R), OPCODE_MOV_R64_TO_RM64);
+    asm_x64_write_byte_2(as, REX_PREFIX | REX_W | (src_r64 < 8 ? 0 : REX_R) | (dest_r64 < 8 ? 0 : REX_B), OPCODE_MOV_R64_TO_RM64);
     asm_x64_write_r64_disp(as, src_r64, dest_r64, dest_disp);
 }
 
@@ -344,8 +368,7 @@ void asm_x64_mov_mem16_to_r64zx(asm_x64_t *as, int src_r64, int src_disp, int de
 
 void asm_x64_mov_mem64_to_r64(asm_x64_t *as, int src_r64, int src_disp, int dest_r64) {
     // use REX prefix for 64 bit operation
-    assert(src_r64 < 8);
-    asm_x64_write_byte_2(as, REX_PREFIX | REX_W | (dest_r64 < 8 ? 0 : REX_R), OPCODE_MOV_RM64_TO_R64);
+    asm_x64_write_byte_2(as, REX_PREFIX | REX_W | (dest_r64 < 8 ? 0 : REX_R) | (src_r64 < 8 ? 0 : REX_B), OPCODE_MOV_RM64_TO_R64);
     asm_x64_write_r64_disp(as, dest_r64, src_r64, src_disp);
 }
 
@@ -428,6 +451,12 @@ void asm_x64_add_r64_r64(asm_x64_t *as, int dest_r64, int src_r64) {
 
 void asm_x64_sub_r64_r64(asm_x64_t *as, int dest_r64, int src_r64) {
     asm_x64_generic_r64_r64(as, dest_r64, src_r64, OPCODE_SUB_R64_FROM_RM64);
+}
+
+void asm_x64_mul_r64_r64(asm_x64_t *as, int dest_r64, int src_r64) {
+    // imul reg64, reg/mem64 -- 0x0f 0xaf /r
+    asm_x64_write_byte_1(as, REX_PREFIX | REX_W | (dest_r64 < 8 ? 0 : REX_R) | (src_r64 < 8 ? 0 : REX_B));
+    asm_x64_write_byte_3(as, 0x0f, 0xaf, MODRM_R64(dest_r64) | MODRM_RM_REG | MODRM_RM_R64(src_r64));
 }
 
 /*
@@ -623,8 +652,7 @@ void asm_x64_push_local(asm_x64_t *as, int local_num) {
     asm_x64_push_disp(as, ASM_X64_REG_RBP, asm_x64_local_offset_from_ebp(as, local_num));
 }
 
-void asm_x64_push_local_addr(asm_x64_t *as, int local_num, int temp_r64)
-{
+void asm_x64_push_local_addr(asm_x64_t *as, int local_num, int temp_r64) {
     asm_x64_mov_r64_r64(as, temp_r64, ASM_X64_REG_RBP);
     asm_x64_add_i32_to_r32(as, asm_x64_local_offset_from_ebp(as, local_num), temp_r64);
     asm_x64_push_r64(as, temp_r64);
@@ -634,16 +662,14 @@ void asm_x64_push_local_addr(asm_x64_t *as, int local_num, int temp_r64)
 /*
    can't use these because code might be relocated when resized
 
-void asm_x64_call(asm_x64_t *as, void* func)
-{
+void asm_x64_call(asm_x64_t *as, void* func) {
     asm_x64_sub_i32_from_r32(as, 8, ASM_X64_REG_RSP);
     asm_x64_write_byte_1(as, OPCODE_CALL_REL32);
     asm_x64_write_word32(as, func - (void*)(as->code_cur + 4));
     asm_x64_mov_r64_r64(as, ASM_X64_REG_RSP, ASM_X64_REG_RBP);
 }
 
-void asm_x64_call_i1(asm_x64_t *as, void* func, int i1)
-{
+void asm_x64_call_i1(asm_x64_t *as, void* func, int i1) {
     asm_x64_sub_i32_from_r32(as, 8, ASM_X64_REG_RSP);
     asm_x64_sub_i32_from_r32(as, 12, ASM_X64_REG_RSP);
     asm_x64_push_i32(as, i1);

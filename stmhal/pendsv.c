@@ -31,10 +31,12 @@
 #include "py/runtime.h"
 #include "pendsv.h"
 
-// Note: this can contain point to the heap but is not traced by GC.
-// This is okay because we only ever set it to mp_const_vcp_interrupt
-// which is in the root-pointer set.
-STATIC void *pendsv_object;
+// This variable is used to save the exception object between a ctrl-C and the
+// PENDSV call that actually raises the exception.  It must be non-static
+// otherwise gcc-5 optimises it away.  It can point to the heap but is not
+// traced by GC.  This is okay because we only ever set it to
+// mp_const_vcp_interrupt which is in the root-pointer set.
+void *pendsv_object;
 
 void pendsv_init(void) {
     // set PendSV interrupt at lowest priority
@@ -65,10 +67,6 @@ void pendsv_nlr_jump_hard(void *o) {
     pendsv_object = o;
     SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
 }
-
-// since we play tricks with the stack, the compiler must not generate a
-// prelude for this function
-void pendsv_isr_handler(void) __attribute__((naked));
 
 void pendsv_isr_handler(void) {
     // re-jig the stack so that when we return from this interrupt handler

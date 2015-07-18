@@ -20,6 +20,7 @@
 #include "esp_mphal.h"
 
 #define RX_BUF_SIZE (256)
+#define UART_REPL UART0
 
 // UartDev is defined and initialized in rom code.
 extern UartDevice UartDev;
@@ -112,13 +113,13 @@ void uart_tx_one_char(uint8 uart, uint8 TxChar) {
  * Returns      : NONE
 *******************************************************************************/
 static void ICACHE_FLASH_ATTR
-uart1_write_char(char c) {
+uart_os_write_char(char c) {
     if (c == '\n') {
-        uart_tx_one_char(UART1, '\r');
-        uart_tx_one_char(UART1, '\n');
+        uart_tx_one_char(UART_OS, '\r');
+        uart_tx_one_char(UART_OS, '\n');
     } else if (c == '\r') {
     } else {
-        uart_tx_one_char(UART1, c);
+        uart_tx_one_char(UART_OS, c);
     }
 }
 
@@ -135,8 +136,7 @@ static void uart0_rx_intr_handler(void *para) {
     * uart1 and uart0 respectively
     */
 
-    uint8 RcvChar;
-    uint8 uart_no = UART0;
+    uint8 uart_no = UART_REPL;
 
     if (UART_FRM_ERR_INT_ST == (READ_PERI_REG(UART_INT_ST(uart_no)) & UART_FRM_ERR_INT_ST)) {
         // frame error
@@ -145,23 +145,22 @@ static void uart0_rx_intr_handler(void *para) {
 
     if (UART_RXFIFO_FULL_INT_ST == (READ_PERI_REG(UART_INT_ST(uart_no)) & UART_RXFIFO_FULL_INT_ST)) {
         // fifo full
-        WRITE_PERI_REG(UART_INT_CLR(uart_no), UART_RXFIFO_FULL_INT_CLR);
         goto read_chars;
     } else if (UART_RXFIFO_TOUT_INT_ST == (READ_PERI_REG(UART_INT_ST(uart_no)) & UART_RXFIFO_TOUT_INT_ST)) {
-        WRITE_PERI_REG(UART_INT_CLR(uart_no), UART_RXFIFO_TOUT_INT_CLR);
         read_chars:
-        while (READ_PERI_REG(UART_STATUS(uart_no)) & (UART_RXFIFO_CNT << UART_RXFIFO_CNT_S)) {
-            RcvChar = READ_PERI_REG(UART_FIFO(uart_no)) & 0xff;
 #if 1 //MICROPY_REPL_EVENT_DRIVEN is not available here
-            system_os_post(UART_TASK_ID, 0, RcvChar);
+        ETS_UART_INTR_DISABLE();
+        system_os_post(UART_TASK_ID, 0, 0);
 #else
+        while (READ_PERI_REG(UART_STATUS(uart_no)) & (UART_RXFIFO_CNT << UART_RXFIFO_CNT_S)) {
+            uint8 RcvChar = READ_PERI_REG(UART_FIFO(uart_no)) & 0xff;
             uint16_t rx_buf_in_next = (rx_buf_in + 1) % RX_BUF_SIZE;
             if (rx_buf_in_next != rx_buf_out) {
                 rx_buf[rx_buf_in] = RcvChar;
                 rx_buf_in = rx_buf_in_next;
             }
-#endif
         }
+#endif
     }
 }
 
@@ -173,6 +172,13 @@ int uart0_rx(void) {
   } else {
       return -1;
   }
+}
+
+int uart_rx_one_char(uint8 uart_no) {
+    if (READ_PERI_REG(UART_STATUS(uart_no)) & (UART_RXFIFO_CNT << UART_RXFIFO_CNT_S)) {
+        return READ_PERI_REG(UART_FIFO(uart_no)) & 0xff;
+    }
+    return -1;
 }
 
 /******************************************************************************
@@ -191,7 +197,7 @@ void ICACHE_FLASH_ATTR uart_init(UartBautRate uart0_br, UartBautRate uart1_br) {
     ETS_UART_INTR_ENABLE();
 
     // install uart1 putc callback
-    os_install_putc1((void *)uart1_write_char);
+    os_install_putc1((void *)uart_os_write_char);
 }
 
 void ICACHE_FLASH_ATTR uart_reattach() {
@@ -200,10 +206,28 @@ void ICACHE_FLASH_ATTR uart_reattach() {
 
 // Task-based UART interface
 
-int pyexec_friendly_repl_process_char(int c);
+#include "py/obj.h"
+#include "stmhal/pyexec.h"
+
+void soft_reset(void);
 
 void uart_task_handler(os_event_t *evt) {
-    pyexec_friendly_repl_process_char(evt->par);
+    int c, ret = 0;
+    while ((c = uart_rx_one_char(UART_REPL)) >= 0) {
+        ret = pyexec_event_repl_process_char(c);
+        if (ret & PYEXEC_FORCED_EXIT) {
+            break;
+        }
+    }
+
+    // Clear pending FIFO interrupts
+    WRITE_PERI_REG(UART_INT_CLR(UART_REPL), UART_RXFIFO_TOUT_INT_CLR | UART_RXFIFO_FULL_INT_ST);
+    // Enable UART interrupts, so our task will receive events again from IRQ handler
+    ETS_UART_INTR_ENABLE();
+
+    if (ret & PYEXEC_FORCED_EXIT) {
+        soft_reset();
+    }
 }
 
 void uart_task_init() {

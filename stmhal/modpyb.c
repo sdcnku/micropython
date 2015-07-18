@@ -33,6 +33,8 @@
 #include "py/nlr.h"
 #include "py/obj.h"
 #include "py/gc.h"
+#include "lib/fatfs/ff.h"
+#include "lib/fatfs/diskio.h"
 #include "gccollect.h"
 #include "irq.h"
 #include "systick.h"
@@ -56,8 +58,6 @@
 #include "dac.h"
 #include "lcd.h"
 #include "usb.h"
-#include "ff.h"
-#include "diskio.h"
 #include "fsusermount.h"
 #include "portmodules.h"
 
@@ -339,15 +339,6 @@ STATIC mp_obj_t pyb_freq(mp_uint_t n_args, const mp_obj_t *args) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(pyb_freq_obj, 0, 4, pyb_freq);
 
-/// \function sync()
-/// Sync all file systems.
-STATIC mp_obj_t pyb_sync(void) {
-    storage_flush();
-    disk_ioctl(2, CTRL_SYNC, NULL);
-    return mp_const_none;
-}
-STATIC MP_DEFINE_CONST_FUN_OBJ_0(pyb_sync_obj, pyb_sync);
-
 /// \function millis()
 /// Returns the number of milliseconds since the board was last reset.
 ///
@@ -434,6 +425,9 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_1(pyb_udelay_obj, pyb_udelay);
 
 /// \function stop()
 STATIC mp_obj_t pyb_stop(void) {
+    // takes longer to wake but reduces stop current
+    HAL_PWREx_EnableFlashPowerDown();
+
     HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
 
     // reconfigure the system clock after waking up
@@ -459,7 +453,35 @@ MP_DEFINE_CONST_FUN_OBJ_0(pyb_stop_obj, pyb_stop);
 
 /// \function standby()
 STATIC mp_obj_t pyb_standby(void) {
+    // We need to clear the PWR wake-up-flag before entering standby, since
+    // the flag may have been set by a previous wake-up event.  Furthermore,
+    // we need to disable the wake-up sources while clearing this flag, so
+    // that if a source is active it does actually wake the device.
+    // See section 5.3.7 of RM0090.
+
+    // Note: we only support RTC ALRA, ALRB, WUT and TS.
+    // TODO support TAMP and WKUP (PA0 external pin).
+    uint32_t irq_bits = RTC_CR_ALRAIE | RTC_CR_ALRBIE | RTC_CR_WUTIE | RTC_CR_TSIE;
+
+    // save RTC interrupts
+    uint32_t save_irq_bits = RTC->CR & irq_bits;
+
+    // disable RTC interrupts
+    RTC->CR &= ~irq_bits;
+
+    // clear RTC wake-up flags
+    RTC->ISR &= ~(RTC_ISR_ALRAF | RTC_ISR_ALRBF | RTC_ISR_WUTF | RTC_ISR_TSF);
+
+    // clear global wake-up flag
+    PWR->CR |= PWR_CR_CWUF;
+
+    // enable previously-enabled RTC interrupts
+    RTC->CR |= save_irq_bits;
+
+    // enter standby mode
     HAL_PWR_EnterSTANDBYMode();
+    // we never return; MCU is reset on exit from standby
+
     return mp_const_none;
 }
 MP_DEFINE_CONST_FUN_OBJ_0(pyb_standby_obj, pyb_standby);
@@ -522,7 +544,7 @@ STATIC const mp_map_elem_t pyb_module_globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_elapsed_micros), (mp_obj_t)&pyb_elapsed_micros_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_delay), (mp_obj_t)&pyb_delay_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_udelay), (mp_obj_t)&pyb_udelay_obj },
-    { MP_OBJ_NEW_QSTR(MP_QSTR_sync), (mp_obj_t)&pyb_sync_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_sync), (mp_obj_t)&mod_os_sync_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_mount), (mp_obj_t)&pyb_mount_obj },
 
     { MP_OBJ_NEW_QSTR(MP_QSTR_Timer), (mp_obj_t)&pyb_timer_type },

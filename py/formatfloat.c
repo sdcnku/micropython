@@ -24,10 +24,15 @@
  * THE SOFTWARE.
  */
 
+#include <stdlib.h>
+#include <stdint.h>
+#include "py/formatfloat.h"
+
+#if MICROPY_FLOAT_IMPL == MICROPY_FLOAT_IMPL_FLOAT
 /***********************************************************************
 
-  formatfloat.c  - Ruutine for converting a single-precision floating
-                    point number into a string.
+  Routine for converting a single-precision floating
+  point number into a string.
 
   The code in this funcion was inspired from Fred Bayer's pdouble.c.
   Since pdouble.c was released as Public Domain, I'm releasing this
@@ -38,15 +43,6 @@
   Dave Hylands
 
 ***********************************************************************/
-
-#include <stdlib.h>
-#include <stdint.h>
-
-#include "py/mpconfig.h"
-
-#if MICROPY_FLOAT_IMPL == MICROPY_FLOAT_IMPL_FLOAT
-
-#include "py/formatfloat.h"
 
 // 1 sign bit, 8 exponent bits, and 23 mantissa bits.
 // exponent values 0 and 255 are reserved, exponent can be 1 to 254.
@@ -142,8 +138,14 @@ int mp_format_float(float f, char *buf, size_t buf_size, char fmt, int prec, cha
                 num.f *= *pos_pow;
             }
         }
+        char first_dig = '0';
+        char e_sign_char = '-';
         if (num.f < 1.0F && num.f >= 0.9999995F) {
             num.f = 1.0F;
+            first_dig = '1';
+            if (e == 0) {
+                e_sign_char = '+';
+            }
         } else {
             e++; 
             num.f *= 10.0F;
@@ -155,7 +157,7 @@ int mp_format_float(float f, char *buf, size_t buf_size, char fmt, int prec, cha
         if (fmt == 'f' || (fmt == 'g' && e <= 4)) {
             fmt = 'f';
             dec = -1;
-            *s++ = '0';
+            *s++ = first_dig;
 
             if (prec + e + 1 > buf_remaining) {
                 prec = buf_remaining - e - 1;
@@ -175,7 +177,7 @@ int mp_format_float(float f, char *buf, size_t buf_size, char fmt, int prec, cha
         } else {
             // For e & g formats, we'll be printing the exponent, so set the
             // sign.
-            e_sign = '-';
+            e_sign = e_sign_char;
             dec = 0;
 
             if (prec > (buf_remaining - 6)) {
@@ -333,6 +335,78 @@ int mp_format_float(float f, char *buf, size_t buf_size, char fmt, int prec, cha
     *s = '\0';
 
     return s - buf;
+}
+
+#elif MICROPY_FLOAT_IMPL == MICROPY_FLOAT_IMPL_DOUBLE
+
+#include <errno.h>
+#include <stdio.h>
+
+#ifdef _MSC_VER
+// For msvc we need to address some quirks in the snprintf implementation:
+// - there is no standard snprintf, it is named _snprintf instead
+// - 'F' format isn't handled so use 'f'
+// - nan and inf are printed as 1.#QNAN and 1.#INF
+#include <math.h>
+#include <string.h>
+
+STATIC int copy_with_sign(char *dest, size_t bufSize, const char *value, char sign) {
+    if (bufSize == 0) {
+        return 0;
+    }
+    size_t numSignChars = 0;
+    if (sign) {
+        *dest = sign;
+        ++numSignChars;
+    }
+    // check total length including terminator
+    size_t length = strlen(value) + 1 + numSignChars;
+    if (length > bufSize) {
+        length = bufSize;
+    }
+    // length without terminator
+    --length;
+    if (length > numSignChars) {
+        memcpy(dest + numSignChars, value, length - numSignChars);
+    }
+    dest[length] = 0;
+    return length;
+}
+
+#define snprintf _snprintf
+#endif
+
+int mp_format_float(double value, char *buf, size_t bufSize, char fmt, int prec, char sign) {
+    if (!buf) {
+        errno = EINVAL;
+        return -1;
+    }
+#ifdef _MSC_VER
+    if (isnan(value)) {
+        return copy_with_sign(buf, bufSize, "nan", sign);
+    } else if (isinf(value)) {
+        return copy_with_sign(buf, bufSize, "inf", value > 0.0 ? sign : '-');
+    } else {
+        if (fmt == 'F') {
+            fmt = 'f';
+        }
+#endif
+        char fmt_buf[6];
+        char *fmt_s = fmt_buf;
+
+        *fmt_s++ = '%';
+        if (sign) {
+            *fmt_s++ = sign;
+        }
+        *fmt_s++ = '.';
+        *fmt_s++ = '*';
+        *fmt_s++ = fmt;
+        *fmt_s = '\0';
+
+        return snprintf(buf, bufSize, fmt_buf, prec, value);
+#ifdef _MSC_VER
+    }
+#endif
 }
 
 #endif

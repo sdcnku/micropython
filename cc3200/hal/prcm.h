@@ -159,7 +159,7 @@ unsigned char ulRstReg;
 #define PRCM_HIB_WAKEUP_CAUSE_GPIO        0x00000004
 
 //*****************************************************************************
-// Values that can be passed to PRCMSEnableInterrupt
+// Values that can be passed to PRCMIntEnable
 //*****************************************************************************
 #define PRCM_INT_SLOW_CLK_CTR     0x00004000
 
@@ -197,6 +197,12 @@ unsigned char ulRstReg;
 // API Function prototypes
 //
 //*****************************************************************************
+extern void PRCMRequestSafeBoot(void);
+extern void PRCMClearSafeBootRequest(void);
+extern tBoolean PRCMIsSafeBootRequested(void);
+extern void PRCMSignalWDTReset(void);
+extern void PRCMClearWDTResetSignal(void);
+extern tBoolean PRCMWasResetBecauseOfWDT(void);
 extern void PRCMSOCReset(void);
 extern void PRCMMCUReset(tBoolean bIncludeSubsystem);
 extern unsigned long PRCMSysResetCauseGet(void);
@@ -250,6 +256,7 @@ extern void PRCMIntEnable(unsigned long ulIntFlags);
 extern void PRCMIntDisable(unsigned long ulIntFlags);
 extern unsigned long PRCMIntStatus(void);
 extern void PRCMRTCInUseSet(void);
+extern void PRCMRTCInUseClear(void);
 extern tBoolean PRCMRTCInUseGet(void);
 extern void PRCMRTCSet(unsigned long ulSecs, unsigned short usMsec);
 extern void PRCMRTCGet(unsigned long *ulSecs, unsigned short *usMsec);
@@ -258,6 +265,7 @@ extern void PRCMRTCMatchGet(unsigned long *ulSecs, unsigned short *usMsec);
 extern void PRCMCC3200MCUInit(void);
 extern unsigned long PRCMHIBRegRead(unsigned long ulRegAddr);
 extern void PRCMHIBRegWrite(unsigned long ulRegAddr, unsigned long ulValue);
+extern unsigned long PRCMCameraFreqSet(unsigned char ulDivider, unsigned char ulWidth);
 
 
 //*****************************************************************************

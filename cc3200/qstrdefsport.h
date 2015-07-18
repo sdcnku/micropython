@@ -1,11 +1,36 @@
+/*
+ * This file is part of the Micro Python project, http://micropython.org/
+ *
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2013, 2014 Damien P. George
+ * Copyright (c) 2015 Daniel Campora
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
 // qstrs specific to this port
 Q(__name__)
 Q(help)
 Q(pyb)
 Q(info)
-Q(hard_reset)
-Q(stop)
-Q(standby)
+Q(reset)
 Q(main)
 Q(sync)
 Q(gc)
@@ -22,10 +47,9 @@ Q(readall)
 Q(readline)
 Q(input)
 Q(os)
-Q(mac)
 Q(freq)
+Q(unique_id)
 Q(repl_info)
-Q(wfi)
 Q(disable_irq)
 Q(enable_irq)
 Q(millis)
@@ -35,38 +59,49 @@ Q(elapsed_micros)
 Q(udelay)
 Q(flush)
 Q(FileIO)
-Q(mkdisk)
-Q(enable_wdt)
-Q(kick_wdt)
-Q(enable_heartbeat)
-Q(disable_heartbeat)
+Q(enable)
+Q(disable)
 // Entries for sys.path
-Q(/SFLASH)
-Q(/SFLASH/LIB)
-Q(/SD)
-Q(/SD/LIB)
+Q(/flash)
+Q(/flash/lib)
+#if MICROPY_HW_HAS_SDCARD
+Q(/sd)
+Q(/sd/lib)
+#endif
 
 // for module weak links
+Q(binascii)
 Q(re)
 Q(json)
 Q(heapq)
+Q(hashlib)
 
 // for os module
 Q(uos)
 Q(os)
+Q(sysname)
+Q(nodename)
+Q(release)
+Q(version)
+Q(machine)
+Q(uname)
 Q(/)
-Q(SFLASH)
-Q(SD)
+Q(flash)
+#if MICROPY_HW_HAS_SDCARD
+Q(sd)
+#endif
 Q(chdir)
 Q(getcwd)
 Q(listdir)
 Q(mkdir)
+Q(rename)
 Q(remove)
 Q(rmdir)
 Q(unlink)
 Q(sep)
 Q(stat)
 Q(urandom)
+Q(mkfs)
 
 // for file class
 Q(seek)
@@ -78,15 +113,13 @@ Q(init)
 Q(value)
 Q(low)
 Q(high)
+Q(toggle)
+Q(info)
 Q(name)
-Q(port)
-Q(pin)
-Q(cpu)
-Q(mode)
-Q(pull)
-Q(index)
-Q(strength)
 Q(af)
+Q(mode)
+Q(type)
+Q(strength)
 Q(IN)
 Q(OUT)
 Q(STD)
@@ -95,24 +128,14 @@ Q(STD_PD)
 Q(OD)
 Q(OD_PU)
 Q(OD_PD)
+Q(INT_RISING)
+Q(INT_FALLING)
+Q(INT_RISING_FALLING)
+Q(INT_LOW_LEVEL)
+Q(INT_HIGH_LEVEL)
 Q(S2MA)
 Q(S4MA)
 Q(S6MA)
-
-// for ExtInt class
-Q(ExtInt)
-Q(pin)
-Q(mode)
-Q(pull)
-Q(callback)
-Q(enable)
-Q(disable)
-Q(swint)
-Q(IRQ_RISING)
-Q(IRQ_FALLING)
-Q(IRQ_RISING_FALLING)
-Q(IRQ_LOW_LEVEL)
-Q(IRQ_HIGH_LEVEL)
 
 // for UART class
 Q(UART)
@@ -125,26 +148,24 @@ Q(deinit)
 Q(all)
 Q(writechar)
 Q(readchar)
+Q(sendbreak)
 Q(readinto)
 Q(read_buf_len)
 Q(timeout)
 Q(timeout_char)
 Q(repl_uart)
 Q(flow)
-Q(FLOW_NONE)
-Q(FLOW_TX)
-Q(FLOW_RX)
-Q(FLOW_TXRX)
+Q(RTS)
+Q(CTS)
 
 // for I2C class
 Q(I2C)
 Q(mode)
-Q(addr)
 Q(baudrate)
+Q(addr)
 Q(data)
 Q(memaddr)
 Q(addr_size)
-Q(timeout)
 Q(init)
 Q(deinit)
 Q(is_ready)
@@ -154,18 +175,17 @@ Q(recv)
 Q(mem_read)
 Q(mem_write)
 Q(MASTER)
-Q(SLAVE)
 
 // for ADC class
 Q(ADC)
 Q(read)
-Q(enable)
-Q(disable)
 
+#if MICROPY_HW_HAS_SDCARD
 // for SD class
 Q(SD)
 Q(enable)
 Q(disable)
+#endif
 
 // for RTC class
 Q(RTC)
@@ -209,13 +229,16 @@ Q(AF_INET6)
 Q(SOCK_STREAM)
 Q(SOCK_DGRAM)
 Q(SOCK_RAW)
+Q(IPPROTO_SEC)
 Q(IPPROTO_TCP)
 Q(IPPROTO_UDP)
 Q(IPPROTO_RAW)
 
 // for network class
 Q(network)
-Q(route)
+Q(server_running)
+Q(server_login)
+Q(server_timeout)
 
 // for WLAN class
 Q(WLAN)
@@ -227,15 +250,19 @@ Q(scan)
 Q(connect)
 Q(isconnected)
 Q(disconnect)
-Q(getmode)
 Q(channel)
+Q(rssi)
 Q(ifconfig)
+Q(info)
+Q(connections)
 Q(urn)
-Q(setpm)
-Q(start_servers)
-Q(stop_servers)
-Q(servers_enabled)
-Q(servers_userpass)
+Q(mode)
+Q(ip)
+Q(subnet)
+Q(gateway)
+Q(dns)
+Q(mac)
+Q(antenna)
 Q(STA)
 Q(AP)
 Q(P2P)
@@ -245,8 +272,99 @@ Q(WPA_WPA2)
 Q(WPA_ENT)
 Q(WPS_PBC)
 Q(WPS_PIN)
-Q(NORMAL_PM)
-Q(LOW_LATENCY_PM)
-Q(LOW_POWER_PM)
-Q(ALWAYS_ON_PM)
-Q(LONG_SLEEP_PM)
+Q(INT_ANTENNA)
+Q(EXT_ANTENNA)
+
+// for WDT class
+Q(WDT)
+Q(kick)
+
+// for HeartBeat class
+Q(HeartBeat)
+Q(enable)
+Q(disable)
+
+// for callback class
+Q(init)
+Q(enable)
+Q(disable)
+Q(callback)
+Q(handler)
+Q(mode)
+Q(value)
+Q(priority)
+Q(wakes)
+
+// for Sleep class
+Q(Sleep)
+Q(idle)
+Q(suspend)
+Q(hibernate)
+Q(reset_cause)
+Q(wake_reason)
+Q(ACTIVE)
+Q(SUSPENDED)
+Q(HIBERNATING)
+Q(POWER_ON)
+Q(HARD_RESET)
+Q(WDT_RESET)
+Q(HIB_RESET)
+Q(SOFT_RESET)
+Q(WLAN_WAKE)
+Q(PIN_WAKE)
+Q(RTC_WAKE)
+
+// for SPI class
+Q(SPI)
+Q(mode)
+Q(baudrate)
+Q(bits)
+Q(polarity)
+Q(phase)
+Q(nss)
+Q(init)
+Q(deinit)
+Q(send)
+Q(recv)
+Q(send_recv)
+Q(MASTER)
+Q(ACTIVE_LOW)
+Q(ACTIVE_HIGH)
+
+// for Timer class
+Q(Timer)
+Q(TimerChannel)
+Q(init)
+Q(deinit)
+Q(freq)
+Q(period)
+Q(mode)
+Q(width)
+Q(channel)
+Q(polarity)
+Q(duty_cycle)
+Q(time)
+Q(event_count)
+Q(event_time)
+Q(A)
+Q(B)
+Q(ONE_SHOT)
+Q(PERIODIC)
+Q(EDGE_COUNT)
+Q(EDGE_TIME)
+Q(PWM)
+Q(POSITIVE)
+Q(NEGATIVE)
+
+// for uhashlib module
+Q(uhashlib)
+Q(update)
+Q(digest)
+//Q(md5)
+Q(sha1)
+Q(sha256)
+
+// for ubinascii module
+Q(ubinascii)
+Q(hexlify)
+Q(unhexlify)

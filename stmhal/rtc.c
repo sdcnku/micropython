@@ -256,18 +256,29 @@ void HAL_RTC_MspInit(RTC_HandleTypeDef *hrtc) {
          __HAL_RCC_BACKUPRESET_RELEASE().
        - Configure the needed RTc clock source */
 
-    // set LSE as RTC clock source
+    // RTC clock source uses LSE (external crystal) only if relevant
+    // configuration variable is set.  Otherwise it uses LSI (internal osc).
+
     RCC_OscInitStruct.OscillatorType =  RCC_OSCILLATORTYPE_LSI | RCC_OSCILLATORTYPE_LSE;
     RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+    #if defined(MICROPY_HW_RTC_USE_LSE) && MICROPY_HW_RTC_USE_LSE
     RCC_OscInitStruct.LSEState = RCC_LSE_ON;
     RCC_OscInitStruct.LSIState = RCC_LSI_OFF;
+    #else
+    RCC_OscInitStruct.LSEState = RCC_LSE_OFF;
+    RCC_OscInitStruct.LSIState = RCC_LSI_ON;
+    #endif
     if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
         //Error_Handler();
         return;
     }
 
     PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_RTC;
+    #if defined(MICROPY_HW_RTC_USE_LSE) && MICROPY_HW_RTC_USE_LSE
     PeriphClkInitStruct.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
+    #else
+    PeriphClkInitStruct.RTCClockSelection = RCC_RTCCLKSOURCE_LSI;
+    #endif
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK) {
         //Error_Handler();
         return;
@@ -372,9 +383,159 @@ mp_obj_t pyb_rtc_datetime(mp_uint_t n_args, const mp_obj_t *args) {
 }
 MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(pyb_rtc_datetime_obj, 1, 2, pyb_rtc_datetime);
 
+// wakeup(None)
+// wakeup(ms, callback=None)
+// wakeup(wucksel, wut, callback)
+mp_obj_t pyb_rtc_wakeup(mp_uint_t n_args, const mp_obj_t *args) {
+    // wut is wakeup counter start value, wucksel is clock source
+    // counter is decremented at wucksel rate, and wakes the MCU when it gets to 0
+    // wucksel=0b000 is RTC/16 (RTC runs at 32768Hz)
+    // wucksel=0b001 is RTC/8
+    // wucksel=0b010 is RTC/4
+    // wucksel=0b011 is RTC/2
+    // wucksel=0b100 is 1Hz clock
+    // wucksel=0b110 is 1Hz clock with 0x10000 added to wut
+    // so a 1 second wakeup could be wut=2047, wucksel=0b000, or wut=4095, wucksel=0b001, etc
+
+    // disable wakeup IRQ while we configure it
+    HAL_NVIC_DisableIRQ(RTC_WKUP_IRQn);
+
+    bool enable = false;
+    mp_int_t wucksel;
+    mp_int_t wut;
+    mp_obj_t callback = mp_const_none;
+    if (n_args <= 3) {
+        if (args[1] == mp_const_none) {
+            // disable wakeup
+        } else {
+            // time given in ms
+            mp_int_t ms = mp_obj_get_int(args[1]);
+            mp_int_t div = 2;
+            wucksel = 3;
+            while (div <= 16 && ms > 2000 * div) {
+                div *= 2;
+                wucksel -= 1;
+            }
+            if (div <= 16) {
+                wut = 32768 / div * ms / 1000;
+            } else {
+                wucksel = 4;
+                wut = ms / 1000;
+                if (ms > 0x10000) {
+                    wucksel = 5;
+                    ms -= 0x10000;
+                    if (ms > 0x10000) {
+                        nlr_raise(mp_obj_new_exception_msg(&mp_type_ValueError, "wakeup value too large"));
+                    }
+                }
+            }
+            wut -= 1;
+            enable = true;
+        }
+        if (n_args == 3) {
+            callback = args[2];
+        }
+    } else {
+        // config values given directly
+        wucksel = mp_obj_get_int(args[1]);
+        wut = mp_obj_get_int(args[2]);
+        callback = args[3];
+        enable = true;
+    }
+
+    // set the callback
+    MP_STATE_PORT(pyb_extint_callback)[22] = callback;
+
+    // disable register write protection
+    RTC->WPR = 0xca;
+    RTC->WPR = 0x53;
+
+    // clear WUTE
+    RTC->CR &= ~(1 << 10);
+
+    // wait until WUTWF is set
+    while (!(RTC->ISR & (1 << 2))) {
+    }
+
+    if (enable) {
+        // program WUT
+        RTC->WUTR = wut;
+
+        // set WUTIE to enable wakeup interrupts
+        // set WUTE to enable wakeup
+        // program WUCKSEL
+        RTC->CR |= (1 << 14) | (1 << 10) | (wucksel & 7);
+
+        // enable register write protection
+        RTC->WPR = 0xff;
+
+        // enable external interrupts on line 22
+        EXTI->IMR |= 1 << 22;
+        EXTI->RTSR |= 1 << 22;
+
+        // clear interrupt flags
+        RTC->ISR &= ~(1 << 10);
+        EXTI->PR = 1 << 22;
+
+        HAL_NVIC_SetPriority(RTC_WKUP_IRQn, 0x0f, 0x0f);
+        HAL_NVIC_EnableIRQ(RTC_WKUP_IRQn);
+
+        //printf("wut=%d wucksel=%d\n", wut, wucksel);
+    } else {
+        // clear WUTIE to disable interrupts
+        RTC->CR &= ~(1 << 14);
+
+        // enable register write protection
+        RTC->WPR = 0xff;
+
+        // disable external interrupts on line 22
+        EXTI->IMR &= ~(1 << 22);
+    }
+
+    return mp_const_none;
+}
+MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(pyb_rtc_wakeup_obj, 2, 4, pyb_rtc_wakeup);
+
+// calibration(None)
+// calibration(cal)
+// When an integer argument is provided, check that it falls in the range [-511 to 512]
+// and set the calibration value; otherwise return calibration value
+mp_obj_t pyb_rtc_calibration(mp_uint_t n_args, const mp_obj_t *args) {
+    mp_int_t cal;
+    if (n_args == 2) {
+	cal = mp_obj_get_int(args[1]);
+	mp_uint_t cal_p, cal_m;
+	if (cal < -511 || cal > 512) {
+	    nlr_raise(mp_obj_new_exception_msg(&mp_type_ValueError,
+					       "calibration value out of range"));
+	}
+	if (cal > 0) {
+	    cal_p = RTC_SMOOTHCALIB_PLUSPULSES_SET;
+	    cal_m = 512 - cal;
+	} else {
+	    cal_p = RTC_SMOOTHCALIB_PLUSPULSES_RESET;
+	    cal_m = -cal;
+	}
+	HAL_RTCEx_SetSmoothCalib(&RTCHandle, RTC_SMOOTHCALIB_PERIOD_32SEC, cal_p, cal_m);
+	return mp_const_none;
+    } else {
+        // printf("CALR = 0x%x\n", (mp_uint_t) RTCHandle.Instance->CALR); // DEBUG
+	// Test if CALP bit is set in CALR:
+	if (RTCHandle.Instance->CALR & 0x8000) {
+	    cal = 512 - (RTCHandle.Instance->CALR & 0x1ff);
+	} else {
+	    cal = -(RTCHandle.Instance->CALR & 0x1ff);
+	}
+	return mp_obj_new_int(cal);
+    }
+}
+MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(pyb_rtc_calibration_obj, 1, 2, pyb_rtc_calibration);
+    
 STATIC const mp_map_elem_t pyb_rtc_locals_dict_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_info), (mp_obj_t)&pyb_rtc_info_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_datetime), (mp_obj_t)&pyb_rtc_datetime_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_wakeup), (mp_obj_t)&pyb_rtc_wakeup_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_calibration), (mp_obj_t)&pyb_rtc_calibration_obj },
 };
 STATIC MP_DEFINE_CONST_DICT(pyb_rtc_locals_dict, pyb_rtc_locals_dict_table);
 

@@ -79,7 +79,7 @@ STATIC void check_set(mp_obj_t o) {
     }
 }
 
-STATIC void set_print(void (*print)(void *env, const char *fmt, ...), void *env, mp_obj_t self_in, mp_print_kind_t kind) {
+STATIC void set_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
     (void)kind;
     mp_obj_set_t *self = self_in;
     #if MICROPY_PY_BUILTINS_FROZENSET
@@ -88,36 +88,35 @@ STATIC void set_print(void (*print)(void *env, const char *fmt, ...), void *env,
     if (self->set.used == 0) {
         #if MICROPY_PY_BUILTINS_FROZENSET
         if (is_frozen) {
-            print(env, "frozen");
+            mp_print_str(print, "frozen");
         }
         #endif
-        print(env, "set()");
+        mp_print_str(print, "set()");
         return;
     }
     bool first = true;
     #if MICROPY_PY_BUILTINS_FROZENSET
     if (is_frozen) {
-        print(env, "frozenset(");
+        mp_print_str(print, "frozenset(");
     }
     #endif
-    print(env, "{");
+    mp_print_str(print, "{");
     for (mp_uint_t i = 0; i < self->set.alloc; i++) {
         if (MP_SET_SLOT_IS_FILLED(&self->set, i)) {
             if (!first) {
-                print(env, ", ");
+                mp_print_str(print, ", ");
             }
             first = false;
-            mp_obj_print_helper(print, env, self->set.table[i], PRINT_REPR);
+            mp_obj_print_helper(print, self->set.table[i], PRINT_REPR);
         }
     }
-    print(env, "}");
+    mp_print_str(print, "}");
     #if MICROPY_PY_BUILTINS_FROZENSET
     if (is_frozen) {
-        print(env, ")");
+        mp_print_str(print, ")");
     }
     #endif
 }
-
 
 STATIC mp_obj_t set_make_new(mp_obj_t type_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
     mp_arg_check_num(n_args, n_kw, 0, 1, false);
@@ -427,7 +426,7 @@ STATIC mp_obj_t set_symmetric_difference_update(mp_obj_t self_in, mp_obj_t other
     mp_obj_t iter = mp_getiter(other_in);
     mp_obj_t next;
     while ((next = mp_iternext(iter)) != MP_OBJ_STOP_ITERATION) {
-        mp_set_lookup(&self->set, next, MP_MAP_LOOKUP_REMOVE_IF_FOUND | MP_MAP_LOOKUP_ADD_IF_NOT_FOUND);
+        mp_set_lookup(&self->set, next, MP_MAP_LOOKUP_ADD_IF_NOT_FOUND_OR_REMOVE_IF_FOUND);
     }
     return mp_const_none;
 }

@@ -97,7 +97,7 @@ STATIC mp_uint_t mpn_shl(mpz_dig_t *idig, mpz_dig_t *jdig, mp_uint_t jlen, mp_ui
 
     // work out length of result
     jlen += n_whole;
-    if (idig[jlen - 1] == 0) {
+    while (jlen != 0 && idig[jlen - 1] == 0) {
         jlen--;
     }
 
@@ -572,6 +572,9 @@ void mpz_deinit(mpz_t *z) {
     }
 }
 
+#if 0
+these functions are unused
+
 mpz_t *mpz_zero(void) {
     mpz_t *z = m_new_obj(mpz_t);
     mpz_init_zero(z);
@@ -603,8 +606,9 @@ mpz_t *mpz_from_str(const char *str, mp_uint_t len, bool neg, mp_uint_t base) {
     mpz_set_from_str(z, str, len, neg, base);
     return z;
 }
+#endif
 
-void mpz_free(mpz_t *z) {
+STATIC void mpz_free(mpz_t *z) {
     if (z != NULL) {
         m_del(mpz_dig_t, z->dig, z->alloc);
         m_del_obj(mpz_t, z);
@@ -627,7 +631,7 @@ STATIC void mpz_need_dig(mpz_t *z, mp_uint_t need) {
     }
 }
 
-mpz_t *mpz_clone(const mpz_t *src) {
+STATIC mpz_t *mpz_clone(const mpz_t *src) {
     mpz_t *z = m_new_obj(mpz_t);
     z->neg = src->neg;
     z->fixed_dig = 0;
@@ -1170,8 +1174,7 @@ void mpz_xor_inpl(mpz_t *dest, const mpz_t *lhs, const mpz_t *rhs) {
 /* computes dest = lhs * rhs
    can have dest, lhs, rhs the same
 */
-void mpz_mul_inpl(mpz_t *dest, const mpz_t *lhs, const mpz_t *rhs)
-{
+void mpz_mul_inpl(mpz_t *dest, const mpz_t *lhs, const mpz_t *rhs) {
     if (lhs->len == 0 || rhs->len == 0) {
         mpz_set_from_int(dest, 0);
         return;
@@ -1420,6 +1423,40 @@ bool mpz_as_uint_checked(const mpz_t *i, mp_uint_t *value) {
 
     *value = val;
     return true;
+}
+
+// writes at most len bytes to buf (so buf should be zeroed before calling)
+void mpz_as_bytes(const mpz_t *z, bool big_endian, mp_uint_t len, byte *buf) {
+    byte *b = buf;
+    if (big_endian) {
+        b += len;
+    }
+    mpz_dig_t *zdig = z->dig;
+    int bits = 0;
+    mpz_dbl_dig_t d = 0;
+    mpz_dbl_dig_t carry = 1;
+    for (mp_uint_t zlen = z->len; zlen > 0; --zlen) {
+        bits += DIG_SIZE;
+        d = (d << DIG_SIZE) | *zdig++;
+        for (; bits >= 8; bits -= 8, d >>= 8) {
+            mpz_dig_t val = d;
+            if (z->neg) {
+                val = (~val & 0xff) + carry;
+                carry = val >> 8;
+            }
+            if (big_endian) {
+                *--b = val;
+                if (b == buf) {
+                    return;
+                }
+            } else {
+                *b++ = val;
+                if (b == buf + len) {
+                    return;
+                }
+            }
+        }
+    }
 }
 
 #if MICROPY_PY_BUILTINS_FLOAT

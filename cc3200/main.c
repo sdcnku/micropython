@@ -34,6 +34,7 @@
 #include "simplelink.h"
 #include "pybwdt.h"
 #include "debug.h"
+#include "antenna.h"
 #include "mperror.h"
 
 /******************************************************************************
@@ -59,10 +60,16 @@ OsiTaskHandle   mpTaskHandle;
  DEFINE PUBLIC FUNCTIONS
  ******************************************************************************/
 
+__attribute__ ((section (".boot")))
 int main (void) {
 
     // Initialize the clocks and the interrupt system
     HAL_SystemInit();
+
+#if MICROPY_HW_ANTENNA_DIVERSITY
+    // configure the antenna selection pins
+    antenna_init0();
+#endif
 
     // Init the watchdog
     pybwdt_init0();
@@ -81,7 +88,6 @@ int main (void) {
 
     for ( ; ; );
 }
-
 
 void stoupper (char *str) {
     while (str && *str != '\0') {

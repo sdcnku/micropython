@@ -54,7 +54,7 @@
 #if MICROPY_PY_BUILTINS_MEMORYVIEW
 #define TYPECODE_MASK (0x7f)
 #else
-#define TYPECODE_MASK (~(mp_uint_t)1)
+#define TYPECODE_MASK (~(mp_uint_t)0)
 #endif
 
 typedef struct _mp_obj_array_t {
@@ -76,33 +76,33 @@ STATIC mp_int_t array_get_buffer(mp_obj_t o_in, mp_buffer_info_t *bufinfo, mp_ui
 // array
 
 #if MICROPY_PY_BUILTINS_BYTEARRAY || MICROPY_PY_ARRAY
-STATIC void array_print(void (*print)(void *env, const char *fmt, ...), void *env, mp_obj_t o_in, mp_print_kind_t kind) {
+STATIC void array_print(const mp_print_t *print, mp_obj_t o_in, mp_print_kind_t kind) {
     (void)kind;
     mp_obj_array_t *o = o_in;
     if (o->typecode == BYTEARRAY_TYPECODE) {
-        print(env, "bytearray(b");
-        mp_str_print_quoted(print, env, o->items, o->len, true);
+        mp_print_str(print, "bytearray(b");
+        mp_str_print_quoted(print, o->items, o->len, true);
     } else {
-        print(env, "array('%c'", o->typecode);
+        mp_printf(print, "array('%c'", o->typecode);
         if (o->len > 0) {
-            print(env, ", [");
+            mp_print_str(print, ", [");
             for (mp_uint_t i = 0; i < o->len; i++) {
                 if (i > 0) {
-                    print(env, ", ");
+                    mp_print_str(print, ", ");
                 }
-                mp_obj_print_helper(print, env, mp_binary_get_val_array(o->typecode, o->items, i), PRINT_REPR);
+                mp_obj_print_helper(print, mp_binary_get_val_array(o->typecode, o->items, i), PRINT_REPR);
             }
-            print(env, "]");
+            mp_print_str(print, "]");
         }
     }
-    print(env, ")");
+    mp_print_str(print, ")");
 }
 #endif
 
 #if MICROPY_PY_BUILTINS_BYTEARRAY || MICROPY_PY_ARRAY
 STATIC mp_obj_array_t *array_new(char typecode, mp_uint_t n) {
     int typecode_size = mp_binary_get_size('@', typecode, NULL);
-    if (typecode_size <= 0) {
+    if (typecode_size == 0) {
         nlr_raise(mp_obj_new_exception_msg(&mp_type_ValueError, "bad typecode"));
     }
     mp_obj_array_t *o = m_new_obj(mp_obj_array_t);
@@ -134,7 +134,7 @@ STATIC mp_obj_t array_construct(char typecode, mp_obj_t initializer) {
         && mp_get_buffer(initializer, &bufinfo, MP_BUFFER_READ)) {
         // construct array from raw bytes
         // we round-down the len to make it a multiple of sz (CPython raises error)
-        int sz = mp_binary_get_size('@', typecode, NULL);
+        size_t sz = mp_binary_get_size('@', typecode, NULL);
         mp_uint_t len = bufinfo.len / sz;
         mp_obj_array_t *o = array_new(typecode, len);
         memcpy(o->items, bufinfo.buf, len * sz);
@@ -208,7 +208,20 @@ STATIC mp_obj_t bytearray_make_new(mp_obj_t type_in, mp_uint_t n_args, mp_uint_t
 #endif
 
 #if MICROPY_PY_BUILTINS_MEMORYVIEW
+
+mp_obj_t mp_obj_new_memoryview(byte typecode, mp_uint_t nitems, void *items) {
+    mp_obj_array_t *self = m_new_obj(mp_obj_array_t);
+    self->base.type = &mp_type_memoryview;
+    self->typecode = typecode;
+    self->free = 0;
+    self->len = nitems;
+    self->items = items;
+    return self;
+}
+
 STATIC mp_obj_t memoryview_make_new(mp_obj_t type_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
+    (void)type_in;
+
     // TODO possibly allow memoryview constructor to take start/stop so that one
     // can do memoryview(b, 4, 8) instead of memoryview(b)[4:8] (uses less RAM)
 
@@ -217,12 +230,9 @@ STATIC mp_obj_t memoryview_make_new(mp_obj_t type_in, mp_uint_t n_args, mp_uint_
     mp_buffer_info_t bufinfo;
     mp_get_buffer_raise(args[0], &bufinfo, MP_BUFFER_READ);
 
-    mp_obj_array_t *self = m_new_obj(mp_obj_array_t);
-    self->base.type = type_in;
-    self->typecode = bufinfo.typecode;
-    self->free = 0;
-    self->len = bufinfo.len / mp_binary_get_size('@', bufinfo.typecode, NULL); // element len
-    self->items = bufinfo.buf;
+    mp_obj_array_t *self = mp_obj_new_memoryview(bufinfo.typecode,
+        bufinfo.len / mp_binary_get_size('@', bufinfo.typecode, NULL),
+        bufinfo.buf);
 
     // test if the object can be written to
     if (mp_get_buffer(args[0], &bufinfo, MP_BUFFER_RW)) {
@@ -252,7 +262,7 @@ STATIC mp_obj_t array_binary_op(mp_uint_t op, mp_obj_t lhs_in, mp_obj_t rhs_in) 
             array_get_buffer(lhs_in, &lhs_bufinfo, MP_BUFFER_READ);
             mp_get_buffer_raise(rhs_in, &rhs_bufinfo, MP_BUFFER_READ);
 
-            int sz = mp_binary_get_size('@', lhs_bufinfo.typecode, NULL);
+            size_t sz = mp_binary_get_size('@', lhs_bufinfo.typecode, NULL);
 
             // convert byte count to element count (in case rhs is not multiple of sz)
             mp_uint_t rhs_len = rhs_bufinfo.len / sz;
@@ -295,7 +305,7 @@ STATIC mp_obj_t array_append(mp_obj_t self_in, mp_obj_t arg) {
     mp_obj_array_t *self = self_in;
 
     if (self->free == 0) {
-        int item_sz = mp_binary_get_size('@', self->typecode, NULL);
+        size_t item_sz = mp_binary_get_size('@', self->typecode, NULL);
         // TODO: alloc policy
         self->free = 8;
         self->items = m_renew(byte, self->items, item_sz * self->len, item_sz * (self->len + self->free));
@@ -316,7 +326,7 @@ STATIC mp_obj_t array_extend(mp_obj_t self_in, mp_obj_t arg_in) {
     mp_buffer_info_t arg_bufinfo;
     mp_get_buffer_raise(arg_in, &arg_bufinfo, MP_BUFFER_READ);
 
-    int sz = mp_binary_get_size('@', self->typecode, NULL);
+    size_t sz = mp_binary_get_size('@', self->typecode, NULL);
 
     // convert byte count to element count
     mp_uint_t len = arg_bufinfo.len / sz;
@@ -359,28 +369,42 @@ STATIC mp_obj_t array_subscr(mp_obj_t self_in, mp_obj_t index_in, mp_obj_t value
             if (value != MP_OBJ_SENTINEL) {
                 #if MICROPY_PY_ARRAY_SLICE_ASSIGN
                 // Assign
-                if (!MP_OBJ_IS_TYPE(value, &mp_type_array) && !MP_OBJ_IS_TYPE(value, &mp_type_bytearray)) {
-                    mp_not_implemented("array required on right side");
-                }
-                mp_obj_array_t *src_slice = value;
-                int item_sz = mp_binary_get_size('@', o->typecode, NULL);
-                if (item_sz != mp_binary_get_size('@', src_slice->typecode, NULL)) {
-                    mp_not_implemented("arrays should be compatible");
+                mp_uint_t src_len;
+                void *src_items;
+                size_t item_sz = mp_binary_get_size('@', o->typecode, NULL);
+                if (MP_OBJ_IS_TYPE(value, &mp_type_array) || MP_OBJ_IS_TYPE(value, &mp_type_bytearray)) {
+                    mp_obj_array_t *src_slice = value;
+                    if (item_sz != mp_binary_get_size('@', src_slice->typecode, NULL)) {
+                    compat_error:
+                        mp_not_implemented("lhs and rhs should be compatible");
+                    }
+                    src_len = src_slice->len;
+                    src_items = src_slice->items;
+                } else if (MP_OBJ_IS_TYPE(value, &mp_type_bytes)) {
+                    if (item_sz != 1) {
+                        goto compat_error;
+                    }
+                    mp_buffer_info_t bufinfo;
+                    mp_get_buffer_raise(value, &bufinfo, MP_BUFFER_READ);
+                    src_len = bufinfo.len;
+                    src_items = bufinfo.buf;
+                } else {
+                    mp_not_implemented("array/bytes required on right side");
                 }
 
                 // TODO: check src/dst compat
-                mp_int_t len_adj = src_slice->len - (slice.stop - slice.start);
+                mp_int_t len_adj = src_len - (slice.stop - slice.start);
                 if (len_adj > 0) {
                     if (len_adj > o->free) {
                         // TODO: alloc policy; at the moment we go conservative
-                        o->items = m_realloc(o->items, (o->len + o->free) * item_sz, (o->len + len_adj) * item_sz);
+                        o->items = m_renew(byte, o->items, (o->len + o->free) * item_sz, (o->len + len_adj) * item_sz);
                         o->free = 0;
                     }
                     mp_seq_replace_slice_grow_inplace(o->items, o->len,
-                        slice.start, slice.stop, src_slice->items, src_slice->len, len_adj, item_sz);
+                        slice.start, slice.stop, src_items, src_len, len_adj, item_sz);
                 } else {
                     mp_seq_replace_slice_no_grow(o->items, o->len,
-                        slice.start, slice.stop, src_slice->items, src_slice->len, item_sz);
+                        slice.start, slice.stop, src_items, src_len, item_sz);
                     // Clear "freed" elements at the end of list
                     // TODO: This is actually only needed for typecode=='O'
                     mp_seq_clear(o->items, o->len + len_adj, o->len, item_sz);
@@ -394,7 +418,7 @@ STATIC mp_obj_t array_subscr(mp_obj_t self_in, mp_obj_t index_in, mp_obj_t value
             }
 
             mp_obj_array_t *res;
-            int sz = mp_binary_get_size('@', o->typecode & TYPECODE_MASK, NULL);
+            size_t sz = mp_binary_get_size('@', o->typecode & TYPECODE_MASK, NULL);
             assert(sz > 0);
             if (0) {
                 // dummy
@@ -436,7 +460,7 @@ STATIC mp_obj_t array_subscr(mp_obj_t self_in, mp_obj_t index_in, mp_obj_t value
 
 STATIC mp_int_t array_get_buffer(mp_obj_t o_in, mp_buffer_info_t *bufinfo, mp_uint_t flags) {
     mp_obj_array_t *o = o_in;
-    int sz = mp_binary_get_size('@', o->typecode & TYPECODE_MASK, NULL);
+    size_t sz = mp_binary_get_size('@', o->typecode & TYPECODE_MASK, NULL);
     bufinfo->buf = o->items;
     bufinfo->len = o->len * sz;
     bufinfo->typecode = o->typecode & TYPECODE_MASK;

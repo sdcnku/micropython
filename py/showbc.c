@@ -95,10 +95,8 @@ void mp_bytecode_print(const void *descr, mp_uint_t n_total_args, const byte *ip
 
     // bytecode prelude: initialise closed over variables
     {
-        uint n_local = *ip++;
-        printf("(NUM_LOCAL %u)\n", n_local);
-        for (; n_local > 0; n_local--) {
-            uint local_num = *ip++;
+        uint local_num;
+        while ((local_num = *ip++) != 255) {
             printf("(INIT_CELL %u)\n", local_num);
         }
         len -= ip - mp_showbc_code_start;
@@ -142,10 +140,6 @@ const byte *mp_bytecode_print_str(const byte *ip) {
 
         case MP_BC_LOAD_CONST_TRUE:
             printf("LOAD_CONST_TRUE");
-            break;
-
-        case MP_BC_LOAD_CONST_ELLIPSIS:
-            printf("LOAD_CONST_ELLIPSIS");
             break;
 
         case MP_BC_LOAD_CONST_SMALL_INT: {
@@ -273,6 +267,11 @@ const byte *mp_bytecode_print_str(const byte *ip) {
         case MP_BC_DELETE_NAME:
             DECODE_QSTR;
             printf("DELETE_NAME %s", qstr_str(qst));
+            break;
+
+        case MP_BC_DELETE_GLOBAL:
+            DECODE_QSTR;
+            printf("DELETE_GLOBAL %s", qstr_str(qst));
             break;
 
         case MP_BC_DUP_TOP:

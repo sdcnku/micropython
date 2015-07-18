@@ -33,12 +33,16 @@ import sys
 import time
 import serial
 
+def stdout_write_bytes(b):
+    sys.stdout.buffer.write(b)
+    sys.stdout.buffer.flush()
+
 class PyboardError(BaseException):
     pass
 
 class Pyboard:
-    def __init__(self, serial_device):
-        self.serial = serial.Serial(serial_device, baudrate=115200, interCharTimeout=1)
+    def __init__(self, serial_device, baudrate=115200):
+        self.serial = serial.Serial(serial_device, baudrate=baudrate, interCharTimeout=1)
 
     def close(self):
         self.serial.close()
@@ -67,14 +71,22 @@ class Pyboard:
 
     def enter_raw_repl(self):
         self.serial.write(b'\r\x03\x03') # ctrl-C twice: interrupt any running program
+
+        # flush input (without relying on serial.flushInput())
+        n = self.serial.inWaiting()
+        while n > 0:
+            self.serial.read(n)
+            n = self.serial.inWaiting()
+
         self.serial.write(b'\r\x01') # ctrl-A: enter raw REPL
         data = self.read_until(1, b'to exit\r\n>')
         if not data.endswith(b'raw REPL; CTRL-B to exit\r\n>'):
             print(data)
             raise PyboardError('could not enter raw repl')
+
         self.serial.write(b'\x04') # ctrl-D: soft reset
-        data = self.read_until(1, b'to exit\r\n>')
-        if not data.endswith(b'raw REPL; CTRL-B to exit\r\n>'):
+        data = self.read_until(1, b'to exit\r\n')
+        if not data.endswith(b'raw REPL; CTRL-B to exit\r\n'):
             print(data)
             raise PyboardError('could not enter raw repl')
 
@@ -89,19 +101,24 @@ class Pyboard:
         data = data[:-1]
 
         # wait for error output
-        data_err = self.read_until(2, b'\x04>', timeout=timeout)
-        if not data_err.endswith(b'\x04>'):
+        data_err = self.read_until(1, b'\x04', timeout=timeout)
+        if not data_err.endswith(b'\x04'):
             raise PyboardError('timeout waiting for second EOF reception')
         data_err = data_err[:-2]
 
         # return normal and error output
         return data, data_err
 
-    def exec_raw(self, command, timeout=10, data_consumer=None):
+    def exec_raw_no_follow(self, command):
         if isinstance(command, bytes):
             command_bytes = command
         else:
-            command_bytes = bytes(command, encoding='ascii')
+            command_bytes = bytes(command, encoding='utf8')
+
+        # check we have a prompt
+        data = self.read_until(1, b'>')
+        if not data.endswith(b'>'):
+            raise PyboardError('could not enter raw repl')
 
         # write command
         for i in range(0, len(command_bytes), 256):
@@ -114,6 +131,8 @@ class Pyboard:
         if data != b'OK':
             raise PyboardError('could not exec command')
 
+    def exec_raw(self, command, timeout=10, data_consumer=None):
+        self.exec_raw_no_follow(command);
         return self.follow(timeout, data_consumer)
 
     def eval(self, expression):
@@ -128,19 +147,19 @@ class Pyboard:
         return ret
 
     def execfile(self, filename):
-        with open(filename) as f:
+        with open(filename, 'rb') as f:
             pyfile = f.read()
         return self.exec(pyfile)
 
     def get_time(self):
-        t = str(self.eval('pyb.RTC().datetime()'), encoding='ascii')[1:-1].split(', ')
+        t = str(self.eval('pyb.RTC().datetime()'), encoding='utf8')[1:-1].split(', ')
         return int(t[4]) * 3600 + int(t[5]) * 60 + int(t[6])
 
 def execfile(filename, device='/dev/ttyACM0'):
     pyb = Pyboard(device)
     pyb.enter_raw_repl()
     output = pyb.execfile(filename)
-    print(str(output, encoding='ascii'), end='')
+    stdout_write_bytes(output)
     pyb.exit_raw_repl()
     pyb.close()
 
@@ -204,6 +223,7 @@ def main():
     import argparse
     cmd_parser = argparse.ArgumentParser(description='Run scripts on the pyboard.')
     cmd_parser.add_argument('--device', default='/dev/ttyACM0', help='the serial device of the pyboard')
+    cmd_parser.add_argument('--follow', action='store_true', help='follow the output after running the scripts [default if no scripts given]')
     cmd_parser.add_argument('--test', action='store_true', help='run a small test suite on the pyboard')
     cmd_parser.add_argument('files', nargs='*', help='input files')
     args = cmd_parser.parse_args()
@@ -211,27 +231,13 @@ def main():
     if args.test:
         run_test(device=args.device)
 
-    if len(args.files) == 0:
-        try:
-            pyb = Pyboard(args.device)
-            ret, ret_err = pyb.follow(timeout=None, data_consumer=lambda d:print(str(d, encoding='ascii'), end=''))
-            pyb.close()
-        except PyboardError as er:
-            print(er)
-            sys.exit(1)
-        except KeyboardInterrupt:
-            sys.exit(1)
-        if ret_err:
-            print(str(ret_err, encoding='ascii'), end='')
-            sys.exit(1)
-
     for filename in args.files:
         try:
             pyb = Pyboard(args.device)
             pyb.enter_raw_repl()
-            with open(filename) as f:
+            with open(filename, 'rb') as f:
                 pyfile = f.read()
-            ret, ret_err = pyb.exec_raw(pyfile, timeout=None, data_consumer=lambda d:print(str(d, encoding='ascii'), end=''))
+            ret, ret_err = pyb.exec_raw(pyfile, timeout=None, data_consumer=stdout_write_bytes)
             pyb.exit_raw_repl()
             pyb.close()
         except PyboardError as er:
@@ -240,7 +246,21 @@ def main():
         except KeyboardInterrupt:
             sys.exit(1)
         if ret_err:
-            print(str(ret_err, encoding='ascii'), end='')
+            stdout_write_bytes(ret_err)
+            sys.exit(1)
+
+    if args.follow or len(args.files) == 0:
+        try:
+            pyb = Pyboard(args.device)
+            ret, ret_err = pyb.follow(timeout=None, data_consumer=stdout_write_bytes)
+            pyb.close()
+        except PyboardError as er:
+            print(er)
+            sys.exit(1)
+        except KeyboardInterrupt:
+            sys.exit(1)
+        if ret_err:
+            stdout_write_bytes(ret_err)
             sys.exit(1)
 
 if __name__ == "__main__":

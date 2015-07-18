@@ -63,6 +63,9 @@ extern const qstr mp_binary_op_method_name[];
 void mp_init(void);
 void mp_deinit(void);
 
+// extra printing method specifically for mp_obj_t's which are integral type
+int mp_print_mp_int(const mp_print_t *print, mp_obj_t x, int base, int base_char, int flags, char fill, int width, int prec);
+
 void mp_arg_check_num(mp_uint_t n_args, mp_uint_t n_kw, mp_uint_t n_args_min, mp_uint_t n_args_max, bool takes_kw);
 void mp_arg_parse_all(mp_uint_t n_pos, const mp_obj_t *pos, mp_map_t *kws, mp_uint_t n_allowed, const mp_arg_t *allowed, mp_arg_val_t *out_vals);
 void mp_arg_parse_all_kw_array(mp_uint_t n_pos, mp_uint_t n_kw, const mp_obj_t *args, mp_uint_t n_allowed, const mp_arg_t *allowed, mp_arg_val_t *out_vals);
@@ -97,10 +100,25 @@ mp_obj_t mp_call_function_n_kw(mp_obj_t fun, mp_uint_t n_args, mp_uint_t n_kw, c
 mp_obj_t mp_call_method_n_kw(mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args);
 mp_obj_t mp_call_method_n_kw_var(bool have_self, mp_uint_t n_args_n_kw, const mp_obj_t *args);
 
+typedef struct _mp_call_args_t {
+    mp_obj_t fun;
+    mp_uint_t n_args, n_kw, n_alloc;
+    mp_obj_t *args;
+} mp_call_args_t;
+
+#if MICROPY_STACKLESS
+// Takes arguments which are the most general mix of Python arg types, and
+// prepares argument array suitable for passing to ->call() method of a
+// function object (and mp_call_function_n_kw()).
+// (Only needed in stackless mode.)
+void mp_call_prepare_args_n_kw_var(bool have_self, mp_uint_t n_args_n_kw, const mp_obj_t *args, mp_call_args_t *out_args);
+#endif
+
 void mp_unpack_sequence(mp_obj_t seq, mp_uint_t num, mp_obj_t *items);
 void mp_unpack_ex(mp_obj_t seq, mp_uint_t num, mp_obj_t *items);
 mp_obj_t mp_store_map(mp_obj_t map, mp_obj_t key, mp_obj_t value);
 mp_obj_t mp_load_attr(mp_obj_t base, qstr attr);
+void mp_convert_member_lookup(mp_obj_t obj, const mp_obj_type_t *type, mp_obj_t member, mp_obj_t *dest);
 void mp_load_method(mp_obj_t base, qstr attr, mp_obj_t *dest);
 void mp_load_method_maybe(mp_obj_t base, qstr attr, mp_obj_t *dest);
 void mp_store_attr(mp_obj_t base, qstr attr, mp_obj_t val);
@@ -118,6 +136,7 @@ void mp_import_all(mp_obj_t module);
 
 // Raise NotImplementedError with given message
 NORETURN void mp_not_implemented(const char *msg);
+NORETURN void mp_exc_recursion_depth(void);
 
 // helper functions for native/viper code
 mp_uint_t mp_convert_obj_to_native(mp_obj_t obj, mp_uint_t type);

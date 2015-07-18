@@ -96,15 +96,15 @@ Following are encoding examples for various field types:
 Module contents
 ---------------
 
-.. class:: struct(descriptor, layout_type)
+.. class:: struct(addr, descriptor, layout_type=NATIVE)
 
-   Create a "foreign data structure" object based on its descriptor (encoded
-   as a dictionary) and layout type.
+   Instantiate a "foreign data structure" object based on structure address in
+   memory, descriptor (encoded as a dictionary), and layout type (see below).
 
 .. data:: LITTLE_ENDIAN
 
    Little-endian packed structure. (Packed means that every field occupies
-   exactly many bytes as defined in the descriptor, i.e. alignment is 1).
+   exactly as many bytes as defined in the descriptor, i.e. alignment is 1).
 
 .. data:: BIG_ENDIAN
 
@@ -113,9 +113,48 @@ Module contents
 .. data:: NATIVE
 
    Native structure - with data endianness and alignment conforming to
-   the target ABI.
+   the ABI of the system on which MicroPython runs.
 
-(to be continued)
+.. function:: sizeof(struct)
+
+   Return size of data structure in bytes. Argument can be either structure
+   class or specific instantiated structure object (or its aggregate field).
+
+.. function:: addressof(obj)
+
+   Return address of an object. Argument should be bytes, bytearray or
+   other object supporting buffer protocol (and address of this buffer
+   is what actually returned).
+
+.. function:: bytes_at(addr, size)
+
+   Capture memory at the given address and size as bytes object. As bytes
+   object is immutable, memory is actually duplicated and copied into
+   bytes object, so if memory contents change later, created object
+   retains original value.
+
+.. function:: bytearray_at(addr, size)
+
+   Capture memory at the given address and size as bytearray object.
+   Unlike bytes_at() function above, memory is captured by reference,
+   so it can be both written too, and you will access current value
+   at the given memory address.
+
+Structure descriptors and instantiating structure objects
+---------------------------------------------------------
+
+Given a structure descriptor dictionary and its layout type, you can
+instantiate a specific structure instance at a given memory address
+using uctypes.struct() constructor. Memory address usually comes from
+following sources:
+
+* Predefined address, when accessing hardware registers on a baremetal
+  system. Lookup these addresses in datasheet for a particular MCU/SoC.
+* As return value from a call to some FFI (Foreign Function Interface)
+  function.
+* From uctypes.addressof(), when you want to pass arguments to FFI
+  function, or alternatively, to access some data for I/O (for example,
+  data read from file or network socket).
 
 Structure objects
 -----------------

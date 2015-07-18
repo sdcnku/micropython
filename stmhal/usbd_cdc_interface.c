@@ -42,6 +42,8 @@
 #include "pendsv.h"
 
 #include "py/obj.h"
+#include "irq.h"
+#include "timer.h"
 #include "usb.h"
 
 // CDC control commands
@@ -448,6 +450,10 @@ int USBD_CDC_Tx(const uint8_t *buf, uint32_t len, uint32_t timeout) {
                 // timeout
                 return i;
             }
+            if (query_irq() == IRQ_STATE_DISABLED) {
+                // IRQs disabled so buffer will never be drained; return immediately
+                return i;
+            }
             __WFI(); // enter sleep mode, waiting for interrupt
         }
 
@@ -475,6 +481,10 @@ void USBD_CDC_TxAlways(const uint8_t *buf, uint32_t len) {
             // (wraparound of tick is taken care of by 2's complement arithmetic).
             uint32_t start = HAL_GetTick();
             while (((UserTxBufPtrIn + 1) & (APP_TX_DATA_SIZE - 1)) == UserTxBufPtrOut && HAL_GetTick() - start <= 500) {
+                if (query_irq() == IRQ_STATE_DISABLED) {
+                    // IRQs disabled so buffer will never be drained; exit loop
+                    break;
+                }
                 __WFI(); // enter sleep mode, waiting for interrupt
             }
 
@@ -526,6 +536,10 @@ int USBD_CDC_Rx(uint8_t *buf, uint32_t len, uint32_t timeout) {
             // Wraparound of tick is taken care of by 2's complement arithmetic.
             if (HAL_GetTick() - start >= timeout) {
                 // timeout
+                return i;
+            }
+            if (query_irq() == IRQ_STATE_DISABLED) {
+                // IRQs disabled so buffer will never be filled; return immediately
                 return i;
             }
             __WFI(); // enter sleep mode, waiting for interrupt

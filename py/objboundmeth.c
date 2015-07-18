@@ -36,14 +36,14 @@ typedef struct _mp_obj_bound_meth_t {
 } mp_obj_bound_meth_t;
 
 #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_DETAILED
-STATIC void bound_meth_print(void (*print)(void *env, const char *fmt, ...), void *env, mp_obj_t o_in, mp_print_kind_t kind) {
+STATIC void bound_meth_print(const mp_print_t *print, mp_obj_t o_in, mp_print_kind_t kind) {
     (void)kind;
     mp_obj_bound_meth_t *o = o_in;
-    print(env, "<bound_method %p ", o);
-    mp_obj_print_helper(print, env, o->self, PRINT_REPR);
-    print(env, ".");
-    mp_obj_print_helper(print, env, o->meth, PRINT_REPR);
-    print(env, ">");
+    mp_printf(print, "<bound_method %p ", o);
+    mp_obj_print_helper(print, o->self, PRINT_REPR);
+    mp_print_str(print, ".");
+    mp_obj_print_helper(print, o->meth, PRINT_REPR);
+    mp_print_str(print, ">");
 }
 #endif
 
@@ -70,18 +70,34 @@ STATIC mp_obj_t bound_meth_call(mp_obj_t self_in, mp_uint_t n_args, mp_uint_t n_
     }
 }
 
-const mp_obj_type_t bound_meth_type = {
+#if MICROPY_PY_FUNCTION_ATTRS
+STATIC void bound_meth_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
+    if (dest[0] != MP_OBJ_NULL) {
+        // not load attribute
+        return;
+    }
+    if (attr == MP_QSTR___name__) {
+        mp_obj_bound_meth_t *o = self_in;
+        dest[0] = MP_OBJ_NEW_QSTR(mp_obj_fun_get_name(o->meth));
+    }
+}
+#endif
+
+STATIC const mp_obj_type_t mp_type_bound_meth = {
     { &mp_type_type },
     .name = MP_QSTR_bound_method,
 #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_DETAILED
     .print = bound_meth_print,
 #endif
     .call = bound_meth_call,
+#if MICROPY_PY_FUNCTION_ATTRS
+    .attr = bound_meth_attr,
+#endif
 };
 
 mp_obj_t mp_obj_new_bound_meth(mp_obj_t meth, mp_obj_t self) {
     mp_obj_bound_meth_t *o = m_new_obj(mp_obj_bound_meth_t);
-    o->base.type = &bound_meth_type;
+    o->base.type = &mp_type_bound_meth;
     o->meth = meth;
     o->self = self;
     return o;

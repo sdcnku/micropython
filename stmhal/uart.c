@@ -117,90 +117,113 @@ STATIC bool uart_init2(pyb_uart_obj_t *uart_obj) {
     GPIO_TypeDef* GPIO_Port = NULL;
 
     switch (uart_obj->uart_id) {
+        #if defined(MICROPY_HW_UART1_PORT) && defined(MICROPY_HW_UART1_PINS)
         // USART1 is on PA9/PA10 (CK on PA8), PB6/PB7
         case PYB_UART_1:
             UARTx = USART1;
             irqn = USART1_IRQn;
             GPIO_AF_UARTx = GPIO_AF7_USART1;
-
-#if defined (PYBV4) || defined(PYBV10)
-            GPIO_Port = GPIOB;
-            GPIO_Pin = GPIO_PIN_6 | GPIO_PIN_7;
-#else
-            GPIO_Port = GPIOA;
-            GPIO_Pin = GPIO_PIN_9 | GPIO_PIN_10;
-#endif
-
+            GPIO_Port = MICROPY_HW_UART1_PORT;
+            GPIO_Pin = MICROPY_HW_UART1_PINS;
             __USART1_CLK_ENABLE();
             break;
+        #endif
 
+        #if defined(MICROPY_HW_UART2_PORT) && defined(MICROPY_HW_UART2_PINS)
         // USART2 is on PA2/PA3 (CTS,RTS,CK on PA0,PA1,PA4), PD5/PD6 (CK on PD7)
         case PYB_UART_2:
             UARTx = USART2;
             irqn = USART2_IRQn;
             GPIO_AF_UARTx = GPIO_AF7_USART2;
-
-            GPIO_Port = GPIOA;
-            GPIO_Pin = GPIO_PIN_2 | GPIO_PIN_3;
-
+            GPIO_Port = MICROPY_HW_UART2_PORT;
+            GPIO_Pin = MICROPY_HW_UART2_PINS;
+            #if defined(MICROPY_HW_UART2_RTS)
             if (uart_obj->uart.Init.HwFlowCtl & UART_HWCONTROL_RTS) {
-                GPIO_Pin |= GPIO_PIN_1;
+                GPIO_Pin |= MICROPY_HW_UART2_RTS;
             }
+            #endif
+            #if defined(MICROPY_HW_UART2_CTS)
             if (uart_obj->uart.Init.HwFlowCtl & UART_HWCONTROL_CTS) {
-                GPIO_Pin |= GPIO_PIN_0;
+                GPIO_Pin |= MICROPY_HW_UART2_CTS;
             }
-
+            #endif
             __USART2_CLK_ENABLE();
             break;
+        #endif
 
+        #if defined(USART3) && defined(MICROPY_HW_UART3_PORT) && defined(MICROPY_HW_UART3_PINS)
         // USART3 is on PB10/PB11 (CK,CTS,RTS on PB12,PB13,PB14), PC10/PC11 (CK on PC12), PD8/PD9 (CK on PD10)
         case PYB_UART_3:
             UARTx = USART3;
             irqn = USART3_IRQn;
             GPIO_AF_UARTx = GPIO_AF7_USART3;
-
-#if defined(PYBV3) || defined(PYBV4) || defined(PYBV10) || defined(OPENMV1) || defined(OPENMV2) 
-            GPIO_Port = GPIOB;
-            GPIO_Pin = GPIO_PIN_10 | GPIO_PIN_11;
-
+            GPIO_Port = MICROPY_HW_UART3_PORT;
+            GPIO_Pin = MICROPY_HW_UART3_PINS;
+            #if defined(MICROPY_HW_UART3_RTS)
             if (uart_obj->uart.Init.HwFlowCtl & UART_HWCONTROL_RTS) {
-                GPIO_Pin |= GPIO_PIN_14;
+                GPIO_Pin |= MICROPY_HW_UART3_RTS;
             }
+            #endif
+            #if defined(MICROPY_HW_UART3_CTS)
             if (uart_obj->uart.Init.HwFlowCtl & UART_HWCONTROL_CTS) {
-                GPIO_Pin |= GPIO_PIN_13;
+                GPIO_Pin |= MICROPY_HW_UART3_CTS;
             }
-#else
-            GPIO_Port = GPIOD;
-            GPIO_Pin = GPIO_PIN_8 | GPIO_PIN_9;
-#endif
+            #endif
             __USART3_CLK_ENABLE();
             break;
+        #endif
 
+        #if defined(UART4) && defined(MICROPY_HW_UART4_PORT) && defined(MICROPY_HW_UART4_PINS)
         // UART4 is on PA0/PA1, PC10/PC11
         case PYB_UART_4:
             UARTx = UART4;
             irqn = UART4_IRQn;
             GPIO_AF_UARTx = GPIO_AF8_UART4;
-
-            GPIO_Port = GPIOA;
-            GPIO_Pin = GPIO_PIN_0 | GPIO_PIN_1;
-
+            GPIO_Port = MICROPY_HW_UART4_PORT;
+            GPIO_Pin = MICROPY_HW_UART4_PINS;
             __UART4_CLK_ENABLE();
             break;
+        #endif
 
+        #if defined(UART5) && \
+            defined(MICROPY_HW_UART5_TX_PORT) && \
+            defined(MICROPY_HW_UART5_TX_PIN) && \
+            defined(MICROPY_HW_UART5_RX_PORT) && \
+            defined(MICROPY_HW_UART5_RX_PIN)
+        case PYB_UART_5:
+            UARTx = UART5;
+            irqn = UART5_IRQn;
+            GPIO_AF_UARTx = GPIO_AF8_UART5;
+            GPIO_Port = MICROPY_HW_UART5_TX_PORT;
+            GPIO_Pin = MICROPY_HW_UART5_TX_PIN;
+            __UART5_CLK_ENABLE();
+
+            // The code after the case only deals with the case where the TX & RX
+            // pins are on the same port. UART5 has them on different ports.
+            GPIO_InitTypeDef GPIO_InitStructure;
+            GPIO_InitStructure.Pin = MICROPY_HW_UART5_RX_PIN;
+            GPIO_InitStructure.Speed = GPIO_SPEED_HIGH;
+            GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
+            GPIO_InitStructure.Pull = GPIO_PULLUP;
+            GPIO_InitStructure.Alternate = GPIO_AF_UARTx;
+            HAL_GPIO_Init(MICROPY_HW_UART5_RX_PORT, &GPIO_InitStructure);
+            break;
+        #endif
+
+        #if defined(MICROPY_HW_UART6_PORT) && defined(MICROPY_HW_UART6_PINS)
         // USART6 is on PC6/PC7 (CK on PC8)
         case PYB_UART_6:
             UARTx = USART6;
             irqn = USART6_IRQn;
             GPIO_AF_UARTx = GPIO_AF8_USART6;
-
-            GPIO_Port = GPIOC;
-            GPIO_Pin = GPIO_PIN_6 | GPIO_PIN_7;
-
+            GPIO_Port = MICROPY_HW_UART6_PORT;
+            GPIO_Pin = MICROPY_HW_UART6_PINS;
             __USART6_CLK_ENABLE();
             break;
+        #endif
 
         default:
+            // UART does not exist or is not configured for this board
             return false;
     }
 
@@ -330,23 +353,23 @@ void uart_irq_handler(mp_uint_t uart_id) {
 /******************************************************************************/
 /* Micro Python bindings                                                      */
 
-STATIC void pyb_uart_print(void (*print)(void *env, const char *fmt, ...), void *env, mp_obj_t self_in, mp_print_kind_t kind) {
+STATIC void pyb_uart_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
     pyb_uart_obj_t *self = self_in;
     if (!self->is_enabled) {
-        print(env, "UART(%u)", self->uart_id);
+        mp_printf(print, "UART(%u)", self->uart_id);
     } else {
         mp_int_t bits = (self->uart.Init.WordLength == UART_WORDLENGTH_8B ? 8 : 9);
         if (self->uart.Init.Parity != UART_PARITY_NONE) {
             bits -= 1;
         }
-        print(env, "UART(%u, baudrate=%u, bits=%u, parity=",
+        mp_printf(print, "UART(%u, baudrate=%u, bits=%u, parity=",
             self->uart_id, self->uart.Init.BaudRate, bits);
         if (self->uart.Init.Parity == UART_PARITY_NONE) {
-            print(env, "None");
+            mp_print_str(print, "None");
         } else {
-            print(env, "%u", self->uart.Init.Parity == UART_PARITY_EVEN ? 0 : 1);
+            mp_printf(print, "%u", self->uart.Init.Parity == UART_PARITY_EVEN ? 0 : 1);
         }
-        print(env, ", stop=%u, timeout=%u, timeout_char=%u, read_buf_len=%u)",
+        mp_printf(print, ", stop=%u, timeout=%u, timeout_char=%u, read_buf_len=%u)",
             self->uart.Init.StopBits == UART_STOPBITS_1 ? 1 : 2,
             self->timeout, self->timeout_char, self->read_buf_len);
     }
@@ -506,16 +529,30 @@ STATIC mp_obj_t pyb_uart_make_new(mp_obj_t type_in, mp_uint_t n_args, mp_uint_t 
     if (MP_OBJ_IS_STR(args[0])) {
         const char *port = mp_obj_str_get_str(args[0]);
         if (0) {
-#if defined(PYBV10)
-        } else if (strcmp(port, "XA") == 0) {
-            uart_id = PYB_UART_XA;
-        } else if (strcmp(port, "XB") == 0) {
-            uart_id = PYB_UART_XB;
-        } else if (strcmp(port, "YA") == 0) {
-            uart_id = PYB_UART_YA;
-        } else if (strcmp(port, "YB") == 0) {
-            uart_id = PYB_UART_YB;
-#endif
+        #ifdef MICROPY_HW_UART1_NAME
+        } else if (strcmp(port, MICROPY_HW_UART1_NAME) == 0) {
+            uart_id = PYB_UART_1;
+        #endif
+        #ifdef MICROPY_HW_UART2_NAME
+        } else if (strcmp(port, MICROPY_HW_UART2_NAME) == 0) {
+            uart_id = PYB_UART_2;
+        #endif
+        #ifdef MICROPY_HW_UART3_NAME
+        } else if (strcmp(port, MICROPY_HW_UART3_NAME) == 0) {
+            uart_id = PYB_UART_3;
+        #endif
+        #ifdef MICROPY_HW_UART4_NAME
+        } else if (strcmp(port, MICROPY_HW_UART4_NAME) == 0) {
+            uart_id = PYB_UART_4;
+        #endif
+        #ifdef MICROPY_HW_UART5_NAME
+        } else if (strcmp(port, MICROPY_HW_UART5_NAME) == 0) {
+            uart_id = PYB_UART_5;
+        #endif
+        #ifdef MICROPY_HW_UART6_NAME
+        } else if (strcmp(port, MICROPY_HW_UART6_NAME) == 0) {
+            uart_id = PYB_UART_6;
+        #endif
         } else {
             nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_ValueError, "UART(%s) does not exist", port));
         }
@@ -570,16 +607,27 @@ STATIC mp_obj_t pyb_uart_deinit(mp_obj_t self_in) {
         __USART2_FORCE_RESET();
         __USART2_RELEASE_RESET();
         __USART2_CLK_DISABLE();
+    #if defined(USART3)
     } else if (uart->Instance == USART3) {
         HAL_NVIC_DisableIRQ(USART3_IRQn);
         __USART3_FORCE_RESET();
         __USART3_RELEASE_RESET();
         __USART3_CLK_DISABLE();
+    #endif
+    #if defined(UART4)
     } else if (uart->Instance == UART4) {
         HAL_NVIC_DisableIRQ(UART4_IRQn);
         __UART4_FORCE_RESET();
         __UART4_RELEASE_RESET();
         __UART4_CLK_DISABLE();
+    #endif
+    #if defined(UART5)
+    } else if (uart->Instance == UART5) {
+        HAL_NVIC_DisableIRQ(UART5_IRQn);
+        __UART5_FORCE_RESET();
+        __UART5_RELEASE_RESET();
+        __UART5_CLK_DISABLE();
+    #endif
     } else if (uart->Instance == USART6) {
         HAL_NVIC_DisableIRQ(USART6_IRQn);
         __USART6_FORCE_RESET();

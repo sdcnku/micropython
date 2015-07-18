@@ -73,7 +73,8 @@ STATIC mp_obj_t gen_wrap_call(mp_obj_t self_in, mp_uint_t n_args, mp_uint_t n_kw
 
     o->globals = self_fun->globals;
     o->code_state.n_state = n_state;
-    o->code_state.ip = ip;
+    o->code_state.code_info = 0; // offset to code-info
+    o->code_state.ip = (byte*)(ip - self_fun->bytecode); // offset to prelude
     mp_setup_code_state(&o->code_state, self_fun, n_args, n_kw, args);
     return o;
 }
@@ -94,10 +95,10 @@ mp_obj_t mp_obj_new_gen_wrap(mp_obj_t fun) {
 /******************************************************************************/
 /* generator instance                                                         */
 
-STATIC void gen_instance_print(void (*print)(void *env, const char *fmt, ...), void *env, mp_obj_t self_in, mp_print_kind_t kind) {
+STATIC void gen_instance_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
     (void)kind;
     mp_obj_gen_instance_t *self = self_in;
-    print(env, "<generator object '%s' at %p>", mp_obj_code_get_name(self->code_state.code_info), self_in);
+    mp_printf(print, "<generator object '%q' at %p>", mp_obj_code_get_name(self->code_state.code_info), self_in);
 }
 
 mp_vm_return_kind_t mp_obj_gen_resume(mp_obj_t self_in, mp_obj_t send_value, mp_obj_t throw_value, mp_obj_t *ret_val) {
@@ -133,6 +134,9 @@ mp_vm_return_kind_t mp_obj_gen_resume(mp_obj_t self_in, mp_obj_t send_value, mp_
 
         case MP_VM_RETURN_YIELD:
             *ret_val = *self->code_state.sp;
+            if (*ret_val == MP_OBJ_STOP_ITERATION) {
+                self->code_state.ip = 0;
+            }
             break;
 
         case MP_VM_RETURN_EXCEPTION:
@@ -167,10 +171,12 @@ STATIC mp_obj_t gen_resume_and_raise(mp_obj_t self_in, mp_obj_t send_value, mp_o
             // of mp_iternext() protocol, but this function is called by other methods
             // too, which may not handled MP_OBJ_STOP_ITERATION.
             if (mp_obj_is_subclass_fast(mp_obj_get_type(ret), &mp_type_StopIteration)) {
-                return MP_OBJ_STOP_ITERATION;
-            } else {
-                nlr_raise(ret);
+                mp_obj_t val = mp_obj_exception_get_value(ret);
+                if (val == mp_const_none) {
+                    return MP_OBJ_STOP_ITERATION;
+                }
             }
+            nlr_raise(ret);
     }
 }
 

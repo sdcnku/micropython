@@ -30,8 +30,8 @@
 #include "py/nlr.h"
 #include "py/runtime.h"
 #include "py/stream.h"
+#include "lib/fatfs/ff.h"
 #include "file.h"
-#include "ff.h"
 
 extern const mp_obj_type_t mp_type_fileio;
 extern const mp_obj_type_t mp_type_textio;
@@ -97,8 +97,8 @@ typedef struct _pyb_file_obj_t {
     FIL fp;
 } pyb_file_obj_t;
 
-void file_obj_print(void (*print)(void *env, const char *fmt, ...), void *env, mp_obj_t self_in, mp_print_kind_t kind) {
-    print(env, "<io.%s %p>", mp_obj_get_type_str(self_in), self_in);
+void file_obj_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
+    mp_printf(print, "<io.%s %p>", mp_obj_get_type_str(self_in), self_in);
 }
 
 STATIC mp_uint_t file_obj_read(mp_obj_t self_in, void *buf, mp_uint_t size, int *errcode) {
@@ -118,6 +118,11 @@ STATIC mp_uint_t file_obj_write(mp_obj_t self_in, const void *buf, mp_uint_t siz
     FRESULT res = f_write(&self->fp, buf, size, &sz_out);
     if (res != FR_OK) {
         *errcode = fresult_to_errno_table[res];
+        return MP_STREAM_ERROR;
+    }
+    if (sz_out != size) {
+        // The FatFS documentation says that this means disk full.
+        *errcode = ENOSPC;
         return MP_STREAM_ERROR;
     }
     return sz_out;

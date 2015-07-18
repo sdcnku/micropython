@@ -98,27 +98,38 @@ const mp_obj_type_t mp_type_fun_builtin = {
     { &mp_type_type },
     .name = MP_QSTR_function,
     .call = fun_builtin_call,
+    .unary_op = mp_generic_unary_op,
 };
 
 /******************************************************************************/
 /* byte code functions                                                        */
 
-const char *mp_obj_code_get_name(const byte *code_info) {
+qstr mp_obj_code_get_name(const byte *code_info) {
     mp_decode_uint(&code_info); // skip code_info_size entry
-    return qstr_str(mp_decode_uint(&code_info));
+    return mp_decode_uint(&code_info);
 }
 
-const char *mp_obj_fun_get_name(mp_const_obj_t fun_in) {
+#if MICROPY_EMIT_NATIVE
+STATIC const mp_obj_type_t mp_type_fun_native;
+#endif
+
+qstr mp_obj_fun_get_name(mp_const_obj_t fun_in) {
     const mp_obj_fun_bc_t *fun = fun_in;
+    #if MICROPY_EMIT_NATIVE
+    if (fun->base.type == &mp_type_fun_native) {
+        // TODO native functions don't have name stored
+        return MP_QSTR_;
+    }
+    #endif
     const byte *code_info = fun->bytecode;
     return mp_obj_code_get_name(code_info);
 }
 
 #if MICROPY_CPYTHON_COMPAT
-STATIC void fun_bc_print(void (*print)(void *env, const char *fmt, ...), void *env, mp_obj_t o_in, mp_print_kind_t kind) {
+STATIC void fun_bc_print(const mp_print_t *print, mp_obj_t o_in, mp_print_kind_t kind) {
     (void)kind;
     mp_obj_fun_bc_t *o = o_in;
-    print(env, "<function %s at 0x%x>", mp_obj_fun_get_name(o), o);
+    mp_printf(print, "<function %q at 0x%x>", mp_obj_fun_get_name(o), o);
 }
 #endif
 
@@ -136,11 +147,49 @@ STATIC void dump_args(const mp_obj_t *a, mp_uint_t sz) {
 
 // With this macro you can tune the maximum number of function state bytes
 // that will be allocated on the stack.  Any function that needs more
-// than this will use the heap.
+// than this will try to use the heap, with fallback to stack allocation.
 #define VM_MAX_STATE_ON_STACK (11 * sizeof(mp_uint_t))
 
 // Set this to enable a simple stack overflow check.
 #define VM_DETECT_STACK_OVERFLOW (0)
+
+#if MICROPY_STACKLESS
+mp_code_state *mp_obj_fun_bc_prepare_codestate(mp_obj_t self_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
+    MP_STACK_CHECK();
+    mp_obj_fun_bc_t *self = self_in;
+
+    // skip code-info block
+    const byte *code_info = self->bytecode;
+    mp_uint_t code_info_size = mp_decode_uint(&code_info);
+    const byte *ip = self->bytecode + code_info_size;
+
+    // bytecode prelude: skip arg names
+    ip += (self->n_pos_args + self->n_kwonly_args) * sizeof(mp_obj_t);
+
+    // bytecode prelude: state size and exception stack size
+    mp_uint_t n_state = mp_decode_uint(&ip);
+    mp_uint_t n_exc_stack = mp_decode_uint(&ip);
+
+    // allocate state for locals and stack
+    mp_uint_t state_size = n_state * sizeof(mp_obj_t) + n_exc_stack * sizeof(mp_exc_stack_t);
+    mp_code_state *code_state;
+    code_state = m_new_obj_var_maybe(mp_code_state, byte, state_size);
+    if (!code_state) {
+        return NULL;
+    }
+
+    code_state->n_state = n_state;
+    code_state->code_info = 0; // offset to code-info
+    code_state->ip = (byte*)(ip - self->bytecode); // offset to prelude
+    mp_setup_code_state(code_state, self_in, n_args, n_kw, args);
+
+    // execute the byte code with the correct globals context
+    code_state->old_globals = mp_globals_get();
+    mp_globals_set(self->globals);
+
+    return code_state;
+}
+#endif
 
 STATIC mp_obj_t fun_bc_call(mp_obj_t self_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
     MP_STACK_CHECK();
@@ -171,15 +220,18 @@ STATIC mp_obj_t fun_bc_call(mp_obj_t self_in, mp_uint_t n_args, mp_uint_t n_kw, 
 
     // allocate state for locals and stack
     mp_uint_t state_size = n_state * sizeof(mp_obj_t) + n_exc_stack * sizeof(mp_exc_stack_t);
-    mp_code_state *code_state;
+    mp_code_state *code_state = NULL;
     if (state_size > VM_MAX_STATE_ON_STACK) {
-        code_state = m_new_obj_var(mp_code_state, byte, state_size);
-    } else {
+        code_state = m_new_obj_var_maybe(mp_code_state, byte, state_size);
+    }
+    if (code_state == NULL) {
         code_state = alloca(sizeof(mp_code_state) + state_size);
+        state_size = 0; // indicate that we allocated using alloca
     }
 
     code_state->n_state = n_state;
-    code_state->ip = ip;
+    code_state->code_info = 0; // offset to code-info
+    code_state->ip = (byte*)(ip - self->bytecode); // offset to prelude
     mp_setup_code_state(code_state, self_in, n_args, n_kw, args);
 
     // execute the byte code with the correct globals context
@@ -235,7 +287,7 @@ STATIC mp_obj_t fun_bc_call(mp_obj_t self_in, mp_uint_t n_args, mp_uint_t n_kw, 
     }
 
     // free the state if it was allocated on the heap
-    if (state_size > VM_MAX_STATE_ON_STACK) {
+    if (state_size != 0) {
         m_del_var(mp_code_state, byte, state_size, code_state);
     }
 
@@ -246,6 +298,18 @@ STATIC mp_obj_t fun_bc_call(mp_obj_t self_in, mp_uint_t n_args, mp_uint_t n_kw, 
     }
 }
 
+#if MICROPY_PY_FUNCTION_ATTRS
+STATIC void fun_bc_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
+    if (dest[0] != MP_OBJ_NULL) {
+        // not load attribute
+        return;
+    }
+    if (attr == MP_QSTR___name__) {
+        dest[0] = MP_OBJ_NEW_QSTR(mp_obj_fun_get_name(self_in));
+    }
+}
+#endif
+
 const mp_obj_type_t mp_type_fun_bc = {
     { &mp_type_type },
     .name = MP_QSTR_function,
@@ -253,6 +317,10 @@ const mp_obj_type_t mp_type_fun_bc = {
     .print = fun_bc_print,
 #endif
     .call = fun_bc_call,
+    .unary_op = mp_generic_unary_op,
+#if MICROPY_PY_FUNCTION_ATTRS
+    .attr = fun_bc_attr,
+#endif
 };
 
 mp_obj_t mp_obj_new_fun_bc(mp_uint_t scope_flags, mp_uint_t n_pos_args, mp_uint_t n_kwonly_args, mp_obj_t def_args_in, mp_obj_t def_kw_args, const byte *code) {
@@ -291,56 +359,23 @@ mp_obj_t mp_obj_new_fun_bc(mp_uint_t scope_flags, mp_uint_t n_pos_args, mp_uint_
 
 #if MICROPY_EMIT_NATIVE
 
-typedef struct _mp_obj_fun_native_t {
-    mp_obj_base_t base;
-    mp_uint_t n_args;
-    void *fun_data; // GC must be able to trace this pointer
-    // TODO add mp_map_t *globals
-} mp_obj_fun_native_t;
-
-typedef mp_obj_t (*native_fun_0_t)(void);
-typedef mp_obj_t (*native_fun_1_t)(mp_obj_t);
-typedef mp_obj_t (*native_fun_2_t)(mp_obj_t, mp_obj_t);
-typedef mp_obj_t (*native_fun_3_t)(mp_obj_t, mp_obj_t, mp_obj_t);
-
 STATIC mp_obj_t fun_native_call(mp_obj_t self_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
-    mp_obj_fun_native_t *self = self_in;
-
-    mp_arg_check_num(n_args, n_kw, self->n_args, self->n_args, false);
-
-    void *fun = MICROPY_MAKE_POINTER_CALLABLE(self->fun_data);
-
-    switch (n_args) {
-        case 0:
-            return ((native_fun_0_t)fun)();
-
-        case 1:
-            return ((native_fun_1_t)fun)(args[0]);
-
-        case 2:
-            return ((native_fun_2_t)fun)(args[0], args[1]);
-
-        case 3:
-            return ((native_fun_3_t)fun)(args[0], args[1], args[2]);
-
-        default:
-            assert(0);
-            return mp_const_none;
-    }
+    MP_STACK_CHECK();
+    mp_obj_fun_bc_t *self = self_in;
+    mp_call_fun_t fun = MICROPY_MAKE_POINTER_CALLABLE((void*)self->bytecode);
+    return fun(self_in, n_args, n_kw, args);
 }
 
 STATIC const mp_obj_type_t mp_type_fun_native = {
     { &mp_type_type },
     .name = MP_QSTR_function,
     .call = fun_native_call,
+    .unary_op = mp_generic_unary_op,
 };
 
-mp_obj_t mp_obj_new_fun_native(mp_uint_t n_args, void *fun_data) {
-    assert(0 <= n_args && n_args <= 3);
-    mp_obj_fun_native_t *o = m_new_obj(mp_obj_fun_native_t);
+mp_obj_t mp_obj_new_fun_native(mp_uint_t scope_flags, mp_uint_t n_pos_args, mp_uint_t n_kwonly_args, mp_obj_t def_args_in, mp_obj_t def_kw_args, const void *fun_data) {
+    mp_obj_fun_bc_t *o = mp_obj_new_fun_bc(scope_flags, n_pos_args, n_kwonly_args, def_args_in, def_kw_args, (const byte*)fun_data);
     o->base.type = &mp_type_fun_native;
-    o->n_args = n_args;
-    o->fun_data = fun_data;
     return o;
 }
 
@@ -391,6 +426,7 @@ STATIC const mp_obj_type_t mp_type_fun_viper = {
     { &mp_type_type },
     .name = MP_QSTR_function,
     .call = fun_viper_call,
+    .unary_op = mp_generic_unary_op,
 };
 
 mp_obj_t mp_obj_new_fun_viper(mp_uint_t n_args, void *fun_data, mp_uint_t type_sig) {
@@ -503,6 +539,7 @@ STATIC const mp_obj_type_t mp_type_fun_asm = {
     { &mp_type_type },
     .name = MP_QSTR_function,
     .call = fun_asm_call,
+    .unary_op = mp_generic_unary_op,
 };
 
 mp_obj_t mp_obj_new_fun_asm(mp_uint_t n_args, void *fun_data) {

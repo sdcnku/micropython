@@ -35,12 +35,12 @@
 #include "flash.h"
 #include "storage.h"
 
-extern char _heap_end;
-//#define CACHE_MEM_START_ADDR    (&_heap_end)  // FS cache in CCM
-const void *CACHE_MEM_START_ADDR=NULL;
-#define FLASH_PART1_RES_BLOCKS  (1)             // Reserve 1 block for MBR
-#define FLASH_PART1_NUM_BLOCKS  (96)            // (16k+16+16)*1024/512
-#define FLASH_MEM_START_ADDR    (0x08004000)    // FS offset, sector 1
+const void *CACHE_MEM_START_ADDR = NULL;
+#define FLASH_PART1_RES_BLOCKS      (1)             // Reserve 1 block for MBR
+#define FLASH_PART1_START_BLOCK     (0x100)
+#define FLASH_PART1_NUM_BLOCKS      (96)            // (16k+16+16)*1024/512
+#define FLASH_MEM_START_ADDR        (0x08004000)    // sector 1, 16k
+#define FLASH_SECTOR_SIZE_MAX       (0x4000)        // 16k max, size of CCM
 
 #define FLASH_FLAG_DIRTY        (1)
 #define FLASH_FLAG_FORCE_WRITE  (2)
@@ -65,6 +65,9 @@ static uint8_t *flash_cache_get_addr_for_write(uint32_t flash_addr) {
     uint32_t flash_sector_start;
     uint32_t flash_sector_size;
     uint32_t flash_sector_id = flash_get_sector_info(flash_addr, &flash_sector_start, &flash_sector_size);
+    if (flash_sector_size > FLASH_SECTOR_SIZE_MAX) {
+        flash_sector_size = FLASH_SECTOR_SIZE_MAX;
+    }
     if (flash_cache_sector_id != flash_sector_id) {
         flash_cache_flush();
         memcpy((void*)CACHE_MEM_START_ADDR, (const void*)flash_sector_start, flash_sector_size);

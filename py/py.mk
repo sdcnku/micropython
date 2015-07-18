@@ -22,6 +22,7 @@ PY_O_BASENAME = \
 	gc.o \
 	qstr.o \
 	vstr.o \
+	mpprint.o \
 	unicode.o \
 	mpz.o \
 	lexer.o \
@@ -31,7 +32,6 @@ PY_O_BASENAME = \
 	scope.o \
 	compile.o \
 	emitcommon.o \
-	emitpass1.o \
 	emitcpy.o \
 	emitbc.o \
 	asmx64.o \
@@ -55,6 +55,7 @@ PY_O_BASENAME = \
 	map.o \
 	obj.o \
 	objarray.o \
+	objattrtuple.o \
 	objbool.o \
 	objboundmeth.o \
 	objcell.o \
@@ -81,6 +82,7 @@ PY_O_BASENAME = \
 	objrange.o \
 	objreversed.o \
 	objset.o \
+	objsingleton.o \
 	objslice.o \
 	objstr.o \
 	objstrunicode.o \
@@ -109,8 +111,6 @@ PY_O_BASENAME = \
 	showbc.o \
 	repl.o \
 	smallint.o \
-	pfenv.o \
-	pfenv_printf.o \
 	frozenmod.o \
 	../extmod/moductypes.o \
 	../extmod/modujson.o \
@@ -119,6 +119,7 @@ PY_O_BASENAME = \
 	../extmod/moduheapq.o \
 	../extmod/moduhashlib.o \
 	../extmod/modubinascii.o \
+	../extmod/modmachine.o \
 
 # prepend the build destination prefix to the py object files
 PY_O = $(addprefix $(PY_BUILD)/, $(PY_O_BASENAME))
@@ -127,19 +128,23 @@ PY_O = $(addprefix $(PY_BUILD)/, $(PY_O_BASENAME))
 FORCE:
 .PHONY: FORCE
 
-$(HEADER_BUILD)/py-version.h: FORCE | $(HEADER_BUILD)
-	$(Q)$(PY_SRC)/py-version.sh > $@.tmp
-	$(Q)if [ -f "$@" ] && cmp -s $@ $@.tmp; then rm $@.tmp; else echo "Generating $@"; mv $@.tmp $@; fi
+$(HEADER_BUILD)/mpversion.h: FORCE | $(HEADER_BUILD)
+	$(Q)$(PYTHON) $(PY_SRC)/makeversionhdr.py $@
+
+# mpconfigport.mk is optional, but changes to it may drastically change
+# overall config, so they need to be caught
+MPCONFIGPORT_MK = $(wildcard mpconfigport.mk)
 
 # qstr data
 
 # Adding an order only dependency on $(HEADER_BUILD) causes $(HEADER_BUILD) to get
 # created before we run the script to generate the .h
-$(HEADER_BUILD)/qstrdefs.generated.h: $(PY_QSTR_DEFS) $(QSTR_DEFS) $(PY_SRC)/makeqstrdata.py mpconfigport.h $(PY_SRC)/mpconfig.h | $(HEADER_BUILD)
-	$(ECHO) "CPP $<"
-	$(Q)$(CPP) $(CFLAGS) $(PY_QSTR_DEFS) -o $(HEADER_BUILD)/qstrdefs.preprocessed.h
-	$(ECHO) "makeqstrdata $(PY_QSTR_DEFS) $(QSTR_DEFS)"
-	$(Q)$(PYTHON) $(PY_SRC)/makeqstrdata.py $(HEADER_BUILD)/qstrdefs.preprocessed.h $(QSTR_DEFS) > $@
+# Note: we need to protect the qstr names from the preprocessor, so we wrap
+# the lines in "" and then unwrap after the preprocessor is finished.
+$(HEADER_BUILD)/qstrdefs.generated.h: $(PY_QSTR_DEFS) $(QSTR_DEFS) $(PY_SRC)/makeqstrdata.py mpconfigport.h $(MPCONFIGPORT_MK) $(PY_SRC)/mpconfig.h | $(HEADER_BUILD)
+	$(ECHO) "GEN $@"
+	$(Q)cat $(PY_QSTR_DEFS) $(QSTR_DEFS) | $(SED) 's/^Q(.*)/"&"/' | $(CPP) $(CFLAGS) - | sed 's/^"\(Q(.*)\)"/\1/' > $(HEADER_BUILD)/qstrdefs.preprocessed.h
+	$(Q)$(PYTHON) $(PY_SRC)/makeqstrdata.py $(HEADER_BUILD)/qstrdefs.preprocessed.h > $@
 
 # emitters
 
