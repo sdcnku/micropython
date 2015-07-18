@@ -76,6 +76,7 @@
 #include "uart.h"
 #include "storage.h"
 #include "can.h"
+#include "led.h"
 
 extern void __fatal_error(const char*);
 extern PCD_HandleTypeDef pcd_handle;
@@ -93,16 +94,62 @@ extern DCMI_HandleTypeDef DCMIHandle;
 void NMI_Handler(void) {
 }
 
+#define UNUSED(x) x __attribute__((unused))
+
+/**
+  * @brief  This function fetches the Cortex-M stacked registers at the time the fault occurred.
+  * @param  None
+  * @retval None
+  * @See: http://www.freertos.org/Debugging-Hard-Faults-On-Cortex-M-Microcontrollers.html
+  */
+void prvGetRegistersFromStack( uint32_t *pulFaultStackAddress )
+{
+    UNUSED(volatile uint32_t r0);
+    UNUSED(volatile uint32_t r1);
+    UNUSED(volatile uint32_t r2);
+    UNUSED(volatile uint32_t r3);
+    UNUSED(volatile uint32_t r12);
+    UNUSED(volatile uint32_t lr); /* Link register. */
+    UNUSED(volatile uint32_t pc); /* Program counter. */
+    UNUSED(volatile uint32_t psr);/* Program status register. */
+
+    r0 = pulFaultStackAddress[ 0 ];
+    r1 = pulFaultStackAddress[ 1 ];
+    r2 = pulFaultStackAddress[ 2 ];
+    r3 = pulFaultStackAddress[ 3 ];
+
+    r12 = pulFaultStackAddress[ 4 ];
+    lr = pulFaultStackAddress[ 5 ];
+    pc = pulFaultStackAddress[ 6 ];
+    psr = pulFaultStackAddress[ 7 ];
+
+    /* Go to infinite loop when Hard Fault exception occurs */
+    while (1) {
+        led_state(LED_RED, 0);
+        HAL_Delay(100);
+        led_state(LED_RED, 1);
+        HAL_Delay(100);
+    }
+}
+
 /**
   * @brief  This function handles Hard Fault exception.
   * @param  None
   * @retval None
   */
-void HardFault_Handler(void) {
-    /* Go to infinite loop when Hard Fault exception occurs */
-    while (1) {
-        __fatal_error("HardFault");
-    }
+void HardFault_Handler(void)
+{
+    __asm volatile
+    (
+        " tst lr, #4                                                \n"
+        " ite eq                                                    \n"
+        " mrseq r0, msp                                             \n"
+        " mrsne r0, psp                                             \n"
+        " ldr r1, [r0, #24]                                         \n"
+        " ldr r2, handler2_address_const                            \n"
+        " bx r2                                                     \n"
+        " handler2_address_const: .word prvGetRegistersFromStack    \n"
+    );
 }
 
 /**
