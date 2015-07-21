@@ -35,8 +35,8 @@
 
 // So we don't clash with existing ST boards, we use the unofficial FOSS VID.
 // This needs a proper solution.
-#define USBD_VID                      0xf055
-#define USBD_PID                      0x9800
+#define USBD_VID                      0x1209
+#define USBD_PID                      0xabd1
 #define USBD_LANGID_STRING            0x409
 #define USBD_MANUFACTURER_STRING      "Micro Python"
 #define USBD_PRODUCT_HS_STRING        "Pyboard Virtual Comm Port in HS Mode"
