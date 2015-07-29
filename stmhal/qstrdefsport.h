@@ -815,6 +815,7 @@ Q(set_contrast)
 Q(set_brightness)
 Q(set_saturation)
 Q(set_quality)
+Q(set_colorbar)
 Q(__write_reg)
 Q(__read_reg)
 
