@@ -765,6 +765,8 @@ Q(find_lbp)
 Q(find_eyes)
 Q(match_keypoints)
 Q(match_lbp)
+Q(get_pixel)
+Q(set_pixel)
 
 // Led Module
 Q(led)
