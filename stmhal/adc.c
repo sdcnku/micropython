@@ -118,9 +118,14 @@ STATIC void adc_config_channel(pyb_obj_adc_t *adc_obj) {
 
     sConfig.Channel = adc_obj->channel;
     sConfig.Rank = 1;
-    sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;
+    if (adc_obj->channel == ADC_CHANNEL_VBAT ||
+        adc_obj->channel == ADC_CHANNEL_VREFINT ||
+        adc_obj->channel == ADC_CHANNEL_TEMPSENSOR) {
+        sConfig.SamplingTime = ADC_SAMPLETIME_480CYCLES;
+    } else {
+        sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;
+    }
     sConfig.Offset = 0;
-
     HAL_ADC_ConfigChannel(&adc_obj->handle, &sConfig);
 }
 
@@ -350,7 +355,13 @@ uint32_t adc_config_and_read_channel(ADC_HandleTypeDef *adcHandle, uint32_t chan
     ADC_ChannelConfTypeDef sConfig;
     sConfig.Channel = channel;
     sConfig.Rank = 1;
-    sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;
+    if (channel == ADC_CHANNEL_VBAT ||
+        channel == ADC_CHANNEL_VREFINT ||
+        channel == ADC_CHANNEL_TEMPSENSOR) {
+        sConfig.SamplingTime = ADC_SAMPLETIME_480CYCLES;
+    } else {
+        sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;
+    }
     sConfig.Offset = 0;
     HAL_ADC_ConfigChannel(adcHandle, &sConfig);
 
@@ -370,6 +381,7 @@ int adc_get_resolution(ADC_HandleTypeDef *adcHandle) {
 
 int adc_read_core_temp(ADC_HandleTypeDef *adcHandle) {
     int32_t raw_value = adc_config_and_read_channel(adcHandle, ADC_CHANNEL_TEMPSENSOR);
+    ADC->CCR &= ~ADC_CCR_TSVREFE;
 
     // Note: constants assume 12-bit resolution, so we scale the raw value to
     //       be 12-bits.
@@ -381,6 +393,7 @@ int adc_read_core_temp(ADC_HandleTypeDef *adcHandle) {
 #if MICROPY_PY_BUILTINS_FLOAT
 float adc_read_core_vbat(ADC_HandleTypeDef *adcHandle) {
     uint32_t raw_value = adc_config_and_read_channel(adcHandle, ADC_CHANNEL_VBAT);
+    ADC->CCR &= ~ADC_CCR_VBATE;
 
     // Note: constants assume 12-bit resolution, so we scale the raw value to
     //       be 12-bits.
@@ -392,6 +405,7 @@ float adc_read_core_vbat(ADC_HandleTypeDef *adcHandle) {
 
 float adc_read_core_vref(ADC_HandleTypeDef *adcHandle) {
     uint32_t raw_value = adc_config_and_read_channel(adcHandle, ADC_CHANNEL_VREFINT);
+    ADC->CCR &= ~ADC_CCR_TSVREFE;
 
     // Note: constants assume 12-bit resolution, so we scale the raw value to
     //       be 12-bits.
