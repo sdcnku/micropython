@@ -315,10 +315,10 @@ void adc_init_all(pyb_adc_all_obj_t *adc_all, uint32_t resolution) {
                 "resolution %d not supported", resolution));
     }
 
-    for (uint32_t channel = 0; channel < ADC_NUM_GPIO_CHANNELS; channel++) {
+    {
         // Channels 0-16 correspond to real pins. Configure the GPIO pin in
         // ADC mode.
-        const pin_obj_t *pin = pin_adc1[channel];
+        const pin_obj_t *pin = pin_adc1[5];
         GPIO_InitTypeDef GPIO_InitStructure;
         GPIO_InitStructure.Pin = pin->pin_mask;
         GPIO_InitStructure.Mode = GPIO_MODE_ANALOG;
