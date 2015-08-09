@@ -729,8 +729,6 @@ Q(WWDG_SR)
 
 //openmv entries
 // Image
-Q(image)
-Q(Image)
 Q(kp_desc)
 Q(lbp_desc)
 Q(Cascade)
@@ -767,6 +765,14 @@ Q(match_keypoints)
 Q(match_lbp)
 Q(get_pixel)
 Q(set_pixel)
+
+//image module
+Q(image)
+Q(Image)
+Q(HaarCascade)
+Q(FreakDesc)
+Q(FreakDescSave)
+Q(LBPDesc)
 
 // Led Module
 Q(led)
