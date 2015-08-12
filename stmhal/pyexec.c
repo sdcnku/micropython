@@ -51,6 +51,7 @@ STATIC bool repl_display_debugging_info = 0;
 #define EXEC_FLAG_PRINT_EOF (1)
 #define EXEC_FLAG_ALLOW_DEBUGGING (2)
 #define EXEC_FLAG_IS_REPL (4)
+#define EXEC_FLAG_RERAISE (8)
 
 // parses, compiles and executes the code in the lexer
 // frees the lexer before returning
@@ -82,6 +83,12 @@ STATIC int parse_compile_execute(mp_lexer_t *lex, mp_parse_input_kind_t input_ki
         // uncaught exception
         // FIXME it could be that an interrupt happens just before we disable it here
         mp_hal_set_interrupt_char(-1); // disable interrupt
+
+        // re-raise same exception
+        if (exec_flags & EXEC_FLAG_RERAISE) {
+            nlr_raise(nlr.ret_val);
+        }
+
         // print EOF after normal output
         if (exec_flags & EXEC_FLAG_PRINT_EOF) {
             mp_hal_stdout_tx_strn("\x04", 1);
@@ -440,7 +447,6 @@ friendly_repl_reset:
 }
 
 #endif // MICROPY_REPL_EVENT_DRIVEN
-
 int pyexec_file(const char *filename) {
     mp_lexer_t *lex = mp_lexer_new_from_file(filename);
 
@@ -449,47 +455,18 @@ int pyexec_file(const char *filename) {
         return false;
     }
 
-    return parse_compile_execute(lex, MP_PARSE_FILE_INPUT, 0);
+    return parse_compile_execute(lex, MP_PARSE_FILE_INPUT, EXEC_FLAG_RERAISE);
 }
 
-static mp_obj_dict_t *old_locals, *old_globals;
-static mp_obj_dict_t *new_locals, *new_globals;
-void pyexec_push_scope() {
-    old_locals = mp_locals_get();
-    old_globals = mp_globals_get();
-
-    /* create new scope */
-    new_locals = mp_obj_new_dict(1);
-    new_globals = mp_obj_new_dict(old_globals->map.alloc);
-    new_globals->map.used = old_globals->map.used;
-    new_globals->map.all_keys_are_qstrs = old_globals->map.all_keys_are_qstrs;
-    new_globals->map.is_fixed = 0;
-    memcpy(new_globals->map.table, old_globals->map.table, old_globals->map.alloc * sizeof(mp_map_elem_t));
-
-    /* set new scope */
-    mp_locals_set(new_locals);
-    mp_globals_set(new_globals);
-}
-
-void pyexec_pop_scope() {
-    /* restore old scope */
-    mp_locals_set(old_locals);
-    mp_globals_set(old_globals);
-
-    /* cleanup */
-    //mp_map_free(new_locals->map);
-    //mp_map_free(new_globals->map);
-}
-
-
-bool pyexec_str(vstr_t *str) {
+int pyexec_str(vstr_t *str) {
     mp_lexer_t *lex = mp_lexer_new_from_str_len(MP_QSTR__lt_stdin_gt_, vstr_str(str), vstr_len(str), 0);
+
     if (lex == NULL) {
         printf("MemoryError\n");
         return false;
     } else {
         /* exec code */
-        parse_compile_execute(lex, MP_PARSE_FILE_INPUT, 0);
+        parse_compile_execute(lex, MP_PARSE_FILE_INPUT, EXEC_FLAG_RERAISE);
         return true;
     }
 }
