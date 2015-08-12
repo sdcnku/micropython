@@ -37,7 +37,7 @@ extern pyexec_mode_kind_t pyexec_mode_kind;
 int pyexec_raw_repl(void);
 int pyexec_friendly_repl(void);
 int pyexec_file(const char *filename);
-bool pyexec_str(vstr_t *str);
+int pyexec_str(vstr_t *str);
 void pyexec_push_scope();
 void pyexec_pop_scope();
 void pyexec_event_repl_init(void);
