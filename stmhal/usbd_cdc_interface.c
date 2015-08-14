@@ -120,7 +120,7 @@ const USBD_CDC_ItfTypeDef USBD_CDC_fops = {
 static int8_t CDC_Itf_Init(void)
 {
     /* Start Channel1 */
-    //__HAL_TIM_ENABLE_IT(&TIM3_Handle, TIM_IT_UPDATE);
+    __HAL_TIM_ENABLE_IT(&TIM3_Handle, TIM_IT_UPDATE);
   
     /*##-5- Set Application Buffers ############################################*/
     USBD_CDC_SetTxBuffer(&hUSBDDevice, UserTxBuffer, 0);
@@ -194,12 +194,10 @@ static int8_t CDC_Itf_Control(uint8_t cmd, uint8_t* pbuf, uint16_t length) {
             if (baudrate == IDE_BAUDRATE_SLOW || baudrate == IDE_BAUDRATE_FAST) {
                 debug_mode = 1;
                 dbg_xfer_length=0;
-                UserTxBufPtrIn = UserTxBufPtrOut = UserTxBufPtrOutShadow =0;
-                __HAL_TIM_DISABLE_IT(&TIM3_Handle, TIM_IT_UPDATE);
+                UserTxBufPtrIn = UserTxBufPtrOut = UserTxBufPtrOutShadow = 0;
             } else {
                 debug_mode = 0;
-                UserTxBufPtrIn = UserTxBufPtrOut = UserTxBufPtrOutShadow =0;
-                __HAL_TIM_ENABLE_IT(&TIM3_Handle, TIM_IT_UPDATE);
+                UserTxBufPtrIn = UserTxBufPtrOut = UserTxBufPtrOutShadow = 0;
             }
             break;
         }
