@@ -35,7 +35,13 @@
 #include "flash.h"
 #include "storage.h"
 
+#ifdef OPENMV1
 const void *CACHE_MEM_START_ADDR = NULL;
+#else
+extern char _fs_cache;
+const void *CACHE_MEM_START_ADDR = &_fs_cache;
+#endif
+
 #define FLASH_PART1_RES_BLOCKS      (1)             // Reserve 1 block for MBR
 #define FLASH_PART1_START_BLOCK     (0x100)
 #define FLASH_PART1_NUM_BLOCKS      (96)            // (16k+16+16)*1024/512
@@ -99,7 +105,9 @@ void storage_init(void) {
         flash_cache_sector_id = 0;
         flash_tick_counter_last_write = 0;
         flash_is_initialised = true;
+        #ifdef OPENMV1
         CACHE_MEM_START_ADDR = gc_alloc(16*1024, false);
+        #endif
     }
 
     // Enable the flash IRQ, which is used to also call our storage IRQ handler
