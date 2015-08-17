@@ -44,6 +44,7 @@
 #include "readline.h"
 #include "pyexec.h"
 #include "genhdr/mpversion.h"
+#include "usbdbg.h"
 
 pyexec_mode_kind_t pyexec_mode_kind = PYEXEC_MODE_FRIENDLY_REPL;
 STATIC bool repl_display_debugging_info = 0;
@@ -69,12 +70,18 @@ STATIC int parse_compile_execute(mp_lexer_t *lex, mp_parse_input_kind_t input_ki
         mp_parse_node_t pn = mp_parse(lex, input_kind);
         mp_obj_t module_fun = mp_compile(pn, source_name, MP_EMIT_OPT_NONE, exec_flags & EXEC_FLAG_IS_REPL);
 
+        // allow IDE/ctrl-C to interrupt us
+        usbdbg_set_irq_enabled(true);
+        mp_hal_set_interrupt_char(CHAR_CTRL_C);
+
         // execute code
-        mp_hal_set_interrupt_char(CHAR_CTRL_C); // allow ctrl-C to interrupt us
         start = HAL_GetTick();
         mp_call_function_0(module_fun);
-        mp_hal_set_interrupt_char(-1); // disable interrupt
+
+        // disable interrupt
+        mp_hal_set_interrupt_char(-1);
         nlr_pop();
+
         ret = 1;
         if (exec_flags & EXEC_FLAG_PRINT_EOF) {
             mp_hal_stdout_tx_strn("\x04", 1);
