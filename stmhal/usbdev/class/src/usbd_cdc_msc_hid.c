@@ -970,11 +970,11 @@ uint8_t USBD_CDC_SetRxBuffer(USBD_HandleTypeDef *pdev, uint8_t *pbuff) {
 // data received on non-control OUT endpoint
 uint8_t USBD_CDC_TransmitPacket(USBD_HandleTypeDef *pdev) {
     if (CDC_ClassData.TxState == 0) {
-        // transmit next packet
-        USBD_LL_Transmit(pdev, CDC_IN_EP, CDC_ClassData.TxBuffer, CDC_ClassData.TxLength);
-
         // Tx transfer in progress
         CDC_ClassData.TxState = 1;
+
+        // transmit next packet
+        USBD_LL_Transmit(pdev, CDC_IN_EP, CDC_ClassData.TxBuffer, CDC_ClassData.TxLength);
         return USBD_OK;
     } else {
         return USBD_BUSY;
