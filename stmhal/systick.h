@@ -24,6 +24,8 @@
  * THE SOFTWARE.
  */
 
+void systick_sleep(uint32_t ms);
+uint32_t systick_current_millis();
 void sys_tick_udelay(uint32_t usec);
 void sys_tick_wait_at_least(uint32_t stc, uint32_t delay_ms);
 bool sys_tick_has_passed(uint32_t stc, uint32_t delay_ms);
