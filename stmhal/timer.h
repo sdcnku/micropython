@@ -30,14 +30,14 @@
 #define USBD_CDC_POLLING_INTERVAL (50)
 
 extern TIM_HandleTypeDef TIM3_Handle;
-extern TIM_HandleTypeDef TIM5_Handle;
+extern TIM_HandleTypeDef TIM4_Handle;
 extern TIM_HandleTypeDef TIM6_Handle;
 
 extern const mp_obj_type_t pyb_timer_type;
 
 void timer_init0(void);
 void timer_tim3_init(void);
-void timer_tim5_init(void);
+void timer_tim4_init(void);
 void timer_tim6_init(uint freq);
 
 void timer_deinit(void);

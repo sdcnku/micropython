@@ -403,11 +403,11 @@ void TIM3_IRQHandler(void) {
 
 void TIM4_IRQHandler(void) {
     timer_irq_handler(4);
+    HAL_TIM_IRQHandler(&TIM4_Handle);
 }
 
 void TIM5_IRQHandler(void) {
     timer_irq_handler(5);
-    HAL_TIM_IRQHandler(&TIM5_Handle);
 }
 
 void TIM6_DAC_IRQHandler(void) {

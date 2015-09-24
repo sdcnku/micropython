@@ -80,7 +80,7 @@
 //  - USB CDC interface, interval, to check for new data
 //  - LED 4, PWM to set the LED intensity
 //
-// TIM5:
+// TIM4:
 //  - servo controller, PWM
 //
 // TIM6:
@@ -145,7 +145,7 @@ typedef struct _pyb_timer_obj_t {
 #define TIMER_CHANNEL(self)     ((((self)->channel) - 1) << 2)
 
 TIM_HandleTypeDef TIM3_Handle;
-TIM_HandleTypeDef TIM5_Handle;
+TIM_HandleTypeDef TIM4_Handle;
 TIM_HandleTypeDef TIM6_Handle;
 
 // Used to divide down TIM3 and periodically call the flash storage IRQ
@@ -203,24 +203,24 @@ void timer_tim3_deinit(void) {
 }
 */
 
-// TIM5 is set-up for the servo controller
+// TIM4 is set-up for the servo controller
 // This function inits but does not start the timer
-void timer_tim5_init(void) {
-    // TIM5 clock enable
-    __TIM5_CLK_ENABLE();
+void timer_tim4_init(void) {
+    // TIM4 clock enable
+    __TIM4_CLK_ENABLE();
 
     // set up and enable interrupt
-    HAL_NVIC_SetPriority(TIM5_IRQn, 6, 0);
-    HAL_NVIC_EnableIRQ(TIM5_IRQn);
+    HAL_NVIC_SetPriority(TIM4_IRQn, 6, 0);
+    HAL_NVIC_EnableIRQ(TIM4_IRQn);
 
     // PWM clock configuration
-    TIM5_Handle.Instance = TIM5;
-    TIM5_Handle.Init.Period = 2000 - 1; // timer cycles at 50Hz
-    TIM5_Handle.Init.Prescaler = (timer_get_source_freq(5) / 100000) - 1; // timer runs at 100kHz
-    TIM5_Handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    TIM5_Handle.Init.CounterMode = TIM_COUNTERMODE_UP;
+    TIM4_Handle.Instance = TIM4;
+    TIM4_Handle.Init.Period = 2000 - 1; // timer cycles at 50Hz
+    TIM4_Handle.Init.Prescaler = (timer_get_source_freq(5) / 100000) - 1; // timer runs at 100kHz
+    TIM4_Handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    TIM4_Handle.Init.CounterMode = TIM_COUNTERMODE_UP;
 
-    HAL_TIM_PWM_Init(&TIM5_Handle);
+    HAL_TIM_PWM_Init(&TIM4_Handle);
 }
 
 #if defined(TIM6)
@@ -261,7 +261,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
             NVIC->STIR = FLASH_IRQn;
         }
 
-    } else if (htim == &TIM5_Handle) {
+    } else if (htim == &TIM4_Handle) {
         servo_timer_irq_callback();
     }
 }
