@@ -814,6 +814,10 @@ Q(SVGA)
 Q(SXGA)
 Q(UXGA)
 
+//SDE
+Q(NORMAL)
+Q(NEGATIVE)
+
 Q(reset)
 Q(snapshot)
 Q(set_pixformat)
@@ -825,6 +829,7 @@ Q(set_brightness)
 Q(set_saturation)
 Q(set_quality)
 Q(set_colorbar)
+Q(set_special_effect)
 Q(__write_reg)
 Q(__read_reg)
 
