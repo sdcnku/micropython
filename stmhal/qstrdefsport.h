@@ -813,6 +813,9 @@ Q(VGA)
 Q(SVGA)
 Q(SXGA)
 Q(UXGA)
+Q(OV9650)
+Q(OV2640)
+Q(OV7725)
 
 //SDE
 Q(NORMAL)
@@ -820,6 +823,7 @@ Q(NEGATIVE)
 
 Q(reset)
 Q(snapshot)
+Q(get_id)
 Q(set_pixformat)
 Q(set_framerate)
 Q(set_framesize)
