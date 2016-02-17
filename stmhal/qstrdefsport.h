@@ -729,11 +729,16 @@ Q(WWDG_SR)
 
 //openmv entries
 // Image
+Q(width)
+Q(height)
+Q(format)
+Q(size)
+Q(get_pixel)
+Q(set_pixel)
 Q(kp_desc)
 Q(lbp_desc)
 Q(Cascade)
 Q(save)
-Q(size)
 Q(blit)
 Q(blend)
 Q(scale)
@@ -763,8 +768,6 @@ Q(find_lbp)
 Q(find_eyes)
 Q(match_keypoints)
 Q(match_lbp)
-Q(get_pixel)
-Q(set_pixel)
 
 //image module
 Q(image)
