@@ -768,6 +768,7 @@ Q(find_lbp)
 Q(find_eyes)
 Q(match_keypoints)
 Q(match_lbp)
+Q(color)
 
 //image module
 Q(image)
