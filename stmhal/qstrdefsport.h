@@ -820,6 +820,9 @@ Q(UXGA)
 Q(OV9650)
 Q(OV2640)
 Q(OV7725)
+// Filters
+Q(FILTER_BW)
+Q(FILTER_SKIN)
 
 //SDE
 Q(NORMAL)
@@ -838,6 +841,7 @@ Q(set_saturation)
 Q(set_quality)
 Q(set_colorbar)
 Q(set_special_effect)
+Q(set_image_filter)
 Q(__write_reg)
 Q(__read_reg)
 
