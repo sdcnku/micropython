@@ -780,7 +780,7 @@ Q(find_eyes)
 Q(match_keypoints)
 Q(match_lbp)
 Q(color)
-Q(r)
+Q(roi)
 
 //image module
 Q(image)
