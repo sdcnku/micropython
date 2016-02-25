@@ -729,6 +729,10 @@ Q(WWDG_SR)
 
 //openmv entries
 // Image
+Q(FORMAT_BMP)
+Q(FORMAT_PNM)
+Q(load)
+Q(save)
 Q(width)
 Q(height)
 Q(format)
@@ -758,7 +762,6 @@ Q(difference)
 Q(kp_desc)
 Q(lbp_desc)
 Q(Cascade)
-Q(save)
 Q(blit)
 Q(blend)
 Q(scale)
