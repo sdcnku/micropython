@@ -782,6 +782,7 @@ Q(find_lbp)
 Q(find_eyes)
 Q(match_keypoints)
 Q(match_lbp)
+Q(cmp_lbp)
 Q(color)
 Q(roi)
 
@@ -792,6 +793,7 @@ Q(HaarCascade)
 Q(FreakDesc)
 Q(FreakDescSave)
 Q(LBPDesc)
+Q(LBPDescSave)
 
 // Led Module
 Q(led)
