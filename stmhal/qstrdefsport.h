@@ -789,11 +789,11 @@ Q(roi)
 //image module
 Q(image)
 Q(Image)
-Q(HaarCascade)
-Q(FreakDesc)
-Q(FreakDescSave)
-Q(LBPDesc)
-Q(LBPDescSave)
+Q(HAAR)
+Q(FREAK)
+Q(LBP)
+Q(load_descriptor)
+Q(save_descriptor)
 
 // Led Module
 Q(led)
