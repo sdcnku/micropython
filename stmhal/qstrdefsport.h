@@ -794,6 +794,7 @@ Q(FREAK)
 Q(LBP)
 Q(load_descriptor)
 Q(save_descriptor)
+Q(match_descriptor)
 
 // Led Module
 Q(led)
