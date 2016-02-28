@@ -784,7 +784,7 @@ Q(cmp_lbp)
 Q(color)
 Q(roi)
 
-//image module
+// Image module
 Q(image)
 Q(Image)
 Q(HaarCascade)
@@ -793,6 +793,14 @@ Q(LBP)
 Q(load_descriptor)
 Q(save_descriptor)
 Q(match_descriptor)
+
+// Gif module
+Q(gif)
+Q(Gif)
+Q(loop)
+Q(open)
+Q(add_frame)
+Q(close)
 
 // Led Module
 Q(led)
