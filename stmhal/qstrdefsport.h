@@ -789,7 +789,7 @@ Q(roi)
 //image module
 Q(image)
 Q(Image)
-Q(HAAR)
+Q(HaarCascade)
 Q(FREAK)
 Q(LBP)
 Q(load_descriptor)
