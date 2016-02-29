@@ -783,6 +783,8 @@ Q(find_eyes)
 Q(cmp_lbp)
 Q(color)
 Q(roi)
+Q(morph)
+Q(mul)
 
 // Image module
 Q(image)
