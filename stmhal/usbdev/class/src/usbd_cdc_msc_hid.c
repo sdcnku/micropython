@@ -613,6 +613,8 @@ int USBD_SelectMode(uint32_t mode, USBD_HID_ModeInfoTypeDef *hid_info) {
     return 0;
 }
 
+extern uint8_t _msc_buf;
+
 static uint8_t USBD_CDC_MSC_HID_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx) {
     if (pdev->dev_speed == USBD_SPEED_HIGH) {
         // can't handle high speed
@@ -666,6 +668,7 @@ static uint8_t USBD_CDC_MSC_HID_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx) {
                        USBD_EP_TYPE_BULK,
                        MSC_MAX_PACKET);
 
+        MSC_BOT_ClassData.bot_data = &_msc_buf;
         // MSC uses the pClassData pointer because SCSI and BOT reference it
         pdev->pClassData = &MSC_BOT_ClassData;
 
