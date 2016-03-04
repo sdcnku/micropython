@@ -789,6 +789,10 @@ Q(add)
 // Image module
 Q(image)
 Q(Image)
+Q(rgb_to_lab)
+Q(lab_to_rgb)
+Q(rgb_to_grayscale)
+Q(grayscale_to_rgb)
 Q(HaarCascade)
 Q(FREAK)
 Q(LBP)
@@ -799,10 +803,10 @@ Q(match_descriptor)
 // Gif module
 Q(gif)
 Q(Gif)
-Q(loop)
 Q(open)
 Q(add_frame)
 Q(close)
+Q(loop)
 
 // Led Module
 Q(led)
