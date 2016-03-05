@@ -32,6 +32,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
 #include "usbd_core.h"
+#include "irqs.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -88,7 +89,7 @@ void HAL_PCD_MspInit(PCD_HandleTypeDef *hpcd)
     __USB_OTG_FS_CLK_ENABLE();
     
     /* Set USBFS Interrupt priority */
-    HAL_NVIC_SetPriority(OTG_FS_IRQn, 6, 0);
+    HAL_NVIC_SetPriority(OTG_FS_IRQn, IRQ_OTGFS_PRE_PRI, IRQ_OTGFS_SUB_PRI);
     
     /* Enable USBFS Interrupt */
     HAL_NVIC_EnableIRQ(OTG_FS_IRQn);

@@ -39,6 +39,7 @@
 #include "timer.h"
 #include "servo.h"
 #include "pin.h"
+#include "irqs.h"
 
 /// \moduleref pyb
 /// \class Timer - periodically call a function
@@ -187,7 +188,7 @@ void timer_tim3_init(void) {
     TIM3_Handle.Init.CounterMode = TIM_COUNTERMODE_UP;
     HAL_TIM_Base_Init(&TIM3_Handle);
 
-    HAL_NVIC_SetPriority(TIM3_IRQn, 6, 0);
+    HAL_NVIC_SetPriority(TIM3_IRQn, IRQ_TIM3_PRE_PRI, IRQ_TIM3_SUB_PRI);
     HAL_NVIC_EnableIRQ(TIM3_IRQn);
 
     if (HAL_TIM_Base_Start(&TIM3_Handle) != HAL_OK) {

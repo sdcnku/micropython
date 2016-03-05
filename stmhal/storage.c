@@ -34,6 +34,7 @@
 #include "led.h"
 #include "flash.h"
 #include "storage.h"
+#include "irqs.h"
 
 #ifdef OPENMV1
 const void *CACHE_MEM_START_ADDR = NULL;
@@ -113,7 +114,7 @@ void storage_init(void) {
     // Enable the flash IRQ, which is used to also call our storage IRQ handler
     // It needs to go at a higher priority than all those components that rely on
     // the flash storage (eg higher than USB MSC).
-    HAL_NVIC_SetPriority(FLASH_IRQn, 1, 1);
+    HAL_NVIC_SetPriority(FLASH_IRQn, IRQ_FLASH_PRE_PRI, IRQ_FLASH_SUB_PRI);
     HAL_NVIC_EnableIRQ(FLASH_IRQn);
 }
 
@@ -129,25 +130,6 @@ void storage_irq_handler(void) {
     if (!(flash_flags & FLASH_FLAG_DIRTY)) {
         return;
     }
-
-    // This code uses interrupts to erase the flash
-    /*
-    if (flash_erase_state == 0) {
-        flash_erase_it(flash_cache_sector_start, (const uint32_t*)CACHE_MEM_START_ADDR, flash_cache_sector_size / 4);
-        flash_erase_state = 1;
-        return;
-    }
-
-    if (flash_erase_state == 1) {
-        // wait for erase
-        // TODO add timeout
-        #define flash_erase_done() (__HAL_FLASH_GET_FLAG(FLASH_FLAG_BSY) == RESET)
-        if (!flash_erase_done()) {
-            return;
-        }
-        flash_erase_state = 2;
-    }
-    */
 
     // This code erases the flash directly, waiting for it to finish
     if (!(flash_flags & FLASH_FLAG_ERASED)) {
