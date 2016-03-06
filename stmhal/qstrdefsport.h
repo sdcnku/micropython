@@ -808,6 +808,10 @@ Q(add_frame)
 Q(close)
 Q(loop)
 
+// Mjpeg module
+Q(mjpeg)
+Q(Mjpeg)
+
 // Led Module
 Q(led)
 Q(RED)
