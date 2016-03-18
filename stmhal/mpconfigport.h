@@ -111,6 +111,7 @@ extern const struct _mp_obj_module_t sensor_module;
 extern const struct _mp_obj_module_t image_module;
 extern const struct _mp_obj_module_t gif_module;
 extern const struct _mp_obj_module_t mjpeg_module;
+extern const struct _mp_obj_module_t lcd_module;
 extern const struct _mp_obj_module_t mlx_module;
 
 #define MICROPY_PORT_BUILTIN_MODULES \
@@ -126,6 +127,7 @@ extern const struct _mp_obj_module_t mlx_module;
     { MP_OBJ_NEW_QSTR(MP_QSTR_image),   (mp_obj_t)&image_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_gif),     (mp_obj_t)&gif_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_mjpeg),   (mp_obj_t)&mjpeg_module }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_lcd),     (mp_obj_t)&lcd_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_mlx),     (mp_obj_t)&mlx_module },
 
 #define MICROPY_PORT_BUILTIN_MODULE_WEAK_LINKS \

@@ -812,6 +812,14 @@ Q(loop)
 Q(mjpeg)
 Q(Mjpeg)
 
+// Lcd Module
+Q(lcd)
+Q(type)
+Q(set_backlight)
+Q(get_backlight)
+Q(display)
+Q(clear)
+
 // Led Module
 Q(led)
 Q(RED)
