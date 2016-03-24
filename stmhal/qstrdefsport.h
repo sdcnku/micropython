@@ -807,8 +807,8 @@ Q(get_backlight)
 Q(display)
 Q(clear)
 
-// Flir Module
-Q(flir)
+// FIR Module
+Q(fir)
 Q(read_ta)
 Q(read_ir)
 Q(display_ta)
