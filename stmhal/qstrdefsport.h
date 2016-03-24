@@ -766,7 +766,6 @@ Q(lbp_desc)
 Q(Cascade)
 Q(blit)
 Q(blend)
-Q(scale)
 Q(scaled)
 Q(subimg)
 Q(compress)
@@ -800,18 +799,6 @@ Q(load_descriptor)
 Q(save_descriptor)
 Q(match_descriptor)
 
-// Gif module
-Q(gif)
-Q(Gif)
-Q(open)
-Q(add_frame)
-Q(close)
-Q(loop)
-
-// Mjpeg module
-Q(mjpeg)
-Q(Mjpeg)
-
 // Lcd Module
 Q(lcd)
 Q(type)
@@ -819,6 +806,26 @@ Q(set_backlight)
 Q(get_backlight)
 Q(display)
 Q(clear)
+
+// Flir Module
+Q(flir)
+Q(read_ta)
+Q(read_ir)
+Q(display_ta)
+Q(display_ir)
+Q(alpha)
+Q(scale)
+
+// Gif module
+Q(gif)
+Q(Gif)
+Q(open)
+Q(add_frame)
+Q(loop)
+
+// Mjpeg module
+Q(mjpeg)
+Q(Mjpeg)
 
 // Led Module
 Q(led)
@@ -958,20 +965,3 @@ Q(IPPROTO_TCP)
 Q(IPPROTO_UDP)
 Q(IPPROTO_IPV6)
 Q(IPPROTO_RAW)
-
-// MLX90620
-Q(mlx)
-Q(init)
-Q(read_ta)
-Q(read_ir)
-Q(read_raw)
-Q(RAINBOW)
-Q(GRAYSCALE)
-Q(GRAYSCALE)
-Q(IR_REFRESH_8HZ)
-Q(IR_REFRESH_16HZ)
-Q(IR_REFRESH_32HZ)
-Q(IR_REFRESH_64HZ)
-Q(IR_REFRESH_128HZ)
-Q(IR_REFRESH_256HZ)
-Q(IR_REFRESH_512HZ)
