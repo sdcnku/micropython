@@ -80,6 +80,7 @@ STATIC const mp_map_elem_t mp_module_network_globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_CC3K), (mp_obj_t)&mod_network_nic_type_cc3k },
     #endif
 
+    { MP_OBJ_NEW_QSTR(MP_QSTR_WINC), (mp_obj_t)&mod_network_nic_type_winc },
     { MP_OBJ_NEW_QSTR(MP_QSTR_route), (mp_obj_t)&network_route_obj },
 };
 
