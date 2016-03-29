@@ -13,7 +13,7 @@ include ../py/mkenv.mk
 include boards/$(BOARD)/mpconfigboard.mk
 
 # qstr definitions (must come before including py.mk)
-QSTR_DEFS ?= qstrdefsport.h $(BUILD)/pins_qstr.h
+override QSTR_DEFS += qstrdefsport.h $(BUILD)/pins_qstr.h
 
 # include py core make definitions
 include ../py/py.mk
