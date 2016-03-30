@@ -63,6 +63,10 @@ typedef struct _mod_network_socket_obj_t {
     mod_network_nic_type_t *nic_type;
     union {
         struct {
+            int16_t fd;
+            uint16_t timeout;
+        };
+        struct {
             uint8_t domain;
             uint8_t type;
             int8_t fileno;
