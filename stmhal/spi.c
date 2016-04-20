@@ -37,6 +37,9 @@
 #include "spi.h"
 #include MICROPY_HAL_H
 
+#define UNALIGNED_BUFFER(p)     ((uint32_t)p & 3)
+#define CCM_BUFFER(p)           (!(((uint32_t) p) & (1u<<29)))
+
 /// \moduleref pyb
 /// \class SPI - a master-driven serial protocol
 ///
@@ -454,7 +457,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_1(pyb_spi_deinit_obj, pyb_spi_deinit);
 
     // send the data
     HAL_StatusTypeDef status;
-    if (bufinfo.len == 1) {
+    if ((bufinfo.len == 1) || CCM_BUFFER(bufinfo.buf) || UNALIGNED_BUFFER(bufinfo.buf)) {
         mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
         status = HAL_SPI_Transmit(self->spi, bufinfo.buf, bufinfo.len, args[1].u_int);
         MICROPY_END_ATOMIC_SECTION(atomic_state);
@@ -507,7 +510,7 @@ STATIC mp_obj_t pyb_spi_recv(mp_uint_t n_args, const mp_obj_t *pos_args, mp_map_
 
     // receive the data
     HAL_StatusTypeDef status;
-    if (vstr.len==1) {
+    if ((vstr.len==1) || CCM_BUFFER(vstr.buf) || UNALIGNED_BUFFER(vstr.buf)) {
         mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
         status = HAL_SPI_Receive(self->spi, (uint8_t*)vstr.buf, vstr.len, args[1].u_int);
         MICROPY_END_ATOMIC_SECTION(atomic_state);
@@ -604,7 +607,7 @@ STATIC mp_obj_t pyb_spi_send_recv(mp_uint_t n_args, const mp_obj_t *pos_args, mp
 
     // send and receive the data
     HAL_StatusTypeDef status;
-    if (query_irq() == IRQ_STATE_DISABLED) {
+    if ((query_irq() == IRQ_STATE_DISABLED) || CCM_BUFFER(bufinfo_send.buf) || UNALIGNED_BUFFER(bufinfo_send.buf)) {
         status = HAL_SPI_TransmitReceive(self->spi, bufinfo_send.buf, bufinfo_recv.buf, bufinfo_send.len, args[2].u_int);
     } else {
         DMA_HandleTypeDef tx_dma, rx_dma;

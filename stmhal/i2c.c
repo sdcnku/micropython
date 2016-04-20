@@ -37,6 +37,9 @@
 #include "i2c.h"
 #include MICROPY_HAL_H
 
+#define UNALIGNED_BUFFER(p)     ((uint32_t)p & 3)
+#define CCM_BUFFER(p)           (!(((uint32_t) p) & (1u<<29)))
+
 /// \moduleref pyb
 /// \class I2C - a two-wire serial protocol
 ///
@@ -473,7 +476,7 @@ STATIC mp_obj_t pyb_i2c_send(mp_uint_t n_args, const mp_obj_t *args, mp_map_t *k
 
     // if IRQs are enabled then we can use DMA
     DMA_HandleTypeDef tx_dma;
-    if (query_irq() == IRQ_STATE_ENABLED) {
+    if ((query_irq() == IRQ_STATE_ENABLED) && (!CCM_BUFFER(bufinfo.buf)) && (!UNALIGNED_BUFFER(bufinfo.buf))) {
         dma_init(&tx_dma, self->tx_dma_stream, self->tx_dma_channel, DMA_MEMORY_TO_PERIPH, self->i2c);
         self->i2c->hdmatx = &tx_dma;
         self->i2c->hdmarx = NULL;
@@ -489,13 +492,13 @@ STATIC mp_obj_t pyb_i2c_send(mp_uint_t n_args, const mp_obj_t *args, mp_map_t *k
             nlr_raise(mp_obj_new_exception_msg(&mp_type_TypeError, "addr argument required"));
         }
         mp_uint_t i2c_addr = vals[1].u_int << 1;
-        if (query_irq() == IRQ_STATE_DISABLED) {
+        if ((query_irq() == IRQ_STATE_DISABLED) || CCM_BUFFER(bufinfo.buf) || UNALIGNED_BUFFER(bufinfo.buf)) {
             status = HAL_I2C_Master_Transmit(self->i2c, i2c_addr, bufinfo.buf, bufinfo.len, vals[2].u_int);
         } else {
             status = HAL_I2C_Master_Transmit_DMA(self->i2c, i2c_addr, bufinfo.buf, bufinfo.len);
         }
     } else {
-        if (query_irq() == IRQ_STATE_DISABLED) {
+        if ((query_irq() == IRQ_STATE_DISABLED) || CCM_BUFFER(bufinfo.buf) || UNALIGNED_BUFFER(bufinfo.buf)) {
             status = HAL_I2C_Slave_Transmit(self->i2c, bufinfo.buf, bufinfo.len, vals[2].u_int);
         } else {
             status = HAL_I2C_Slave_Transmit_DMA(self->i2c, bufinfo.buf, bufinfo.len);
@@ -503,7 +506,7 @@ STATIC mp_obj_t pyb_i2c_send(mp_uint_t n_args, const mp_obj_t *args, mp_map_t *k
     }
 
     // if we used DMA, wait for it to finish
-    if (query_irq() == IRQ_STATE_ENABLED) {
+    if ((query_irq() == IRQ_STATE_ENABLED) && (!CCM_BUFFER(bufinfo.buf)) && (!UNALIGNED_BUFFER(bufinfo.buf))) {
         if (status == HAL_OK) {
             status = i2c_wait_dma_finished(self->i2c, vals[2].u_int);
         }
@@ -549,7 +552,7 @@ STATIC mp_obj_t pyb_i2c_recv(mp_uint_t n_args, const mp_obj_t *args, mp_map_t *k
 
     // if IRQs are enabled then we can use DMA
     DMA_HandleTypeDef rx_dma;
-    if (query_irq() == IRQ_STATE_ENABLED) {
+    if ((query_irq() == IRQ_STATE_ENABLED) && (!CCM_BUFFER(vstr.buf)) && (!UNALIGNED_BUFFER(vstr.buf))) {
         dma_init(&rx_dma, self->rx_dma_stream, self->rx_dma_channel, DMA_PERIPH_TO_MEMORY, self->i2c);
         self->i2c->hdmatx = NULL;
         self->i2c->hdmarx = &rx_dma;
@@ -562,13 +565,13 @@ STATIC mp_obj_t pyb_i2c_recv(mp_uint_t n_args, const mp_obj_t *args, mp_map_t *k
             nlr_raise(mp_obj_new_exception_msg(&mp_type_TypeError, "addr argument required"));
         }
         mp_uint_t i2c_addr = vals[1].u_int << 1;
-        if (query_irq() == IRQ_STATE_DISABLED) {
+        if ((query_irq() == IRQ_STATE_DISABLED) || CCM_BUFFER(vstr.buf) || UNALIGNED_BUFFER(vstr.buf)) {
             status = HAL_I2C_Master_Receive(self->i2c, i2c_addr, (uint8_t*)vstr.buf, vstr.len, vals[2].u_int);
         } else {
             status = HAL_I2C_Master_Receive_DMA(self->i2c, i2c_addr, (uint8_t*)vstr.buf, vstr.len);
         }
     } else {
-        if (query_irq() == IRQ_STATE_DISABLED) {
+        if ((query_irq() == IRQ_STATE_DISABLED) || CCM_BUFFER(vstr.buf) || UNALIGNED_BUFFER(vstr.buf)) {
             status = HAL_I2C_Slave_Receive(self->i2c, (uint8_t*)vstr.buf, vstr.len, vals[2].u_int);
         } else {
             status = HAL_I2C_Slave_Receive_DMA(self->i2c, (uint8_t*)vstr.buf, vstr.len);
@@ -576,7 +579,7 @@ STATIC mp_obj_t pyb_i2c_recv(mp_uint_t n_args, const mp_obj_t *args, mp_map_t *k
     }
 
     // if we used DMA, wait for it to finish
-    if (query_irq() == IRQ_STATE_ENABLED) {
+    if ((query_irq() == IRQ_STATE_ENABLED) && (!CCM_BUFFER(vstr.buf)) && (!UNALIGNED_BUFFER(vstr.buf))) {
         if (status == HAL_OK) {
             status = i2c_wait_dma_finished(self->i2c, vals[2].u_int);
         }
@@ -642,7 +645,7 @@ STATIC mp_obj_t pyb_i2c_mem_read(mp_uint_t n_args, const mp_obj_t *args, mp_map_
     }
 
     HAL_StatusTypeDef status;
-    if (query_irq() == IRQ_STATE_DISABLED) {
+    if ((query_irq() == IRQ_STATE_DISABLED) || CCM_BUFFER(vstr.buf) || UNALIGNED_BUFFER(vstr.buf)) {
         status = HAL_I2C_Mem_Read(self->i2c, i2c_addr, mem_addr, mem_addr_size, (uint8_t*)vstr.buf, vstr.len, vals[3].u_int);
     } else {
         DMA_HandleTypeDef rx_dma;
@@ -707,7 +710,7 @@ STATIC mp_obj_t pyb_i2c_mem_write(mp_uint_t n_args, const mp_obj_t *args, mp_map
     }
 
     HAL_StatusTypeDef status;
-    if (query_irq() == IRQ_STATE_DISABLED) {
+    if ((query_irq() == IRQ_STATE_DISABLED) || CCM_BUFFER(bufinfo.buf) || UNALIGNED_BUFFER(bufinfo.buf)) {
         status = HAL_I2C_Mem_Write(self->i2c, i2c_addr, mem_addr, mem_addr_size, bufinfo.buf, bufinfo.len, vals[3].u_int);
     } else {
         DMA_HandleTypeDef tx_dma;
