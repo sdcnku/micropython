@@ -228,12 +228,10 @@ static int8_t CDC_Itf_Control(uint8_t cmd, uint8_t* pbuf, uint16_t length) {
     return USBD_OK;
 }
 
-/**
-  * @brief  TIM period elapsed callback
-  * @param  htim: TIM handle
-  * @retval None
-  */
-void USBD_CDC_HAL_TIM_PeriodElapsedCallback(void) {
+// This function is called to process outgoing data.  We hook directly into the
+// SOF (start of frame) callback so that it is called exactly at the time it is
+// needed (reducing latency), and often enough (increasing bandwidth).
+void HAL_PCD_SOFCallback(PCD_HandleTypeDef *hpcd) {
     if (debug_mode || !dev_is_connected) {
         // CDC device is not connected to a host, so we are unable to send any data
         return;
@@ -247,9 +245,8 @@ void USBD_CDC_HAL_TIM_PeriodElapsedCallback(void) {
     if (UserTxBufPtrOut != UserTxBufPtrOutShadow) {
         // We have sent data and are waiting for the low-level USB driver to
         // finish sending it over the USB in-endpoint.
-        // We have a 15 * 10ms = 150ms timeout
-        if (UserTxBufPtrWaitCount < 15) {
-            PCD_HandleTypeDef *hpcd = hUSBDDevice.pData;
+        // SOF occurs every 1ms, so we have a 150 * 1ms = 150ms timeout
+        if (UserTxBufPtrWaitCount < 150) {
             USB_OTG_GlobalTypeDef *USBx = hpcd->Instance;
             if (USBx_INEP(CDC_IN_EP & 0x7f)->DIEPTSIZ & USB_OTG_DIEPTSIZ_XFRSIZ) {
                 // USB in-endpoint is still reading the data
@@ -485,24 +482,6 @@ void USBD_CDC_TxAlways(const uint8_t *buf, uint32_t len) {
                 }
                 __WFI(); // enter sleep mode, waiting for interrupt
             }
-
-            // Some unused code that makes sure the low-level USB buffer is drained.
-            // Waiting for low-level is handled in USBD_CDC_HAL_TIM_PeriodElapsedCallback.
-            /*
-            start = HAL_GetTick();
-            PCD_HandleTypeDef *hpcd = hUSBDDevice.pData;
-            if (hpcd->IN_ep[0x83 & 0x7f].is_in) {
-                //volatile uint32_t *xfer_count = &hpcd->IN_ep[0x83 & 0x7f].xfer_count;
-                //volatile uint32_t *xfer_len = &hpcd->IN_ep[0x83 & 0x7f].xfer_len;
-                USB_OTG_GlobalTypeDef *USBx = hpcd->Instance;
-                while (
-                    // *xfer_count < *xfer_len // using this works
-                    // (USBx_INEP(3)->DIEPTSIZ & USB_OTG_DIEPTSIZ_XFRSIZ) // using this works
-                    && HAL_GetTick() - start <= 2000) {
-                    __WFI(); // enter sleep mode, waiting for interrupt
-                }
-            }
-            */
         }
 
         UserTxBuffer[UserTxBufPtrIn] = buf[i];

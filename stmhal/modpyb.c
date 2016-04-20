@@ -327,9 +327,6 @@ STATIC mp_obj_t pyb_freq(mp_uint_t n_args, const mp_obj_t *args) {
             }
         }
 
-        // re-init TIM3 for USB CDC rate
-        timer_tim3_init();
-
         return mp_const_none;
 
     fail:;

@@ -176,34 +176,6 @@ void timer_deinit(void) {
     }
 }
 
-// TIM3 is set-up for the USB CDC interface
-void timer_tim3_init(void) {
-    // set up the timer for USBD CDC
-    __TIM3_CLK_ENABLE();
-
-    TIM3_Handle.Instance = TIM3;
-    TIM3_Handle.Init.Period = (USBD_CDC_POLLING_INTERVAL*1000) - 1; // TIM3 fires every USBD_CDC_POLLING_INTERVAL ms
-    TIM3_Handle.Init.Prescaler = timer_get_source_freq(3) / 1000000 - 1; // TIM3 runs at 1MHz
-    TIM3_Handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    TIM3_Handle.Init.CounterMode = TIM_COUNTERMODE_UP;
-    HAL_TIM_Base_Init(&TIM3_Handle);
-
-    HAL_NVIC_SetPriority(TIM3_IRQn, IRQ_TIM3_PRE_PRI, IRQ_TIM3_SUB_PRI);
-    HAL_NVIC_EnableIRQ(TIM3_IRQn);
-
-    if (HAL_TIM_Base_Start(&TIM3_Handle) != HAL_OK) {
-        /* Starting Error */
-    }
-}
-
-/* unused
-void timer_tim3_deinit(void) {
-    // reset TIM3 timer
-    __TIM3_FORCE_RESET();
-    __TIM3_RELEASE_RESET();
-}
-*/
-
 // TIM4 is set-up for the servo controller
 // This function inits but does not start the timer
 void timer_tim4_init(void) {
@@ -253,16 +225,7 @@ void timer_tim6_init(uint freq) {
 
 // Interrupt dispatch
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-    if (htim == &TIM3_Handle) {
-        USBD_CDC_HAL_TIM_PeriodElapsedCallback();
-
-        // Periodically raise a flash IRQ for the flash storage controller
-        if (tim3_counter++ >= 500 / USBD_CDC_POLLING_INTERVAL) {
-            tim3_counter = 0;
-            NVIC->STIR = FLASH_IRQn;
-        }
-
-    } else if (htim == &TIM4_Handle) {
+    if (htim == &TIM4_Handle) {
         servo_timer_irq_callback();
     }
 }
