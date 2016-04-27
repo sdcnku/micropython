@@ -38,15 +38,15 @@
 #define USBD_VID                      0x1209
 #define USBD_PID                      0xabd1
 #define USBD_LANGID_STRING            0x409
-#define USBD_MANUFACTURER_STRING      "Micro Python"
-#define USBD_PRODUCT_HS_STRING        "Pyboard Virtual Comm Port in HS Mode"
+#define USBD_MANUFACTURER_STRING      "OpenMV"
+#define USBD_PRODUCT_HS_STRING        "OpenMV Virtual Comm Port in HS Mode"
 #define USBD_SERIALNUMBER_HS_STRING   "000000000010"
-#define USBD_PRODUCT_FS_STRING        "Pyboard Virtual Comm Port in FS Mode"
+#define USBD_PRODUCT_FS_STRING        "OpenMV Virtual Comm Port in FS Mode"
 #define USBD_SERIALNUMBER_FS_STRING   "000000000011"
-#define USBD_CONFIGURATION_HS_STRING  "Pyboard Config"
-#define USBD_INTERFACE_HS_STRING      "Pyboard Interface"
-#define USBD_CONFIGURATION_FS_STRING  "Pyboard Config"
-#define USBD_INTERFACE_FS_STRING      "Pyboard Interface"
+#define USBD_CONFIGURATION_HS_STRING  "VCP Config"
+#define USBD_INTERFACE_HS_STRING      "VCP Interface"
+#define USBD_CONFIGURATION_FS_STRING  "VCP Config"
+#define USBD_INTERFACE_FS_STRING      "VCP Interface"
 
 // USB Standard Device Descriptor
 // needs to be in RAM because we modify the VID and PID

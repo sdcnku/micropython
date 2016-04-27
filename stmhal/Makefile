@@ -277,9 +277,9 @@ INSERT_USB_IDS = ../tools/insert-usb-ids.py
 FILE2H = ../tools/file2h.py
 
 USB_IDS_FILE = usbd_desc.c
-CDCINF_TEMPLATE = pybcdc.inf_template
-GEN_CDCINF_FILE = $(HEADER_BUILD)/pybcdc.inf
-GEN_CDCINF_HEADER = $(HEADER_BUILD)/pybcdc_inf.h
+CDCINF_TEMPLATE = openmv.inf_template
+GEN_CDCINF_FILE = $(HEADER_BUILD)/openmv.inf
+GEN_CDCINF_HEADER = $(HEADER_BUILD)/openmv_inf.h
 
 # Making OBJ use an order-only depenedency on the generated pins.h file
 # has the side effect of making the pins.h file before we actually compile
