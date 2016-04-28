@@ -11,12 +11,12 @@
 #define MSC_MEDIA_PACKET            (2048) // was 8192; how low can it go whilst still working?
 
 // Need to define here for BOT and SCSI layers
-#define MSC_IN_EP     (0x81)
-#define MSC_OUT_EP    (0x01)
+#define MSC_IN_EP     (0x83)
+#define MSC_OUT_EP    (0x03)
 
 // Need to define here for usbd_cdc_interface.c (it needs CDC_IN_EP)
-#define CDC_IN_EP     (0x83)
-#define CDC_OUT_EP    (0x03)
+#define CDC_IN_EP     (0x81)
+#define CDC_OUT_EP    (0x01)
 #define CDC_CMD_EP    (0x82)
 
 typedef struct {
