@@ -35,13 +35,13 @@
 mp_uint_t gc_helper_get_regs_and_sp(mp_uint_t *regs);
 
 void gc_collect(void) {
-    // get current time, in case we want to time the GC
-    #if 0
-    uint32_t start = sys_tick_get_microseconds();
-    #endif
-
     // start the GC
     gc_collect_start();
+
+    // scan everything in RAM before the heap
+    // this includes the data and bss segments
+    // TODO possibly don't need to scan data, since all pointers should start out NULL and be in bss
+    gc_collect_root((void**)&_ram_start, ((uint32_t)&_ebss - (uint32_t)&_ram_start) / sizeof(uint32_t));
 
     // get the registers and the sp
     mp_uint_t regs[10];
@@ -52,15 +52,4 @@ void gc_collect(void) {
 
     // end the GC
     gc_collect_end();
-
-    #if 0
-    // print GC info
-    uint32_t ticks = sys_tick_get_microseconds() - start;
-    gc_info_t info;
-    gc_info(&info);
-    printf("GC@%lu %lums\n", start, ticks);
-    printf(" " UINT_FMT " total\n", info.total);
-    printf(" " UINT_FMT " : " UINT_FMT "\n", info.used, info.free);
-    printf(" 1=" UINT_FMT " 2=" UINT_FMT " m=" UINT_FMT "\n", info.num_1block, info.num_2block, info.max_block);
-    #endif
 }
