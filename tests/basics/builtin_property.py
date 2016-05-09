@@ -76,3 +76,27 @@ print(c.x)
 c.x = 6
 print(c.x)
 del c.x
+
+# a property that has no get, set or del
+class D:
+    prop = property()
+d = D()
+try:
+    d.prop
+except AttributeError:
+    print('AttributeError')
+try:
+    d.prop = 1
+except AttributeError:
+    print('AttributeError')
+try:
+    del d.prop
+except AttributeError:
+    print('AttributeError')
+
+# properties take keyword arguments
+class E:
+    p = property(lambda self: 42, doc="This is truth.")
+    # not tested for because the other keyword arguments are not accepted
+    # q = property(fget=lambda self: 21, doc="Half the truth.")
+print(E().p)

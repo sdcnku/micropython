@@ -33,10 +33,11 @@
 #include "py/objtuple.h"
 #include "py/runtime.h"
 #include "py/gc.h"
+#include "py/mphal.h"
 #include "bufhelper.h"
 #include "can.h"
 #include "pybioctl.h"
-#include MICROPY_HAL_H
+#include "irq.h"
 
 #if MICROPY_HW_ENABLE_CAN
 
@@ -338,7 +339,7 @@ STATIC mp_obj_t pyb_can_init_helper(pyb_can_obj_t *self, mp_uint_t n_args, const
 ///
 ///   - `CAN(1)` is on `YA`: `(RX, TX) = (Y3, Y4) = (PB8, PB9)`
 ///   - `CAN(2)` is on `YB`: `(RX, TX) = (Y5, Y6) = (PB12, PB13)`
-STATIC mp_obj_t pyb_can_make_new(mp_obj_t type_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
+STATIC mp_obj_t pyb_can_make_new(const mp_obj_type_t *type, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
     // check arguments
     mp_arg_check_num(n_args, n_kw, 1, MP_OBJ_FUN_ARGS_MAX, true);
 
@@ -687,10 +688,10 @@ STATIC mp_obj_t pyb_can_setfilter(mp_uint_t n_args, const mp_obj_t *pos_args, mp
                 rtr_masks[1] = mp_obj_get_int(rtr_flags[1]) ? 0x02 : 0;
             }
         }
-        filter.FilterIdHigh     = (mp_obj_get_int(params[0]) & 0xFF00)  >> 13;
-        filter.FilterIdLow      = (((mp_obj_get_int(params[0]) & 0x00FF) << 3) | 4) | rtr_masks[0];
-        filter.FilterMaskIdHigh = (mp_obj_get_int(params[1]) & 0xFF00 ) >> 13;
-        filter.FilterMaskIdLow  = (((mp_obj_get_int(params[1]) & 0x00FF) << 3) | 4) | rtr_masks[1];
+        filter.FilterIdHigh     = (mp_obj_get_int(params[0]) & 0x1FFFE000)  >> 13;
+        filter.FilterIdLow      = (((mp_obj_get_int(params[0]) & 0x00001FFF) << 3) | 4) | rtr_masks[0];
+        filter.FilterMaskIdHigh = (mp_obj_get_int(params[1]) & 0x1FFFE000 ) >> 13;
+        filter.FilterMaskIdLow  = (((mp_obj_get_int(params[1]) & 0x00001FFF) << 3) | 4) | rtr_masks[1];
         if (args[1].u_int == MASK32) {
             filter.FilterMode  = CAN_FILTERMODE_IDMASK;
         }
@@ -747,7 +748,7 @@ STATIC mp_obj_t pyb_can_rxcallback(mp_obj_t self_in, mp_obj_t fifo_in, mp_obj_t 
         } else {
             irq = (fifo == 0) ? CAN2_RX0_IRQn : CAN2_RX1_IRQn;
         }
-        HAL_NVIC_SetPriority(irq, 7, 0);
+        HAL_NVIC_SetPriority(irq, IRQ_PRI_CAN, IRQ_SUBPRI_CAN);
         HAL_NVIC_EnableIRQ(irq);
         __HAL_CAN_ENABLE_IT(&self->can, (fifo == 0) ? CAN_IT_FMP0 : CAN_IT_FMP1);
         __HAL_CAN_ENABLE_IT(&self->can, (fifo == 0) ? CAN_IT_FF0  : CAN_IT_FF1);

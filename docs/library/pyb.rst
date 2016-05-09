@@ -25,6 +25,10 @@ Time related functions
    after 2^30 milliseconds (about 12.4 days) this will start to return
    negative numbers.
 
+   Note that if :meth:`pyb.stop()` is issued the hardware counter supporting this
+   function will pause for the duration of the "sleeping" state. This
+   will affect the outcome of :meth:`pyb.elapsed_millis()`.
+
 .. function:: micros()
 
    Returns the number of microseconds since the board was last reset.
@@ -32,6 +36,10 @@ Time related functions
    The result is always a micropython smallint (31-bit signed number), so
    after 2^30 microseconds (about 17.8 minutes) this will start to return
    negative numbers.
+
+   Note that if :meth:`pyb.stop()` is issued the hardware counter supporting this
+   function will pause for the duration of the "sleeping" state. This
+   will affect the outcome of :meth:`pyb.elapsed_micros()`.
 
 .. function:: elapsed_millis(start)
 
@@ -63,25 +71,14 @@ Time related functions
 Reset related functions
 -----------------------
 
-.. only:: port_pyboard
+.. function:: hard_reset()
 
-    .. function:: hard_reset()
-    
-       Resets the pyboard in a manner similar to pushing the external RESET
-       button.
+   Resets the pyboard in a manner similar to pushing the external RESET
+   button.
 
-.. only:: port_wipy
+.. function:: bootloader()
 
-    .. function:: reset()
-    
-       Resets the WiPy in a manner similar to pushing the external RESET
-       button.
-
-.. only:: port_pyboard
-
-    .. function:: bootloader()
-    
-       Activate the bootloader without BOOT\* pins.
+   Activate the bootloader without BOOT\* pins.
 
 Interrupt related functions
 ---------------------------
@@ -169,19 +166,11 @@ Power related functions
        Put the pyboard into a "deep sleep" state.
     
        This reduces power consumption to less than 50 uA.  To wake from this
-       sleep state requires an external interrupt or a real-time-clock event.
+       sleep state requires a real-time-clock event, or an external interrupt
+       on X1 (PA0=WKUP) or X18 (PC13=TAMP1).
        Upon waking the system undergoes a hard reset.
     
        See :meth:`rtc.wakeup` to configure a real-time-clock wakeup event.
-
-.. only:: port_wipy
-
-    .. function:: freq([sysclk])
-
-       Returns a tuple of clock frequencies: ``(sysclk)``
-       These correspond to:
-
-          - sysclk: frequency of the CPU
 
 Miscellaneous functions
 -----------------------
@@ -247,19 +236,13 @@ Miscellaneous functions
 
 .. function:: repl_uart(uart)
 
-   Get or set the UART object that the REPL is repeated on.
+   Get or set the UART object where the REPL is repeated on.
 
 .. only:: port_pyboard
 
     .. function:: rng()
     
        Return a 30-bit hardware generated random number.
-
-.. only:: port_wipy
-
-    .. function:: rng()
-    
-       Return a 24-bit software generated random number.
 
 .. function:: sync()
 
@@ -269,14 +252,7 @@ Miscellaneous functions
 
     .. function:: unique_id()
     
-       Returns a string of 12 bytes (96 bits), which is the unique ID for the MCU.
-
-.. only:: port_wipy
-
-    .. function:: unique_id()
-    
-       Returns a string of 6 bytes (48 bits), which is the unique ID for the MCU.
-       This also corresponds to the ``MAC address`` of the WiPy.
+       Returns a string of 12 bytes (96 bits), which is the unique ID of the MCU.
 
 Classes
 -------
@@ -302,19 +278,3 @@ Classes
        pyb.Timer.rst
        pyb.UART.rst
        pyb.USB_VCP.rst
-
-.. only:: port_wipy
-
-    .. toctree::
-       :maxdepth: 1
-    
-       pyb.ADC.rst
-       pyb.HeartBeat.rst
-       pyb.I2C.rst
-       pyb.Pin.rst
-       pyb.RTC.rst
-       pyb.SD.rst
-       pyb.SPI.rst
-       pyb.Timer.rst
-       pyb.UART.rst
-       pyb.WDT.rst

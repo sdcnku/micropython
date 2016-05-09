@@ -29,6 +29,9 @@
 
 #include "py/mpstate.h"
 #include "py/lexer.h"
+#include "py/runtime.h"
+
+#if MICROPY_ENABLE_COMPILER
 
 #define TAB_SIZE (8)
 
@@ -104,8 +107,9 @@ STATIC bool is_following_digit(mp_lexer_t *lex) {
     return unichar_isdigit(lex->chr1);
 }
 
-STATIC bool is_following_letter(mp_lexer_t *lex) {
-    return unichar_isalpha(lex->chr1);
+STATIC bool is_following_base_char(mp_lexer_t *lex) {
+    const unichar chr1 = lex->chr1 | 0x20;
+    return chr1 == 'b' || chr1 == 'o' || chr1 == 'x';
 }
 
 STATIC bool is_following_odigit(mp_lexer_t *lex) {
@@ -230,6 +234,10 @@ STATIC const char *tok_kw[] = {
     "and",
     "as",
     "assert",
+    #if MICROPY_PY_ASYNC_AWAIT
+    "async",
+    "await",
+    #endif
     "break",
     "class",
     "continue",
@@ -454,8 +462,8 @@ STATIC void mp_lexer_next_token_into(mp_lexer_t *lex, bool first_token) {
                             {
                                 mp_uint_t num = 0;
                                 if (!get_hex(lex, (c == 'x' ? 2 : c == 'u' ? 4 : 8), &num)) {
-                                    // TODO error message
-                                    assert(0);
+                                    // not enough hex chars for escape sequence
+                                    lex->tok_kind = MP_TOKEN_INVALID;
                                 }
                                 c = num;
                                 break;
@@ -466,7 +474,7 @@ STATIC void mp_lexer_next_token_into(mp_lexer_t *lex, bool first_token) {
                                 // 3MB of text; even gzip-compressed and with minimal structure, it'll take
                                 // roughly half a meg of storage. This form of Unicode escape may be added
                                 // later on, but it's definitely not a priority right now. -- CJA 20140607
-                                assert(!"Unicode name escapes not supported");
+                                mp_not_implemented("unicode name escapes");
                                 break;
                             default:
                                 if (c >= '0' && c <= '7') {
@@ -486,20 +494,25 @@ STATIC void mp_lexer_next_token_into(mp_lexer_t *lex, bool first_token) {
                         }
                     }
                     if (c != MP_LEXER_EOF) {
-                        #if MICROPY_PY_BUILTINS_STR_UNICODE
-                        if (c < 0x110000 && !is_bytes) {
-                            vstr_add_char(&lex->vstr, c);
-                        } else if (c < 0x100 && is_bytes) {
-                            vstr_add_byte(&lex->vstr, c);
-                        }
-                        #else
-                        // without unicode everything is just added as an 8-bit byte
-                        if (c < 0x100) {
-                            vstr_add_byte(&lex->vstr, c);
-                        }
-                        #endif
-                        else {
-                            assert(!"TODO: Throw an error, invalid escape code probably");
+                        if (MICROPY_PY_BUILTINS_STR_UNICODE_DYNAMIC) {
+                            if (c < 0x110000 && !is_bytes) {
+                                vstr_add_char(&lex->vstr, c);
+                            } else if (c < 0x100 && is_bytes) {
+                                vstr_add_byte(&lex->vstr, c);
+                            } else {
+                                // unicode character out of range
+                                // this raises a generic SyntaxError; could provide more info
+                                lex->tok_kind = MP_TOKEN_INVALID;
+                            }
+                        } else {
+                            // without unicode everything is just added as an 8-bit byte
+                            if (c < 0x100) {
+                                vstr_add_byte(&lex->vstr, c);
+                            } else {
+                                // 8-bit character out of range
+                                // this raises a generic SyntaxError; could provide more info
+                                lex->tok_kind = MP_TOKEN_INVALID;
+                            }
                         }
                     }
                 } else {
@@ -538,7 +551,7 @@ STATIC void mp_lexer_next_token_into(mp_lexer_t *lex, bool first_token) {
             lex->tok_kind = MP_TOKEN_FLOAT_OR_IMAG;
         } else {
             lex->tok_kind = MP_TOKEN_INTEGER;
-            if (is_char(lex, '0') && is_following_letter(lex)) {
+            if (is_char(lex, '0') && is_following_base_char(lex)) {
                 forced_integer = true;
             }
         }
@@ -772,7 +785,7 @@ void mp_lexer_show_token(const mp_lexer_t *lex) {
             unichar c = utf8_get_char(i);
             i = utf8_next_char(i);
             if (unichar_isprint(c)) {
-                printf("%c", c);
+                printf("%c", (int)c);
             } else {
                 printf("?");
             }
@@ -781,3 +794,5 @@ void mp_lexer_show_token(const mp_lexer_t *lex) {
     printf("\n");
 }
 #endif
+
+#endif // MICROPY_ENABLE_COMPILER

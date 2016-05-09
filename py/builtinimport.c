@@ -47,7 +47,7 @@
 #define PATH_SEP_CHAR '/'
 
 #if MICROPY_MODULE_WEAK_LINKS
-STATIC const mp_map_elem_t mp_builtin_module_weak_links_table[] = {
+STATIC const mp_rom_map_elem_t mp_builtin_module_weak_links_table[] = {
     MICROPY_PORT_BUILTIN_MODULE_WEAK_LINKS
 };
 
@@ -66,11 +66,21 @@ STATIC mp_import_stat_t stat_dir_or_file(vstr_t *path) {
     if (stat == MP_IMPORT_STAT_DIR) {
         return stat;
     }
+
     vstr_add_str(path, ".py");
     stat = mp_import_stat(vstr_null_terminated_str(path));
     if (stat == MP_IMPORT_STAT_FILE) {
         return stat;
     }
+
+    #if MICROPY_PERSISTENT_CODE_LOAD
+    vstr_ins_byte(path, path->len - 2, 'm');
+    stat = mp_import_stat(vstr_null_terminated_str(path));
+    if (stat == MP_IMPORT_STAT_FILE) {
+        return stat;
+    }
+    #endif
+
     return MP_IMPORT_STAT_NO_EXIST;
 }
 
@@ -110,6 +120,7 @@ STATIC mp_import_stat_t find_file(const char *file_str, uint file_len, vstr_t *d
 #endif
 }
 
+#if MICROPY_ENABLE_COMPILER
 STATIC void do_load_from_lexer(mp_obj_t module_obj, mp_lexer_t *lex, const char *fname) {
 
     if (lex == NULL) {
@@ -131,12 +142,67 @@ STATIC void do_load_from_lexer(mp_obj_t module_obj, mp_lexer_t *lex, const char 
     mp_obj_dict_t *mod_globals = mp_obj_module_get_globals(module_obj);
     mp_parse_compile_execute(lex, MP_PARSE_FILE_INPUT, mod_globals, mod_globals);
 }
+#endif
+
+#if MICROPY_PERSISTENT_CODE_LOAD || MICROPY_MODULE_FROZEN_MPY
+STATIC void do_execute_raw_code(mp_obj_t module_obj, mp_raw_code_t *raw_code) {
+    #if MICROPY_PY___FILE__
+    // TODO
+    //qstr source_name = lex->source_name;
+    //mp_store_attr(module_obj, MP_QSTR___file__, MP_OBJ_NEW_QSTR(source_name));
+    #endif
+
+    // execute the module in its context
+    mp_obj_dict_t *mod_globals = mp_obj_module_get_globals(module_obj);
+
+    // save context
+    mp_obj_dict_t *volatile old_globals = mp_globals_get();
+    mp_obj_dict_t *volatile old_locals = mp_locals_get();
+
+    // set new context
+    mp_globals_set(mod_globals);
+    mp_locals_set(mod_globals);
+
+    nlr_buf_t nlr;
+    if (nlr_push(&nlr) == 0) {
+        mp_obj_t module_fun = mp_make_function_from_raw_code(raw_code, MP_OBJ_NULL, MP_OBJ_NULL);
+        mp_call_function_0(module_fun);
+
+        // finish nlr block, restore context
+        nlr_pop();
+        mp_globals_set(old_globals);
+        mp_locals_set(old_locals);
+    } else {
+        // exception; restore context and re-raise same exception
+        mp_globals_set(old_globals);
+        mp_locals_set(old_locals);
+        nlr_jump(nlr.ret_val);
+    }
+}
+#endif
 
 STATIC void do_load(mp_obj_t module_obj, vstr_t *file) {
-    // create the lexer
+    #if MICROPY_PERSISTENT_CODE_LOAD || MICROPY_ENABLE_COMPILER
     char *file_str = vstr_null_terminated_str(file);
-    mp_lexer_t *lex = mp_lexer_new_from_file(file_str);
-    do_load_from_lexer(module_obj, lex, file_str);
+    #endif
+
+    #if MICROPY_PERSISTENT_CODE_LOAD
+    if (file_str[file->len - 3] == 'm') {
+        mp_raw_code_t *raw_code = mp_raw_code_load_file(file_str);
+        do_execute_raw_code(module_obj, raw_code);
+        return;
+    }
+    #endif
+
+    #if MICROPY_ENABLE_COMPILER
+    {
+        mp_lexer_t *lex = mp_lexer_new_from_file(file_str);
+        do_load_from_lexer(module_obj, lex, file_str);
+    }
+    #else
+    nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_ImportError,
+        "script compilation not supported"));
+    #endif
 }
 
 STATIC void chop_component(const char *start, const char **end) {
@@ -150,7 +216,7 @@ STATIC void chop_component(const char *start, const char **end) {
     *end = p;
 }
 
-mp_obj_t mp_builtin___import__(mp_uint_t n_args, const mp_obj_t *args) {
+mp_obj_t mp_builtin___import__(size_t n_args, const mp_obj_t *args) {
 #if DEBUG_PRINT
     DEBUG_printf("__import__:\n");
     for (mp_uint_t i = 0; i < n_args; i++) {
@@ -182,9 +248,15 @@ mp_obj_t mp_builtin___import__(mp_uint_t n_args, const mp_obj_t *args) {
         // "Relative imports use a module's __name__ attribute to determine that
         // module's position in the package hierarchy."
         level--;
-        mp_obj_t this_name_q = mp_obj_dict_get(mp_globals_get(), MP_OBJ_NEW_QSTR(MP_QSTR___name__));
+        mp_obj_t this_name_q = mp_obj_dict_get(MP_OBJ_FROM_PTR(mp_globals_get()), MP_OBJ_NEW_QSTR(MP_QSTR___name__));
         assert(this_name_q != MP_OBJ_NULL);
-        mp_map_t *globals_map = mp_obj_dict_get_map(mp_globals_get());
+        #if MICROPY_CPYTHON_COMPAT
+        if (MP_OBJ_QSTR_VALUE(this_name_q) == MP_QSTR___main__) {
+            // This is a module run by -m command-line switch, get its real name from backup attribute
+            this_name_q = mp_obj_dict_get(MP_OBJ_FROM_PTR(mp_globals_get()), MP_OBJ_NEW_QSTR(MP_QSTR___main__));
+        }
+        #endif
+        mp_map_t *globals_map = &mp_globals_get()->map;
         mp_map_elem_t *elem = mp_map_lookup(globals_map, MP_OBJ_NEW_QSTR(MP_QSTR___path__), MP_MAP_LOOKUP);
         bool is_pkg = (elem != NULL);
 
@@ -238,7 +310,11 @@ mp_obj_t mp_builtin___import__(mp_uint_t n_args, const mp_obj_t *args) {
         }
 
         qstr new_mod_q = qstr_from_strn(new_mod, new_mod_l);
-        DEBUG_printf("Resolved relative name: %s\n", qstr_str(new_mod_q));
+        DEBUG_printf("Resolved base name for relative import: '%s'\n", qstr_str(new_mod_q));
+        if (new_mod_q == MP_QSTR_) {
+            // CPython raises SystemError
+            nlr_raise(mp_obj_new_exception_msg(&mp_type_ImportError, "cannot perform relative import"));
+        }
         module_name = MP_OBJ_NEW_QSTR(new_mod_q);
         mod_str = new_mod;
         mod_len = new_mod_l;
@@ -265,18 +341,28 @@ mp_obj_t mp_builtin___import__(mp_uint_t n_args, const mp_obj_t *args) {
     DEBUG_printf("Module not yet loaded\n");
 
     #if MICROPY_MODULE_FROZEN
-    mp_lexer_t *lex = mp_find_frozen_module(mod_str, mod_len);
-    if (lex != NULL) {
+    void *frozen_data;
+    int frozen_type = mp_find_frozen_module(mod_str, mod_len, &frozen_data);
+    if (frozen_type != MP_FROZEN_NONE) {
         module_obj = mp_obj_new_module(module_name_qstr);
         // if args[3] (fromtuple) has magic value False, set up
         // this module for command-line "-m" option (set module's
         // name to __main__ instead of real name).
         // TODO: Duplicated below too.
         if (fromtuple == mp_const_false) {
-            mp_obj_module_t *o = module_obj;
-            mp_obj_dict_store(o->globals, MP_OBJ_NEW_QSTR(MP_QSTR___name__), MP_OBJ_NEW_QSTR(MP_QSTR___main__));
+            mp_obj_module_t *o = MP_OBJ_TO_PTR(module_obj);
+            mp_obj_dict_store(MP_OBJ_FROM_PTR(o->globals), MP_OBJ_NEW_QSTR(MP_QSTR___name__), MP_OBJ_NEW_QSTR(MP_QSTR___main__));
         }
-        do_load_from_lexer(module_obj, lex, mod_str);
+        #if MICROPY_MODULE_FROZEN_STR
+        if (frozen_type == MP_FROZEN_STR) {
+            do_load_from_lexer(module_obj, frozen_data, mod_str);
+        }
+        #endif
+        #if MICROPY_MODULE_FROZEN_MPY
+        if (frozen_type == MP_FROZEN_MPY) {
+            do_execute_raw_code(module_obj, frozen_data);
+        }
+        #endif
         return module_obj;
     }
     #endif
@@ -344,8 +430,12 @@ mp_obj_t mp_builtin___import__(mp_uint_t n_args, const mp_obj_t *args) {
                 // this module for command-line "-m" option (set module's
                 // name to __main__ instead of real name).
                 if (i == mod_len && fromtuple == mp_const_false) {
-                    mp_obj_module_t *o = module_obj;
-                    mp_obj_dict_store(o->globals, MP_OBJ_NEW_QSTR(MP_QSTR___name__), MP_OBJ_NEW_QSTR(MP_QSTR___main__));
+                    mp_obj_module_t *o = MP_OBJ_TO_PTR(module_obj);
+                    mp_obj_dict_store(MP_OBJ_FROM_PTR(o->globals), MP_OBJ_NEW_QSTR(MP_QSTR___name__), MP_OBJ_NEW_QSTR(MP_QSTR___main__));
+                    #if MICROPY_CPYTHON_COMPAT
+                    // Store real name in "__main__" attribute. Choosen semi-randonly, to reuse existing qstr's.
+                    mp_obj_dict_store(MP_OBJ_FROM_PTR(o->globals), MP_OBJ_NEW_QSTR(MP_QSTR___main__), MP_OBJ_NEW_QSTR(mod_name));
+                    #endif
                 }
 
                 if (stat == MP_IMPORT_STAT_DIR) {

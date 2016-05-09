@@ -25,7 +25,7 @@
 
   <table class="contentstable"><tr>
     <td width="40%" style="padding-left:2em;">
-      {% if port == "pyboard" or port == "wipy" %}
+      {% if port in ("pyboard", "wipy", "esp8266") %}
         <p class="biglink">
           <a class="biglink" href="{{ pathto(port + "/quickref") }}">Quick reference for {{ port_name }}</a><br/>
           <span class="linkdescr">pinout for {{ port_name }} and snippets of useful code</span>
@@ -34,8 +34,6 @@
           <a class="biglink" href="{{ pathto(port + "/general") }}">General information about {{ port_name }}</a><br/>
           <span class="linkdescr">read this first for a quick overview</span>
         </p>
-      {% endif %}
-      {% if port == "pyboard" %}
         <p class="biglink">
           <a class="biglink" href="{{ pathto(port + "/tutorial/index") }}">Tutorials and code examples</a><br/>
           <span class="linkdescr">start here</span>
@@ -43,10 +41,18 @@
       {% endif %}
       <p class="biglink">
         <a class="biglink" href="{{ pathto("library/index") }}">Library Reference</a><br/>
-        <span class="linkdescr">MicroPython libraries, including the <a href="{{ pathto("library/pyb") }}">pyb module</a></span>
+        {% if port == "pyboard" %}
+          <span class="linkdescr">MicroPython libraries, including the <a href="{{ pathto("library/pyb") }}">pyb module</a></span>
+        {% else %}
+          <span class="linkdescr">MicroPython libraries, including the <a href="{{ pathto("library/machine") }}">machine module</a></span>
+        {% endif %}
       </p>
     </td>
     <td width="40%" style="padding-left:2em;">
+      <p class="biglink">
+        <a class="biglink" href="{{ pathto("reference/index") }}">Language Reference</a><br/>
+        <span class="linkdescr">information about MicroPython specific language features</span>
+      </p>
       {% if port == "pyboard" %}
         <p class="biglink">
             <a class="biglink" href="{{ pathto(port + "/hardware/index") }}">The {{ port }} hardware</a><br/>

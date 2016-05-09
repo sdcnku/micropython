@@ -28,18 +28,17 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <stm32f4xx_hal.h>
+#include STM32_HAL_H
 #include "usbd_cdc_msc_hid.h"
 #include "usbd_cdc_interface.h"
 
 #include "py/nlr.h"
 #include "py/runtime.h"
 #include "py/gc.h"
-#include MICROPY_HAL_H
 #include "timer.h"
 #include "servo.h"
 #include "pin.h"
-#include "irqs.h"
+#include "irq.h"
 
 /// \moduleref pyb
 /// \class Timer - periodically call a function
@@ -69,17 +68,12 @@
 ///     tim.callback(lambda t: ...)     # set callback for update interrupt (t=tim instance)
 ///     tim.callback(None)              # clear callback
 ///
-/// *Note:* Timer 3 is reserved for internal use.  Timer 5 controls
+/// *Note:* Timer 3 is used for fading the blue LED.  Timer 5 controls
 /// the servo driver, and Timer 6 is used for timed ADC/DAC reading/writing.
 /// It is recommended to use the other timers in your programs.
 
 // The timers can be used by multiple drivers, and need a common point for
 // the interrupts to be dispatched, so they are all collected here.
-//
-// TIM3:
-//  - flash storage controller, to flush the cache
-//  - USB CDC interface, interval, to check for new data
-//  - LED 4, PWM to set the LED intensity
 //
 // TIM4:
 //  - servo controller, PWM
@@ -145,22 +139,16 @@ typedef struct _pyb_timer_obj_t {
 #define TIMER_CNT_MASK(self)    ((self)->is_32bit ? 0xffffffff : 0xffff)
 #define TIMER_CHANNEL(self)     ((((self)->channel) - 1) << 2)
 
-TIM_HandleTypeDef TIM3_Handle;
 TIM_HandleTypeDef TIM4_Handle;
 TIM_HandleTypeDef TIM6_Handle;
 
-// Used to divide down TIM3 and periodically call the flash storage IRQ
-STATIC uint32_t tim3_counter = 0;
-
 #define PYB_TIMER_OBJ_ALL_NUM MP_ARRAY_SIZE(MP_STATE_PORT(pyb_timer_obj_all))
 
-STATIC uint32_t timer_get_source_freq(uint32_t tim_id);
 STATIC mp_obj_t pyb_timer_deinit(mp_obj_t self_in);
 STATIC mp_obj_t pyb_timer_callback(mp_obj_t self_in, mp_obj_t callback);
 STATIC mp_obj_t pyb_timer_channel_callback(mp_obj_t self_in, mp_obj_t callback);
 
 void timer_init0(void) {
-    tim3_counter = 0;
     for (uint i = 0; i < PYB_TIMER_OBJ_ALL_NUM; i++) {
         MP_STATE_PORT(pyb_timer_obj_all)[i] = NULL;
     }
@@ -183,7 +171,7 @@ void timer_tim4_init(void) {
     __TIM4_CLK_ENABLE();
 
     // set up and enable interrupt
-    HAL_NVIC_SetPriority(TIM4_IRQn, 6, 0);
+    HAL_NVIC_SetPriority(TIM4_IRQn, IRQ_PRI_TIM4, IRQ_SUBPRI_TIM4);
     HAL_NVIC_EnableIRQ(TIM4_IRQn);
 
     // PWM clock configuration
@@ -200,7 +188,7 @@ void timer_tim4_init(void) {
 // Init TIM6 with a counter-overflow at the given frequency (given in Hz)
 // TIM6 is used by the DAC and ADC for auto sampling at a given frequency
 // This function inits but does not start the timer
-void timer_tim6_init(uint freq) {
+TIM_HandleTypeDef *timer_tim6_init(uint freq) {
     // TIM6 clock enable
     __TIM6_CLK_ENABLE();
 
@@ -220,6 +208,8 @@ void timer_tim6_init(uint freq) {
     TIM6_Handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1; // unused for TIM6
     TIM6_Handle.Init.CounterMode = TIM_COUNTERMODE_UP; // unused for TIM6
     HAL_TIM_Base_Init(&TIM6_Handle);
+
+    return &TIM6_Handle;
 }
 #endif
 
@@ -235,7 +225,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 // If the APB prescaler is 1, then the timer clock is equal to its respective
 // APB clock.  Otherwise (APB prescaler > 1) the timer clock is twice its
 // respective APB clock.  See DM00031020 Rev 4, page 115.
-STATIC uint32_t timer_get_source_freq(uint32_t tim_id) {
+uint32_t timer_get_source_freq(uint32_t tim_id) {
     uint32_t source;
     if (tim_id == 1 || (8 <= tim_id && tim_id <= 11)) {
         // TIM{1,8,9,10,11} are on APB2
@@ -331,13 +321,13 @@ STATIC uint32_t compute_pwm_value_from_percent(uint32_t period, mp_obj_t percent
     if (0) {
     #if MICROPY_PY_BUILTINS_FLOAT
     } else if (MP_OBJ_IS_TYPE(percent_in, &mp_type_float)) {
-        float percent = mp_obj_get_float(percent_in);
+        mp_float_t percent = mp_obj_get_float(percent_in);
         if (percent <= 0.0) {
             cmp = 0;
         } else if (percent >= 100.0) {
             cmp = period;
         } else {
-            cmp = percent / 100.0 * ((float)period);
+            cmp = percent / 100.0 * ((mp_float_t)period);
         }
     #endif
     } else {
@@ -361,11 +351,11 @@ STATIC uint32_t compute_pwm_value_from_percent(uint32_t period, mp_obj_t percent
 // Helper function to compute percentage from timer perion and PWM value.
 STATIC mp_obj_t compute_percent_from_pwm_value(uint32_t period, uint32_t cmp) {
     #if MICROPY_PY_BUILTINS_FLOAT
-    float percent;
+    mp_float_t percent;
     if (cmp >= period) {
         percent = 100.0;
     } else {
-        percent = (float)cmp * 100.0 / ((float)period);
+        percent = (mp_float_t)cmp * 100.0 / ((mp_float_t)period);
     }
     return mp_obj_new_float(percent);
     #else
@@ -434,6 +424,14 @@ STATIC void config_deadtime(pyb_timer_obj_t *self, mp_int_t ticks) {
     HAL_TIMEx_ConfigBreakDeadTime(&self->tim, &deadTimeConfig);
 }
 
+TIM_HandleTypeDef *pyb_timer_get_handle(mp_obj_t timer) {
+    if (mp_obj_get_type(timer) != &pyb_timer_type) {
+        nlr_raise(mp_obj_new_exception_msg(&mp_type_ValueError, "need a Timer object"));
+    }
+    pyb_timer_obj_t *self = timer;
+    return &self->tim;
+}
+
 STATIC void pyb_timer_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
     pyb_timer_obj_t *self = self_in;
 
@@ -453,7 +451,15 @@ STATIC void pyb_timer_print(const mp_print_t *print, mp_obj_t self_in, mp_print_
             self->tim.Init.CounterMode == TIM_COUNTERMODE_DOWN   ? "DOWN" : "CENTER",
             self->tim.Init.ClockDivision == TIM_CLOCKDIVISION_DIV4 ? 4 :
             self->tim.Init.ClockDivision == TIM_CLOCKDIVISION_DIV2 ? 2 : 1);
-        if (IS_TIM_ADVANCED_INSTANCE(self->tim.Instance)) {
+
+        #if defined(IS_TIM_ADVANCED_INSTANCE)
+        if (IS_TIM_ADVANCED_INSTANCE(self->tim.Instance))
+        #elif defined(IS_TIM_BREAK_INSTANCE)
+        if (IS_TIM_BREAK_INSTANCE(self->tim.Instance))
+        #else
+        if (0)
+        #endif
+        {
             mp_printf(print, ", deadtime=%u",
                 compute_ticks_from_dtg(self->tim.Instance->BDTR & TIM_BDTR_DTG));
         }
@@ -562,9 +568,15 @@ STATIC mp_obj_t pyb_timer_init_helper(pyb_timer_obj_t *self, mp_uint_t n_args, c
         #if defined(TIM8)
         case 8: __TIM8_CLK_ENABLE(); break;
         #endif
+        #if defined(TIM9)
         case 9: __TIM9_CLK_ENABLE(); break;
+        #endif
+        #if defined(TIM10)
         case 10: __TIM10_CLK_ENABLE(); break;
+        #endif
+        #if defined(TIM11)
         case 11: __TIM11_CLK_ENABLE(); break;
+        #endif
         #if defined(TIM12)
         case 12: __TIM12_CLK_ENABLE(); break;
         #endif
@@ -574,16 +586,31 @@ STATIC mp_obj_t pyb_timer_init_helper(pyb_timer_obj_t *self, mp_uint_t n_args, c
         #if defined(TIM14)
         case 14: __TIM14_CLK_ENABLE(); break;
         #endif
+        #if defined(TIM15)
+        case 15: __TIM15_CLK_ENABLE(); break;
+        #endif
+        #if defined(TIM16)
+        case 16: __TIM16_CLK_ENABLE(); break;
+        #endif
+        #if defined(TIM17)
+        case 17: __TIM17_CLK_ENABLE(); break;
+        #endif
     }
 
     // set IRQ priority (if not a special timer)
     if (self->tim_id != 3 && self->tim_id != 5) {
-        HAL_NVIC_SetPriority(self->irqn, 0xe, 0xe); // next-to lowest priority
+        HAL_NVIC_SetPriority(self->irqn, IRQ_PRI_TIMX, IRQ_SUBPRI_TIMX);
     }
 
     // init TIM
     HAL_TIM_Base_Init(&self->tim);
+    #if defined(IS_TIM_ADVANCED_INSTANCE)
     if (IS_TIM_ADVANCED_INSTANCE(self->tim.Instance)) {
+    #elif defined(IS_TIM_BREAK_INSTANCE)
+    if (IS_TIM_BREAK_INSTANCE(self->tim.Instance)) {
+    #else
+    if (0) {
+    #endif
         config_deadtime(self, args[6].u_int);
     }
     if (args[5].u_obj == mp_const_none) {
@@ -599,7 +626,7 @@ STATIC mp_obj_t pyb_timer_init_helper(pyb_timer_obj_t *self, mp_uint_t n_args, c
 /// Construct a new timer object of the given id.  If additional
 /// arguments are given, then the timer is initialised by `init(...)`.
 /// `id` can be 1 to 14, excluding 3.
-STATIC mp_obj_t pyb_timer_make_new(mp_obj_t type_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
+STATIC mp_obj_t pyb_timer_make_new(const mp_obj_type_t *type, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
     // check arguments
     mp_arg_check_num(n_args, n_kw, 1, MP_OBJ_FUN_ARGS_MAX, true);
 
@@ -616,9 +643,13 @@ STATIC mp_obj_t pyb_timer_make_new(mp_obj_t type_in, mp_uint_t n_args, mp_uint_t
     tim->is_32bit = false;
 
     switch (tim->tim_id) {
+        #if defined(MCU_SERIES_F4) || defined(MCU_SERIES_F7)
         case 1: tim->tim.Instance = TIM1; tim->irqn = TIM1_UP_TIM10_IRQn; break;
+        #elif defined(MCU_SERIES_L4)
+        case 1: tim->tim.Instance = TIM1; tim->irqn = TIM1_UP_TIM16_IRQn; break;
+        #endif
         case 2: tim->tim.Instance = TIM2; tim->irqn = TIM2_IRQn; tim->is_32bit = true; break;
-        case 3: nlr_raise(mp_obj_new_exception_msg(&mp_type_ValueError, "Timer 3 is for internal use only")); // TIM3 used for low-level stuff; go via regs if necessary
+        case 3: tim->tim.Instance = TIM3; tim->irqn = TIM3_IRQn; break;
         case 4: tim->tim.Instance = TIM4; tim->irqn = TIM4_IRQn; break;
         case 5: tim->tim.Instance = TIM5; tim->irqn = TIM5_IRQn; tim->is_32bit = true; break;
         #if defined(TIM6)
@@ -628,11 +659,21 @@ STATIC mp_obj_t pyb_timer_make_new(mp_obj_t type_in, mp_uint_t n_args, mp_uint_t
         case 7: tim->tim.Instance = TIM7; tim->irqn = TIM7_IRQn; break;
         #endif
         #if defined(TIM8)
+        #if defined(MCU_SERIES_F4) || defined(MCU_SERIES_F7)
         case 8: tim->tim.Instance = TIM8; tim->irqn = TIM8_UP_TIM13_IRQn; break;
+        #elif defined(MCU_SERIES_L4)
+        case 8: tim->tim.Instance = TIM8; tim->irqn = TIM8_UP_IRQn; break;
         #endif
+        #endif
+        #if defined(TIM9)
         case 9: tim->tim.Instance = TIM9; tim->irqn = TIM1_BRK_TIM9_IRQn; break;
+        #endif
+        #if defined(TIM10)
         case 10: tim->tim.Instance = TIM10; tim->irqn = TIM1_UP_TIM10_IRQn; break;
+        #endif
+        #if defined(TIM11)
         case 11: tim->tim.Instance = TIM11; tim->irqn = TIM1_TRG_COM_TIM11_IRQn; break;
+        #endif
         #if defined(TIM12)
         case 12: tim->tim.Instance = TIM12; tim->irqn = TIM8_BRK_TIM12_IRQn; break;
         #endif
@@ -641,6 +682,15 @@ STATIC mp_obj_t pyb_timer_make_new(mp_obj_t type_in, mp_uint_t n_args, mp_uint_t
         #endif
         #if defined(TIM14)
         case 14: tim->tim.Instance = TIM14; tim->irqn = TIM8_TRG_COM_TIM14_IRQn; break;
+        #endif
+        #if defined(TIM15)
+        case 15: tim->tim.Instance = TIM15; tim->irqn = TIM1_BRK_TIM15_IRQn; break;
+        #endif
+        #if defined(TIM16)
+        case 16: tim->tim.Instance = TIM16; tim->irqn = TIM1_UP_TIM16_IRQn; break;
+        #endif
+        #if defined(TIM17)
+        case 17: tim->tim.Instance = TIM17; tim->irqn = TIM1_TRG_COM_TIM17_IRQn; break;
         #endif
         default: nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_ValueError, "Timer %d does not exist", tim->tim_id));
     }

@@ -26,26 +26,21 @@
 #ifndef __MICROPY_INCLUDED_PY_RUNTIME0_H__
 #define __MICROPY_INCLUDED_PY_RUNTIME0_H__
 
-// taken from python source, Include/code.h
 // These must fit in 8 bits; see scope.h
-#define MP_SCOPE_FLAG_OPTIMISED    0x01
-#define MP_SCOPE_FLAG_NEWLOCALS    0x02
-#define MP_SCOPE_FLAG_VARARGS      0x04
-#define MP_SCOPE_FLAG_VARKEYWORDS  0x08
-#define MP_SCOPE_FLAG_NESTED       0x10
-#define MP_SCOPE_FLAG_GENERATOR    0x20
-/* The MP_SCOPE_FLAG_NOFREE flag is set if there are no free or cell variables.
-   This information is redundant, but it allows a single flag test
-   to determine whether there is any extra work to be done when the
-   call frame is setup.
-*/
-#define MP_SCOPE_FLAG_NOFREE       0x40
+#define MP_SCOPE_FLAG_VARARGS      (0x01)
+#define MP_SCOPE_FLAG_VARKEYWORDS  (0x02)
+#define MP_SCOPE_FLAG_GENERATOR    (0x04)
+#define MP_SCOPE_FLAG_DEFKWARGS    (0x08)
 
 // types for native (viper) function signature
 #define MP_NATIVE_TYPE_OBJ  (0x00)
 #define MP_NATIVE_TYPE_BOOL (0x01)
 #define MP_NATIVE_TYPE_INT  (0x02)
 #define MP_NATIVE_TYPE_UINT (0x03)
+#define MP_NATIVE_TYPE_PTR  (0x04)
+#define MP_NATIVE_TYPE_PTR8 (0x05)
+#define MP_NATIVE_TYPE_PTR16 (0x06)
+#define MP_NATIVE_TYPE_PTR32 (0x07)
 
 typedef enum {
     MP_UNARY_OP_BOOL, // __bool__
@@ -54,8 +49,6 @@ typedef enum {
     MP_UNARY_OP_POSITIVE,
     MP_UNARY_OP_NEGATIVE,
     MP_UNARY_OP_INVERT,
-    // The NOT op is only implemented by bool.  The emitter must synthesise NOT
-    // for other types by calling BOOL then inverting (eg by then calling NOT).
     MP_UNARY_OP_NOT,
 } mp_unary_op_t;
 
@@ -109,8 +102,6 @@ typedef enum {
 typedef enum {
     MP_F_CONVERT_OBJ_TO_NATIVE = 0,
     MP_F_CONVERT_NATIVE_TO_OBJ,
-    MP_F_LOAD_CONST_STR,
-    MP_F_LOAD_CONST_BYTES,
     MP_F_LOAD_NAME,
     MP_F_LOAD_GLOBAL,
     MP_F_LOAD_BUILD_CLASS,

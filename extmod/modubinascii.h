@@ -27,10 +27,14 @@
 #ifndef MICROPY_EXTMOD_MODUBINASCII
 #define MICROPY_EXTMOD_MODUBINASCII
 
-extern mp_obj_t mod_binascii_hexlify(mp_uint_t n_args, const mp_obj_t *args);
+extern mp_obj_t mod_binascii_hexlify(size_t n_args, const mp_obj_t *args);
 extern mp_obj_t mod_binascii_unhexlify(mp_obj_t data);
+extern mp_obj_t mod_binascii_a2b_base64(mp_obj_t data);
+extern mp_obj_t mod_binascii_b2a_base64(mp_obj_t data);
 
 MP_DECLARE_CONST_FUN_OBJ(mod_binascii_hexlify_obj);
 MP_DECLARE_CONST_FUN_OBJ(mod_binascii_unhexlify_obj);
+MP_DECLARE_CONST_FUN_OBJ(mod_binascii_a2b_base64_obj);
+MP_DECLARE_CONST_FUN_OBJ(mod_binascii_b2a_base64_obj);
 
 #endif /* MICROPY_EXTMOD_MODUBINASCII */

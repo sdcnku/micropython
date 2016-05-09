@@ -30,8 +30,11 @@
 #include "py/nlr.h"
 #include "py/obj.h"
 #include "py/objlist.h"
+#include "py/mphal.h"
 #include "pybioctl.h"
-#include MICROPY_HAL_H
+
+// Flags for poll()
+#define FLAG_ONESHOT (1)
 
 /// \module select - Provides select function to wait for events on a stream
 ///
@@ -138,13 +141,13 @@ STATIC mp_obj_t select_select(uint n_args, const mp_obj_t *args) {
     poll_map_add(&poll_map, w_array, rwx_len[1], MP_IOCTL_POLL_WR, true);
     poll_map_add(&poll_map, x_array, rwx_len[2], MP_IOCTL_POLL_ERR | MP_IOCTL_POLL_HUP, true);
 
-    mp_uint_t start_tick = HAL_GetTick();
+    mp_uint_t start_tick = mp_hal_ticks_ms();
     rwx_len[0] = rwx_len[1] = rwx_len[2] = 0;
     for (;;) {
         // poll the objects
         mp_uint_t n_ready = poll_map_poll(&poll_map, rwx_len);
 
-        if (n_ready > 0 || (timeout != -1 && HAL_GetTick() - start_tick >= timeout)) {
+        if (n_ready > 0 || (timeout != -1 && mp_hal_ticks_ms() - start_tick >= timeout)) {
             // one or more objects are ready, or we had a timeout
             mp_obj_t list_array[3];
             list_array[0] = mp_obj_new_list(rwx_len[0], NULL);
@@ -223,21 +226,25 @@ STATIC mp_obj_t poll_poll(uint n_args, const mp_obj_t *args) {
 
     // work out timeout (its given already in ms)
     mp_uint_t timeout = -1;
-    if (n_args == 2) {
+    int flags = 0;
+    if (n_args >= 2) {
         if (args[1] != mp_const_none) {
             mp_int_t timeout_i = mp_obj_get_int(args[1]);
             if (timeout_i >= 0) {
                 timeout = timeout_i;
             }
         }
+        if (n_args >= 3) {
+            flags = mp_obj_get_int(args[2]);
+        }
     }
 
-    mp_uint_t start_tick = HAL_GetTick();
+    mp_uint_t start_tick = mp_hal_ticks_ms();
     for (;;) {
         // poll the objects
         mp_uint_t n_ready = poll_map_poll(&self->poll_map, NULL);
 
-        if (n_ready > 0 || (timeout != -1 && HAL_GetTick() - start_tick >= timeout)) {
+        if (n_ready > 0 || (timeout != -1 && mp_hal_ticks_ms() - start_tick >= timeout)) {
             // one or more objects are ready, or we had a timeout
             mp_obj_list_t *ret_list = mp_obj_new_list(n_ready, NULL);
             n_ready = 0;
@@ -249,6 +256,10 @@ STATIC mp_obj_t poll_poll(uint n_args, const mp_obj_t *args) {
                 if (poll_obj->flags_ret != 0) {
                     mp_obj_t tuple[2] = {poll_obj->obj, MP_OBJ_NEW_SMALL_INT(poll_obj->flags_ret)};
                     ret_list->items[n_ready++] = mp_obj_new_tuple(2, tuple);
+                    if (flags & FLAG_ONESHOT) {
+                        // Don't poll next time, until new event flags will be set explicitly
+                        poll_obj->flags = 0;
+                    }
                 }
             }
             return ret_list;
@@ -256,7 +267,7 @@ STATIC mp_obj_t poll_poll(uint n_args, const mp_obj_t *args) {
         __WFI();
     }
 }
-MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(poll_poll_obj, 1, 2, poll_poll);
+MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(poll_poll_obj, 1, 3, poll_poll);
 
 STATIC const mp_map_elem_t poll_locals_dict_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_register), (mp_obj_t)&poll_register_obj },
@@ -285,6 +296,10 @@ STATIC const mp_map_elem_t mp_module_select_globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR___name__), MP_OBJ_NEW_QSTR(MP_QSTR_uselect) },
     { MP_OBJ_NEW_QSTR(MP_QSTR_select), (mp_obj_t)&mp_select_select_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_poll), (mp_obj_t)&mp_select_poll_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_POLLIN), MP_OBJ_NEW_SMALL_INT(MP_IOCTL_POLL_RD) },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_POLLOUT), MP_OBJ_NEW_SMALL_INT(MP_IOCTL_POLL_WR) },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_POLLERR), MP_OBJ_NEW_SMALL_INT(MP_IOCTL_POLL_ERR) },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_POLLHUP), MP_OBJ_NEW_SMALL_INT(MP_IOCTL_POLL_HUP) },
 };
 
 STATIC MP_DEFINE_CONST_DICT(mp_module_select_globals, mp_module_select_globals_table);

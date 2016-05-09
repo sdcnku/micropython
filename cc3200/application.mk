@@ -77,22 +77,22 @@ APP_HAL_SRC_C = $(addprefix hal/,\
 APP_MISC_SRC_C = $(addprefix misc/,\
 	antenna.c \
 	FreeRTOSHooks.c \
-	pin_named_pins.c \
 	help.c \
-	mpcallback.c \
+	mpirq.c \
 	mperror.c \
 	mpexception.c \
 	mpsystick.c \
 	)
 
 APP_MODS_SRC_C = $(addprefix mods/,\
+	modmachine.c \
 	modnetwork.c \
-	moduhashlib.c \
 	modubinascii.c \
-	modpyb.c \
 	moduos.c \
 	modusocket.c \
+	modussl.c \
 	modutime.c \
+	modwipy.c \
 	modwlan.c \
 	pybadc.c \
 	pybpin.c \
@@ -151,18 +151,19 @@ APP_LIB_SRC_C = $(addprefix lib/,\
 	mp-readline/readline.c \
 	netutils/netutils.c \
 	timeutils/timeutils.c \
+	utils/pyexec.c \
+	utils/pyhelp.c \
+	utils/printf.c \
 	)
 	
 APP_STM_SRC_C = $(addprefix stmhal/,\
 	bufhelper.c \
-	file.c \
+	builtin_open.c \
 	import.c \
 	input.c \
 	irq.c \
 	lexerfatfs.c \
 	moduselect.c \
-	printf.c \
-	pyexec.c \
 	pybstdio.c \
 	)
 
@@ -170,6 +171,12 @@ OBJ = $(PY_O) $(addprefix $(BUILD)/, $(APP_FATFS_SRC_C:.c=.o) $(APP_RTOS_SRC_C:.
 OBJ += $(addprefix $(BUILD)/, $(APP_MODS_SRC_C:.c=.o) $(APP_CC3100_SRC_C:.c=.o) $(APP_SL_SRC_C:.c=.o) $(APP_TELNET_SRC_C:.c=.o) $(APP_UTIL_SRC_C:.c=.o) $(APP_UTIL_SRC_S:.s=.o))
 OBJ += $(addprefix $(BUILD)/, $(APP_MAIN_SRC_C:.c=.o) $(APP_LIB_SRC_C:.c=.o) $(APP_STM_SRC_C:.c=.o))
 OBJ += $(BUILD)/pins.o
+
+# List of sources for qstr extraction
+SRC_QSTR += $(APP_MODS_SRC_C) $(APP_MISC_SRC_C) $(APP_STM_SRC_C)
+# Append any auto-generated sources that are needed by sources listed in
+# SRC_QSTR
+SRC_QSTR_AUTO_DEPS +=
 
 # Add the linker script
 LINKER_SCRIPT = application.lds
@@ -183,31 +190,10 @@ $(BUILD)/drivers/cc3100/src/driver.o: CFLAGS += -fno-strict-aliasing
 
 # Check if we would like to debug the port code
 ifeq ($(BTYPE), release)
-# Optimize everything and define the NDEBUG flag
-CFLAGS += -Os -DNDEBUG
+CFLAGS += -DNDEBUG
 else
 ifeq ($(BTYPE), debug)
-# Define the DEBUG flag
-CFLAGS += -DDEBUG=DEBUG
-# Optimize the stable sources only
-$(BUILD)/extmod/%.o: CFLAGS += -Os
-$(BUILD)/lib/%.o: CFLAGS += -Os
-$(BUILD)/fatfs/src/%.o: CFLAGS += -Os
-$(BUILD)/FreeRTOS/Source/%.o: CFLAGS += -Os
-$(BUILD)/ftp/%.o: CFLAGS += -Os
-$(BUILD)/hal/%.o: CFLAGS += -Os
-$(BUILD)/misc/%.o: CFLAGS += -Os
-$(BUILD)/mods/%.o: CFLAGS += -Os
-$(BUILD)/py/%.o: CFLAGS += -Os
-$(BUILD)/simplelink/%.o: CFLAGS += -Os
-$(BUILD)/drivers/cc3100/%.o: CFLAGS += -Os
-$(BUILD)/stmhal/%.o: CFLAGS += -Os
-$(BUILD)/telnet/%.o: CFLAGS += -Os
-$(BUILD)/util/%.o: CFLAGS += -Os
-$(BUILD)/pins.o: CFLAGS += -Os
-$(BUILD)/main.o: CFLAGS += -Os
-$(BUILD)/mptask.o: CFLAGS += -Os
-$(BUILD)/servertask.o: CFLAGS += -Os
+CFLAGS += -DNDEBUG
 else
 $(error Invalid BTYPE specified)
 endif
@@ -215,8 +201,18 @@ endif
 
 SHELL = bash
 APP_SIGN = appsign.sh
+UPDATE_WIPY ?= tools/update-wipy.py
+WIPY_IP ?= '192.168.1.1'
+WIPY_USER ?= 'micro'
+WIPY_PWD ?= 'python'
 
 all: $(BUILD)/mcuimg.bin
+
+.PHONY: deploy
+
+deploy: $(BUILD)/mcuimg.bin
+	$(ECHO) "Writing $< to the board"
+	$(Q)$(PYTHON) $(UPDATE_WIPY) --verify --ip $(WIPY_IP) --user $(WIPY_USER) --password $(WIPY_PWD) --file $<
 
 $(BUILD)/application.axf: $(OBJ) $(LINKER_SCRIPT)
 	$(ECHO) "LINK $@"
@@ -229,7 +225,7 @@ $(BUILD)/application.bin: $(BUILD)/application.axf
 
 $(BUILD)/mcuimg.bin: $(BUILD)/application.bin
 	$(ECHO) "Create $@"
-	$(Q)$(SHELL) $(APP_SIGN) $(BOARD) $(BTYPE)
+	$(Q)$(SHELL) $(APP_SIGN) $(BUILD)
 
 MAKE_PINS = boards/make-pins.py
 BOARD_PINS = boards/$(BOARD)/pins.csv

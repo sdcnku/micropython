@@ -33,6 +33,7 @@
 #include "py/obj.h"
 #include "py/objtype.h"
 #include "py/objint.h"
+#include "py/objstr.h"
 #include "py/runtime0.h"
 #include "py/runtime.h"
 #include "py/stackctrl.h"
@@ -40,12 +41,16 @@
 
 mp_obj_type_t *mp_obj_get_type(mp_const_obj_t o_in) {
     if (MP_OBJ_IS_SMALL_INT(o_in)) {
-        return (mp_obj_t)&mp_type_int;
+        return (mp_obj_type_t*)&mp_type_int;
     } else if (MP_OBJ_IS_QSTR(o_in)) {
-        return (mp_obj_t)&mp_type_str;
+        return (mp_obj_type_t*)&mp_type_str;
+    #if MICROPY_PY_BUILTINS_FLOAT
+    } else if (mp_obj_is_float(o_in)) {
+        return (mp_obj_type_t*)&mp_type_float;
+    #endif
     } else {
-        const mp_obj_base_t *o = o_in;
-        return (mp_obj_t)o->type;
+        const mp_obj_base_t *o = MP_OBJ_TO_PTR(o_in);
+        return (mp_obj_type_t*)o->type;
     }
 }
 
@@ -57,7 +62,7 @@ void mp_obj_print_helper(const mp_print_t *print, mp_obj_t o_in, mp_print_kind_t
     // There can be data structures nested too deep, or just recursive
     MP_STACK_CHECK();
 #ifndef NDEBUG
-    if (o_in == NULL) {
+    if (o_in == MP_OBJ_NULL) {
         mp_print_str(print, "(nil)");
         return;
     }
@@ -81,7 +86,7 @@ void mp_obj_print(mp_obj_t o_in, mp_print_kind_t kind) {
 // helper function to print an exception with traceback
 void mp_obj_print_exception(const mp_print_t *print, mp_obj_t exc) {
     if (mp_obj_is_exception_instance(exc)) {
-        mp_uint_t n, *values;
+        size_t n, *values;
         mp_obj_exception_get_traceback(exc, &n, &values);
         if (n > 0) {
             assert(n % 3 == 0);
@@ -267,7 +272,7 @@ mp_float_t mp_obj_get_float(mp_obj_t arg) {
         return MP_OBJ_SMALL_INT_VALUE(arg);
     } else if (MP_OBJ_IS_TYPE(arg, &mp_type_int)) {
         return mp_obj_int_as_float(arg);
-    } else if (MP_OBJ_IS_TYPE(arg, &mp_type_float)) {
+    } else if (mp_obj_is_float(arg)) {
         return mp_obj_float_get(arg);
     } else {
         if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
@@ -294,7 +299,7 @@ void mp_obj_get_complex(mp_obj_t arg, mp_float_t *real, mp_float_t *imag) {
     } else if (MP_OBJ_IS_TYPE(arg, &mp_type_int)) {
         *real = mp_obj_int_as_float(arg);
         *imag = 0;
-    } else if (MP_OBJ_IS_TYPE(arg, &mp_type_float)) {
+    } else if (mp_obj_is_float(arg)) {
         *real = mp_obj_float_get(arg);
         *imag = 0;
     } else if (MP_OBJ_IS_TYPE(arg, &mp_type_complex)) {
@@ -337,7 +342,7 @@ void mp_obj_get_array_fixed_n(mp_obj_t o, mp_uint_t len, mp_obj_t **items) {
                 "tuple/list has wrong length"));
         } else {
             nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_ValueError,
-                "requested length %d but object has length %d", len, seq_len));
+                "requested length %d but object has length %d", (int)len, (int)seq_len));
         }
     }
 }
@@ -422,7 +427,8 @@ mp_obj_t mp_obj_len_maybe(mp_obj_t o_in) {
         MP_OBJ_IS_STR(o_in) ||
 #endif
         MP_OBJ_IS_TYPE(o_in, &mp_type_bytes)) {
-        return MP_OBJ_NEW_SMALL_INT(mp_obj_str_get_len(o_in));
+        GET_STR_LEN(o_in, l);
+        return MP_OBJ_NEW_SMALL_INT(l);
     } else {
         mp_obj_type_t *type = mp_obj_get_type(o_in);
         if (type->unary_op != NULL) {

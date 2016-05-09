@@ -4,6 +4,7 @@
  * The MIT License (MIT)
  *
  * Copyright (c) 2015 Paul Sokolovsky
+ * Copyright (c) 2016 Damien P. George
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,25 +31,76 @@
 #include "py/lexer.h"
 #include "py/frozenmod.h"
 
-#if MICROPY_MODULE_FROZEN
+#if MICROPY_MODULE_FROZEN_STR
 
-extern const uint16_t mp_frozen_sizes[];
-extern const char mp_frozen_content[];
+#ifndef MICROPY_MODULE_FROZEN_LEXER
+#define MICROPY_MODULE_FROZEN_LEXER mp_lexer_new_from_str_len
+#else
+mp_lexer_t *MICROPY_MODULE_FROZEN_LEXER(qstr src_name, const char *str, mp_uint_t len, mp_uint_t free_len);
+#endif
 
-mp_lexer_t *mp_find_frozen_module(const char *str, int len) {
-    const uint16_t *sz_ptr = mp_frozen_sizes;
-    const char *s = mp_frozen_content;
+extern const char mp_frozen_str_names[];
+extern const uint32_t mp_frozen_str_sizes[];
+extern const char mp_frozen_str_content[];
 
-    while (*sz_ptr) {
-        int l = strlen(s);
-        if (l == len && !memcmp(str, s, l)) {
-            s += l + 1;
-            mp_lexer_t *lex = mp_lexer_new_from_str_len(MP_QSTR_, s, *sz_ptr, 0);
+STATIC mp_lexer_t *mp_find_frozen_str(const char *str, size_t len) {
+    const char *name = mp_frozen_str_names;
+
+    size_t offset = 0;
+    for (int i = 0; *name != 0; i++) {
+        size_t l = strlen(name);
+        if (l == len && !memcmp(str, name, l)) {
+            qstr source = qstr_from_strn(name, l);
+            mp_lexer_t *lex = MICROPY_MODULE_FROZEN_LEXER(source, mp_frozen_str_content + offset, mp_frozen_str_sizes[i], 0);
             return lex;
         }
-        s += l + 1 + *sz_ptr++;
+        name += l + 1;
+        offset += mp_frozen_str_sizes[i] + 1;
     }
     return NULL;
 }
 
-#endif // MICROPY_MODULE_FROZEN
+#endif
+
+#if MICROPY_MODULE_FROZEN_MPY
+
+#include "py/emitglue.h"
+
+extern const char mp_frozen_mpy_names[];
+extern const mp_raw_code_t *const mp_frozen_mpy_content[];
+
+STATIC const mp_raw_code_t *mp_find_frozen_mpy(const char *str, size_t len) {
+    const char *name = mp_frozen_mpy_names;
+    for (size_t i = 0; *name != 0; i++) {
+        size_t l = strlen(name);
+        if (l == len && !memcmp(str, name, l)) {
+            return mp_frozen_mpy_content[i];
+        }
+        name += l + 1;
+    }
+    return NULL;
+}
+
+#endif
+
+#if MICROPY_MODULE_FROZEN
+
+int mp_find_frozen_module(const char *str, size_t len, void **data) {
+    #if MICROPY_MODULE_FROZEN_STR
+    mp_lexer_t *lex = mp_find_frozen_str(str, len);
+    if (lex != NULL) {
+        *data = lex;
+        return MP_FROZEN_STR;
+    }
+    #endif
+    #if MICROPY_MODULE_FROZEN_MPY
+    const mp_raw_code_t *rc = mp_find_frozen_mpy(str, len);
+    if (rc != NULL) {
+        *data = (void*)rc;
+        return MP_FROZEN_MPY;
+    }
+    #endif
+    return MP_FROZEN_NONE;
+}
+
+#endif

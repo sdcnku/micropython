@@ -10,39 +10,38 @@ The ``esp`` module contains specific functions related to the ESP8266 module.
 Functions
 ---------
 
-.. function:: scan(cb)
+.. function:: sleep_type([sleep_type])
 
-    Initiate scanning for the available wireless networks.
+    Get or set the sleep type.
 
-    Once the scanning is complete, the provided callback function ``cb`` will
-    be called once for each network found, and passed a tuple with information
-    about that network.
+    If the ``sleep_type`` parameter is provided, sets the sleep type to its
+    value. If the function is called wihout parameters, returns the current
+    sleep type.
 
-.. function:: status()
+    The possible sleep types are defined as constants:
 
-    Return the current status of the wireless connection.
+        * ``SLEEP_NONE`` -- all functions enabled,
+        * ``SLEEP_MODEM`` -- modem sleep, shuts down the WiFi Modem circuit.
+        * ``SLEEP_LIGHT`` -- light sleep, shuts down the WiFi Modem circuit
+          and suspends the processor periodically.
 
-    The possible statuses are defined as constants:
+    The system enters the set sleep mode automatically when possible.
 
-        * ``STAT_IDLE`` -- no connection and no activity,
-        * ``STAT_CONNECTING`` -- connecting in progress,
-        * ``STAT_WRONG_PASSWORD`` -- failed due to incorrect password,
-        * ``STAT_NO_AP_FOUND`` -- failed because no access point replied,
-        * ``STAT_CONNECT_FAIL`` -- failed due to other problems,
-        * ``STAT_GOT_IP`` -- connection susccessful.
+.. function:: deepsleep(time=0)
 
-.. function:: getaddrinfo((hostname, port, lambda))
+    Enter deep sleep.
 
-    Initiate resolving of the given hostname.
+    The whole module powers down, except for the RTC clock circuit, which can
+    be used to restart the module after the specified time if the pin 16 is
+    connected to the reset pin. Otherwise the module will sleep until manually
+    reset.
 
-    When the hostname is resolved, the provided ``lambda`` callback will be
-    called with two arguments, first being the hostname being resolved,
-    second a tuple with information about that hostname.
+.. function:: flash_id()
 
-Classes
--------
+    Read the device ID of the flash memory.
 
-.. toctree::
-    :maxdepth: 1
+.. function:: flash_read(byte_offset, length_or_buffer)
 
-    esp.socket.rst
+.. function:: flash_write(byte_offset, bytes)
+
+.. function:: flash_erase(sector_no)

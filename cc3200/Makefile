@@ -17,11 +17,11 @@ include ../py/mkenv.mk
 CROSS_COMPILE ?= arm-none-eabi-
 
 CFLAGS_CORTEX_M4 = -mthumb -mtune=cortex-m4 -march=armv7e-m -mabi=aapcs -mcpu=cortex-m4 -msoft-float -mfloat-abi=soft -fsingle-precision-constant -Wdouble-promotion
-CFLAGS = -Wall -Wpointer-arith -Werror -ansi -std=gnu99 -nostdlib $(CFLAGS_CORTEX_M4)
+CFLAGS = -Wall -Wpointer-arith -Werror -ansi -std=gnu99 -nostdlib $(CFLAGS_CORTEX_M4) -Os
 CFLAGS += -g -ffunction-sections -fdata-sections -fno-common -fsigned-char -mno-unaligned-access
 CFLAGS += -Iboards/$(BOARD)
 
-LDFLAGS = -Wl,-nostdlib -Wl,--gc-sections -Wl,-Map=$@.map --specs=nano.specs
+LDFLAGS = -Wl,-nostdlib -Wl,--gc-sections -Wl,-Map=$@.map
 
 ifeq ($(BTARGET), application)
 # qstr definitions (must come before including py.mk)

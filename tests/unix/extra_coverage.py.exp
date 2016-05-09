@@ -8,6 +8,10 @@ ab abc
 false true
 (null)
 t
+-2147483648
+2147483648
+80000000
+80000000
 # vstr
 tests
 sts
@@ -21,7 +25,14 @@ ame__
 __name__        path            argv            version
 version_info    implementation  platform        byteorder
 maxsize         exit            stdin           stdout
-stderr          exc_info        print_exception
+stderr          modules         exc_info        print_exception
 ementation
 # attrtuple
 (start=1, stop=2, step=3)
+# str
+1
+# mpz
+1
+12345678
+0
+0

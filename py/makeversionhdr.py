@@ -21,8 +21,11 @@ def get_version_info_from_git():
 
     # Note: git describe doesn't work if no tag is available
     try:
-        git_tag = subprocess.check_output(["git", "describe", "--dirty", "--always"], universal_newlines=True).strip()
-    except subprocess.CalledProcessError:
+        git_tag = subprocess.check_output(["git", "describe", "--dirty", "--always"], stderr=subprocess.STDOUT, universal_newlines=True).strip()
+    except subprocess.CalledProcessError as er:
+        if er.returncode == 128:
+            # git exit code of 128 means no repository found
+            return None
         git_tag = ""
     except OSError:
         return None
@@ -54,7 +57,7 @@ def get_version_info_from_git():
     return git_tag, git_hash, ver
 
 def get_version_info_from_docs_conf():
-    with open("%s/docs/conf.py" % sys.argv[0].rsplit("/", 2)[0]) as f:
+    with open(os.path.join(os.path.dirname(sys.argv[0]), "..", "docs", "conf.py")) as f:
         for line in f:
             if line.startswith("release = '"):
                 ver = line.strip()[10:].strip("'")

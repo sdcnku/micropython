@@ -32,6 +32,12 @@
 #define MICROPY_HW_I2C2_SCL (pin_B10)
 #define MICROPY_HW_I2C2_SDA (pin_B11)
 
+// SPI busses
+#define MICROPY_HW_SPI2_NSS  (pin_B12)
+#define MICROPY_HW_SPI2_SCK  (pin_B13)
+#define MICROPY_HW_SPI2_MISO (pin_B14)
+#define MICROPY_HW_SPI2_MOSI (pin_B15)
+
 // USB config
 #define MICROPY_HW_USB_VBUS_DETECT_PIN (pin_A9)
 

@@ -29,7 +29,7 @@
 #include <string.h>
 
 #include "py/mpconfig.h"
-#include MICROPY_HAL_H
+#include "py/mphal.h"
 #include "py/obj.h"
 #include "inc/hw_memmap.h"
 #include "pybuart.h"
@@ -70,10 +70,7 @@ void vApplicationMallocFailedHook (void)
     __asm volatile ("bkpt #0  \n");
 #endif
 
-    for ( ; ; )
-    {
-        __fatal_error("FreeRTOS malloc failed!");
-    }
+    __fatal_error("FreeRTOS malloc failed!");
 }
 
 //*****************************************************************************
@@ -92,10 +89,7 @@ void vApplicationStackOverflowHook (OsiTaskHandle *pxTask, signed char *pcTaskNa
     __asm volatile ("bkpt #0  \n");
 #endif
 
-    for ( ; ; )
-    {
-        __fatal_error("Stack overflow!");
-    }
+    __fatal_error("Stack overflow!");
 }
 
 //*****************************************************************************

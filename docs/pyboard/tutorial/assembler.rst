@@ -1,3 +1,5 @@
+.. _pyboard_tutorial_assembler:
+
 Inline assembler
 ================
 
@@ -62,8 +64,8 @@ This code uses a few new concepts:
 Accepting arguments
 -------------------
 
-Inline assembler functions can accept up to 3 arguments.  If they are
-used, they must be named ``r0``, ``r1`` and ``r2`` to reflect the registers
+Inline assembler functions can accept up to 4 arguments.  If they are
+used, they must be named ``r0``, ``r1``, ``r2`` and ``r3`` to reflect the registers
 and the calling conventions.
 
 Here is a function that adds its arguments::
@@ -121,3 +123,9 @@ The following example flashes the green LED.  It flashes it ``r0`` times. ::
         label(loop_entry)
         cmp(r0, 0)
         bgt(loop1)
+
+Further reading
+---------------
+
+For further information about supported instructions of the inline assembler,
+see the :ref:`reference documentation <asm_thumb2_index>`.

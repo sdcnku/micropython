@@ -27,8 +27,8 @@
 #include <stdint.h>
 
 #include "py/mpconfig.h"
-#include MICROPY_HAL_H
 #include "py/obj.h"
+#include "py/mphal.h"
 #include "telnet.h"
 #include "simplelink.h"
 #include "modnetwork.h"
@@ -38,6 +38,7 @@
 #include "mpexception.h"
 #include "serverstask.h"
 #include "genhdr/mpversion.h"
+#include "irq.h"
 
 /******************************************************************************
  DEFINE PRIVATE CONSTANTS
@@ -46,7 +47,7 @@
 // rxRindex and rxWindex must be uint8_t and TELNET_RX_BUFFER_SIZE == 256
 #define TELNET_RX_BUFFER_SIZE               256
 #define TELNET_MAX_CLIENTS                  1
-#define TELNET_TX_RETRIES_MAX               25
+#define TELNET_TX_RETRIES_MAX               50
 #define TELNET_WAIT_TIME_MS                 5
 #define TELNET_LOGIN_RETRIES_MAX            3
 #define TELNET_CYCLE_TIME_MS                (SERVERS_CYCLE_TIME_MS * 2)
@@ -107,9 +108,9 @@ typedef struct {
  DECLARE PRIVATE DATA
  ******************************************************************************/
 static telnet_data_t telnet_data;
-static const char* telnet_welcome_msg       = "Micro Python " MICROPY_GIT_TAG " on " MICROPY_BUILD_DATE "; " MICROPY_HW_BOARD_NAME " with " MICROPY_HW_MCU_NAME "\r\n";
-static const char* telnet_request_user      = "Login as:";
-static const char* telnet_request_password  = "Password:";
+static const char* telnet_welcome_msg       = "MicroPython " MICROPY_GIT_TAG " on " MICROPY_BUILD_DATE "; " MICROPY_HW_BOARD_NAME " with " MICROPY_HW_MCU_NAME "\r\n";
+static const char* telnet_request_user      = "Login as: ";
+static const char* telnet_request_password  = "Password: ";
 static const char* telnet_invalid_loggin    = "\r\nInvalid credentials, try again.\r\n";
 static const char* telnet_loggin_success    = "\r\nLogin succeeded!\r\nType \"help()\" for more information.\r\n";
 static const uint8_t telnet_options_user[]  = // IAC   WONT ECHO IAC   WONT SUPPRESS_GO_AHEAD IAC  WILL LINEMODE
@@ -243,34 +244,14 @@ void telnet_run (void) {
 }
 
 void telnet_tx_strn (const char *str, int len) {
-    if (len > 0 && telnet_data.n_sd > 0) {
+    if (telnet_data.n_sd > 0 && telnet_data.state == E_TELNET_STE_LOGGED_IN && len > 0) {
         telnet_send_with_retries(telnet_data.n_sd, str, len);
     }
 }
 
-void telnet_tx_strn_cooked (const char *str, uint len) {
-    int32_t nslen = 0;
-    const char *_str = str;
-
-    for (int i = 0; i < len; i++) {
-        if (str[i] == '\n') {
-            telnet_send_with_retries(telnet_data.n_sd, _str, nslen);
-            telnet_send_with_retries(telnet_data.n_sd, "\r\n", 2);
-            _str += nslen + 1;
-            nslen = 0;
-        }
-        else {
-            nslen++;
-        }
-    }
-    if (_str < str + len) {
-        telnet_send_with_retries(telnet_data.n_sd, _str, nslen);
-    }
-}
-
 bool telnet_rx_any (void) {
-    return (telnet_data.n_sd > 0) ? ((telnet_data.rxRindex != telnet_data.rxWindex) &&
-           (telnet_data.state == E_TELNET_STE_LOGGED_IN)) : false;
+    return (telnet_data.n_sd > 0) ? (telnet_data.rxRindex != telnet_data.rxWindex &&
+            telnet_data.state == E_TELNET_STE_LOGGED_IN) : false;
 }
 
 int telnet_rx_char (void) {
@@ -297,14 +278,6 @@ void telnet_reset (void) {
     servers_close_socket(&telnet_data.n_sd);
     servers_close_socket(&telnet_data.sd);
     telnet_data.state = E_TELNET_STE_START;
-}
-
-bool telnet_is_enabled (void) {
-    return telnet_data.enabled;
-}
-
-bool telnet_is_active (void) {
-    return (telnet_data.state == E_TELNET_STE_LOGGED_IN);
 }
 
 /******************************************************************************
@@ -478,8 +451,12 @@ static void telnet_parse_input (uint8_t *str, int16_t *len) {
                 (*len)--;
                 _str++;
             }
-            else {
+            else if (*_str > 0) {
                 *str++ = *_str++;
+            }
+            else {
+                _str++;
+                *len -= 1;
             }
         }
         else {
@@ -492,8 +469,9 @@ static void telnet_parse_input (uint8_t *str, int16_t *len) {
 
 static bool telnet_send_with_retries (int16_t sd, const void *pBuf, int16_t len) {
     int32_t retries = 0;
-    // abort sending if we happen to be within interrupt context
-    if ((HAL_NVIC_INT_CTRL_REG & HAL_VECTACTIVE_MASK) == 0) {
+    uint32_t delay = TELNET_WAIT_TIME_MS;
+    // only if we are not within interrupt context and interrupts are enabled
+    if ((HAL_NVIC_INT_CTRL_REG & HAL_VECTACTIVE_MASK) == 0 && query_irq() == IRQ_STATE_ENABLED) {
         do {
             _i16 result = sl_Send(sd, pBuf, len, 0);
             if (result > 0) {
@@ -502,7 +480,8 @@ static bool telnet_send_with_retries (int16_t sd, const void *pBuf, int16_t len)
             else if (SL_EAGAIN != result) {
                 return false;
             }
-            HAL_Delay (TELNET_WAIT_TIME_MS);
+            // start with the default delay and increment it on each retry
+            mp_hal_delay_ms(delay++);
         } while (++retries <= TELNET_TX_RETRIES_MAX);
     }
     return false;

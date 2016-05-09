@@ -38,7 +38,7 @@ STATIC bool str_startswith_word(const char *str, const char *head) {
             return false;
         }
     }
-    return head[i] == '\0' && (str[i] == '\0' || !unichar_isalpha(str[i]));
+    return head[i] == '\0' && (str[i] == '\0' || !unichar_isident(str[i]));
 }
 
 bool mp_repl_continue_with_input(const char *input) {
@@ -57,40 +57,56 @@ bool mp_repl_continue_with_input(const char *input) {
         || str_startswith_word(input, "with")
         || str_startswith_word(input, "def")
         || str_startswith_word(input, "class")
+        #if MICROPY_PY_ASYNC_AWAIT
+        || str_startswith_word(input, "async")
+        #endif
         ;
 
-    // check for unmatched open bracket or triple quote
-    // TODO don't look at triple quotes inside single quotes
+    // check for unmatched open bracket, quote or escape quote
+    #define Q_NONE (0)
+    #define Q_1_SINGLE (1)
+    #define Q_1_DOUBLE (2)
+    #define Q_3_SINGLE (3)
+    #define Q_3_DOUBLE (4)
     int n_paren = 0;
     int n_brack = 0;
     int n_brace = 0;
-    int in_triple_quote = 0;
+    int in_quote = Q_NONE;
     const char *i;
     for (i = input; *i; i++) {
-        switch (*i) {
-            case '(': n_paren += 1; break;
-            case ')': n_paren -= 1; break;
-            case '[': n_brack += 1; break;
-            case ']': n_brack -= 1; break;
-            case '{': n_brace += 1; break;
-            case '}': n_brace -= 1; break;
-            case '\'':
-                if (in_triple_quote != '"' && i[1] == '\'' && i[2] == '\'') {
-                    i += 2;
-                    in_triple_quote = '\'' - in_triple_quote;
-                }
-                break;
-            case '"':
-                if (in_triple_quote != '\'' && i[1] == '"' && i[2] == '"') {
-                    i += 2;
-                    in_triple_quote = '"' - in_triple_quote;
-                }
-                break;
+        if (*i == '\'') {
+            if ((in_quote == Q_NONE || in_quote == Q_3_SINGLE) && i[1] == '\'' && i[2] == '\'') {
+                i += 2;
+                in_quote = Q_3_SINGLE - in_quote;
+            } else if (in_quote == Q_NONE || in_quote == Q_1_SINGLE) {
+                in_quote = Q_1_SINGLE - in_quote;
+            }
+        } else if (*i == '"') {
+            if ((in_quote == Q_NONE || in_quote == Q_3_DOUBLE) && i[1] == '"' && i[2] == '"') {
+                i += 2;
+                in_quote = Q_3_DOUBLE - in_quote;
+            } else if (in_quote == Q_NONE || in_quote == Q_1_DOUBLE) {
+                in_quote = Q_1_DOUBLE - in_quote;
+            }
+        } else if (*i == '\\' && (i[1] == '\'' || i[1] == '"')) {
+            if (in_quote != Q_NONE) {
+                i++;
+            }
+        } else if (in_quote == Q_NONE) {
+            switch (*i) {
+                case '(': n_paren += 1; break;
+                case ')': n_paren -= 1; break;
+                case '[': n_brack += 1; break;
+                case ']': n_brack -= 1; break;
+                case '{': n_brace += 1; break;
+                case '}': n_brace -= 1; break;
+                default: break;
+            }
         }
     }
 
     // continue if unmatched brackets or quotes
-    if (n_paren > 0 || n_brack > 0 || n_brace > 0 || in_triple_quote != 0) {
+    if (n_paren > 0 || n_brack > 0 || n_brace > 0 || in_quote == Q_3_SINGLE || in_quote == Q_3_DOUBLE) {
         return true;
     }
 
@@ -156,11 +172,11 @@ mp_uint_t mp_repl_autocomplete(const char *str, mp_uint_t len, const mp_print_t 
             } else {
                 mp_obj_type_t *type;
                 if (MP_OBJ_IS_TYPE(obj, &mp_type_type)) {
-                    type = obj;
+                    type = MP_OBJ_TO_PTR(obj);
                 } else {
                     type = mp_obj_get_type(obj);
                 }
-                if (type->locals_dict != MP_OBJ_NULL && MP_OBJ_IS_TYPE(type->locals_dict, &mp_type_dict)) {
+                if (type->locals_dict != NULL && type->locals_dict->base.type == &mp_type_dict) {
                     dict = type->locals_dict;
                 } else {
                     // obj has no dict
@@ -187,7 +203,9 @@ mp_uint_t mp_repl_autocomplete(const char *str, mp_uint_t len, const mp_print_t 
                             match_str = d_str;
                             match_len = d_len;
                         } else {
-                            for (mp_uint_t j = s_len; j < match_len && j < d_len; ++j) {
+                            // search for longest common prefix of match_str and d_str
+                            // (assumes these strings are null-terminated)
+                            for (mp_uint_t j = s_len; j <= match_len && j <= d_len; ++j) {
                                 if (match_str[j] != d_str[j]) {
                                     match_len = j;
                                     break;

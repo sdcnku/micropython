@@ -27,20 +27,27 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <errno.h>
 
 #include "py/nlr.h"
 #include "py/obj.h"
 #include "py/gc.h"
 #include "py/runtime.h"
-#include MICROPY_HAL_H
+#include "py/mphal.h"
 #include "netutils.h"
 #include "queue.h"
+#include "ets_sys.h"
+#include "uart.h"
 #include "user_interface.h"
 #include "espconn.h"
-#include "ip_addr.h"
 #include "spi_flash.h"
-#include "utils.h"
+#include "mem.h"
+#include "espneopixel.h"
+#include "modpyb.h"
 
+#define MODESP_ESPCONN (0)
+
+#if MODESP_ESPCONN
 STATIC const mp_obj_type_t esp_socket_type;
 
 typedef struct _esp_socket_obj_t {
@@ -80,7 +87,7 @@ STATIC mp_obj_t esp_socket_make_new_base() {
 
 // constructor esp_socket(family=AF_INET, type=SOCK_STREAM, proto=IPPROTO_TCP, fileno=None)
 // Arguments ignored as we do not support UDP (yet)
-STATIC mp_obj_t esp_socket_make_new(mp_obj_t type_in, mp_uint_t n_args,
+STATIC mp_obj_t esp_socket_make_new(const mp_obj_type_t *type_in, mp_uint_t n_args,
     mp_uint_t n_kw, const mp_obj_t *args) {
     mp_arg_check_num(n_args, n_kw, 0, 4, false);
 
@@ -151,13 +158,13 @@ STATIC void esp_socket_recv_callback(void *arg, char *pdata, unsigned short len)
         call_function_2_protected(s->cb_recv, s, mp_obj_new_bytes((byte *)pdata, len));
     } else {
         if (s->recvbuf == NULL) {
-            s->recvbuf = gc_alloc(len, false);
+            s->recvbuf = m_new(uint8_t, len);
             s->recvbuf_len = len;
             if (s->recvbuf != NULL) {
                 memcpy(s->recvbuf, pdata, len);
             }
         } else {
-            s->recvbuf = gc_realloc(s->recvbuf, s->recvbuf_len + len);
+            s->recvbuf = m_renew(uint8_t, s->recvbuf, s->recvbuf_len, s->recvbuf_len + len);
             if (s->recvbuf != NULL) {
                 memcpy(&s->recvbuf[s->recvbuf_len], pdata, len);
                 s->recvbuf_len += len;
@@ -323,14 +330,14 @@ STATIC mp_obj_t esp_socket_recv(mp_obj_t self_in, mp_obj_t len_in) {
     mp_uint_t mxl = mp_obj_get_int(len_in);
     if (mxl >= s->recvbuf_len) {
         mp_obj_t trt = mp_obj_new_bytes(s->recvbuf, s->recvbuf_len);
-        gc_free(s->recvbuf);
+        m_del(uint8_t, s->recvbuf, s->recvbuf_len);
         s->recvbuf = NULL;
         return trt;
     } else {
         mp_obj_t trt = mp_obj_new_bytes(s->recvbuf, mxl);
         memmove(s->recvbuf, &s->recvbuf[mxl], s->recvbuf_len - mxl);
+        s->recvbuf = m_renew(uint8_t, s->recvbuf, s->recvbuf_len, s->recvbuf_len - mxl);
         s->recvbuf_len -= mxl;
-        s->recvbuf = gc_realloc(s->recvbuf, s->recvbuf_len);
         return trt;
     }
 }
@@ -500,6 +507,7 @@ STATIC const mp_obj_type_t esp_socket_type = {
     .make_new = esp_socket_make_new,
     .locals_dict = (mp_obj_t)&esp_socket_locals_dict,
 };
+#endif
 
 #define MODESP_INCLUDE_CONSTANTS (1)
 
@@ -509,48 +517,15 @@ void error_check(bool status, const char *msg) {
     }
 }
 
-STATIC void esp_scan_cb(scaninfo *si, STATUS status) {
-    //printf("in pyb_scan_cb: %d, si=%p, si->pbss=%p\n", status, si, si->pbss);
-    struct bss_info *bs;
-    if (si->pbss) {
-        STAILQ_FOREACH(bs, si->pbss, next) {
-            mp_obj_tuple_t *t = mp_obj_new_tuple(6, NULL);
-            t->items[0] = mp_obj_new_bytes(bs->ssid, strlen((char*)bs->ssid));
-            t->items[1] = mp_obj_new_bytes(bs->bssid, sizeof(bs->bssid));
-            t->items[2] = MP_OBJ_NEW_SMALL_INT(bs->channel);
-            t->items[3] = MP_OBJ_NEW_SMALL_INT(bs->rssi);
-            t->items[4] = MP_OBJ_NEW_SMALL_INT(bs->authmode);
-            t->items[5] = MP_OBJ_NEW_SMALL_INT(bs->is_hidden);
-            call_function_1_protected(MP_STATE_PORT(scan_cb_obj), t);
-        }
+STATIC mp_obj_t esp_osdebug(mp_obj_t val) {
+    if (val == mp_const_none) {
+        uart_os_config(-1);
+    } else {
+        uart_os_config(mp_obj_get_int(val));
     }
-}
-
-STATIC mp_obj_t esp_scan(mp_obj_t cb_in) {
-    MP_STATE_PORT(scan_cb_obj) = cb_in;
-    if (wifi_get_opmode() == SOFTAP_MODE) {
-        nlr_raise(mp_obj_new_exception_msg(&mp_type_OSError, 
-            "Scan not supported in AP mode"));
-    }
-    wifi_station_scan(NULL, (scan_done_cb_t)esp_scan_cb);
     return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_1(esp_scan_obj, esp_scan);
-
-STATIC mp_obj_t esp_status() {
-    return MP_OBJ_NEW_SMALL_INT(wifi_station_get_connect_status());
-}
-STATIC MP_DEFINE_CONST_FUN_OBJ_0(esp_status_obj, esp_status);
-
-STATIC mp_obj_t esp_phy_mode(mp_uint_t n_args, const mp_obj_t *args) {
-    if (n_args == 0) {
-        return mp_obj_new_int(wifi_get_phy_mode());
-    } else {
-        wifi_set_phy_mode(mp_obj_get_int(args[0]));
-        return mp_const_none;
-    }
-}
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(esp_phy_mode_obj, 0, 1, esp_phy_mode);
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(esp_osdebug_obj, esp_osdebug);
 
 STATIC mp_obj_t esp_sleep_type(mp_uint_t n_args, const mp_obj_t *args) {
     if (n_args == 0) {
@@ -562,58 +537,156 @@ STATIC mp_obj_t esp_sleep_type(mp_uint_t n_args, const mp_obj_t *args) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(esp_sleep_type_obj, 0, 1, esp_sleep_type);
 
-STATIC mp_obj_t esp_mac(mp_uint_t n_args, const mp_obj_t *args) {
-    uint8_t mac[6];
-    if (n_args == 0) {
-        wifi_get_macaddr(STATION_IF, mac);
-        return mp_obj_new_bytes(mac, sizeof(mac));
-    } else {
-        mp_buffer_info_t bufinfo;
-        mp_get_buffer_raise(args[0], &bufinfo, MP_BUFFER_READ);
-
-        if (bufinfo.len != 6) {
-            nlr_raise(mp_obj_new_exception_msg(&mp_type_ValueError,
-                "invalid buffer length"));
-        }
-
-        wifi_set_macaddr(STATION_IF, bufinfo.buf);
-        return mp_const_none;
-    }
-}
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(esp_mac_obj, 0, 1, esp_mac);
-
 STATIC mp_obj_t esp_deepsleep(mp_uint_t n_args, const mp_obj_t *args) {
+    system_deep_sleep_set_option(n_args > 1 ? mp_obj_get_int(args[1]) : 0);
     system_deep_sleep(n_args > 0 ? mp_obj_get_int(args[0]) : 0);
     return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(esp_deepsleep_obj, 0, 1, esp_deepsleep);
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(esp_deepsleep_obj, 0, 2, esp_deepsleep);
 
 STATIC mp_obj_t esp_flash_id() {
     return mp_obj_new_int(spi_flash_get_id());
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(esp_flash_id_obj, esp_flash_id);
 
+STATIC mp_obj_t esp_flash_read(mp_obj_t offset_in, mp_obj_t len_or_buf_in) {
+    mp_int_t offset = mp_obj_get_int(offset_in);
+
+    mp_int_t len;
+    byte *buf;
+    bool alloc_buf = MP_OBJ_IS_INT(len_or_buf_in);
+
+    if (alloc_buf) {
+        len = mp_obj_get_int(len_or_buf_in);
+        buf = m_new(byte, len);
+    } else {
+        mp_buffer_info_t bufinfo;
+        mp_get_buffer_raise(len_or_buf_in, &bufinfo, MP_BUFFER_WRITE);
+        len = bufinfo.len;
+        buf = bufinfo.buf;
+    }
+
+    // We know that allocation will be 4-byte aligned for sure
+    SpiFlashOpResult res = spi_flash_read(offset, (uint32_t*)buf, len);
+    if (res == SPI_FLASH_RESULT_OK) {
+        if (alloc_buf) {
+            return mp_obj_new_bytes(buf, len);
+        }
+        return mp_const_none;
+    }
+    if (alloc_buf) {
+        m_del(byte, buf, len);
+    }
+    nlr_raise(mp_obj_new_exception_arg1(&mp_type_OSError, MP_OBJ_NEW_SMALL_INT(res == SPI_FLASH_RESULT_TIMEOUT ? ETIMEDOUT : EIO)));
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_2(esp_flash_read_obj, esp_flash_read);
+
+STATIC mp_obj_t esp_flash_write(mp_obj_t offset_in, const mp_obj_t buf_in) {
+    mp_int_t offset = mp_obj_get_int(offset_in);
+    mp_buffer_info_t bufinfo;
+    mp_get_buffer_raise(buf_in, &bufinfo, MP_BUFFER_READ);
+    if (bufinfo.len & 0x3) {
+        nlr_raise(mp_obj_new_exception_msg(&mp_type_ValueError, "len must be multiple of 4"));
+    }
+    SpiFlashOpResult res = spi_flash_write(offset, bufinfo.buf, bufinfo.len);
+    if (res == SPI_FLASH_RESULT_OK) {
+        return mp_const_none;
+    }
+    nlr_raise(mp_obj_new_exception_arg1(
+        &mp_type_OSError,
+        MP_OBJ_NEW_SMALL_INT(res == SPI_FLASH_RESULT_TIMEOUT ? ETIMEDOUT : EIO)));
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_2(esp_flash_write_obj, esp_flash_write);
+
+STATIC mp_obj_t esp_flash_erase(mp_obj_t sector_in) {
+    mp_int_t sector = mp_obj_get_int(sector_in);
+    SpiFlashOpResult res = spi_flash_erase_sector(sector);
+    if (res == SPI_FLASH_RESULT_OK) {
+        return mp_const_none;
+    }
+    nlr_raise(mp_obj_new_exception_arg1(
+        &mp_type_OSError,
+        MP_OBJ_NEW_SMALL_INT(res == SPI_FLASH_RESULT_TIMEOUT ? ETIMEDOUT : EIO)));
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(esp_flash_erase_obj, esp_flash_erase);
+
+STATIC mp_obj_t esp_flash_size(void) {
+    extern char flashchip;
+    // For SDK 1.5.2, either address has shifted and not mirrored in
+    // eagle.rom.addr.v6.ld, or extra initial member was added.
+    SpiFlashChip *flash = (SpiFlashChip*)(&flashchip + 4);
+    #if 0
+    printf("deviceId: %x\n", flash->deviceId);
+    printf("chip_size: %u\n", flash->chip_size);
+    printf("block_size: %u\n", flash->block_size);
+    printf("sector_size: %u\n", flash->sector_size);
+    printf("page_size: %u\n", flash->page_size);
+    printf("status_mask: %u\n", flash->status_mask);
+    #endif
+    return mp_obj_new_int_from_uint(flash->chip_size);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(esp_flash_size_obj, esp_flash_size);
+
+STATIC mp_obj_t esp_neopixel_write_(mp_obj_t pin, mp_obj_t buf, mp_obj_t is800k) {
+    mp_buffer_info_t bufinfo;
+    mp_get_buffer_raise(buf, &bufinfo, MP_BUFFER_READ);
+    esp_neopixel_write(mp_obj_get_pin_obj(pin)->phys_port,
+        (uint8_t*)bufinfo.buf, bufinfo.len, mp_obj_is_true(is800k));
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_3(esp_neopixel_write_obj, esp_neopixel_write_);
+
+STATIC mp_obj_t esp_freemem() {
+    return MP_OBJ_NEW_SMALL_INT(system_get_free_heap_size());
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(esp_freemem_obj, esp_freemem);
+
+STATIC mp_obj_t esp_meminfo() {
+    system_print_meminfo();
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(esp_meminfo_obj, esp_meminfo);
+
+STATIC mp_obj_t esp_malloc(mp_obj_t size_in) {
+    return MP_OBJ_NEW_SMALL_INT((mp_uint_t)os_malloc(mp_obj_get_int(size_in)));
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(esp_malloc_obj, esp_malloc);
+
+STATIC mp_obj_t esp_free(mp_obj_t addr_in) {
+    os_free((void*)mp_obj_get_int(addr_in));
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(esp_free_obj, esp_free);
+
+STATIC mp_obj_t esp_esf_free_bufs(mp_obj_t idx_in) {
+    return MP_OBJ_NEW_SMALL_INT(ets_esf_free_bufs(mp_obj_get_int(idx_in)));
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(esp_esf_free_bufs_obj, esp_esf_free_bufs);
+
 STATIC const mp_map_elem_t esp_module_globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR___name__), MP_OBJ_NEW_QSTR(MP_QSTR_esp) },
 
-    { MP_OBJ_NEW_QSTR(MP_QSTR_scan), (mp_obj_t)&esp_scan_obj },
-    { MP_OBJ_NEW_QSTR(MP_QSTR_status), (mp_obj_t)&esp_status_obj },
-    { MP_OBJ_NEW_QSTR(MP_QSTR_mac), (mp_obj_t)&esp_mac_obj },
-    { MP_OBJ_NEW_QSTR(MP_QSTR_getaddrinfo), (mp_obj_t)&esp_getaddrinfo_obj },
-    { MP_OBJ_NEW_QSTR(MP_QSTR_phy_mode), (mp_obj_t)&esp_phy_mode_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_osdebug), (mp_obj_t)&esp_osdebug_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_sleep_type), (mp_obj_t)&esp_sleep_type_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_deepsleep), (mp_obj_t)&esp_deepsleep_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_flash_id), (mp_obj_t)&esp_flash_id_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_flash_read), (mp_obj_t)&esp_flash_read_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_flash_write), (mp_obj_t)&esp_flash_write_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_flash_erase), (mp_obj_t)&esp_flash_erase_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_flash_size), (mp_obj_t)&esp_flash_size_obj },
+    #if MODESP_ESPCONN
     { MP_OBJ_NEW_QSTR(MP_QSTR_socket), (mp_obj_t)&esp_socket_type },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_getaddrinfo), (mp_obj_t)&esp_getaddrinfo_obj },
+    #endif
+    { MP_OBJ_NEW_QSTR(MP_QSTR_neopixel_write), (mp_obj_t)&esp_neopixel_write_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_freemem), (mp_obj_t)&esp_freemem_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_meminfo), (mp_obj_t)&esp_meminfo_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_info), (mp_obj_t)&pyb_info_obj }, // TODO delete/rename/move elsewhere
+    { MP_OBJ_NEW_QSTR(MP_QSTR_malloc), (mp_obj_t)&esp_malloc_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_free), (mp_obj_t)&esp_free_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_esf_free_bufs), (mp_obj_t)&esp_esf_free_bufs_obj },
 
 #if MODESP_INCLUDE_CONSTANTS
-    { MP_OBJ_NEW_QSTR(MP_QSTR_MODE_11B),
-        MP_OBJ_NEW_SMALL_INT(PHY_MODE_11B) },
-    { MP_OBJ_NEW_QSTR(MP_QSTR_MODE_11G),
-        MP_OBJ_NEW_SMALL_INT(PHY_MODE_11G) },
-    { MP_OBJ_NEW_QSTR(MP_QSTR_MODE_11N),
-        MP_OBJ_NEW_SMALL_INT(PHY_MODE_11N) },
-
     { MP_OBJ_NEW_QSTR(MP_QSTR_SLEEP_NONE),
         MP_OBJ_NEW_SMALL_INT(NONE_SLEEP_T) },
     { MP_OBJ_NEW_QSTR(MP_QSTR_SLEEP_LIGHT),
@@ -621,18 +694,12 @@ STATIC const mp_map_elem_t esp_module_globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_SLEEP_MODEM),
         MP_OBJ_NEW_SMALL_INT(MODEM_SLEEP_T) },
 
-    { MP_OBJ_NEW_QSTR(MP_QSTR_STAT_IDLE),
-        MP_OBJ_NEW_SMALL_INT(STATION_IDLE)},
-    { MP_OBJ_NEW_QSTR(MP_QSTR_STAT_CONNECTING),
-        MP_OBJ_NEW_SMALL_INT(STATION_CONNECTING)},
-    { MP_OBJ_NEW_QSTR(MP_QSTR_STAT_WRONG_PASSWORD),
-        MP_OBJ_NEW_SMALL_INT(STATION_WRONG_PASSWORD)},
-    { MP_OBJ_NEW_QSTR(MP_QSTR_STAT_NO_AP_FOUND),
-        MP_OBJ_NEW_SMALL_INT(STATION_NO_AP_FOUND)},
-    { MP_OBJ_NEW_QSTR(MP_QSTR_STAT_CONNECT_FAIL),
-        MP_OBJ_NEW_SMALL_INT(STATION_CONNECT_FAIL)},
-    { MP_OBJ_NEW_QSTR(MP_QSTR_STAT_GOT_IP),
-        MP_OBJ_NEW_SMALL_INT(STATION_GOT_IP)},
+    { MP_OBJ_NEW_QSTR(MP_QSTR_STA_MODE),
+        MP_OBJ_NEW_SMALL_INT(STATION_MODE)},
+    { MP_OBJ_NEW_QSTR(MP_QSTR_AP_MODE),
+        MP_OBJ_NEW_SMALL_INT(SOFTAP_MODE)},
+    { MP_OBJ_NEW_QSTR(MP_QSTR_STA_AP_MODE),
+        MP_OBJ_NEW_SMALL_INT(STATIONAP_MODE)},
 #endif
 };
 

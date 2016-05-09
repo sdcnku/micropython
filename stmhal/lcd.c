@@ -26,7 +26,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <stm32f4xx_hal.h>
+#include STM32_HAL_H
 
 #include "py/nlr.h"
 #include "py/runtime.h"
@@ -192,7 +192,7 @@ STATIC void lcd_write_strn(pyb_lcd_obj_t *lcd, const char *str, unsigned int len
 ///
 /// Construct an LCD object in the given skin position.  `skin_position` can be 'X' or 'Y', and
 /// should match the position where the LCD pyskin is plugged in.
-STATIC mp_obj_t pyb_lcd_make_new(mp_obj_t type_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
+STATIC mp_obj_t pyb_lcd_make_new(const mp_obj_type_t *type, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
     // check arguments
     mp_arg_check_num(n_args, n_kw, 1, 1, false);
 

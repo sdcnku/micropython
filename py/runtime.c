@@ -61,7 +61,6 @@ const mp_obj_module_t mp_module___main__ = {
 
 void mp_init(void) {
     qstr_init();
-    mp_stack_ctrl_init();
 
     // no pending exceptions to start with
     MP_STATE_VM(mp_pending_exception) = MP_OBJ_NULL;
@@ -83,7 +82,7 @@ void mp_init(void) {
 
     // initialise the __main__ module
     mp_obj_dict_init(&MP_STATE_VM(dict_main), 1);
-    mp_obj_dict_store(&MP_STATE_VM(dict_main), MP_OBJ_NEW_QSTR(MP_QSTR___name__), MP_OBJ_NEW_QSTR(MP_QSTR___main__));
+    mp_obj_dict_store(MP_OBJ_FROM_PTR(&MP_STATE_VM(dict_main)), MP_OBJ_NEW_QSTR(MP_QSTR___name__), MP_OBJ_NEW_QSTR(MP_QSTR___main__));
 
     // locals = globals for outer module (see Objects/frameobject.c/PyFrame_New())
     MP_STATE_CTX(dict_locals) = MP_STATE_CTX(dict_globals) = &MP_STATE_VM(dict_main);
@@ -102,18 +101,6 @@ void mp_deinit(void) {
 #ifdef MICROPY_PORT_INIT_FUNC
     MICROPY_PORT_DEINIT_FUNC;
 #endif
-}
-
-mp_obj_t mp_load_const_str(qstr qst) {
-    DEBUG_OP_printf("load '%s'\n", qstr_str(qst));
-    return MP_OBJ_NEW_QSTR(qst);
-}
-
-mp_obj_t mp_load_const_bytes(qstr qst) {
-    DEBUG_OP_printf("load b'%s'\n", qstr_str(qst));
-    mp_uint_t len;
-    const byte *data = qstr_data(qst, &len);
-    return mp_obj_new_bytes(data, len);
 }
 
 mp_obj_t mp_load_name(qstr qst) {
@@ -168,39 +155,42 @@ mp_obj_t mp_load_build_class(void) {
         }
     }
     #endif
-    return (mp_obj_t)&mp_builtin___build_class___obj;
+    return MP_OBJ_FROM_PTR(&mp_builtin___build_class___obj);
 }
 
 void mp_store_name(qstr qst, mp_obj_t obj) {
     DEBUG_OP_printf("store name %s <- %p\n", qstr_str(qst), obj);
-    mp_obj_dict_store(MP_STATE_CTX(dict_locals), MP_OBJ_NEW_QSTR(qst), obj);
+    mp_obj_dict_store(MP_OBJ_FROM_PTR(MP_STATE_CTX(dict_locals)), MP_OBJ_NEW_QSTR(qst), obj);
 }
 
 void mp_delete_name(qstr qst) {
     DEBUG_OP_printf("delete name %s\n", qstr_str(qst));
     // TODO convert KeyError to NameError if qst not found
-    mp_obj_dict_delete(MP_STATE_CTX(dict_locals), MP_OBJ_NEW_QSTR(qst));
+    mp_obj_dict_delete(MP_OBJ_FROM_PTR(MP_STATE_CTX(dict_locals)), MP_OBJ_NEW_QSTR(qst));
 }
 
 void mp_store_global(qstr qst, mp_obj_t obj) {
     DEBUG_OP_printf("store global %s <- %p\n", qstr_str(qst), obj);
-    mp_obj_dict_store(MP_STATE_CTX(dict_globals), MP_OBJ_NEW_QSTR(qst), obj);
+    mp_obj_dict_store(MP_OBJ_FROM_PTR(MP_STATE_CTX(dict_globals)), MP_OBJ_NEW_QSTR(qst), obj);
 }
 
 void mp_delete_global(qstr qst) {
     DEBUG_OP_printf("delete global %s\n", qstr_str(qst));
     // TODO convert KeyError to NameError if qst not found
-    mp_obj_dict_delete(MP_STATE_CTX(dict_globals), MP_OBJ_NEW_QSTR(qst));
+    mp_obj_dict_delete(MP_OBJ_FROM_PTR(MP_STATE_CTX(dict_globals)), MP_OBJ_NEW_QSTR(qst));
 }
 
 mp_obj_t mp_unary_op(mp_uint_t op, mp_obj_t arg) {
     DEBUG_OP_printf("unary " UINT_FMT " %p\n", op, arg);
 
-    if (MP_OBJ_IS_SMALL_INT(arg)) {
+    if (op == MP_UNARY_OP_NOT) {
+        // "not x" is the negative of whether "x" is true per Python semantics
+        return mp_obj_new_bool(mp_obj_is_true(arg) == 0);
+    } else if (MP_OBJ_IS_SMALL_INT(arg)) {
         mp_int_t val = MP_OBJ_SMALL_INT_VALUE(arg);
         switch (op) {
             case MP_UNARY_OP_BOOL:
-                return MP_BOOL(val != 0);
+                return mp_obj_new_bool(val != 0);
             case MP_UNARY_OP_HASH:
                 return arg;
             case MP_UNARY_OP_POSITIVE:
@@ -255,7 +245,7 @@ mp_obj_t mp_binary_op(mp_uint_t op, mp_obj_t lhs, mp_obj_t rhs) {
 
     // deal with is
     if (op == MP_BINARY_OP_IS) {
-        return MP_BOOL(lhs == rhs);
+        return mp_obj_new_bool(lhs == rhs);
     }
 
     // deal with == and != for all types
@@ -285,7 +275,7 @@ mp_obj_t mp_binary_op(mp_uint_t op, mp_obj_t lhs, mp_obj_t rhs) {
                 return mp_const_false;
             }
         } else if (MP_OBJ_IS_TYPE(rhs, &mp_type_tuple)) {
-            mp_obj_tuple_t *tuple = rhs;
+            mp_obj_tuple_t *tuple = MP_OBJ_TO_PTR(rhs);
             for (mp_uint_t i = 0; i < tuple->len; i++) {
                 rhs = tuple->items[i];
                 if (!mp_obj_is_exception_type(rhs)) {
@@ -401,6 +391,9 @@ mp_obj_t mp_binary_op(mp_uint_t op, mp_obj_t lhs, mp_obj_t rhs) {
 
                 case MP_BINARY_OP_MODULO:
                 case MP_BINARY_OP_INPLACE_MODULO: {
+                    if (rhs_val == 0) {
+                        goto zero_division;
+                    }
                     lhs_val = mp_small_int_modulo(lhs_val, rhs_val);
                     break;
                 }
@@ -446,16 +439,16 @@ mp_obj_t mp_binary_op(mp_uint_t op, mp_obj_t lhs, mp_obj_t rhs) {
                         goto zero_division;
                     }
                     // to reduce stack usage we don't pass a temp array of the 2 items
-                    mp_obj_tuple_t *tuple = mp_obj_new_tuple(2, NULL);
+                    mp_obj_tuple_t *tuple = MP_OBJ_TO_PTR(mp_obj_new_tuple(2, NULL));
                     tuple->items[0] = MP_OBJ_NEW_SMALL_INT(mp_small_int_floor_divide(lhs_val, rhs_val));
                     tuple->items[1] = MP_OBJ_NEW_SMALL_INT(mp_small_int_modulo(lhs_val, rhs_val));
-                    return tuple;
+                    return MP_OBJ_FROM_PTR(tuple);
                 }
 
-                case MP_BINARY_OP_LESS: return MP_BOOL(lhs_val < rhs_val); break;
-                case MP_BINARY_OP_MORE: return MP_BOOL(lhs_val > rhs_val); break;
-                case MP_BINARY_OP_LESS_EQUAL: return MP_BOOL(lhs_val <= rhs_val); break;
-                case MP_BINARY_OP_MORE_EQUAL: return MP_BOOL(lhs_val >= rhs_val); break;
+                case MP_BINARY_OP_LESS: return mp_obj_new_bool(lhs_val < rhs_val); break;
+                case MP_BINARY_OP_MORE: return mp_obj_new_bool(lhs_val > rhs_val); break;
+                case MP_BINARY_OP_LESS_EQUAL: return mp_obj_new_bool(lhs_val <= rhs_val); break;
+                case MP_BINARY_OP_MORE_EQUAL: return mp_obj_new_bool(lhs_val >= rhs_val); break;
 
                 default:
                     goto unsupported_op;
@@ -467,7 +460,7 @@ mp_obj_t mp_binary_op(mp_uint_t op, mp_obj_t lhs, mp_obj_t rhs) {
                 return mp_obj_new_int(lhs_val);
             }
 #if MICROPY_PY_BUILTINS_FLOAT
-        } else if (MP_OBJ_IS_TYPE(rhs, &mp_type_float)) {
+        } else if (mp_obj_is_float(rhs)) {
             mp_obj_t res = mp_obj_float_binary_op(op, lhs_val, rhs);
             if (res == MP_OBJ_NULL) {
                 goto unsupported_op;
@@ -591,7 +584,7 @@ mp_obj_t mp_call_function_n_kw(mp_obj_t fun_in, mp_uint_t n_args, mp_uint_t n_kw
 // if n_args==0 and n_kw==0 then there are only fun and self/NULL
 mp_obj_t mp_call_method_n_kw(mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
     DEBUG_OP_printf("call method (fun=%p, self=%p, n_args=" UINT_FMT ", n_kw=" UINT_FMT ", args=%p)\n", args[0], args[1], n_args, n_kw, args);
-    int adjust = (args[1] == NULL) ? 0 : 1;
+    int adjust = (args[1] == MP_OBJ_NULL) ? 0 : 1;
     return mp_call_function_n_kw(args[0], n_args + adjust, n_kw, args + 2 - adjust);
 }
 
@@ -680,6 +673,7 @@ void mp_call_prepare_args_n_kw_var(bool have_self, mp_uint_t n_args_n_kw, const 
 
         // copy the fixed position args
         mp_seq_copy(args2 + args2_len, args, n_args, mp_obj_t);
+        args2_len += n_args;
 
         // extract the variable position args from the iterator
         mp_obj_t iterable = mp_getiter(pos_seq);
@@ -710,7 +704,12 @@ void mp_call_prepare_args_n_kw_var(bool have_self, mp_uint_t n_args_n_kw, const 
         assert(args2_len + 2 * map->used <= args2_alloc); // should have enough, since kw_dict_len is in this case hinted correctly above
         for (mp_uint_t i = 0; i < map->alloc; i++) {
             if (MP_MAP_SLOT_IS_FILLED(map, i)) {
-                args2[args2_len++] = map->table[i].key;
+                // the key must be a qstr, so intern it if it's a string
+                mp_obj_t key = map->table[i].key;
+                if (MP_OBJ_IS_TYPE(key, &mp_type_str)) {
+                    key = mp_obj_str_intern(key);
+                }
+                args2[args2_len++] = key;
                 args2[args2_len++] = map->table[i].value;
             }
         }
@@ -732,7 +731,12 @@ void mp_call_prepare_args_n_kw_var(bool have_self, mp_uint_t n_args_n_kw, const 
             }
             mp_obj_t *items;
             mp_obj_get_array_fixed_n(item, 2, &items);
-            args2[args2_len++] = items[0];
+            // the key must be a qstr, so intern it if it's a string
+            mp_obj_t key = items[0];
+            if (MP_OBJ_IS_TYPE(key, &mp_type_str)) {
+                key = mp_obj_str_intern(key);
+            }
+            args2[args2_len++] = key;
             args2[args2_len++] = items[1];
         }
     }
@@ -794,7 +798,7 @@ too_short:
             "wrong number of values to unpack"));
     } else {
         nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_ValueError,
-            "need more than %d values to unpack", seq_len));
+            "need more than %d values to unpack", (int)seq_len));
     }
 too_long:
     if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
@@ -802,7 +806,7 @@ too_long:
             "wrong number of values to unpack"));
     } else {
         nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_ValueError,
-            "too many values to unpack (expected %d)", num));
+            "too many values to unpack (expected %d)", (int)num));
     }
 }
 
@@ -848,18 +852,18 @@ void mp_unpack_ex(mp_obj_t seq_in, mp_uint_t num_in, mp_obj_t *items) {
             }
             items[num_left + num_right + 1 - 1 - seq_len] = item;
         }
-        mp_obj_list_t *rest = mp_obj_new_list(0, NULL);
+        mp_obj_list_t *rest = MP_OBJ_TO_PTR(mp_obj_new_list(0, NULL));
         while ((item = mp_iternext(iterable)) != MP_OBJ_STOP_ITERATION) {
-            mp_obj_list_append(rest, item);
+            mp_obj_list_append(MP_OBJ_FROM_PTR(rest), item);
         }
         if (rest->len < num_right) {
             goto too_short;
         }
-        items[num_right] = rest;
+        items[num_right] = MP_OBJ_FROM_PTR(rest);
         for (mp_uint_t i = 0; i < num_right; i++) {
             items[num_right - 1 - i] = rest->items[rest->len - num_right + i];
         }
-        mp_obj_list_set_len(rest, rest->len - num_right);
+        mp_obj_list_set_len(MP_OBJ_FROM_PTR(rest), rest->len - num_right);
     }
     return;
 
@@ -869,7 +873,7 @@ too_short:
             "wrong number of values to unpack"));
     } else {
         nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_ValueError,
-            "need more than %d values to unpack", seq_len));
+            "need more than %d values to unpack", (int)seq_len));
     }
 }
 
@@ -887,6 +891,51 @@ mp_obj_t mp_load_attr(mp_obj_t base, qstr attr) {
     }
 }
 
+#if MICROPY_BUILTIN_METHOD_CHECK_SELF_ARG
+
+// The following "checked fun" type is local to the mp_convert_member_lookup
+// function, and serves to check that the first argument to a builtin function
+// has the correct type.
+
+typedef struct _mp_obj_checked_fun_t {
+    mp_obj_base_t base;
+    const mp_obj_type_t *type;
+    mp_obj_t fun;
+} mp_obj_checked_fun_t;
+
+STATIC mp_obj_t checked_fun_call(mp_obj_t self_in, size_t n_args, size_t n_kw, const mp_obj_t *args) {
+    mp_obj_checked_fun_t *self = MP_OBJ_TO_PTR(self_in);
+    if (n_args > 0) {
+        const mp_obj_type_t *arg0_type = mp_obj_get_type(args[0]);
+        if (arg0_type != self->type) {
+            if (MICROPY_ERROR_REPORTING != MICROPY_ERROR_REPORTING_DETAILED) {
+                nlr_raise(mp_obj_new_exception_msg(&mp_type_TypeError,
+                    "argument has wrong type"));
+            } else {
+                nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_TypeError,
+                    "argument should be a '%q' not a '%q'", self->type->name, arg0_type->name));
+            }
+        }
+    }
+    return mp_call_function_n_kw(self->fun, n_args, n_kw, args);
+}
+
+STATIC const mp_obj_type_t mp_type_checked_fun = {
+    { &mp_type_type },
+    .name = MP_QSTR_function,
+    .call = checked_fun_call,
+};
+
+STATIC mp_obj_t mp_obj_new_checked_fun(const mp_obj_type_t *type, mp_obj_t fun) {
+    mp_obj_checked_fun_t *o = m_new_obj(mp_obj_checked_fun_t);
+    o->base.type = &mp_type_checked_fun;
+    o->type = type;
+    o->fun = fun;
+    return MP_OBJ_FROM_PTR(o);
+}
+
+#endif // MICROPY_BUILTIN_METHOD_CHECK_SELF_ARG
+
 // Given a member that was extracted from an instance, convert it correctly
 // and put the result in the dest[] array for a possible method call.
 // Conversion means dealing with static/class methods, callables, and values.
@@ -894,18 +943,36 @@ mp_obj_t mp_load_attr(mp_obj_t base, qstr attr) {
 void mp_convert_member_lookup(mp_obj_t self, const mp_obj_type_t *type, mp_obj_t member, mp_obj_t *dest) {
     if (MP_OBJ_IS_TYPE(member, &mp_type_staticmethod)) {
         // return just the function
-        dest[0] = ((mp_obj_static_class_method_t*)member)->fun;
+        dest[0] = ((mp_obj_static_class_method_t*)MP_OBJ_TO_PTR(member))->fun;
     } else if (MP_OBJ_IS_TYPE(member, &mp_type_classmethod)) {
         // return a bound method, with self being the type of this object
-        dest[0] = ((mp_obj_static_class_method_t*)member)->fun;
-        dest[1] = (mp_obj_t)type;
+        // this type should be the type of the original instance, not the base
+        // type (which is what is passed in the 'type' argument to this function)
+        if (self != MP_OBJ_NULL) {
+            type = mp_obj_get_type(self);
+        }
+        dest[0] = ((mp_obj_static_class_method_t*)MP_OBJ_TO_PTR(member))->fun;
+        dest[1] = MP_OBJ_FROM_PTR(type);
     } else if (MP_OBJ_IS_TYPE(member, &mp_type_type)) {
         // Don't try to bind types (even though they're callable)
         dest[0] = member;
-    } else if (mp_obj_is_callable(member)) {
-        // return a bound method, with self being this object
-        dest[0] = member;
-        dest[1] = self;
+    } else if (MP_OBJ_IS_FUN(member)
+        || (MP_OBJ_IS_OBJ(member)
+            && (((mp_obj_base_t*)MP_OBJ_TO_PTR(member))->type->name == MP_QSTR_closure
+                || ((mp_obj_base_t*)MP_OBJ_TO_PTR(member))->type->name == MP_QSTR_generator))) {
+        // only functions, closures and generators objects can be bound to self
+        #if MICROPY_BUILTIN_METHOD_CHECK_SELF_ARG
+        if (self == MP_OBJ_NULL && mp_obj_get_type(member) == &mp_type_fun_builtin) {
+            // we extracted a builtin method without a first argument, so we must
+            // wrap this function in a type checker
+            dest[0] = mp_obj_new_checked_fun(type, member);
+        } else
+        #endif
+        {
+            // return a bound method, with self being this object
+            dest[0] = member;
+            dest[1] = self;
+        }
     } else {
         // class member is a value, so just return that value
         dest[0] = member;
@@ -928,11 +995,11 @@ void mp_load_method_maybe(mp_obj_t obj, qstr attr, mp_obj_t *dest) {
 #if MICROPY_CPYTHON_COMPAT
     } else if (attr == MP_QSTR___class__) {
         // a.__class__ is equivalent to type(a)
-        dest[0] = type;
+        dest[0] = MP_OBJ_FROM_PTR(type);
 #endif
 
     } else if (attr == MP_QSTR___next__ && type->iternext != NULL) {
-        dest[0] = (mp_obj_t)&mp_builtin_next_obj;
+        dest[0] = MP_OBJ_FROM_PTR(&mp_builtin_next_obj);
         dest[1] = obj;
 
     } else if (type->attr != NULL) {
@@ -942,8 +1009,8 @@ void mp_load_method_maybe(mp_obj_t obj, qstr attr, mp_obj_t *dest) {
     } else if (type->locals_dict != NULL) {
         // generic method lookup
         // this is a lookup in the object (ie not class or type)
-        assert(MP_OBJ_IS_TYPE(type->locals_dict, &mp_type_dict)); // Micro Python restriction, for now
-        mp_map_t *locals_map = mp_obj_dict_get_map(type->locals_dict);
+        assert(type->locals_dict->base.type == &mp_type_dict); // Micro Python restriction, for now
+        mp_map_t *locals_map = &type->locals_dict->map;
         mp_map_elem_t *elem = mp_map_lookup(locals_map, MP_OBJ_NEW_QSTR(attr), MP_MAP_LOOKUP);
         if (elem != NULL) {
             mp_convert_member_lookup(obj, type, elem->value, dest);
@@ -966,7 +1033,7 @@ void mp_load_method(mp_obj_t base, qstr attr, mp_obj_t *dest) {
             if (MP_OBJ_IS_TYPE(base, &mp_type_type)) {
                 nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_AttributeError,
                     "type object '%q' has no attribute '%q'",
-                    ((mp_obj_type_t*)base)->name, attr));
+                    ((mp_obj_type_t*)MP_OBJ_TO_PTR(base))->name, attr));
             } else {
                 nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_AttributeError,
                     "'%s' object has no attribute '%q'",
@@ -1071,10 +1138,10 @@ mp_obj_t mp_iternext(mp_obj_t o_in) {
                 nlr_pop();
                 return ret;
             } else {
-                if (mp_obj_is_subclass_fast(mp_obj_get_type(nlr.ret_val), &mp_type_StopIteration)) {
+                if (mp_obj_is_subclass_fast(MP_OBJ_FROM_PTR(((mp_obj_base_t*)nlr.ret_val)->type), MP_OBJ_FROM_PTR(&mp_type_StopIteration))) {
                     return MP_OBJ_STOP_ITERATION;
                 } else {
-                    nlr_raise(nlr.ret_val);
+                    nlr_jump(nlr.ret_val);
                 }
             }
         } else {
@@ -1129,7 +1196,7 @@ mp_vm_return_kind_t mp_resume(mp_obj_t self_in, mp_obj_t send_value, mp_obj_t th
     }
 
     if (throw_value != MP_OBJ_NULL) {
-        if (mp_obj_is_subclass_fast(mp_obj_get_type(throw_value), &mp_type_GeneratorExit)) {
+        if (mp_obj_is_subclass_fast(MP_OBJ_FROM_PTR(mp_obj_get_type(throw_value)), MP_OBJ_FROM_PTR(&mp_type_GeneratorExit))) {
             mp_load_method_maybe(self_in, MP_QSTR_close, dest);
             if (dest[0] != MP_OBJ_NULL) {
                 // TODO: Exceptions raised in close() are not propagated,
@@ -1177,7 +1244,7 @@ mp_obj_t mp_make_raise_obj(mp_obj_t o) {
 }
 
 mp_obj_t mp_import_name(qstr name, mp_obj_t fromlist, mp_obj_t level) {
-    DEBUG_printf("import name %s\n", qstr_str(name));
+    DEBUG_printf("import name '%s' level=%d\n", qstr_str(name), MP_OBJ_SMALL_INT_VALUE(level));
 
     // build args array
     mp_obj_t args[5];
@@ -1239,7 +1306,7 @@ void mp_import_all(mp_obj_t module) {
     DEBUG_printf("import all %p\n", module);
 
     // TODO: Support __all__
-    mp_map_t *map = mp_obj_dict_get_map(mp_obj_module_get_globals(module));
+    mp_map_t *map = mp_obj_dict_get_map(MP_OBJ_FROM_PTR(mp_obj_module_get_globals(module)));
     for (mp_uint_t i = 0; i < map->alloc; i++) {
         if (MP_MAP_SLOT_IS_FILLED(map, i)) {
             qstr name = MP_OBJ_QSTR_VALUE(map->table[i].key);
@@ -1249,6 +1316,8 @@ void mp_import_all(mp_obj_t module) {
         }
     }
 }
+
+#if MICROPY_ENABLE_COMPILER
 
 // this is implemented in this file so it can optimise access to locals/globals
 mp_obj_t mp_parse_compile_execute(mp_lexer_t *lex, mp_parse_input_kind_t parse_input_kind, mp_obj_dict_t *globals, mp_obj_dict_t *locals) {
@@ -1263,8 +1332,8 @@ mp_obj_t mp_parse_compile_execute(mp_lexer_t *lex, mp_parse_input_kind_t parse_i
     nlr_buf_t nlr;
     if (nlr_push(&nlr) == 0) {
         qstr source_name = lex->source_name;
-        mp_parse_node_t pn = mp_parse(lex, parse_input_kind);
-        mp_obj_t module_fun = mp_compile(pn, source_name, MP_EMIT_OPT_NONE, false);
+        mp_parse_tree_t parse_tree = mp_parse(lex, parse_input_kind);
+        mp_obj_t module_fun = mp_compile(&parse_tree, source_name, MP_EMIT_OPT_NONE, false);
 
         mp_obj_t ret;
         if (MICROPY_PY_BUILTINS_COMPILE && globals == NULL) {
@@ -1284,12 +1353,14 @@ mp_obj_t mp_parse_compile_execute(mp_lexer_t *lex, mp_parse_input_kind_t parse_i
         // exception; restore context and re-raise same exception
         mp_globals_set(old_globals);
         mp_locals_set(old_locals);
-        nlr_raise(nlr.ret_val);
+        nlr_jump(nlr.ret_val);
     }
 }
 
+#endif // MICROPY_ENABLE_COMPILER
+
 void *m_malloc_fail(size_t num_bytes) {
-    DEBUG_printf("memory allocation failed, allocating " UINT_FMT " bytes\n", num_bytes);
+    DEBUG_printf("memory allocation failed, allocating %u bytes\n", (uint)num_bytes);
     if (0) {
         // dummy
     #if MICROPY_ENABLE_GC
@@ -1299,7 +1370,7 @@ void *m_malloc_fail(size_t num_bytes) {
     #endif
     } else {
         nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_MemoryError,
-                                                "memory allocation failed, allocating " UINT_FMT " bytes", num_bytes));
+            "memory allocation failed, allocating %u bytes", (uint)num_bytes));
     }
 }
 

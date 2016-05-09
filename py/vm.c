@@ -38,7 +38,8 @@
 #include "py/bc.h"
 
 #if 0
-#define TRACE(ip) printf("sp=" INT_FMT " ", sp - code_state->sp); mp_bytecode_print2(ip, 1);
+//#define TRACE(ip) printf("sp=" INT_FMT " ", sp - code_state->sp); mp_bytecode_print2(ip, 1);
+#define TRACE(ip) printf("sp=%d ", sp - code_state->sp); mp_bytecode_print2(ip, 1);
 #else
 #define TRACE(ip)
 #endif
@@ -65,21 +66,43 @@ typedef enum {
     } while ((*ip++ & 0x80) != 0)
 #define DECODE_ULABEL mp_uint_t ulab = (ip[0] | (ip[1] << 8)); ip += 2
 #define DECODE_SLABEL mp_uint_t slab = (ip[0] | (ip[1] << 8)) - 0x8000; ip += 2
+
+#if MICROPY_PERSISTENT_CODE
+
+#define DECODE_QSTR \
+    qstr qst = ip[0] | ip[1] << 8; \
+    ip += 2;
+#define DECODE_PTR \
+    DECODE_UINT; \
+    void *ptr = (void*)(uintptr_t)code_state->const_table[unum]
+#define DECODE_OBJ \
+    DECODE_UINT; \
+    mp_obj_t obj = (mp_obj_t)code_state->const_table[unum]
+
+#else
+
 #define DECODE_QSTR qstr qst = 0; \
     do { \
         qst = (qst << 7) + (*ip & 0x7f); \
     } while ((*ip++ & 0x80) != 0)
 #define DECODE_PTR \
-    ip = (byte*)(((mp_uint_t)ip + sizeof(mp_uint_t) - 1) & (~(sizeof(mp_uint_t) - 1))); /* align ip */ \
-    void *ptr = (void*)*(mp_uint_t*)ip; \
-    ip += sizeof(mp_uint_t)
+    ip = (byte*)MP_ALIGN(ip, sizeof(void*)); \
+    void *ptr = *(void**)ip; \
+    ip += sizeof(void*)
+#define DECODE_OBJ \
+    ip = (byte*)MP_ALIGN(ip, sizeof(mp_obj_t)); \
+    mp_obj_t obj = *(mp_obj_t*)ip; \
+    ip += sizeof(mp_obj_t)
+
+#endif
+
 #define PUSH(val) *++sp = (val)
 #define POP() (*sp--)
 #define TOP() (*sp)
 #define SET_TOP(val) *sp = (val)
 
 #if MICROPY_PY_SYS_EXC_INFO
-#define CLEAR_SYS_EXC_INFO() MP_STATE_VM(cur_exception) = MP_OBJ_NULL;
+#define CLEAR_SYS_EXC_INFO() MP_STATE_VM(cur_exception) = NULL;
 #else
 #define CLEAR_SYS_EXC_INFO()
 #endif
@@ -89,7 +112,7 @@ typedef enum {
     ++exc_sp; \
     exc_sp->handler = ip + ulab; \
     exc_sp->val_sp = MP_TAGPTR_MAKE(sp, ((with_or_finally) << 1) | currently_in_except_block); \
-    exc_sp->prev_exc = MP_OBJ_NULL; \
+    exc_sp->prev_exc = NULL; \
     currently_in_except_block = 0; /* in a try block now */ \
 } while (0)
 
@@ -134,7 +157,7 @@ mp_vm_return_kind_t mp_execute_bytecode(mp_code_state *code_state, volatile mp_o
     // sees that it's possible for us to jump from the dispatch loop to the exception
     // handler.  Without this, the code may have a different stack layout in the dispatch
     // loop and the exception handler, leading to very obscure bugs.
-    #define RAISE(o) do { nlr_pop(); nlr.ret_val = o; goto exception_handler; } while (0)
+    #define RAISE(o) do { nlr_pop(); nlr.ret_val = MP_OBJ_TO_PTR(o); goto exception_handler; } while (0)
 
 #if MICROPY_STACKLESS
 run_code_state: ;
@@ -156,6 +179,7 @@ outer_dispatch_loop:
             const byte *ip = code_state->ip;
             mp_obj_t *sp = code_state->sp;
             mp_obj_t obj_shared;
+            MICROPY_VM_HOOK_INIT
 
             // If we have exception to inject, now that we finish setting up
             // execution context, raise it. This works as if RAISE_VARARGS
@@ -205,21 +229,15 @@ dispatch_loop:
                     DISPATCH();
                 }
 
-                ENTRY(MP_BC_LOAD_CONST_BYTES): {
-                    DECODE_QSTR;
-                    PUSH(mp_load_const_bytes(qst));
-                    DISPATCH();
-                }
-
                 ENTRY(MP_BC_LOAD_CONST_STRING): {
                     DECODE_QSTR;
-                    PUSH(mp_load_const_str(qst));
+                    PUSH(MP_OBJ_NEW_QSTR(qst));
                     DISPATCH();
                 }
 
                 ENTRY(MP_BC_LOAD_CONST_OBJ): {
-                    DECODE_PTR;
-                    PUSH(ptr);
+                    DECODE_OBJ;
+                    PUSH(obj);
                     DISPATCH();
                 }
 
@@ -319,7 +337,7 @@ dispatch_loop:
                     DECODE_QSTR;
                     mp_obj_t top = TOP();
                     if (mp_obj_get_type(top)->attr == mp_obj_instance_attr) {
-                        mp_obj_instance_t *self = top;
+                        mp_obj_instance_t *self = MP_OBJ_TO_PTR(top);
                         mp_uint_t x = *ip;
                         mp_obj_t key = MP_OBJ_NEW_QSTR(qst);
                         mp_map_elem_t *elem;
@@ -409,7 +427,7 @@ dispatch_loop:
                     DECODE_QSTR;
                     mp_obj_t top = TOP();
                     if (mp_obj_get_type(top)->attr == mp_obj_instance_attr && sp[-1] != MP_OBJ_NULL) {
-                        mp_obj_instance_t *self = top;
+                        mp_obj_instance_t *self = MP_OBJ_TO_PTR(top);
                         mp_uint_t x = *ip;
                         mp_obj_t key = MP_OBJ_NEW_QSTR(qst);
                         mp_map_elem_t *elem;
@@ -635,27 +653,31 @@ dispatch_loop:
                 ENTRY(MP_BC_UNWIND_JUMP): {
                     MARK_EXC_IP_SELECTIVE();
                     DECODE_SLABEL;
-                    PUSH((void*)(ip + slab)); // push destination ip for jump
-                    PUSH((void*)(mp_uint_t)(*ip)); // push number of exception handlers to unwind (0x80 bit set if we also need to pop stack)
+                    PUSH((mp_obj_t)(mp_uint_t)(uintptr_t)(ip + slab)); // push destination ip for jump
+                    PUSH((mp_obj_t)(mp_uint_t)(*ip)); // push number of exception handlers to unwind (0x80 bit set if we also need to pop stack)
 unwind_jump:;
                     mp_uint_t unum = (mp_uint_t)POP(); // get number of exception handlers to unwind
                     while ((unum & 0x7f) > 0) {
                         unum -= 1;
                         assert(exc_sp >= exc_stack);
                         if (MP_TAGPTR_TAG1(exc_sp->val_sp)) {
+                            // Getting here the stack looks like:
+                            //     (..., X, dest_ip)
+                            // where X is pointed to by exc_sp->val_sp and in the case
+                            // of a "with" block contains the context manager info.
                             // We're going to run "finally" code as a coroutine
                             // (not calling it recursively). Set up a sentinel
                             // on a stack so it can return back to us when it is
-                            // done (when END_FINALLY reached).
-                            PUSH((void*)unum); // push number of exception handlers left to unwind
+                            // done (when WITH_CLEANUP or END_FINALLY reached).
+                            PUSH((mp_obj_t)unum); // push number of exception handlers left to unwind
                             PUSH(MP_OBJ_NEW_SMALL_INT(UNWIND_JUMP)); // push sentinel
                             ip = exc_sp->handler; // get exception handler byte code address
                             exc_sp--; // pop exception handler
                             goto dispatch_loop; // run the exception handler
                         }
-                        exc_sp--;
+                        POP_EXC_BLOCK();
                     }
-                    ip = (const byte*)POP(); // pop destination ip for jump
+                    ip = (const byte*)MP_OBJ_TO_PTR(POP()); // pop destination ip for jump
                     if (unum != 0) {
                         sp--;
                     }
@@ -737,14 +759,6 @@ unwind_jump:;
                     //exc_sp--; // discard ip
                     POP_EXC_BLOCK();
                     //sp -= 3; // pop 3 exception values
-                    DISPATCH();
-
-                ENTRY(MP_BC_NOT):
-                    if (TOP() == mp_const_true) {
-                        SET_TOP(mp_const_false);
-                    } else {
-                        SET_TOP(mp_const_true);
-                    }
                     DISPATCH();
 
                 ENTRY(MP_BC_BUILD_TUPLE): {
@@ -960,7 +974,7 @@ unwind_jump:;
 
                         mp_uint_t n_args = unum & 0xff;
                         mp_uint_t n_kw = (unum >> 8) & 0xff;
-                        int adjust = (sp[1] == NULL) ? 0 : 1;
+                        int adjust = (sp[1] == MP_OBJ_NULL) ? 0 : 1;
 
                         mp_code_state *new_state = mp_obj_fun_bc_prepare_codestate(*sp, n_args + adjust, n_kw, sp + 2 - adjust);
                         if (new_state) {
@@ -1019,18 +1033,35 @@ unwind_jump:;
 
                 ENTRY(MP_BC_RETURN_VALUE):
                     MARK_EXC_IP_SELECTIVE();
+                    // These next 3 lines pop a try-finally exception handler, if one
+                    // is there on the exception stack.  Without this the finally block
+                    // is executed a second time when the return is executed, because
+                    // the try-finally exception handler is still on the stack.
+                    // TODO Possibly find a better way to handle this case.
+                    if (currently_in_except_block) {
+                        POP_EXC_BLOCK();
+                    }
 unwind_return:
                     while (exc_sp >= exc_stack) {
                         if (MP_TAGPTR_TAG1(exc_sp->val_sp)) {
+                            // Getting here the stack looks like:
+                            //     (..., X, [iter0, iter1, ...,] ret_val)
+                            // where X is pointed to by exc_sp->val_sp and in the case
+                            // of a "with" block contains the context manager info.
+                            // There may be 0 or more for-iterators between X and the
+                            // return value, and these must be removed before control can
+                            // pass to the finally code.  We simply copy the ret_value down
+                            // over these iterators, if they exist.  If they don't then the
+                            // following is a null operation.
+                            mp_obj_t *finally_sp = MP_TAGPTR_PTR(exc_sp->val_sp);
+                            finally_sp[1] = sp[0];
+                            sp = &finally_sp[1];
                             // We're going to run "finally" code as a coroutine
                             // (not calling it recursively). Set up a sentinel
                             // on a stack so it can return back to us when it is
-                            // done (when END_FINALLY reached).
+                            // done (when WITH_CLEANUP or END_FINALLY reached).
                             PUSH(MP_OBJ_NEW_SMALL_INT(UNWIND_RETURN));
                             ip = exc_sp->handler;
-                            // We don't need to do anything with sp, finally is just
-                            // syntactic sugar for sequential execution??
-                            // sp =
                             exc_sp--;
                             goto dispatch_loop;
                         }
@@ -1039,6 +1070,7 @@ unwind_return:
                     nlr_pop();
                     code_state->sp = sp;
                     assert(exc_sp == exc_stack - 1);
+                    MICROPY_VM_HOOK_RETURN
                     #if MICROPY_STACKLESS
                     if (code_state->prev != NULL) {
                         mp_obj_t res = *sp;
@@ -1054,13 +1086,17 @@ unwind_return:
                     MARK_EXC_IP_SELECTIVE();
                     mp_uint_t unum = *ip++;
                     mp_obj_t obj;
-                    assert(unum <= 1);
+                    if (unum == 2) {
+                        mp_warning("exception chaining not supported");
+                        // ignore (pop) "from" argument
+                        sp--;
+                    }
                     if (unum == 0) {
                         // search for the inner-most previous exception, to reraise it
                         obj = MP_OBJ_NULL;
                         for (mp_exc_stack_t *e = exc_sp; e >= exc_stack; e--) {
-                            if (e->prev_exc != MP_OBJ_NULL) {
-                                obj = e->prev_exc;
+                            if (e->prev_exc != NULL) {
+                                obj = MP_OBJ_FROM_PTR(e->prev_exc);
                                 break;
                             }
                         }
@@ -1087,7 +1123,7 @@ yield:
                     MARK_EXC_IP_SELECTIVE();
 //#define EXC_MATCH(exc, type) MP_OBJ_IS_TYPE(exc, type)
 #define EXC_MATCH(exc, type) mp_obj_exception_match(exc, type)
-#define GENERATOR_EXIT_IF_NEEDED(t) if (t != MP_OBJ_NULL && EXC_MATCH(t, &mp_type_GeneratorExit)) { RAISE(t); }
+#define GENERATOR_EXIT_IF_NEEDED(t) if (t != MP_OBJ_NULL && EXC_MATCH(t, MP_OBJ_FROM_PTR(&mp_type_GeneratorExit))) { RAISE(t); }
                     mp_vm_return_kind_t ret_kind;
                     mp_obj_t send_value = POP();
                     mp_obj_t t_exc = MP_OBJ_NULL;
@@ -1108,7 +1144,8 @@ yield:
                     if (ret_kind == MP_VM_RETURN_NORMAL) {
                         // Pop exhausted gen
                         sp--;
-                        if (ret_value == MP_OBJ_NULL) {
+                        // TODO: When ret_value can be MP_OBJ_NULL here??
+                        if (ret_value == MP_OBJ_NULL || ret_value == MP_OBJ_STOP_ITERATION) {
                             // Optimize StopIteration
                             // TODO: get StopIteration's value
                             PUSH(mp_const_none);
@@ -1124,7 +1161,7 @@ yield:
                     if (ret_kind == MP_VM_RETURN_EXCEPTION) {
                         // Pop exhausted gen
                         sp--;
-                        if (EXC_MATCH(ret_value, &mp_type_StopIteration)) {
+                        if (EXC_MATCH(ret_value, MP_OBJ_FROM_PTR(&mp_type_StopIteration))) {
                             PUSH(mp_obj_exception_get_value(ret_value));
                             // If we injected GeneratorExit downstream, then even
                             // if it was swallowed, we re-raise GeneratorExit
@@ -1196,7 +1233,7 @@ yield:
                     } else if (ip[-1] < MP_BC_STORE_FAST_MULTI + 16) {
                         fastn[MP_BC_STORE_FAST_MULTI - (mp_int_t)ip[-1]] = POP();
                         DISPATCH();
-                    } else if (ip[-1] < MP_BC_UNARY_OP_MULTI + 6) {
+                    } else if (ip[-1] < MP_BC_UNARY_OP_MULTI + 7) {
                         SET_TOP(mp_unary_op(ip[-1] - MP_BC_UNARY_OP_MULTI, TOP()));
                         DISPATCH();
                     } else if (ip[-1] < MP_BC_BINARY_OP_MULTI + 36) {
@@ -1218,6 +1255,7 @@ yield:
 #endif
 
 pending_exception_check:
+                MICROPY_VM_HOOK_LOOP
                 if (MP_STATE_VM(mp_pending_exception) != MP_OBJ_NULL) {
                     MARK_EXC_IP_SELECTIVE();
                     mp_obj_t obj = MP_STATE_VM(mp_pending_exception);
@@ -1240,7 +1278,7 @@ exception_handler:
             code_state->ip -= 1;
             #endif
 
-            if (mp_obj_is_subclass_fast(mp_obj_get_type(nlr.ret_val), &mp_type_StopIteration)) {
+            if (mp_obj_is_subclass_fast(MP_OBJ_FROM_PTR(((mp_obj_base_t*)nlr.ret_val)->type), MP_OBJ_FROM_PTR(&mp_type_StopIteration))) {
                 if (code_state->ip) {
                     // check if it's a StopIteration within a for block
                     if (*code_state->ip == MP_BC_FOR_ITER) {
@@ -1252,7 +1290,7 @@ exception_handler:
                     } else if (*code_state->ip == MP_BC_YIELD_FROM) {
                         // StopIteration inside yield from call means return a value of
                         // yield from, so inject exception's value as yield from's result
-                        *++code_state->sp = mp_obj_exception_get_value(nlr.ret_val);
+                        *++code_state->sp = mp_obj_exception_get_value(MP_OBJ_FROM_PTR(nlr.ret_val));
                         code_state->ip++; // yield from is over, move to next instruction
                         goto outer_dispatch_loop; // continue with dispatch loop
                     }
@@ -1266,14 +1304,20 @@ unwind_loop:
             // TODO: don't set traceback for exceptions re-raised by END_FINALLY.
             // But consider how to handle nested exceptions.
             // TODO need a better way of not adding traceback to constant objects (right now, just GeneratorExit_obj and MemoryError_obj)
-            if (mp_obj_is_exception_instance(nlr.ret_val) && nlr.ret_val != &mp_const_GeneratorExit_obj && nlr.ret_val != &mp_const_MemoryError_obj) {
+            if (nlr.ret_val != &mp_const_GeneratorExit_obj && nlr.ret_val != &mp_const_MemoryError_obj) {
                 const byte *ip = code_state->code_info;
                 mp_uint_t code_info_size = mp_decode_uint(&ip);
+                #if MICROPY_PERSISTENT_CODE
+                qstr block_name = ip[0] | (ip[1] << 8);
+                qstr source_file = ip[2] | (ip[3] << 8);
+                ip += 4;
+                #else
                 qstr block_name = mp_decode_uint(&ip);
                 qstr source_file = mp_decode_uint(&ip);
-                mp_uint_t bc = code_state->ip - code_state->code_info - code_info_size;
-                mp_uint_t source_line = 1;
-                mp_uint_t c;
+                #endif
+                size_t bc = code_state->ip - code_state->code_info - code_info_size;
+                size_t source_line = 1;
+                size_t c;
                 while ((c = *ip)) {
                     mp_uint_t b, l;
                     if ((c & 0x80) == 0) {
@@ -1295,7 +1339,7 @@ unwind_loop:
                         break;
                     }
                 }
-                mp_obj_exception_add_traceback(nlr.ret_val, source_file, source_line, block_name);
+                mp_obj_exception_add_traceback(MP_OBJ_FROM_PTR(nlr.ret_val), source_file, source_line, block_name);
             }
 
             while (currently_in_except_block) {
@@ -1321,8 +1365,8 @@ unwind_loop:
                 exc_sp->prev_exc = nlr.ret_val;
                 // push(traceback, exc-val, exc-type)
                 PUSH(mp_const_none);
-                PUSH(nlr.ret_val);
-                PUSH(mp_obj_get_type(nlr.ret_val));
+                PUSH(MP_OBJ_FROM_PTR(nlr.ret_val));
+                PUSH(MP_OBJ_FROM_PTR(((mp_obj_base_t*)nlr.ret_val)->type));
                 code_state->sp = sp;
 
             #if MICROPY_STACKLESS
@@ -1340,7 +1384,7 @@ unwind_loop:
             } else {
                 // propagate exception to higher level
                 // TODO what to do about ip and sp? they don't really make sense at this point
-                fastn[0] = nlr.ret_val; // must put exception here because sp is invalid
+                fastn[0] = MP_OBJ_FROM_PTR(nlr.ret_val); // must put exception here because sp is invalid
                 return MP_VM_RETURN_EXCEPTION;
             }
         }

@@ -19,20 +19,24 @@
 #include "user_interface.h"
 #include "esp_mphal.h"
 
-#define RX_BUF_SIZE (256)
 #define UART_REPL UART0
 
 // UartDev is defined and initialized in rom code.
 extern UartDevice UartDev;
 
-// circular buffer for RX buffering
-static uint16_t rx_buf_in;
-static uint16_t rx_buf_out;
-static uint8_t rx_buf[RX_BUF_SIZE];
+// the uart to which OS messages go; -1 to disable
+static int uart_os = UART_OS;
 
+#if MICROPY_REPL_EVENT_DRIVEN
 static os_event_t uart_evt_queue[16];
+#endif
 
 static void uart0_rx_intr_handler(void *para);
+
+void soft_reset(void);
+void mp_keyboard_interrupt(void);
+
+int interrupt_char;
 
 /******************************************************************************
  * FunctionName : uart_config
@@ -82,10 +86,6 @@ static void ICACHE_FLASH_ATTR uart_config(uint8 uart_no) {
     WRITE_PERI_REG(UART_INT_CLR(uart_no), 0xffff);
     // enable rx_interrupt
     SET_PERI_REG_MASK(UART_INT_ENA(uart_no), UART_RXFIFO_FULL_INT_ENA);
-
-    // init RX buffer
-    rx_buf_in = 0;
-    rx_buf_out = 0;
 }
 
 /******************************************************************************
@@ -105,6 +105,15 @@ void uart_tx_one_char(uint8 uart, uint8 TxChar) {
     WRITE_PERI_REG(UART_FIFO(uart), TxChar);
 }
 
+void uart_flush(uint8 uart) {
+    while (true) {
+        uint32 fifo_cnt = READ_PERI_REG(UART_STATUS(uart)) & (UART_TXFIFO_CNT<<UART_TXFIFO_CNT_S);
+        if ((fifo_cnt >> UART_TXFIFO_CNT_S & UART_TXFIFO_CNT) == 0) {
+            break;
+        }
+    }
+}
+
 /******************************************************************************
  * FunctionName : uart1_write_char
  * Description  : Internal used function
@@ -114,13 +123,21 @@ void uart_tx_one_char(uint8 uart, uint8 TxChar) {
 *******************************************************************************/
 static void ICACHE_FLASH_ATTR
 uart_os_write_char(char c) {
+    if (uart_os == -1) {
+        return;
+    }
     if (c == '\n') {
-        uart_tx_one_char(UART_OS, '\r');
-        uart_tx_one_char(UART_OS, '\n');
+        uart_tx_one_char(uart_os, '\r');
+        uart_tx_one_char(uart_os, '\n');
     } else if (c == '\r') {
     } else {
-        uart_tx_one_char(UART_OS, c);
+        uart_tx_one_char(uart_os, c);
     }
+}
+
+void ICACHE_FLASH_ATTR
+uart_os_config(int uart) {
+    uart_os = uart;
 }
 
 /******************************************************************************
@@ -148,30 +165,43 @@ static void uart0_rx_intr_handler(void *para) {
         goto read_chars;
     } else if (UART_RXFIFO_TOUT_INT_ST == (READ_PERI_REG(UART_INT_ST(uart_no)) & UART_RXFIFO_TOUT_INT_ST)) {
         read_chars:
-#if 1 //MICROPY_REPL_EVENT_DRIVEN is not available here
         ETS_UART_INTR_DISABLE();
-        system_os_post(UART_TASK_ID, 0, 0);
-#else
+
         while (READ_PERI_REG(UART_STATUS(uart_no)) & (UART_RXFIFO_CNT << UART_RXFIFO_CNT_S)) {
             uint8 RcvChar = READ_PERI_REG(UART_FIFO(uart_no)) & 0xff;
-            uint16_t rx_buf_in_next = (rx_buf_in + 1) % RX_BUF_SIZE;
-            if (rx_buf_in_next != rx_buf_out) {
-                rx_buf[rx_buf_in] = RcvChar;
-                rx_buf_in = rx_buf_in_next;
+            if (RcvChar == interrupt_char) {
+                mp_keyboard_interrupt();
+            } else {
+                ringbuf_put(&input_buf, RcvChar);
             }
         }
-#endif
+
+        mp_hal_signal_input();
+
+        // Clear pending FIFO interrupts
+        WRITE_PERI_REG(UART_INT_CLR(UART_REPL), UART_RXFIFO_TOUT_INT_CLR | UART_RXFIFO_FULL_INT_ST);
+        ETS_UART_INTR_ENABLE();
     }
 }
 
-int uart0_rx(void) {
-  if (rx_buf_out != rx_buf_in) {
-      int chr = rx_buf[rx_buf_out];
-      rx_buf_out = (rx_buf_out + 1) % RX_BUF_SIZE;
-      return chr;
-  } else {
-      return -1;
-  }
+// Waits at most timeout microseconds for at least 1 char to become ready for reading.
+// Returns true if something available, false if not.
+bool uart_rx_wait(uint32_t timeout_us) {
+    uint32_t start = system_get_time();
+    for (;;) {
+        if (input_buf.iget != input_buf.iput) {
+            return true; // have at least 1 char ready for reading
+        }
+        if (system_get_time() - start >= timeout_us) {
+            return false; // timeout
+        }
+        ets_event_poll();
+    }
+}
+
+// Returns char from the input buffer, else -1 if buffer is empty.
+int uart_rx_char(void) {
+    return ringbuf_get(&input_buf);
 }
 
 int uart_rx_one_char(uint8 uart_no) {
@@ -196,7 +226,7 @@ void ICACHE_FLASH_ATTR uart_init(UartBautRate uart0_br, UartBautRate uart1_br) {
     uart_config(UART1);
     ETS_UART_INTR_ENABLE();
 
-    // install uart1 putc callback
+    // install handler for "os" messages
     os_install_putc1((void *)uart_os_write_char);
 }
 
@@ -207,23 +237,31 @@ void ICACHE_FLASH_ATTR uart_reattach() {
 // Task-based UART interface
 
 #include "py/obj.h"
-#include "stmhal/pyexec.h"
+#include "lib/utils/pyexec.h"
 
-void soft_reset(void);
-
+#if MICROPY_REPL_EVENT_DRIVEN
 void uart_task_handler(os_event_t *evt) {
+    if (pyexec_repl_active) {
+        // TODO: Just returning here isn't exactly right.
+        // What really should be done is something like
+        // enquing delayed event to itself, for another
+        // chance to feed data to REPL. Otherwise, there
+        // can be situation when buffer has bunch of data,
+        // and sits unprocessed, because we consumed all
+        // processing signals like this.
+        return;
+    }
+
     int c, ret = 0;
-    while ((c = uart_rx_one_char(UART_REPL)) >= 0) {
+    while ((c = ringbuf_get(&input_buf)) >= 0) {
+        if (c == interrupt_char) {
+            mp_keyboard_interrupt();
+        }
         ret = pyexec_event_repl_process_char(c);
         if (ret & PYEXEC_FORCED_EXIT) {
             break;
         }
     }
-
-    // Clear pending FIFO interrupts
-    WRITE_PERI_REG(UART_INT_CLR(UART_REPL), UART_RXFIFO_TOUT_INT_CLR | UART_RXFIFO_FULL_INT_ST);
-    // Enable UART interrupts, so our task will receive events again from IRQ handler
-    ETS_UART_INTR_ENABLE();
 
     if (ret & PYEXEC_FORCED_EXIT) {
         soft_reset();
@@ -233,3 +271,4 @@ void uart_task_handler(os_event_t *evt) {
 void uart_task_init() {
     system_os_task(uart_task_handler, UART_TASK_ID, uart_evt_queue, sizeof(uart_evt_queue) / sizeof(*uart_evt_queue));
 }
+#endif

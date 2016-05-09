@@ -44,17 +44,20 @@
 #define MICROPY_OPT_COMPUTED_GOTO   (0)
 #define MICROPY_OPT_CACHE_MAP_LOOKUP_IN_BYTECODE (0)
 #define MICROPY_CAN_OVERRIDE_BUILTINS (0)
+#define MICROPY_BUILTIN_METHOD_CHECK_SELF_ARG (0)
 #define MICROPY_CPYTHON_COMPAT      (0)
 #define MICROPY_PY_BUILTINS_BYTEARRAY (0)
 #define MICROPY_PY_BUILTINS_MEMORYVIEW (0)
 #define MICROPY_PY_BUILTINS_COMPILE (0)
 #define MICROPY_PY_BUILTINS_ENUMERATE (0)
+#define MICROPY_PY_BUILTINS_FILTER  (0)
 #define MICROPY_PY_BUILTINS_FROZENSET (0)
 #define MICROPY_PY_BUILTINS_REVERSED (0)
 #define MICROPY_PY_BUILTINS_SET     (0)
 #define MICROPY_PY_BUILTINS_SLICE   (0)
 #define MICROPY_PY_BUILTINS_STR_UNICODE (0)
 #define MICROPY_PY_BUILTINS_PROPERTY (0)
+#define MICROPY_PY_BUILTINS_MIN_MAX (0)
 #define MICROPY_PY___FILE__         (0)
 #define MICROPY_PY_MICROPYTHON_MEM_INFO (0)
 #define MICROPY_PY_GC               (0)
@@ -95,7 +98,7 @@
 extern const struct _mp_obj_module_t mp_module_os;
 
 #define MICROPY_PORT_BUILTIN_MODULES \
-    { MP_OBJ_NEW_QSTR(MP_QSTR__os), (mp_obj_t)&mp_module_os }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_uos), (mp_obj_t)&mp_module_os }, \
 
 // type definitions for the specific machine
 

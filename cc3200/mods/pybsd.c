@@ -25,7 +25,6 @@
  */
 
 #include "py/mpconfig.h"
-#include MICROPY_HAL_H
 #include "py/obj.h"
 #include "py/runtime.h"
 #include "inc/hw_types.h"
@@ -37,61 +36,46 @@
 #include "prcm.h"
 #include "gpio.h"
 #include "sdhost.h"
-#include "pybpin.h"
-#include "pybsd.h"
 #include "ff.h"
 #include "diskio.h"
 #include "sd_diskio.h"
-#include "simplelink.h"
-#include "debug.h"
+#include "pybsd.h"
 #include "mpexception.h"
 #include "pybsleep.h"
+#include "pybpin.h"
+#include "pins.h"
 
-
-#if MICROPY_HW_HAS_SDCARD
-
+/******************************************************************************
+ DEFINE PRIVATE CONSTANTS
+ ******************************************************************************/
 #define PYBSD_FREQUENCY_HZ              15000000    // 15MHz
 
-typedef struct {
-    mp_obj_base_t base;
-    FATFS        *fatfs;
-    pin_obj_t    *pin_clk;
-    bool         pinsset;
-    bool         enabled;
-} pybsd_obj_t;
+/******************************************************************************
+ DECLARE PUBLIC DATA
+ ******************************************************************************/
+pybsd_obj_t pybsd_obj;
 
 /******************************************************************************
  DECLARE PRIVATE DATA
  ******************************************************************************/
-STATIC pybsd_obj_t pybsd_obj;
+STATIC const mp_obj_t pyb_sd_def_pin[3] = {&pin_GP10, &pin_GP11, &pin_GP15};
 
 /******************************************************************************
  DECLARE PRIVATE FUNCTIONS
  ******************************************************************************/
-STATIC mp_obj_t pybsd_make_new (mp_obj_t type_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args);
-STATIC mp_obj_t pybsd_disable (mp_obj_t self_in);
-STATIC mp_obj_t pybsd_enable (mp_obj_t self_in);
-
-/******************************************************************************
- DEFINE PUBLIC FUNCTIONS
- ******************************************************************************/
-__attribute__ ((section (".boot")))
-void pybsd_init0 (void) {
-    // allocate memory for the sd file system
-    ASSERT ((pybsd_obj.fatfs = mem_Malloc(sizeof(FATFS))) != NULL);
-}
-
-void pybsd_deinit (void) {
-    pybsd_disable ((mp_obj_t)&pybsd_obj);
-}
+STATIC void pyb_sd_hw_init (pybsd_obj_t *self);
+STATIC mp_obj_t pyb_sd_make_new (const mp_obj_type_t *type, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args);
+STATIC mp_obj_t pyb_sd_deinit (mp_obj_t self_in);
 
 /******************************************************************************
  DEFINE PRIVATE FUNCTIONS
  ******************************************************************************/
-/// Initalizes the sd card driver
-STATIC void pybsd_init (pybsd_obj_t *self) {
-    // Configure the clock pin as output only
-    MAP_PinDirModeSet(self->pin_clk->pin_num, PIN_DIR_MODE_OUT);
+/// Initalizes the sd card hardware driver
+STATIC void pyb_sd_hw_init (pybsd_obj_t *self) {
+    if (self->pin_clk) {
+        // Configure the clock pin as output only
+        MAP_PinDirModeSet(((pin_obj_t *)(self->pin_clk))->pin_num, PIN_DIR_MODE_OUT);
+    }
     // Enable SD peripheral clock
     MAP_PRCMPeripheralClkEnable(PRCM_SDHOST, PRCM_RUN_MODE_CLK | PRCM_SLP_MODE_CLK);
     // Reset MMCHS
@@ -100,110 +84,95 @@ STATIC void pybsd_init (pybsd_obj_t *self) {
     MAP_SDHostInit(SDHOST_BASE);
     // Configure the card clock
     MAP_SDHostSetExpClk(SDHOST_BASE, MAP_PRCMPeripheralClockGet(PRCM_SDHOST), PYBSD_FREQUENCY_HZ);
+    // Set card rd/wr block len
+    MAP_SDHostBlockSizeSet(SDHOST_BASE, SD_SECTOR_SIZE);
+    self->enabled = true;
+}
+
+STATIC mp_obj_t pyb_sd_init_helper (pybsd_obj_t *self, const mp_arg_val_t *args) {
+    // assign the pins
+    mp_obj_t pins_o = args[0].u_obj;
+    if (pins_o != mp_const_none) {
+        mp_obj_t *pins;
+        if (pins_o == MP_OBJ_NULL) {
+            // use the default pins
+            pins = (mp_obj_t *)pyb_sd_def_pin;
+        } else {
+            mp_obj_get_array_fixed_n(pins_o, MP_ARRAY_SIZE(pyb_sd_def_pin), &pins);
+        }
+        pin_assign_pins_af (pins, MP_ARRAY_SIZE(pyb_sd_def_pin), PIN_TYPE_STD_PU, PIN_FN_SD, 0);
+        // save the pins clock
+        self->pin_clk = pin_find(pins[0]);
+    }
+
+    pyb_sd_hw_init (self);
+    if (sd_disk_init() != 0) {
+        nlr_raise(mp_obj_new_exception_msg(&mp_type_OSError, mpexception_os_operation_failed));
+    }
+
+    // register it with the sleep module
+    pyb_sleep_add ((const mp_obj_t)self, (WakeUpCB_t)pyb_sd_hw_init);
+    return mp_const_none;
 }
 
 /******************************************************************************/
 // Micro Python bindings
 //
 
-/// \classmethod \constructor()
-/// Configure the pins used for the sd card.
-///   May receive 0, or 6 arguments.
-///
-/// Usage:
-///    sd = pyb.SD()
-////
-///    sd = pyb.SD(d0_pin, d0_af, clk_pin, clk_af, cmd_pin, cmd_af)
-///
-STATIC mp_obj_t pybsd_make_new (mp_obj_t type_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
-    mp_arg_check_num(n_args, n_kw, 0, 6, false);
-
-    if (n_args == 6) {
-        // save the clock pin for later use
-        pybsd_obj.pin_clk = (pin_obj_t *)pin_find(args[2]);
-
-        // configure the data pin with pull-up enabled
-        pin_config ((pin_obj_t *)pin_find(args[0]), mp_obj_get_int(args[1]), 0, PIN_TYPE_STD_PU, PIN_STRENGTH_4MA);
-        // configure the clock pin
-        pin_config (pybsd_obj.pin_clk, mp_obj_get_int(args[3]), 0, PIN_TYPE_STD, PIN_STRENGTH_4MA);
-        // configure the command pin with pull-up enabled
-        pin_config ((pin_obj_t *)pin_find(args[4]), mp_obj_get_int(args[5]), 0, PIN_TYPE_STD_PU, PIN_STRENGTH_4MA);
-
-        pybsd_obj.pinsset = true;
-        pybsd_obj.base.type = &pyb_sd_type;
-    }
-    else if (!pybsd_obj.pinsset) {
-        nlr_raise(mp_obj_new_exception_msg(&mp_type_TypeError, mpexception_num_type_invalid_arguments));
-    }
-
-    return &pybsd_obj;
-}
-
-/// \method enable()
-/// Enables the sd card and mounts the file system
-STATIC mp_obj_t pybsd_enable (mp_obj_t self_in) {
-    pybsd_obj_t *self = self_in;
-
-    if (!self->enabled) {
-        // do the init first
-        pybsd_init (self);
-
-        // try to mount the sd card on /sd
-        if (FR_OK != f_mount(self->fatfs, "/sd", 1)) {
-            nlr_raise(mp_obj_new_exception_msg(&mp_type_OSError, mpexception_os_operation_failed));
-        }
-
-        mp_obj_list_append(mp_sys_path, MP_OBJ_NEW_QSTR(MP_QSTR__slash_sd));
-        mp_obj_list_append(mp_sys_path, MP_OBJ_NEW_QSTR(MP_QSTR__slash_sd_slash_lib));
-
-        // register it with the sleep module
-        pybsleep_add ((const mp_obj_t)&pybsd_obj, (WakeUpCB_t)pybsd_init);
-        self->enabled = true;
-    }
-
-    return mp_const_none;
-}
-STATIC MP_DEFINE_CONST_FUN_OBJ_1(pybsd_enable_obj, pybsd_enable);
-
-/// \method disable()
-/// Disables the sd card and unmounts the file system
-STATIC mp_obj_t pybsd_disable (mp_obj_t self_in) {
-    pybsd_obj_t *self = self_in;
-    if (self->enabled) {
-        self->enabled = false;
-        // unmount the sd card
-        f_mount (NULL, "/sd", 1);
-        // remove sd paths from mp_sys_path
-        mp_obj_list_remove(mp_sys_path, MP_OBJ_NEW_QSTR(MP_QSTR__slash_sd));
-        mp_obj_list_remove(mp_sys_path, MP_OBJ_NEW_QSTR(MP_QSTR__slash_sd_slash_lib));
-
-        // disable the peripheral
-        MAP_PRCMPeripheralClkDisable(PRCM_SDHOST, PRCM_RUN_MODE_CLK | PRCM_SLP_MODE_CLK);
-
-        // de-initialze de sd card at diskio level
-        sd_disk_deinit();
-
-        // unregister it with the sleep module
-        pybsleep_remove (self);
-
-        // change the drive in case it was /sd
-        f_chdrive("/flash");
-    }
-    return mp_const_none;
-}
-STATIC MP_DEFINE_CONST_FUN_OBJ_1(pybsd_disable_obj, pybsd_disable);
-
-STATIC const mp_map_elem_t pybsd_locals_dict_table[] = {
-    { MP_OBJ_NEW_QSTR(MP_QSTR_enable),          (mp_obj_t)&pybsd_enable_obj },
-    { MP_OBJ_NEW_QSTR(MP_QSTR_disable),         (mp_obj_t)&pybsd_disable_obj },
+STATIC const mp_arg_t pyb_sd_init_args[] = {
+    { MP_QSTR_id,                          MP_ARG_INT, {.u_int = 0} },
+    { MP_QSTR_pins,                        MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
 };
-STATIC MP_DEFINE_CONST_DICT(pybsd_locals_dict, pybsd_locals_dict_table);
+STATIC mp_obj_t pyb_sd_make_new (const mp_obj_type_t *type, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *all_args) {
+    // parse args
+    mp_map_t kw_args;
+    mp_map_init_fixed_table(&kw_args, n_kw, all_args + n_args);
+    mp_arg_val_t args[MP_ARRAY_SIZE(pyb_sd_init_args)];
+    mp_arg_parse_all(n_args, all_args, &kw_args, MP_ARRAY_SIZE(args), pyb_sd_init_args, args);
+
+    // check the peripheral id
+    if (args[0].u_int != 0) {
+        nlr_raise(mp_obj_new_exception_msg(&mp_type_OSError, mpexception_os_resource_not_avaliable));
+    }
+
+    // setup and initialize the object
+    mp_obj_t self = &pybsd_obj;
+    pybsd_obj.base.type = &pyb_sd_type;
+    pyb_sd_init_helper (self, &args[1]);
+    return self;
+}
+
+STATIC mp_obj_t pyb_sd_init (mp_uint_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+    // parse args
+    mp_arg_val_t args[MP_ARRAY_SIZE(pyb_sd_init_args) - 1];
+    mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(args), &pyb_sd_init_args[1], args);
+    return pyb_sd_init_helper(pos_args[0], args);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_KW(pyb_sd_init_obj, 1, pyb_sd_init);
+
+STATIC mp_obj_t pyb_sd_deinit (mp_obj_t self_in) {
+    pybsd_obj_t *self = self_in;
+    // disable the peripheral
+    self->enabled = false;
+    MAP_PRCMPeripheralClkDisable(PRCM_SDHOST, PRCM_RUN_MODE_CLK | PRCM_SLP_MODE_CLK);
+    // de-initialze the sd card at diskio level
+    sd_disk_deinit();
+    // unregister it from the sleep module
+    pyb_sleep_remove (self);
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(pyb_sd_deinit_obj, pyb_sd_deinit);
+
+STATIC const mp_map_elem_t pyb_sd_locals_dict_table[] = {
+    { MP_OBJ_NEW_QSTR(MP_QSTR_init),            (mp_obj_t)&pyb_sd_init_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_deinit),          (mp_obj_t)&pyb_sd_deinit_obj },
+};
+
+STATIC MP_DEFINE_CONST_DICT(pyb_sd_locals_dict, pyb_sd_locals_dict_table);
 
 const mp_obj_type_t pyb_sd_type = {
     { &mp_type_type },
     .name = MP_QSTR_SD,
-    .make_new = pybsd_make_new,
-    .locals_dict = (mp_obj_t)&pybsd_locals_dict,
+    .make_new = pyb_sd_make_new,
+    .locals_dict = (mp_obj_t)&pyb_sd_locals_dict,
 };
-
-#endif // MICROPY_HW_HAS_SDCARD

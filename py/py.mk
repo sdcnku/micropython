@@ -7,8 +7,61 @@ HEADER_BUILD = $(BUILD)/genhdr
 # file containing qstr defs for the core Python bit
 PY_QSTR_DEFS = $(PY_SRC)/qstrdefs.h
 
+# If qstr autogeneration is not disabled we specify the output header
+# for all collected qstrings.
+ifneq ($(QSTR_AUTOGEN_DISABLE),1)
+QSTR_DEFS_COLLECTED = $(HEADER_BUILD)/qstrdefs.collected.h
+endif
+
 # some code is performance bottleneck and compiled with other optimization options
 CSUPEROPT = -O3
+
+INC += -I../lib/netutils
+
+ifeq ($(MICROPY_PY_USSL),1)
+CFLAGS_MOD += -DMICROPY_PY_USSL=1 -I../lib/axtls/ssl -I../lib/axtls/crypto -I../lib/axtls/config
+LDFLAGS_MOD += -L../lib/axtls/_stage -laxtls
+endif
+
+#ifeq ($(MICROPY_PY_LWIP),1)
+#CFLAGS_MOD += -DMICROPY_PY_LWIP=1 -I../lib/lwip/src/include -I../lib/lwip/src/include/ipv4 -I../extmod/lwip-include
+#endif
+
+ifeq ($(MICROPY_PY_LWIP),1)
+LWIP_DIR = lib/lwip/src
+INC += -I../lib/lwip/src/include -I../lib/lwip/src/include/ipv4 -I../extmod/lwip-include
+CFLAGS_MOD += -DMICROPY_PY_LWIP=1
+SRC_MOD += extmod/modlwip.c lib/netutils/netutils.c
+SRC_MOD += $(addprefix $(LWIP_DIR)/,\
+	core/def.c \
+	core/dns.c \
+	core/init.c \
+	core/mem.c \
+	core/memp.c \
+	core/netif.c \
+	core/pbuf.c \
+	core/raw.c \
+	core/stats.c \
+	core/sys.c \
+	core/tcp.c \
+	core/tcp_in.c \
+	core/tcp_out.c \
+	core/timers.c \
+	core/udp.c \
+	core/ipv4/autoip.c \
+	core/ipv4/icmp.c \
+	core/ipv4/igmp.c \
+	core/ipv4/inet.c \
+	core/ipv4/inet_chksum.c \
+	core/ipv4/ip_addr.c \
+	core/ipv4/ip.c \
+	core/ipv4/ip_frag.c \
+	)
+ifeq ($(MICROPY_PY_LWIP_SLIP),1)
+CFLAGS_MOD += -DMICROPY_PY_LWIP_SLIP=1
+SRC_MOD += $(LWIP_DIR)/netif/slipif.c
+endif
+endif
 
 # py object files
 PY_O_BASENAME = \
@@ -32,7 +85,6 @@ PY_O_BASENAME = \
 	scope.o \
 	compile.o \
 	emitcommon.o \
-	emitcpy.o \
 	emitbc.o \
 	asmx64.o \
 	emitnx64.o \
@@ -48,6 +100,7 @@ PY_O_BASENAME = \
 	parsenum.o \
 	emitglue.o \
 	runtime.o \
+	runtime_utils.o \
 	nativeglue.o \
 	stackctrl.o \
 	argcheck.o \
@@ -76,6 +129,7 @@ PY_O_BASENAME = \
 	objmap.o \
 	objmodule.o \
 	objobject.o \
+	objpolyiter.o \
 	objproperty.o \
 	objnone.o \
 	objnamedtuple.o \
@@ -119,10 +173,28 @@ PY_O_BASENAME = \
 	../extmod/moduheapq.o \
 	../extmod/moduhashlib.o \
 	../extmod/modubinascii.o \
-	../extmod/modmachine.o \
+	../extmod/machine_mem.o \
+	../extmod/machine_i2c.o \
+	../extmod/modussl.o \
+	../extmod/modurandom.o \
+	../extmod/modwebsocket.o \
+	../extmod/modwebrepl.o \
+	../extmod/modframebuf.o \
+	../extmod/fsusermount.o \
+	../extmod/vfs_fat.o \
+	../extmod/vfs_fat_ffconf.o \
+	../extmod/vfs_fat_diskio.o \
+	../extmod/vfs_fat_file.o \
+	../extmod/vfs_fat_lexer.o \
+	../extmod/vfs_fat_misc.o \
+	../extmod/moduos_dupterm.o \
 
 # prepend the build destination prefix to the py object files
 PY_O = $(addprefix $(PY_BUILD)/, $(PY_O_BASENAME))
+
+# Sources that may contain qstrings
+SRC_QSTR_IGNORE = nlr% emitnx% emitnthumb% emitnarm%
+SRC_QSTR = $(SRC_MOD) $(addprefix py/,$(filter-out $(SRC_QSTR_IGNORE),$(PY_O_BASENAME:.o=.c)) emitnative.c)
 
 # Anything that depends on FORCE will be considered out-of-date
 FORCE:
@@ -136,14 +208,13 @@ $(HEADER_BUILD)/mpversion.h: FORCE | $(HEADER_BUILD)
 MPCONFIGPORT_MK = $(wildcard mpconfigport.mk)
 
 # qstr data
-
 # Adding an order only dependency on $(HEADER_BUILD) causes $(HEADER_BUILD) to get
 # created before we run the script to generate the .h
 # Note: we need to protect the qstr names from the preprocessor, so we wrap
 # the lines in "" and then unwrap after the preprocessor is finished.
-$(HEADER_BUILD)/qstrdefs.generated.h: $(PY_QSTR_DEFS) $(QSTR_DEFS) $(PY_SRC)/makeqstrdata.py mpconfigport.h $(MPCONFIGPORT_MK) $(PY_SRC)/mpconfig.h | $(HEADER_BUILD)
+$(HEADER_BUILD)/qstrdefs.generated.h: $(PY_QSTR_DEFS) $(QSTR_DEFS) $(QSTR_DEFS_COLLECTED) $(PY_SRC)/makeqstrdata.py mpconfigport.h $(MPCONFIGPORT_MK) $(PY_SRC)/mpconfig.h | $(HEADER_BUILD)
 	$(ECHO) "GEN $@"
-	$(Q)cat $(PY_QSTR_DEFS) $(QSTR_DEFS) | $(SED) 's/^Q(.*)/"&"/' | $(CPP) $(CFLAGS) - | sed 's/^"\(Q(.*)\)"/\1/' > $(HEADER_BUILD)/qstrdefs.preprocessed.h
+	$(Q)cat $(PY_QSTR_DEFS) $(QSTR_DEFS) $(QSTR_DEFS_COLLECTED) | $(SED) 's/^Q(.*)/"&"/' | $(CPP) $(CFLAGS) - | sed 's/^"\(Q(.*)\)"/\1/' > $(HEADER_BUILD)/qstrdefs.preprocessed.h
 	$(Q)$(PYTHON) $(PY_SRC)/makeqstrdata.py $(HEADER_BUILD)/qstrdefs.preprocessed.h > $@
 
 # emitters

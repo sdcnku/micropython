@@ -15,6 +15,8 @@
 #define MICROPY_ENABLE_SOURCE_LINE  (1)
 #define MICROPY_LONGINT_IMPL        (MICROPY_LONGINT_IMPL_MPZ)
 #define MICROPY_FLOAT_IMPL          (MICROPY_FLOAT_IMPL_NONE)
+#define MICROPY_CAN_OVERRIDE_BUILTINS (1)
+#define MICROPY_PY_ARRAY_SLICE_ASSIGN (1)
 #define MICROPY_PY_BUILTINS_FROZENSET (1)
 #define MICROPY_PY_BUILTINS_MEMORYVIEW (1)
 #define MICROPY_PY_IO               (0)
@@ -37,6 +39,9 @@ typedef uint32_t mp_uint_t; // must be pointer size
 typedef void *machine_ptr_t; // must be of pointer size
 typedef const void *machine_const_ptr_t; // must be of pointer size
 typedef long mp_off_t;
+
+#include <unistd.h>
+#define MP_PLAT_PRINT_STRN(str, len) write(1, str, len)
 
 // extra built in names to add to the global namespace
 extern const struct _mp_obj_fun_builtin_t mp_builtin_open_obj;

@@ -28,8 +28,9 @@
 #include <string.h>
 
 #include "py/mpconfig.h"
-#include MICROPY_HAL_H
 #include "py/misc.h"
+#include "py/nlr.h"
+#include "py/mphal.h"
 #include "serverstask.h"
 #include "simplelink.h"
 #include "debug.h"
@@ -37,16 +38,9 @@
 #include "ftp.h"
 #include "pybwdt.h"
 #include "modusocket.h"
-
-
-/******************************************************************************
- DECLARE PRIVATE DEFINITIONS
- ******************************************************************************/
-
-#define SERVERS_DEF_USER                "micro"
-#define SERVERS_DEF_PASS                "python"
-#define SERVERS_DEF_TIMEOUT_MS          300000        // 5 minutes
-#define SERVERS_MIN_TIMEOUT_MS          5000          // 5 seconds
+#include "mpexception.h"
+#include "modnetwork.h"
+#include "modwlan.h"
 
 /******************************************************************************
  DEFINE PRIVATE TYPES
@@ -57,13 +51,13 @@ typedef struct {
     bool do_disable;
     bool do_enable;
     bool do_reset;
+    bool do_wlan_cycle_power;
 } servers_data_t;
 
 /******************************************************************************
  DECLARE PRIVATE DATA
  ******************************************************************************/
-static servers_data_t servers_data = {.timeout = SERVERS_DEF_TIMEOUT_MS, .enabled = false, .do_disable = false,
-                                      .do_enable = false, .do_reset = false};
+static servers_data_t servers_data = {.timeout = SERVERS_DEF_TIMEOUT_MS};
 static volatile bool sleep_sockets = false;
 
 /******************************************************************************
@@ -107,12 +101,15 @@ void TASK_Servers (void *pvParameters) {
             servers_data.do_disable = false;
             servers_data.enabled = false;
         }
-        else if (servers_data.do_reset && servers_data.enabled) {
-            telnet_reset();
-            ftp_reset();
+        else if (servers_data.do_reset) {
+            // resetting the servers is needed to prevent half-open sockets
             servers_data.do_reset = false;
-            // resetting the servers is needed to preven half-open sockets
-            // and we should also close all user sockets
+            if (servers_data.enabled) {
+                telnet_reset();
+                ftp_reset();
+            }
+            // and we should also close all user sockets. We do it here
+            // for convinience and to save on code size.
             modusocket_close_all_user_sockets();
         }
 
@@ -124,10 +121,16 @@ void TASK_Servers (void *pvParameters) {
         }
 
         if (sleep_sockets) {
-            sleep_sockets = false;
             pybwdt_srv_sleeping(true);
             modusocket_enter_sleep();
             pybwdt_srv_sleeping(false);
+            mp_hal_delay_ms(SERVERS_CYCLE_TIME_MS * 2);
+            if (servers_data.do_wlan_cycle_power) {
+                servers_data.do_wlan_cycle_power = false;
+                wlan_off_on();
+            }
+            sleep_sockets = false;
+
         }
 
         // set the alive flag for the wdt
@@ -135,25 +138,29 @@ void TASK_Servers (void *pvParameters) {
 
         // move to the next cycle
         cycle = cycle ? false : true;
-        HAL_Delay(SERVERS_CYCLE_TIME_MS);
+        mp_hal_delay_ms(SERVERS_CYCLE_TIME_MS);
     }
 }
 
 void servers_start (void) {
     servers_data.do_enable = true;
-    HAL_Delay (SERVERS_CYCLE_TIME_MS * 5);
+    mp_hal_delay_ms(SERVERS_CYCLE_TIME_MS * 3);
 }
 
 void servers_stop (void) {
     servers_data.do_disable = true;
     do {
-        HAL_Delay (SERVERS_CYCLE_TIME_MS);
+        mp_hal_delay_ms(SERVERS_CYCLE_TIME_MS);
     } while (servers_are_enabled());
-    HAL_Delay (SERVERS_CYCLE_TIME_MS * 5);
+    mp_hal_delay_ms(SERVERS_CYCLE_TIME_MS * 3);
 }
 
 void servers_reset (void) {
     servers_data.do_reset = true;
+}
+
+void servers_wlan_cycle_power (void) {
+    servers_data.do_wlan_cycle_power = true;
 }
 
 bool servers_are_enabled (void) {
@@ -162,7 +169,7 @@ bool servers_are_enabled (void) {
 
 void server_sleep_sockets (void) {
     sleep_sockets = true;
-    HAL_Delay (SERVERS_CYCLE_TIME_MS + 1);
+    mp_hal_delay_ms(SERVERS_CYCLE_TIME_MS + 1);
 }
 
 void servers_close_socket (int16_t *sd) {
@@ -174,16 +181,19 @@ void servers_close_socket (int16_t *sd) {
 }
 
 void servers_set_login (char *user, char *pass) {
+    if (strlen(user) > SERVERS_USER_PASS_LEN_MAX || strlen(pass) > SERVERS_USER_PASS_LEN_MAX) {
+        nlr_raise(mp_obj_new_exception_msg(&mp_type_ValueError, mpexception_value_invalid_arguments));
+    }
     memcpy(servers_user, user, SERVERS_USER_PASS_LEN_MAX);
     memcpy(servers_pass, pass, SERVERS_USER_PASS_LEN_MAX);
 }
 
-bool servers_set_timeout (uint32_t timeout) {
+void servers_set_timeout (uint32_t timeout) {
     if (timeout < SERVERS_MIN_TIMEOUT_MS) {
-        return false;
+        // timeout is too low
+        nlr_raise(mp_obj_new_exception_msg(&mp_type_ValueError, mpexception_value_invalid_arguments));
     }
     servers_data.timeout = timeout;
-    return true;
 }
 
 uint32_t servers_get_timeout (void) {

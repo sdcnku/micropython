@@ -48,6 +48,7 @@ typedef union _mp_arg_val_t {
     bool u_bool;
     mp_int_t u_int;
     mp_obj_t u_obj;
+    mp_rom_obj_t u_rom_obj;
 } mp_arg_val_t;
 
 typedef struct _mp_arg_t {
@@ -66,9 +67,9 @@ void mp_deinit(void);
 // extra printing method specifically for mp_obj_t's which are integral type
 int mp_print_mp_int(const mp_print_t *print, mp_obj_t x, int base, int base_char, int flags, char fill, int width, int prec);
 
-void mp_arg_check_num(mp_uint_t n_args, mp_uint_t n_kw, mp_uint_t n_args_min, mp_uint_t n_args_max, bool takes_kw);
-void mp_arg_parse_all(mp_uint_t n_pos, const mp_obj_t *pos, mp_map_t *kws, mp_uint_t n_allowed, const mp_arg_t *allowed, mp_arg_val_t *out_vals);
-void mp_arg_parse_all_kw_array(mp_uint_t n_pos, mp_uint_t n_kw, const mp_obj_t *args, mp_uint_t n_allowed, const mp_arg_t *allowed, mp_arg_val_t *out_vals);
+void mp_arg_check_num(size_t n_args, size_t n_kw, size_t n_args_min, size_t n_args_max, bool takes_kw);
+void mp_arg_parse_all(size_t n_pos, const mp_obj_t *pos, mp_map_t *kws, size_t n_allowed, const mp_arg_t *allowed, mp_arg_val_t *out_vals);
+void mp_arg_parse_all_kw_array(size_t n_pos, size_t n_kw, const mp_obj_t *args, size_t n_allowed, const mp_arg_t *allowed, mp_arg_val_t *out_vals);
 NORETURN void mp_arg_error_terse_mismatch(void);
 NORETURN void mp_arg_error_unimpl_kw(void);
 
@@ -88,17 +89,15 @@ void mp_delete_global(qstr qst);
 mp_obj_t mp_unary_op(mp_uint_t op, mp_obj_t arg);
 mp_obj_t mp_binary_op(mp_uint_t op, mp_obj_t lhs, mp_obj_t rhs);
 
-mp_obj_t mp_load_const_int(qstr qst);
-mp_obj_t mp_load_const_dec(qstr qst);
-mp_obj_t mp_load_const_str(qstr qst);
-mp_obj_t mp_load_const_bytes(qstr qst);
-
 mp_obj_t mp_call_function_0(mp_obj_t fun);
 mp_obj_t mp_call_function_1(mp_obj_t fun, mp_obj_t arg);
 mp_obj_t mp_call_function_2(mp_obj_t fun, mp_obj_t arg1, mp_obj_t arg2);
 mp_obj_t mp_call_function_n_kw(mp_obj_t fun, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args);
 mp_obj_t mp_call_method_n_kw(mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args);
 mp_obj_t mp_call_method_n_kw_var(bool have_self, mp_uint_t n_args_n_kw, const mp_obj_t *args);
+// Call function and catch/dump exception - for Python callbacks from C code
+void mp_call_function_1_protected(mp_obj_t fun, mp_obj_t arg);
+void mp_call_function_2_protected(mp_obj_t fun, mp_obj_t arg1, mp_obj_t arg2);
 
 typedef struct _mp_call_args_t {
     mp_obj_t fun;
@@ -144,8 +143,8 @@ mp_obj_t mp_convert_native_to_obj(mp_uint_t val, mp_uint_t type);
 mp_obj_t mp_native_call_function_n_kw(mp_obj_t fun_in, mp_uint_t n_args_kw, const mp_obj_t *args);
 void mp_native_raise(mp_obj_t o);
 
-#define mp_sys_path ((mp_obj_t)&MP_STATE_VM(mp_sys_path_obj))
-#define mp_sys_argv ((mp_obj_t)&MP_STATE_VM(mp_sys_argv_obj))
+#define mp_sys_path (MP_OBJ_FROM_PTR(&MP_STATE_VM(mp_sys_path_obj)))
+#define mp_sys_argv (MP_OBJ_FROM_PTR(&MP_STATE_VM(mp_sys_argv_obj)))
 
 #if MICROPY_WARNINGS
 void mp_warning(const char *msg, ...);

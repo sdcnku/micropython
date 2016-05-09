@@ -428,7 +428,7 @@ STATIC const cc3k_obj_t cc3k_obj = {{(mp_obj_type_t*)&mod_network_nic_type_cc3k}
 //        [SPI on Y position; Y6=B13=SCK, Y7=B14=MISO, Y8=B15=MOSI]
 //
 //      STM32F4DISC: init(pyb.SPI(2), pyb.Pin.cpu.A15, pyb.Pin.cpu.B10, pyb.Pin.cpu.B11)
-STATIC mp_obj_t cc3k_make_new(mp_obj_t type_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
+STATIC mp_obj_t cc3k_make_new(const mp_obj_type_t *type, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
     // check arguments
     mp_arg_check_num(n_args, n_kw, 4, 4, false);
 
@@ -512,7 +512,7 @@ STATIC mp_obj_t cc3k_disconnect(mp_obj_t self_in) {
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(cc3k_disconnect_obj, cc3k_disconnect);
 
 STATIC mp_obj_t cc3k_isconnected(mp_obj_t self_in) {
-    return MP_BOOL(wlan_connected && ip_obtained);
+    return mp_obj_new_bool(wlan_connected && ip_obtained);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(cc3k_isconnected_obj, cc3k_isconnected);
 

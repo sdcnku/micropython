@@ -119,8 +119,41 @@ const USBD_CDC_ItfTypeDef USBD_CDC_fops = {
   */
 static int8_t CDC_Itf_Init(void)
 {
-    /* Start Channel1 */
-    __HAL_TIM_ENABLE_IT(&TIM3_Handle, TIM_IT_UPDATE);
+#if 0
+  /*##-1- Configure the UART peripheral ######################################*/
+  /* Put the USART peripheral in the Asynchronous mode (UART Mode) */
+  /* USART configured as follow:
+      - Word Length = 8 Bits
+      - Stop Bit    = One Stop bit
+      - Parity      = No parity
+      - BaudRate    = 115200 baud
+      - Hardware flow control disabled (RTS and CTS signals) */
+  UartHandle.Instance        = USARTx;
+  UartHandle.Init.BaudRate   = 115200;
+  UartHandle.Init.WordLength = UART_WORDLENGTH_8B;
+  UartHandle.Init.StopBits   = UART_STOPBITS_1;
+  UartHandle.Init.Parity     = UART_PARITY_NONE;
+  UartHandle.Init.HwFlowCtl  = UART_HWCONTROL_NONE;
+  UartHandle.Init.Mode       = UART_MODE_TX_RX;
+  
+  if(HAL_UART_Init(&UartHandle) != HAL_OK)
+  {
+    /* Initialization Error */
+    Error_Handler();
+  }
+  
+  /*##-2- Put UART peripheral in IT reception process ########################*/
+  /* Any data received will be stored in "UserTxBuffer" buffer  */
+  if(HAL_UART_Receive_IT(&UartHandle, (uint8_t *)UserTxBuffer, 1) != HAL_OK)
+  {
+    /* Transfer error in reception process */
+    Error_Handler();
+  }
+  
+  /*##-3- Configure the TIM Base generation  #################################*/
+  now done in HAL_MspInit
+  TIM_Config();
+#endif
   
     /*##-5- Set Application Buffers ############################################*/
     USBD_CDC_SetTxBuffer(&hUSBDDevice, UserTxBuffer, 0);
@@ -379,7 +412,7 @@ static int8_t CDC_Itf_Receive(uint8_t* Buf, uint32_t *Len) {
         delta_len = *Len;
 
     } else {
-        // filter out sepcial interrupt character from the buffer
+        // filter out special interrupt character from the buffer
         bool char_found = false;
         uint8_t *dest = Buf;
         uint8_t *src = Buf;
@@ -482,6 +515,24 @@ void USBD_CDC_TxAlways(const uint8_t *buf, uint32_t len) {
                 }
                 __WFI(); // enter sleep mode, waiting for interrupt
             }
+
+            // Some unused code that makes sure the low-level USB buffer is drained.
+            // Waiting for low-level is handled in HAL_PCD_SOFCallback.
+            /*
+            start = HAL_GetTick();
+            PCD_HandleTypeDef *hpcd = hUSBDDevice.pData;
+            if (hpcd->IN_ep[0x83 & 0x7f].is_in) {
+                //volatile uint32_t *xfer_count = &hpcd->IN_ep[0x83 & 0x7f].xfer_count;
+                //volatile uint32_t *xfer_len = &hpcd->IN_ep[0x83 & 0x7f].xfer_len;
+                USB_OTG_GlobalTypeDef *USBx = hpcd->Instance;
+                while (
+                    // *xfer_count < *xfer_len // using this works
+                    // (USBx_INEP(3)->DIEPTSIZ & USB_OTG_DIEPTSIZ_XFRSIZ) // using this works
+                    && HAL_GetTick() - start <= 2000) {
+                    __WFI(); // enter sleep mode, waiting for interrupt
+                }
+            }
+            */
         }
 
         UserTxBuffer[UserTxBufPtrIn] = buf[i];

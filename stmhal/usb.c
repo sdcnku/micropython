@@ -41,6 +41,14 @@
 #include "usb.h"
 #include "pybioctl.h"
 
+#if defined(USE_USB_FS)
+#define USB_PHY_ID  USB_PHY_FS_ID
+#elif defined(USE_USB_HS) && defined(USE_USB_HS_IN_FS)
+#define USB_PHY_ID  USB_PHY_HS_ID
+#else
+#error Unable to determine proper USB_PHY_ID to use
+#endif
+
 // this will be persistent across a soft-reset
 mp_uint_t pyb_usb_flags = 0;
 
@@ -98,11 +106,11 @@ bool pyb_usb_dev_init(uint16_t vid, uint16_t pid, usb_device_mode_t mode, USBD_H
 #ifdef USE_DEVICE_MODE
     if (!(pyb_usb_flags & PYB_USB_FLAG_DEV_ENABLED)) {
         // only init USB once in the device's power-lifetime
-        USBD_SetVIDPIDRelease(vid, pid, 0x0200);
+        USBD_SetVIDPIDRelease(vid, pid, 0x0200, mode == USBD_MODE_CDC);
         if (USBD_SelectMode(mode, hid_info) != 0) {
             return false;
         }
-        USBD_Init(&hUSBDDevice, (USBD_DescriptorsTypeDef*)&USBD_Descriptors, 0);
+        USBD_Init(&hUSBDDevice, (USBD_DescriptorsTypeDef*)&USBD_Descriptors, USB_PHY_ID);
         USBD_RegisterClass(&hUSBDDevice, &USBD_CDC_MSC_HID);
         USBD_CDC_RegisterInterface(&hUSBDDevice, (USBD_CDC_ItfTypeDef*)&USBD_CDC_fops);
         switch (pyb_usb_storage_medium) {
@@ -179,6 +187,7 @@ void usb_vcp_send_strn_cooked(const char *str, int len) {
 
   We have:
 
+    pyb.usb_mode()          # return the current usb mode
     pyb.usb_mode(None)      # disable USB
     pyb.usb_mode('VCP')     # enable with VCP interface
     pyb.usb_mode('VCP+MSC') # enable with VCP and MSC interfaces
@@ -204,6 +213,31 @@ STATIC mp_obj_t pyb_usb_mode(mp_uint_t n_args, const mp_obj_t *pos_args, mp_map_
         { MP_QSTR_pid, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = -1} },
         { MP_QSTR_hid, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = (mp_obj_t)&pyb_usb_hid_mouse_obj} },
     };
+
+    // fetch the current usb mode -> pyb.usb_mode()
+    if (n_args == 0) {
+    #if defined(USE_HOST_MODE)
+        return MP_OBJ_NEW_QSTR(MP_QSTR_host);
+    #elif defined(USE_DEVICE_MODE)
+        uint8_t mode = USBD_GetMode();
+        switch (mode) {
+            case USBD_MODE_CDC:
+                return MP_OBJ_NEW_QSTR(MP_QSTR_VCP);
+            case USBD_MODE_MSC:
+                return MP_OBJ_NEW_QSTR(MP_QSTR_MSC);
+            case USBD_MODE_HID:
+                return MP_OBJ_NEW_QSTR(MP_QSTR_HID);
+            case USBD_MODE_CDC_MSC:
+                return MP_OBJ_NEW_QSTR(MP_QSTR_VCP_plus_MSC);
+            case USBD_MODE_CDC_HID:
+                return MP_OBJ_NEW_QSTR(MP_QSTR_VCP_plus_HID);
+            case USBD_MODE_MSC_HID:
+                return MP_OBJ_NEW_QSTR(MP_QSTR_MSC_plus_HID);
+            default:
+                return mp_const_none;
+        }
+    #endif
+    }
 
     // parse args
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
@@ -296,7 +330,7 @@ STATIC mp_obj_t pyb_usb_mode(mp_uint_t n_args, const mp_obj_t *pos_args, mp_map_
 bad_mode:
     nlr_raise(mp_obj_new_exception_msg(&mp_type_ValueError, "bad USB mode"));
 }
-MP_DEFINE_CONST_FUN_OBJ_KW(pyb_usb_mode_obj, 1, pyb_usb_mode);
+MP_DEFINE_CONST_FUN_OBJ_KW(pyb_usb_mode_obj, 0, pyb_usb_mode);
 
 /******************************************************************************/
 // Micro Python bindings for USB VCP
@@ -320,7 +354,7 @@ STATIC void pyb_usb_vcp_print(const mp_print_t *print, mp_obj_t self_in, mp_prin
 
 /// \classmethod \constructor()
 /// Create a new USB_VCP object.
-STATIC mp_obj_t pyb_usb_vcp_make_new(mp_obj_t type_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
+STATIC mp_obj_t pyb_usb_vcp_make_new(const mp_obj_type_t *type, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
     // check arguments
     mp_arg_check_num(n_args, n_kw, 0, 0, false);
 
@@ -337,7 +371,7 @@ STATIC mp_obj_t pyb_usb_vcp_setinterrupt(mp_obj_t self_in, mp_obj_t int_chr_in) 
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(pyb_usb_vcp_setinterrupt_obj, pyb_usb_vcp_setinterrupt);
 
 STATIC mp_obj_t pyb_usb_vcp_isconnected(mp_obj_t self_in) {
-    return MP_BOOL(USBD_CDC_IsConnected());
+    return mp_obj_new_bool(USBD_CDC_IsConnected());
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(pyb_usb_vcp_isconnected_obj, pyb_usb_vcp_isconnected);
 
@@ -414,6 +448,7 @@ STATIC mp_obj_t pyb_usb_vcp_recv(mp_uint_t n_args, const mp_obj_t *args, mp_map_
     if (o_ret != MP_OBJ_NULL) {
         return mp_obj_new_int(ret); // number of bytes read into given buffer
     } else {
+        vstr.len = ret; // set actual number of bytes read
         return mp_obj_new_str_from_vstr(&mp_type_bytes, &vstr); // create a new buffer
     }
 }
@@ -508,7 +543,7 @@ typedef struct _pyb_usb_hid_obj_t {
 
 STATIC const pyb_usb_hid_obj_t pyb_usb_hid_obj = {{&pyb_usb_hid_type}};
 
-STATIC mp_obj_t pyb_usb_hid_make_new(mp_obj_t type_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
+STATIC mp_obj_t pyb_usb_hid_make_new(const mp_obj_type_t *type, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
     // check arguments
     mp_arg_check_num(n_args, n_kw, 0, 0, false);
 

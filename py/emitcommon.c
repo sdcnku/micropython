@@ -28,33 +28,19 @@
 
 #include "py/emit.h"
 
+#if MICROPY_ENABLE_COMPILER
+
 void mp_emit_common_get_id_for_load(scope_t *scope, qstr qst) {
     // name adding/lookup
     bool added;
     id_info_t *id = scope_find_or_add_id(scope, qst, &added);
     if (added) {
-#if MICROPY_EMIT_CPYTHON
-        if (qst == MP_QSTR_super && scope->kind == SCOPE_FUNCTION) {
-            // special case, super is a global, and also counts as use of __class__
-            id->kind = ID_INFO_KIND_GLOBAL_EXPLICIT;
-            id_info_t *id2 = scope_find_local_in_parent(scope, MP_QSTR___class__);
-            if (id2 != NULL) {
-                id2 = scope_find_or_add_id(scope, MP_QSTR___class__, &added);
-                if (added) {
-                    id2->kind = ID_INFO_KIND_FREE;
-                    scope_close_over_in_parents(scope, MP_QSTR___class__);
-                }
-            }
-        } else
-#endif
-        {
-            id_info_t *id2 = scope_find_local_in_parent(scope, qst);
-            if (id2 != NULL && (id2->kind == ID_INFO_KIND_LOCAL || id2->kind == ID_INFO_KIND_CELL || id2->kind == ID_INFO_KIND_FREE)) {
-                id->kind = ID_INFO_KIND_FREE;
-                scope_close_over_in_parents(scope, qst);
-            } else {
-                id->kind = ID_INFO_KIND_GLOBAL_IMPLICIT;
-            }
+        id_info_t *id2 = scope_find_local_in_parent(scope, qst);
+        if (id2 != NULL && (id2->kind == ID_INFO_KIND_LOCAL || id2->kind == ID_INFO_KIND_CELL || id2->kind == ID_INFO_KIND_FREE)) {
+            id->kind = ID_INFO_KIND_FREE;
+            scope_close_over_in_parents(scope, qst);
+        } else {
+            id->kind = ID_INFO_KIND_GLOBAL_IMPLICIT;
         }
     }
 }
@@ -93,3 +79,5 @@ void mp_emit_common_id_op(emit_t *emit, const mp_emit_method_table_id_ops_t *emi
         emit_method_table->deref(emit, qst, id->local_num);
     }
 }
+
+#endif // MICROPY_ENABLE_COMPILER

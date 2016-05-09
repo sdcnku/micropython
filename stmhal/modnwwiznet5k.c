@@ -32,12 +32,12 @@
 #include "py/nlr.h"
 #include "py/objlist.h"
 #include "py/runtime.h"
+#include "py/mphal.h"
 #include "netutils.h"
 #include "modnetwork.h"
 #include "pin.h"
 #include "genhdr/pins.h"
 #include "spi.h"
-#include MICROPY_HAL_H
 
 #include "ethernet/wizchip_conf.h"
 #include "ethernet/socket.h"
@@ -318,7 +318,7 @@ STATIC mp_obj_t wiznet5k_socket_disconnect(mp_obj_t self_in) {
 
 /// \classmethod \constructor(spi, pin_cs, pin_rst)
 /// Create and return a WIZNET5K object.
-STATIC mp_obj_t wiznet5k_make_new(mp_obj_t type_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
+STATIC mp_obj_t wiznet5k_make_new(const mp_obj_type_t *type, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
     // check arguments
     mp_arg_check_num(n_args, n_kw, 3, 3, false);
 
