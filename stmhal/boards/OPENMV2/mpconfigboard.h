@@ -38,6 +38,11 @@
 #define MICROPY_HW_SPI2_MISO (pin_B14)
 #define MICROPY_HW_SPI2_MOSI (pin_B15)
 
+// SD card detect switch
+#define MICROPY_HW_SDCARD_DETECT_PIN        (pin_A15)
+#define MICROPY_HW_SDCARD_DETECT_PULL       (GPIO_PULLUP)
+#define MICROPY_HW_SDCARD_DETECT_PRESENT    (GPIO_PIN_RESET)
+
 // USB config
 #define MICROPY_HW_USB_VBUS_DETECT_PIN (pin_A9)
 

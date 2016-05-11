@@ -81,11 +81,9 @@
 #include "dma.h"
 
 extern void __fatal_error(const char*);
+extern DCMI_HandleTypeDef DCMIHandle;
 extern PCD_HandleTypeDef pcd_fs_handle;
 extern PCD_HandleTypeDef pcd_hs_handle;
-
-extern SD_HandleTypeDef  SDHandle;
-extern DCMI_HandleTypeDef DCMIHandle;
 
 /******************************************************************************/
 /*            Cortex-M4 Processor Exceptions Handlers                         */
@@ -286,9 +284,9 @@ void SysTick_Handler(void) {
         NVIC->STIR = FLASH_IRQn;
     }
 
-    if (DMA_IDLE_ENABLED() && DMA_IDLE_TICK(uwTick)) {
-        dma_idle_handler(uwTick);
-    }
+    //if (DMA_IDLE_ENABLED() && DMA_IDLE_TICK(uwTick)) {
+    //    dma_idle_handler(uwTick);
+    //}
 }
 
 /******************************************************************************/
@@ -588,17 +586,6 @@ void DCMI_IRQHandler(void) {
 
 void DMA2_Stream1_IRQHandler(void) {
     HAL_DMA_IRQHandler(DCMIHandle.DMA_Handle);
-}
-
-// SDIO
-void SDIO_IRQHandler(void)
-{
-    HAL_SD_IRQHandler(&SDHandle);
-}
-
-void DMA2_Stream3_IRQHandler(void)
-{
-    HAL_DMA_IRQHandler(SDHandle.hdmatx);
 }
 
 // UART/USART IRQ handlers

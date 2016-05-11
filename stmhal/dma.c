@@ -48,7 +48,9 @@ static const uint8_t dma_irqn[NSTREAM] = {
     DMA1_Stream6_IRQn,
     DMA1_Stream7_IRQn,
     DMA2_Stream0_IRQn,
+    DMA2_Stream1_IRQn,
     DMA2_Stream2_IRQn,
+    DMA2_Stream3_IRQn,
     DMA2_Stream4_IRQn,
     DMA2_Stream5_IRQn,
     DMA2_Stream6_IRQn,
@@ -95,7 +97,7 @@ void DMA1_Stream7_IRQHandler(void) { IRQ_ENTER(DMA1_Stream7_IRQn); if (dma_handl
 void DMA2_Stream0_IRQHandler(void) { IRQ_ENTER(DMA2_Stream0_IRQn); if (dma_handle[8] != NULL) { HAL_DMA_IRQHandler(dma_handle[8]); } IRQ_EXIT(DMA2_Stream0_IRQn); }
 //void DMA2_Stream1_IRQHandler(void) { IRQ_ENTER(DMA2_Stream1_IRQn); if (dma_handle[9] != NULL) { HAL_DMA_IRQHandler(dma_handle[9]); } IRQ_EXIT(DMA2_Stream1_IRQn); }
 void DMA2_Stream2_IRQHandler(void) { IRQ_ENTER(DMA2_Stream2_IRQn); if (dma_handle[10] != NULL) { HAL_DMA_IRQHandler(dma_handle[10]); } IRQ_EXIT(DMA2_Stream2_IRQn); }
-//void DMA2_Stream3_IRQHandler(void) { IRQ_ENTER(DMA2_Stream3_IRQn); if (dma_handle[11] != NULL) { HAL_DMA_IRQHandler(dma_handle[11]); } IRQ_EXIT(DMA2_Stream3_IRQn); }
+void DMA2_Stream3_IRQHandler(void) { IRQ_ENTER(DMA2_Stream3_IRQn); if (dma_handle[11] != NULL) { HAL_DMA_IRQHandler(dma_handle[11]); } IRQ_EXIT(DMA2_Stream3_IRQn); }
 void DMA2_Stream4_IRQHandler(void) { IRQ_ENTER(DMA2_Stream4_IRQn); if (dma_handle[12] != NULL) { HAL_DMA_IRQHandler(dma_handle[12]); } IRQ_EXIT(DMA2_Stream4_IRQn); }
 void DMA2_Stream5_IRQHandler(void) { IRQ_ENTER(DMA2_Stream5_IRQn); if (dma_handle[13] != NULL) { HAL_DMA_IRQHandler(dma_handle[13]); } IRQ_EXIT(DMA2_Stream5_IRQn); }
 void DMA2_Stream6_IRQHandler(void) { IRQ_ENTER(DMA2_Stream6_IRQn); if (dma_handle[14] != NULL) { HAL_DMA_IRQHandler(dma_handle[14]); } IRQ_EXIT(DMA2_Stream6_IRQn); }
