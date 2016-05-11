@@ -35,6 +35,7 @@
 #include "bufhelper.h"
 #include "dma.h"
 #include "irq.h"
+#include "stdio.h"
 
 #if MICROPY_HW_HAS_SDCARD
 
@@ -65,6 +66,9 @@
 
 #endif
 
+#define UNALIGNED_BUFFER(p)     ((uint32_t)p & 3)
+#define CCM_BUFFER(p)           (!(((uint32_t) p) & (1u<<29)))
+
 // TODO: Since SDIO is fundamentally half-duplex, we really only need to
 //       tie up one DMA channel. However, the HAL DMA API doesn't
 // seem to provide a convenient way to change the direction. I believe that
@@ -86,7 +90,7 @@ static const DMA_InitTypeDef dma_init_struct_sdio = {
     .PeriphDataAlignment = DMA_PDATAALIGN_WORD,
     .MemDataAlignment    = DMA_MDATAALIGN_WORD,
     .Mode                = DMA_PFCTRL,
-    .Priority            = DMA_PRIORITY_VERY_HIGH,
+    .Priority            = DMA_PRIORITY_HIGH,
     .FIFOMode            = DMA_FIFOMODE_ENABLE,
     .FIFOThreshold       = DMA_FIFO_THRESHOLD_FULL,
     .MemBurst            = DMA_MBURST_INC4,
@@ -115,7 +119,7 @@ void sdcard_init(void) {
     // we do this here so we can detect if the SD card is inserted before powering it on
     GPIO_Init_Structure.Mode = GPIO_MODE_INPUT;
     GPIO_Init_Structure.Pull = MICROPY_HW_SDCARD_DETECT_PULL;
-    GPIO_Init_Structure.Speed = GPIO_SPEED_HIGH;
+    GPIO_Init_Structure.Speed = GPIO_SPEED_LOW;
     GPIO_Init_Structure.Pin = MICROPY_HW_SDCARD_DETECT_PIN.pin_mask;
     HAL_GPIO_Init(MICROPY_HW_SDCARD_DETECT_PIN.gpio, &GPIO_Init_Structure);
 }
@@ -203,11 +207,6 @@ void SDIO_IRQHandler(void) {
 }
 
 mp_uint_t sdcard_read_blocks(uint8_t *dest, uint32_t block_num, uint32_t num_blocks) {
-    // check that dest pointer is aligned on a 4-byte boundary
-    if (((uint32_t)dest & 3) != 0) {
-        return SD_ERROR;
-    }
-
     // check that SD card is initialised
     if (sd_handle.Instance == NULL) {
         return SD_ERROR;
@@ -215,7 +214,15 @@ mp_uint_t sdcard_read_blocks(uint8_t *dest, uint32_t block_num, uint32_t num_blo
 
     HAL_SD_ErrorTypedef err = SD_OK;
 
-    if (query_irq() == IRQ_STATE_ENABLED) {
+    if (query_irq() == IRQ_STATE_DISABLED || CCM_BUFFER(dest) || UNALIGNED_BUFFER(dest)) {
+        if (UNALIGNED_BUFFER(dest)) {
+            printf("unaligned read buf:%p count%lu \n", dest, num_blocks);
+        }
+        // This transfer has to be done in an atomic section.
+        mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
+        err = HAL_SD_ReadBlocks_BlockNumber(&sd_handle, (uint32_t*)dest, block_num, SDCARD_BLOCK_SIZE, num_blocks);
+        MICROPY_END_ATOMIC_SECTION(atomic_state);
+    } else {
         // we must disable USB irqs to prevent MSC contention with SD card
         uint32_t basepri = raise_irq_pri(IRQ_PRI_OTG_FS);
 
@@ -233,19 +240,12 @@ mp_uint_t sdcard_read_blocks(uint8_t *dest, uint32_t block_num, uint32_t num_blo
         sd_handle.hdmarx = NULL;
 
         restore_irq_pri(basepri);
-    } else {
-        err = HAL_SD_ReadBlocks_BlockNumber(&sd_handle, (uint32_t*)dest, block_num, SDCARD_BLOCK_SIZE, num_blocks);
     }
 
     return err;
 }
 
 mp_uint_t sdcard_write_blocks(const uint8_t *src, uint32_t block_num, uint32_t num_blocks) {
-    // check that src pointer is aligned on a 4-byte boundary
-    if (((uint32_t)src & 3) != 0) {
-        return SD_ERROR;
-    }
-
     // check that SD card is initialised
     if (sd_handle.Instance == NULL) {
         return SD_ERROR;
@@ -253,7 +253,15 @@ mp_uint_t sdcard_write_blocks(const uint8_t *src, uint32_t block_num, uint32_t n
 
     HAL_SD_ErrorTypedef err = SD_OK;
 
-    if (query_irq() == IRQ_STATE_ENABLED) {
+    if (query_irq() == IRQ_STATE_DISABLED || CCM_BUFFER(src) || UNALIGNED_BUFFER(src)) {
+        if (UNALIGNED_BUFFER(src)) {
+            printf("unaligned write buf:%p count%lu \n", src, num_blocks);
+        }
+        // This transfer has to be done in an atomic section.
+        mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
+        err = HAL_SD_WriteBlocks_BlockNumber(&sd_handle, (uint32_t*)src, block_num, SDCARD_BLOCK_SIZE, num_blocks);
+        MICROPY_END_ATOMIC_SECTION(atomic_state);
+    } else {
         // we must disable USB irqs to prevent MSC contention with SD card
         uint32_t basepri = raise_irq_pri(IRQ_PRI_OTG_FS);
 
@@ -270,8 +278,6 @@ mp_uint_t sdcard_write_blocks(const uint8_t *src, uint32_t block_num, uint32_t n
         sd_handle.hdmatx = NULL;
 
         restore_irq_pri(basepri);
-    } else {
-        err = HAL_SD_WriteBlocks_BlockNumber(&sd_handle, (uint32_t*)src, block_num, SDCARD_BLOCK_SIZE, num_blocks);
     }
 
     return err;
