@@ -150,6 +150,7 @@ SRC_C = \
 	moduselect.c \
 	modusocket.c \
 	modnetwork.c \
+	modmachine.c \
 	import.c \
 	lexerfatfs.c \
 	extint.c \

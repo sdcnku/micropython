@@ -130,11 +130,11 @@ MP_DECLARE_CONST_FUN_OBJ(pyb_main_obj); // defined in main.c
 STATIC const mp_map_elem_t pyb_module_globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR___name__), MP_OBJ_NEW_QSTR(MP_QSTR_pyb) },
 
-    //{ MP_OBJ_NEW_QSTR(MP_QSTR_bootloader), (mp_obj_t)&machine_bootloader_obj },
-    //{ MP_OBJ_NEW_QSTR(MP_QSTR_hard_reset), (mp_obj_t)&machine_reset_obj },
-    //{ MP_OBJ_NEW_QSTR(MP_QSTR_info), (mp_obj_t)&machine_info_obj },
-    //{ MP_OBJ_NEW_QSTR(MP_QSTR_unique_id), (mp_obj_t)&machine_unique_id_obj },
-    //{ MP_OBJ_NEW_QSTR(MP_QSTR_freq), (mp_obj_t)&machine_freq_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_bootloader), (mp_obj_t)&machine_bootloader_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_hard_reset), (mp_obj_t)&machine_reset_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_info), (mp_obj_t)&machine_info_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_unique_id), (mp_obj_t)&machine_unique_id_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_freq), (mp_obj_t)&machine_freq_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_repl_info), (mp_obj_t)&pyb_set_repl_info_obj },
 
     { MP_OBJ_NEW_QSTR(MP_QSTR_wfi), (mp_obj_t)&pyb_wfi_obj },
@@ -144,8 +144,8 @@ STATIC const mp_map_elem_t pyb_module_globals_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_irq_stats), (mp_obj_t)&pyb_irq_stats_obj },
     #endif
 
-    //{ MP_OBJ_NEW_QSTR(MP_QSTR_stop), (mp_obj_t)&machine_sleep_obj },
-    //{ MP_OBJ_NEW_QSTR(MP_QSTR_standby), (mp_obj_t)&machine_deepsleep_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_stop), (mp_obj_t)&machine_sleep_obj },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_standby), (mp_obj_t)&machine_deepsleep_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_main), (mp_obj_t)&pyb_main_obj },
     { MP_OBJ_NEW_QSTR(MP_QSTR_repl_uart), (mp_obj_t)&mod_os_dupterm_obj },
 
@@ -195,8 +195,8 @@ STATIC const mp_map_elem_t pyb_module_globals_table[] = {
 #endif
 
 #if MICROPY_HW_HAS_SDCARD
-    //{ MP_OBJ_NEW_QSTR(MP_QSTR_SD), (mp_obj_t)&pyb_sdcard_obj }, // now obsolete
-    //{ MP_OBJ_NEW_QSTR(MP_QSTR_SDCard), (mp_obj_t)&pyb_sdcard_type },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_SD), (mp_obj_t)&pyb_sdcard_obj }, // now obsolete
+    { MP_OBJ_NEW_QSTR(MP_QSTR_SDCard), (mp_obj_t)&pyb_sdcard_type },
 #endif
 
 #if defined(MICROPY_HW_LED1)

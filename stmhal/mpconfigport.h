@@ -89,8 +89,8 @@
 #define MICROPY_PY_URE              (0)
 #define MICROPY_PY_UHEAPQ           (0)
 #define MICROPY_PY_UHASHLIB         (0)
-#define MICROPY_PY_MACHINE          (0)
-#define MICROPY_PY_MACHINE_I2C      (0)
+#define MICROPY_PY_MACHINE          (1)
+#define MICROPY_PY_MACHINE_I2C      (1)
 #define MICROPY_PY_FRAMEBUF         (0)
 
 #define MICROPY_ENABLE_EMERGENCY_EXCEPTION_BUF   (1)
@@ -105,6 +105,7 @@
 // extra built in modules to add to the list of known ones
 extern const struct _mp_obj_module_t pyb_module;
 extern const struct _mp_obj_module_t stm_module;
+extern const struct _mp_obj_module_t machine_module;
 extern const struct _mp_obj_module_t mp_module_ubinascii;
 extern const struct _mp_obj_module_t mp_module_ure;
 extern const struct _mp_obj_module_t mp_module_uzlib;
@@ -127,6 +128,7 @@ extern const struct _mp_obj_module_t mjpeg_module;
 #define MICROPY_PORT_BUILTIN_MODULES \
     { MP_OBJ_NEW_QSTR(MP_QSTR_pyb), (mp_obj_t)&pyb_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_stm), (mp_obj_t)&stm_module }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_umachine), (mp_obj_t)&machine_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_uos), (mp_obj_t)&mp_module_uos }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_utime), (mp_obj_t)&mp_module_utime }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_uselect), (mp_obj_t)&mp_module_uselect }, \
@@ -145,11 +147,13 @@ extern const struct _mp_obj_module_t mjpeg_module;
     { MP_OBJ_NEW_QSTR(MP_QSTR_time), (mp_obj_t)&mp_module_utime }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_select), (mp_obj_t)&mp_module_uselect }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_socket), (mp_obj_t)&mp_module_usocket }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_machine), (mp_obj_t)&machine_module }, \
 
 // extra constants
 #define MICROPY_PORT_CONSTANTS \
     { MP_OBJ_NEW_QSTR(MP_QSTR_pyb), (mp_obj_t)&pyb_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_stm), (mp_obj_t)&stm_module }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_umachine), (mp_obj_t)&machine_module }, \
 
 #if defined(MCU_SERIES_F7)
 #define PYB_EXTI_NUM_VECTORS (24)
