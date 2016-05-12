@@ -54,7 +54,7 @@
 #define ADCx                    (ADC1)
 #define ADCx_CLK_ENABLE         __ADC1_CLK_ENABLE
 #define ADC_NUM_CHANNELS        (19)
-#define ADC_NUM_GPIO_CHANNELS   (16)
+#define ADC_NUM_GPIO_CHANNELS   (1)
 
 #if defined(STM32F405xx) || defined(STM32F415xx) || \
     defined(STM32F407xx) || defined(STM32F417xx) || \
