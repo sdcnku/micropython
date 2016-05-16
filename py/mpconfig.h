@@ -346,20 +346,20 @@
 // Whether to use computed gotos in the VM, or a switch
 // Computed gotos are roughly 10% faster, and increase VM code size by a little
 #ifndef MICROPY_OPT_COMPUTED_GOTO
-#define MICROPY_OPT_COMPUTED_GOTO (0)
+#define MICROPY_OPT_COMPUTED_GOTO (1)
 #endif
 
 // Whether to cache result of map lookups in LOAD_NAME, LOAD_GLOBAL, LOAD_ATTR,
 // STORE_ATTR bytecodes.  Uses 1 byte extra RAM for each of these opcodes and
 // uses a bit of extra code ROM, but greatly improves lookup speed.
 #ifndef MICROPY_OPT_CACHE_MAP_LOOKUP_IN_BYTECODE
-#define MICROPY_OPT_CACHE_MAP_LOOKUP_IN_BYTECODE (0)
+#define MICROPY_OPT_CACHE_MAP_LOOKUP_IN_BYTECODE (1)
 #endif
 
 // Whether to use fast versions of bitwise operations (and, or, xor) when the
 // arguments are both positive.  Increases Thumb2 code size by about 250 bytes.
 #ifndef MICROPY_OPT_MPZ_BITWISE
-#define MICROPY_OPT_MPZ_BITWISE (0)
+#define MICROPY_OPT_MPZ_BITWISE (1)
 #endif
 
 /*****************************************************************************/

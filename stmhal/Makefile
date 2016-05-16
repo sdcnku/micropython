@@ -71,7 +71,7 @@ ifeq ($(DEBUG), 1)
 CFLAGS += -g -DPENDSV_DEBUG
 COPT = -O0
 else
-COPT += -Os -DNDEBUG
+COPT += -O2 -DNDEBUG
 endif
 
 # uncomment this if you want libgcc
@@ -264,8 +264,8 @@ OBJ += $(BUILD)/pins_$(BOARD).o
 # If we compile these using -O0 then it won't fit. So if you really want these
 # to be compiled with -O0, then edit stm32f405.ld (in the .isr_vector section)
 # and comment out the following 2 lines.
-$(BUILD)/$(FATFS_DIR)/ff.o: COPT += -Os
-$(BUILD)/$(HAL_DIR)/src/stm32$(MCU_SERIES)xx_hal_sd.o: COPT += -Os
+$(BUILD)/$(FATFS_DIR)/ff.o: COPT += -O2
+$(BUILD)/$(HAL_DIR)/src/stm32$(MCU_SERIES)xx_hal_sd.o: COPT += -O2
 
 all: $(OBJ)
 
