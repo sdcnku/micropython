@@ -117,11 +117,13 @@ void sdcard_init(void) {
 
     // configure the SD card detect pin
     // we do this here so we can detect if the SD card is inserted before powering it on
+    #if defined(MICROPY_HW_SDCARD_DETECT_PIN)
     GPIO_Init_Structure.Mode = GPIO_MODE_INPUT;
     GPIO_Init_Structure.Pull = MICROPY_HW_SDCARD_DETECT_PULL;
     GPIO_Init_Structure.Speed = GPIO_SPEED_LOW;
     GPIO_Init_Structure.Pin = MICROPY_HW_SDCARD_DETECT_PIN.pin_mask;
     HAL_GPIO_Init(MICROPY_HW_SDCARD_DETECT_PIN.gpio, &GPIO_Init_Structure);
+    #endif
 }
 
 void HAL_SD_MspInit(SD_HandleTypeDef *hsd) {
@@ -141,7 +143,11 @@ void HAL_SD_MspDeInit(SD_HandleTypeDef *hsd) {
 }
 
 bool sdcard_is_present(void) {
+    #if defined(MICROPY_HW_SDCARD_DETECT_PIN)
     return HAL_GPIO_ReadPin(MICROPY_HW_SDCARD_DETECT_PIN.gpio, MICROPY_HW_SDCARD_DETECT_PIN.pin_mask) == MICROPY_HW_SDCARD_DETECT_PRESENT;
+    #else
+    return false;
+    #endif
 }
 
 bool sdcard_power_on(void) {

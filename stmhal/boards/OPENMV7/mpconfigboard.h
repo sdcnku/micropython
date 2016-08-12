@@ -44,9 +44,10 @@
 #define MICROPY_HW_SPI2_MOSI (pin_I3)
 
 // SD card detect switch
-#define MICROPY_HW_SDCARD_DETECT_PIN        (pin_A5)
-#define MICROPY_HW_SDCARD_DETECT_PULL       (GPIO_PULLUP)
-#define MICROPY_HW_SDCARD_DETECT_PRESENT    (GPIO_PIN_RESET)
+// CD not connected on current rev
+//#define MICROPY_HW_SDCARD_DETECT_PIN        (pin_A5)
+//#define MICROPY_HW_SDCARD_DETECT_PULL       (GPIO_PULLUP)
+//#define MICROPY_HW_SDCARD_DETECT_PRESENT    (GPIO_PIN_RESET)
 
 // USB config
 #define MICROPY_HW_USB_VBUS_DETECT_PIN (pin_A9)

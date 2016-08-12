@@ -125,6 +125,10 @@ MP_DECLARE_CONST_FUN_OBJ(pyb_irq_stats_obj);
 #define IRQ_PRI_DMA21           4
 #define IRQ_SUBPRI_DMA21                    0
 
+// F7 JPEG encoder
+#define IRQ_PRI_JPEG            5
+#define IRQ_SUBPRI_JPEG                     0
+
 // SDIO must be higher priority than DMA for SDIO DMA transfers to work.
 #define IRQ_PRI_SDIO            5
 #define IRQ_SUBPRI_SDIO                     0

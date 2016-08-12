@@ -61,7 +61,7 @@ static const flash_layout_t flash_layout[] = {
 static const flash_layout_t flash_layout[] = {
     { 0x08000000, 0x08000, 4 },
     { 0x08020000, 0x20000, 1 },
-    { 0x08040000, 0x40000, 3 },
+    { 0x08040000, 0x40000, 7 },
 };
 
 #elif defined(MCU_SERIES_L4)

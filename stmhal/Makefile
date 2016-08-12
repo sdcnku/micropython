@@ -47,32 +47,16 @@ INC += -I../lib/mp-readline
 INC += -I../lib/netutils
 INC += -I../lib/timeutils
 
-CFLAGS_CORTEX_M = -mthumb -mabi=aapcs-linux -mfpu=fpv4-sp-d16 -mfloat-abi=hard -fsingle-precision-constant -Wdouble-promotion
-CFLAGS_MCU_f4 = $(CFLAGS_CORTEX_M) -mtune=cortex-m4 -mcpu=cortex-m4 -DMCU_SERIES_F4
-CFLAGS_MCU_f7 = $(CFLAGS_CORTEX_M) -mtune=cortex-m7 -mcpu=cortex-m7 -DMCU_SERIES_F7
-CFLAGS_MCU_l4 = $(CFLAGS_CORTEX_M) -mtune=cortex-m4 -mcpu=cortex-m4 -DMCU_SERIES_L4
+CFLAGS_MCU_f4 = -DMCU_SERIES_F4
+CFLAGS_MCU_f7 = -DMCU_SERIES_F7
+CFLAGS_MCU_l4 = -DMCU_SERIES_L4
 
-CFLAGS += $(INC) -Wall -Wpointer-arith -Werror -ansi -std=gnu99 -nostdlib $(CFLAGS_MOD)
-CFLAGS += -D$(CMSIS_MCU)
-CFLAGS += $(CFLAGS_MCU_$(MCU_SERIES))
-CFLAGS += $(COPT)
-CFLAGS += -Iboards/$(BOARD)
-CFLAGS += -DSTM32_HAL_H='<stm32$(MCU_SERIES)xx_hal.h>'
+# Append to main CFLAGS
+CFLAGS += $(INC) $(CFLAGS_MOD) -D$(CMSIS_MCU) $(CFLAGS_MCU_$(MCU_SERIES)) -Iboards/$(BOARD) -DSTM32_HAL_H='<stm32$(MCU_SERIES)xx_hal.h>'
 
+# Linker flags don't matter because linking is done from main Makefile
 LDFLAGS = -nostdlib -T $(LD_FILE) -Map=$(@:.elf=.map) --cref
 LIBS =
-
-# Remove uncalled code from the final image.
-CFLAGS += -fdata-sections -ffunction-sections
-LDFLAGS += --gc-sections
-
-# Debugging/Optimization
-ifeq ($(DEBUG), 1)
-CFLAGS += -g -DPENDSV_DEBUG
-COPT = -O0
-else
-COPT += -O2 -DNDEBUG
-endif
 
 # uncomment this if you want libgcc
 #LIBS += $(shell $(CC) -print-libgcc-file-name)
@@ -259,13 +243,6 @@ OBJ += $(addprefix $(BUILD)/, $(SRC_O))
 OBJ += $(addprefix $(BUILD)/, $(SRC_USBDEV:.c=.o))
 OBJ += $(addprefix $(BUILD)/, $(SRC_MOD:.c=.o))
 OBJ += $(BUILD)/pins_$(BOARD).o
-
-# We put ff.o and stm32f4xx_hal_sd.o into the first 16K section with the ISRs.
-# If we compile these using -O0 then it won't fit. So if you really want these
-# to be compiled with -O0, then edit stm32f405.ld (in the .isr_vector section)
-# and comment out the following 2 lines.
-$(BUILD)/$(FATFS_DIR)/ff.o: COPT += -O2
-$(BUILD)/$(HAL_DIR)/src/stm32$(MCU_SERIES)xx_hal_sd.o: COPT += -O2
 
 all: $(OBJ)
 

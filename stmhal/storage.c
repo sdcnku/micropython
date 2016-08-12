@@ -63,7 +63,7 @@ STATIC byte flash_cache_mem[0x4000] __attribute__((aligned(4))); // 16k
 
 #elif defined(STM32F427xx) || defined(STM32F429xx)
 
-#define FLASH_SECTOR_SIZE_MAX (0x4000) // 64k max, size of CCM
+#define FLASH_SECTOR_SIZE_MAX (0x4000) // 16k max
 #define FLASH_MEM_SEG1_START_ADDR (0x08004000) // sector 1
 #define FLASH_MEM_SEG1_NUM_BLOCKS (96)  // (16k+16+16)*1024/512
 
@@ -76,14 +76,10 @@ STATIC byte flash_cache_mem[0x4000] __attribute__((aligned(4))); // 16k
 #define FLASH_MEM_SEG2_START_ADDR (0x08140000) // sector 18
 #define FLASH_MEM_SEG2_NUM_BLOCKS (128) // sector 18: 64k(of 128k)
 
-#elif defined(STM32F746xx)
-
-// The STM32F746 doesn't really have CCRAM, so we use the 64K DTCM for this.
-
-#define CACHE_MEM_START_ADDR (0x20000000) // DTCM data RAM, 64k
-#define FLASH_SECTOR_SIZE_MAX (0x08000) // 32k max
+#elif defined(STM32F746xx) || defined(STM32F769xx)
+#define FLASH_SECTOR_SIZE_MAX (0x8000) // 32k max
 #define FLASH_MEM_SEG1_START_ADDR (0x08008000) // sector 1
-#define FLASH_MEM_SEG1_NUM_BLOCKS (192) // sectors 1,2,3: 32k+32k+32=96k
+#define FLASH_MEM_SEG1_NUM_BLOCKS (192)  // (32+32+32)*1024/512
 
 #elif defined(STM32L476xx)
 

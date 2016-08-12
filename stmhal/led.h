@@ -44,7 +44,7 @@ typedef enum {
     LED_RED=1,
     LED_GREEN=2,
     LED_BLUE=3,
-#ifdef OPENMV2
+#if defined(MICROPY_HW_LED4)
     LED_IR=4,
 #endif
 } pyb_led_t;

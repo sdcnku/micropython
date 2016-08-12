@@ -187,12 +187,20 @@ STATIC uint32_t i2c_get_baudrate(I2C_InitTypeDef *init) {
 #else
 
 STATIC void i2c_set_baudrate(I2C_InitTypeDef *init, uint32_t baudrate) {
+    #if defined(STM32F769xx)
+    init->Timing = baudrate;
+    #else
     init->ClockSpeed = baudrate;
     init->DutyCycle = I2C_DUTYCYCLE_16_9;
+    #endif
 }
 
 STATIC uint32_t i2c_get_baudrate(I2C_InitTypeDef *init) {
+    #if defined(STM32F769xx)
+    return init->Timing;
+    #else
     return init->ClockSpeed;
+    #endif
 }
 
 #endif // MICROPY_HW_I2C_BAUDRATE_TIMING
