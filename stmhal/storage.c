@@ -37,112 +37,81 @@
 #include "flash.h"
 #include "storage.h"
 #include "irq.h"
-#include "fb_alloc.h"
+
+extern char _ffs_cache;
+const void *CACHE_MEM_START_ADDR = &_ffs_cache;
 
 #if defined(STM32F405xx) || defined(STM32F407xx)
- #define FLASH_SECTOR_SIZE_MAX      (0x4000)        // 64k max, size of CCM
- #define FLASH_MEM_SEG1_START_ADDR  (0x08004000)    // sector 1
- #define FLASH_MEM_SEG1_NUM_BLOCKS  (96)            // (16k+16+16)*1024/512
+
+#define FLASH_SECTOR_SIZE_MAX (0x4000) // 64k max, size of CCM
+#define FLASH_MEM_SEG1_START_ADDR (0x08004000) // sector 1
+#define FLASH_MEM_SEG1_NUM_BLOCKS (96)  // (16k+16+16)*1024/512
+
+// enable this to get an extra 64k of storage (uses the last sector of the flash)
+#if 0
+#define FLASH_MEM_SEG2_START_ADDR (0x080e0000) // sector 11
+#define FLASH_MEM_SEG2_NUM_BLOCKS (128) // sector 11: 128k
+#endif
+
+#elif defined(STM32F401xE) || defined(STM32F411xE)
+
+STATIC byte flash_cache_mem[0x4000] __attribute__((aligned(4))); // 16k
+#define CACHE_MEM_START_ADDR (&flash_cache_mem[0])
+#define FLASH_SECTOR_SIZE_MAX (0x4000) // 16k max due to size of cache buffer
+#define FLASH_MEM_SEG1_START_ADDR (0x08004000) // sector 1
+#define FLASH_MEM_SEG1_NUM_BLOCKS (128) // sectors 1,2,3,4: 16k+16k+16k+16k(of 64k)=64k
+
 #elif defined(STM32F427xx) || defined(STM32F429xx)
- #define FLASH_CACHE_BUF_SIZE       (4*1024)
- #define FLASH_SECTOR_SIZE_MAX      (0x4000)        // 16k max
- #define FLASH_MEM_SEG1_START_ADDR  (0x08004000)    // sector 1
- #define FLASH_MEM_SEG1_NUM_BLOCKS  (96)            // (16k+16+16)*1024/512
+
+#define FLASH_SECTOR_SIZE_MAX (0x4000) // 16k max
+#define FLASH_MEM_SEG1_START_ADDR (0x08004000) // sector 1
+#define FLASH_MEM_SEG1_NUM_BLOCKS (96)  // (16k+16+16)*1024/512
+
+#elif defined(STM32F439xx)
+
+#define CACHE_MEM_START_ADDR (0x10000000) // CCM data RAM, 64k
+#define FLASH_SECTOR_SIZE_MAX (0x10000) // 64k max, size of CCM
+#define FLASH_MEM_SEG1_START_ADDR (0x08100000) // sector 12
+#define FLASH_MEM_SEG1_NUM_BLOCKS (384) // sectors 12,13,14,15,16,17: 16k+16k+16k+16k+64k+64k(of 128k)=192k
+#define FLASH_MEM_SEG2_START_ADDR (0x08140000) // sector 18
+#define FLASH_MEM_SEG2_NUM_BLOCKS (128) // sector 18: 64k(of 128k)
+
 #elif defined(STM32F746xx) || defined(STM32F769xx)
- #define FLASH_CACHE_BUF_SIZE       (32*1024)
- #define FLASH_SECTOR_SIZE_MAX      (0x8000)        // 32k max
- #define FLASH_MEM_SEG1_START_ADDR  (0x08008000)    // sector 1
- #define FLASH_MEM_SEG1_NUM_BLOCKS  (192)           // (32+32+32)*1024/512
+#define FLASH_SECTOR_SIZE_MAX (0x8000) // 32k max
+#define FLASH_MEM_SEG1_START_ADDR (0x08008000) // sector 1
+#define FLASH_MEM_SEG1_NUM_BLOCKS (192)  // (32+32+32)*1024/512
+
+#elif defined(STM32L476xx)
+
+// The STM32L476 doesn't have CCRAM, so we use the 32K SRAM2 for this.
+#define CACHE_MEM_START_ADDR (0x10000000)       // SRAM2 data RAM, 32k
+#define FLASH_SECTOR_SIZE_MAX (0x00800)         // 2k max
+#define FLASH_MEM_SEG1_START_ADDR (0x08000800)  // sector 1
+#define FLASH_MEM_SEG1_NUM_BLOCKS (252)         // 1 Block=512 Bytes Reserve 126 kBytes
+
 #else
- #error "no storage support for this MCU"
+#error "no storage support for this MCU"
 #endif
 
 #if !defined(FLASH_MEM_SEG2_START_ADDR)
-#define FLASH_MEM_SEG2_START_ADDR   (0) // no second segment
-#define FLASH_MEM_SEG2_NUM_BLOCKS   (0) // no second segment
+#define FLASH_MEM_SEG2_START_ADDR (0) // no second segment
+#define FLASH_MEM_SEG2_NUM_BLOCKS (0) // no second segment
 #endif
 
-#define FLASH_PART1_START_BLOCK     (0x100)
-#define FLASH_PART1_NUM_BLOCKS      (FLASH_MEM_SEG1_NUM_BLOCKS + FLASH_MEM_SEG2_NUM_BLOCKS)
+#define FLASH_PART1_START_BLOCK (0x100)
+#define FLASH_PART1_NUM_BLOCKS (FLASH_MEM_SEG1_NUM_BLOCKS + FLASH_MEM_SEG2_NUM_BLOCKS)
 
-#define FLASH_FLAG_DIRTY            (1)
-#define FLASH_FLAG_FORCE_WRITE      (2)
-#define FLASH_FLAG_ERASED           (4)
-
-#define FFS_CACHE_SIZE              (FLASH_CACHE_BUF_SIZE)
-#define FFS_CACHE_BLOCKS            (FFS_CACHE_SIZE / FLASH_BLOCK_SIZE) 
-#define FFS_CACHE_LOOKUP(addr)      (((addr - 0x08000000U) / FLASH_BLOCK_SIZE) % FFS_CACHE_BLOCKS)
-
-static struct {
-    uint32_t free_blocks;
-    struct {
-        uint32_t addr;
-        uint8_t *buffer;
-    } blocks[FFS_CACHE_BLOCKS];
-} ffs_cache;
-
-extern uint8_t _ffs_cache;
-static __IO uint8_t flash_flags = 0;
+#define FLASH_FLAG_DIRTY        (1)
+#define FLASH_FLAG_FORCE_WRITE  (2)
+#define FLASH_FLAG_ERASED       (4)
 static bool flash_is_initialised = false;
-
+static __IO uint8_t flash_flags = 0;
 static uint32_t flash_cache_sector_id;
 static uint32_t flash_cache_sector_start;
 static uint32_t flash_cache_sector_size;
 static uint32_t flash_tick_counter_last_write;
 
-void ffs_cache_init()
-{
-    ffs_cache.free_blocks = FFS_CACHE_BLOCKS;
-    for (int i=0; i<FFS_CACHE_BLOCKS; i++) {
-        ffs_cache.blocks[i].addr = 0;
-        ffs_cache.blocks[i].buffer = &_ffs_cache + (i*FLASH_BLOCK_SIZE);
-    }
-}
-
-int ffs_cache_lookup(uint32_t addr)
-{
-    int index = FFS_CACHE_LOOKUP(addr);
-    
-    // Check block index
-    if (ffs_cache.blocks[index].addr == addr) {
-        return index;
-    }
-
-    // Check all slots
-    for (index=0; index<FFS_CACHE_BLOCKS; index++) {
-        if (ffs_cache.blocks[index].addr == addr) {
-            return index;
-        }
-    }
-
-    return -1;
-}
-
-int ffs_cache_insert(uint32_t addr)
-{
-    int index = FFS_CACHE_LOOKUP(addr);
-
-    // Check block slot
-    if (ffs_cache.blocks[index].addr == 0) {
-        ffs_cache.free_blocks--;
-        ffs_cache.blocks[index].addr = addr;
-        return index;
-    }
-
-    // Find next free slot
-    for (index=0; index<FFS_CACHE_BLOCKS; index++) {
-        if (ffs_cache.blocks[index].addr == 0) {
-            ffs_cache.free_blocks--;
-            ffs_cache.blocks[index].addr = addr;
-            return index;
-        }
-    }
-
-    return -1;
-}
-
-static void flash_cache_flush(void)
-{
+static void flash_cache_flush(void) {
     if (flash_flags & FLASH_FLAG_DIRTY) {
         flash_flags |= FLASH_FLAG_FORCE_WRITE;
         while (flash_flags & FLASH_FLAG_DIRTY) {
@@ -151,47 +120,36 @@ static void flash_cache_flush(void)
     }
 }
 
-static uint8_t *flash_cache_get_addr_for_write(uint32_t flash_addr)
-{
+static uint8_t *flash_cache_get_addr_for_write(uint32_t flash_addr) {
     uint32_t flash_sector_start;
     uint32_t flash_sector_size;
     uint32_t flash_sector_id = flash_get_sector_info(flash_addr, &flash_sector_start, &flash_sector_size);
     if (flash_sector_size > FLASH_SECTOR_SIZE_MAX) {
         flash_sector_size = FLASH_SECTOR_SIZE_MAX;
     }
-
-    if (flash_cache_sector_id != flash_sector_id || ffs_cache.free_blocks == 0) {
+    if (flash_cache_sector_id != flash_sector_id) {
         flash_cache_flush();
+        memcpy((void*)CACHE_MEM_START_ADDR, (const void*)flash_sector_start, flash_sector_size);
         flash_cache_sector_id = flash_sector_id;
         flash_cache_sector_start = flash_sector_start;
         flash_cache_sector_size = flash_sector_size;
     }
-
     flash_flags |= FLASH_FLAG_DIRTY;
     led_state(PYB_LED_R1, 1); // indicate a dirty cache with LED on
     flash_tick_counter_last_write = HAL_GetTick();
-
-    int index = ffs_cache_lookup(flash_addr);
-    if (index == -1) {
-        index = ffs_cache_insert(flash_addr);
-    }
-    return ffs_cache.blocks[index].buffer;
+    return (uint8_t*)CACHE_MEM_START_ADDR + flash_addr - flash_sector_start;
 }
 
-static uint8_t *flash_cache_get_addr_for_read(uint32_t flash_addr)
-{
-    int index;
+static uint8_t *flash_cache_get_addr_for_read(uint32_t flash_addr) {
     uint32_t flash_sector_start;
     uint32_t flash_sector_size;
     uint32_t flash_sector_id = flash_get_sector_info(flash_addr, &flash_sector_start, &flash_sector_size);
-
-    if (flash_cache_sector_id != flash_sector_id
-            || ((index = ffs_cache_lookup(flash_addr)) == -1)) {
-        // not in cache, copy straight from flash
-        return (uint8_t*)flash_addr;
+    if (flash_cache_sector_id == flash_sector_id) {
+        // in cache, copy from there
+        return (uint8_t*)CACHE_MEM_START_ADDR + flash_addr - flash_sector_start;
     }
-    // in cache, copy from there
-    return ffs_cache.blocks[index].buffer;
+    // not in cache, copy straight from flash
+    return (uint8_t*)flash_addr;
 }
 
 void storage_init(void) {
@@ -200,9 +158,10 @@ void storage_init(void) {
         flash_cache_sector_id = 0;
         flash_tick_counter_last_write = 0;
         flash_is_initialised = true;
+        #ifdef OPENMV1
+        CACHE_MEM_START_ADDR = gc_alloc(16*1024, false);
+        #endif
     }
-
-    ffs_cache_init();
 
     // Enable the flash IRQ, which is used to also call our storage IRQ handler
     // It needs to go at a higher priority than all those components that rely on
@@ -224,30 +183,22 @@ void storage_irq_handler(void) {
         return;
     }
 
-    // If not a forced write, wait at least 1 seconds after last write to flush
+    // This code erases the flash directly, waiting for it to finish
+    if (!(flash_flags & FLASH_FLAG_ERASED)) {
+        flash_erase(flash_cache_sector_start, (const uint32_t*)CACHE_MEM_START_ADDR, flash_cache_sector_size / 4);
+        flash_flags |= FLASH_FLAG_ERASED;
+        return;
+    }
+
+    // If not a forced write, wait at least 5 seconds after last write to flush
     // On file close and flash unmount we get a forced write, so we can afford to wait a while
     if ((flash_flags & FLASH_FLAG_FORCE_WRITE) || sys_tick_has_passed(flash_tick_counter_last_write, 1000)) {
-        // Allocate a buffer for the flash sector
-        uint8_t *sector = fb_alloc(flash_cache_sector_size);
-        // Copy the current flash sector from flash
-        memcpy(sector, (const void*)flash_cache_sector_start, flash_cache_sector_size);
-        // Write back the cache blocks
-        for (int i=0; i<FFS_CACHE_BLOCKS; i++) {
-            if (ffs_cache.blocks[i].addr != 0) {
-                uint32_t offset = (ffs_cache.blocks[i].addr - flash_cache_sector_start);
-                memcpy(sector+offset, ffs_cache.blocks[i].buffer, FLASH_BLOCK_SIZE);
-            }
-        }
         // sync the cache RAM buffer by writing it to the flash page
-        flash_erase_and_write(flash_cache_sector_start, (uint32_t*) sector, flash_cache_sector_size / 4);
+        flash_write(flash_cache_sector_start, (const uint32_t*)CACHE_MEM_START_ADDR, flash_cache_sector_size / 4);
         // clear the flash flags now that we have a clean cache
         flash_flags = 0;
         // indicate a clean cache with LED off
         led_state(PYB_LED_R1, 0);
-        // Reset FFS cache
-        ffs_cache_init();
-        // Free sector buffer
-        fb_free();
     }
 }
 
@@ -306,7 +257,6 @@ static uint32_t convert_block_to_flash_addr(uint32_t block) {
     return -1;
 }
 
-void __fatal_error(const char *msg);
 bool storage_read_block(uint8_t *dest, uint32_t block) {
     //printf("RD %u\n", block);
     if (block == 0) {
