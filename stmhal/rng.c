@@ -61,6 +61,10 @@ uint32_t rng_randint(uint32_t min, uint32_t max) {
         return 0;
     }
 
+    if (RNGHandle.State == HAL_RNG_STATE_RESET) {
+        rng_init();
+    }
+
     // Wait until the RNG is ready
     while (HAL_RNG_GetState(&RNGHandle) != RNG_FLAG_DRDY);
 
