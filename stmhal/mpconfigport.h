@@ -124,7 +124,6 @@ extern const struct _mp_obj_module_t lcd_module;
 extern const struct _mp_obj_module_t fir_module;
 extern const struct _mp_obj_module_t gif_module;
 extern const struct _mp_obj_module_t mjpeg_module;
-extern const struct _mp_obj_module_t tof_module;
 extern const struct _mp_obj_module_t cpufreq_module;
 
 #define MICROPY_PORT_BUILTIN_MODULES \
@@ -143,7 +142,6 @@ extern const struct _mp_obj_module_t cpufreq_module;
     { MP_OBJ_NEW_QSTR(MP_QSTR_fir),     (mp_obj_t)&fir_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_gif),     (mp_obj_t)&gif_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_mjpeg),   (mp_obj_t)&mjpeg_module }, \
-    { MP_OBJ_NEW_QSTR(MP_QSTR_tof),     (mp_obj_t)&tof_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_cpufreq), (mp_obj_t)&cpufreq_module }, \
 
 #define MICROPY_PORT_BUILTIN_MODULE_WEAK_LINKS \
