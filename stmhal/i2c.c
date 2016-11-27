@@ -187,7 +187,7 @@ STATIC uint32_t i2c_get_baudrate(I2C_InitTypeDef *init) {
 #else
 
 STATIC void i2c_set_baudrate(I2C_InitTypeDef *init, uint32_t baudrate) {
-    #if defined(STM32F769xx)
+    #if defined(STM32F765xx) ||  defined(STM32F769xx)
     init->Timing = baudrate;
     #else
     init->ClockSpeed = baudrate;
@@ -196,7 +196,7 @@ STATIC void i2c_set_baudrate(I2C_InitTypeDef *init, uint32_t baudrate) {
 }
 
 STATIC uint32_t i2c_get_baudrate(I2C_InitTypeDef *init) {
-    #if defined(STM32F769xx)
+    #if defined(STM32F765xx) ||  defined(STM32F769xx)
     return init->Timing;
     #else
     return init->ClockSpeed;

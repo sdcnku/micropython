@@ -76,7 +76,7 @@ STATIC byte flash_cache_mem[0x4000] __attribute__((aligned(4))); // 16k
 #define FLASH_MEM_SEG2_START_ADDR (0x08140000) // sector 18
 #define FLASH_MEM_SEG2_NUM_BLOCKS (128) // sector 18: 64k(of 128k)
 
-#elif defined(STM32F746xx) || defined(STM32F769xx)
+#elif defined(STM32F746xx) || defined(STM32F765xx) || defined(STM32F769xx)
 #define FLASH_SECTOR_SIZE_MAX (0x8000) // 32k max
 #define FLASH_MEM_SEG1_START_ADDR (0x08008000) // sector 1
 #define FLASH_MEM_SEG1_NUM_BLOCKS (192)  // (32+32+32)*1024/512

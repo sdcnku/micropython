@@ -1,6 +1,6 @@
-#define MICROPY_HW_BOARD_NAME       "OPENMV7"
-#define MICROPY_HW_MCU_NAME         "STM32F769"
-#define MICROPY_PY_SYS_PLATFORM     "OpenMV-M7"
+#define MICROPY_HW_BOARD_NAME       "OPENMV3"
+#define MICROPY_HW_MCU_NAME         "STM32F765"
+#define MICROPY_PY_SYS_PLATFORM     "OpenMV3-M7"
 
 #define MICROPY_HW_HAS_SWITCH       (0)
 #define MICROPY_HW_HAS_SDCARD       (1)
@@ -15,7 +15,7 @@
 #define MICROPY_HW_ENABLE_SPI1      (0)
 #define MICROPY_HW_ENABLE_SPI2      (1)
 #define MICROPY_HW_ENABLE_SPI3      (0)
-#define MICROPY_HW_ENABLE_SPI4      (1)
+#define MICROPY_HW_ENABLE_SPI4      (0)
 #define MICROPY_HW_ENABLE_CAN       (0)
 
 #define MICROPY_HW_CLK_PLLM (12)
@@ -25,29 +25,25 @@
 #define MICROPY_HW_CLK_PLLP (RCC_PLLP_DIV2)
 
 // UART config
-#define MICROPY_HW_UART3_PORT (GPIOD)
-#define MICROPY_HW_UART3_PINS (GPIO_PIN_8 | GPIO_PIN_9)
+#define MICROPY_HW_UART3_PORT (GPIOB)
+#define MICROPY_HW_UART3_PINS (GPIO_PIN_10 | GPIO_PIN_11)
+#define MICROPY_HW_UART3_RTS  (GPIO_PIN_14)
+#define MICROPY_HW_UART3_CTS  (GPIO_PIN_13)
 
-// I2C busses
-#define MICROPY_HW_I2C3_SCL (pin_H7)
-#define MICROPY_HW_I2C3_SDA (pin_H8)
+// I2C buses
+#define MICROPY_HW_I2C2_SCL (pin_B10)
+#define MICROPY_HW_I2C2_SDA (pin_B11)
 
-// SPI busses
-#define MICROPY_HW_SPI4_NSS  (pin_E11)
-#define MICROPY_HW_SPI4_SCK  (pin_E12)
-#define MICROPY_HW_SPI4_MISO (pin_E13)
-#define MICROPY_HW_SPI4_MOSI (pin_E14)
-
-#define MICROPY_HW_SPI2_NSS  (pin_I0)
-#define MICROPY_HW_SPI2_SCK  (pin_I1)
-#define MICROPY_HW_SPI2_MISO (pin_I2)
-#define MICROPY_HW_SPI2_MOSI (pin_I3)
+// SPI buses
+#define MICROPY_HW_SPI2_NSS  (pin_B12)
+#define MICROPY_HW_SPI2_SCK  (pin_B13)
+#define MICROPY_HW_SPI2_MISO (pin_B14)
+#define MICROPY_HW_SPI2_MOSI (pin_B15)
 
 // SD card detect switch
-// CD not connected on current rev
-//#define MICROPY_HW_SDCARD_DETECT_PIN        (pin_A5)
-//#define MICROPY_HW_SDCARD_DETECT_PULL       (GPIO_PULLUP)
-//#define MICROPY_HW_SDCARD_DETECT_PRESENT    (GPIO_PIN_RESET)
+#define MICROPY_HW_SDCARD_DETECT_PIN        (pin_A15)
+#define MICROPY_HW_SDCARD_DETECT_PULL       (GPIO_PULLUP)
+#define MICROPY_HW_SDCARD_DETECT_PRESENT    (GPIO_PIN_RESET)
 
 // USB config
 #define MICROPY_HW_USB_VBUS_DETECT_PIN (pin_A9)
@@ -59,10 +55,10 @@
 //#define MICROPY_HW_USRSW_PRESSED    (1)
 
 // LEDs
-#define MICROPY_HW_LED1             (pin_K7)    // red
-#define MICROPY_HW_LED2             (pin_K5)    // green
-#define MICROPY_HW_LED3             (pin_K6)    // blue
-#define MICROPY_HW_LED4             (pin_G12)   // IR 
+#define MICROPY_HW_LED1             (pin_C0) // red
+#define MICROPY_HW_LED2             (pin_C2) // green
+#define MICROPY_HW_LED3             (pin_C1) // blue
+#define MICROPY_HW_LED4             (pin_E2) // IR
 #define MICROPY_HW_LED_OTYPE        (GPIO_MODE_OUTPUT_PP)
 #define MICROPY_HW_LED_ON(pin)      (pin->gpio->BSRR = (pin->pin_mask << 16))
 #define MICROPY_HW_LED_OFF(pin)     (pin->gpio->BSRR = pin->pin_mask)
