@@ -158,8 +158,7 @@ extern const struct _mp_obj_module_t cpufreq_module;
     { MP_OBJ_NEW_QSTR(MP_QSTR_umachine), (mp_obj_t)&machine_module }, \
 
 #if defined(MCU_SERIES_F7)
-// Need to make this 23 F7 build doesn't like it, not sure why.
-#define PYB_EXTI_NUM_VECTORS (23)
+#define PYB_EXTI_NUM_VECTORS (24)
 #else
 #define PYB_EXTI_NUM_VECTORS (23)
 #endif
