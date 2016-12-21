@@ -150,12 +150,18 @@ STATIC void adc_init_single(pyb_obj_adc_t *adc_obj) {
     adcHandle->Init.NbrOfConversion       = 1;
     adcHandle->Init.DMAContinuousRequests = DISABLE;
     adcHandle->Init.EOCSelection          = DISABLE;
-#if defined(MCU_SERIES_F4) || defined(MCU_SERIES_F7)
+#if defined(MCU_SERIES_F4)
     adcHandle->Init.ClockPrescaler        = ADC_CLOCKPRESCALER_PCLK_DIV2;
+#elif defined(MCU_SERIES_F7)
+    adcHandle->Init.ClockPrescaler        = ADC_CLOCKPRESCALER_PCLK_DIV4;
+#elif defined(MCU_SERIES_L4)
+    adcHandle->Init.ClockPrescaler        = ADC_CLOCK_ASYNC_DIV2;
+#endif
+
+#if defined(MCU_SERIES_F4) || defined(MCU_SERIES_F7)
     adcHandle->Init.ScanConvMode          = DISABLE;
     adcHandle->Init.ExternalTrigConv      = ADC_EXTERNALTRIGCONV_T1_CC1;
 #elif defined(MCU_SERIES_L4)
-    adcHandle->Init.ClockPrescaler        = ADC_CLOCK_ASYNC_DIV2;
     adcHandle->Init.ScanConvMode          = ADC_SCAN_DISABLE;
     adcHandle->Init.ExternalTrigConv      = ADC_EXTERNALTRIG_T1_CC1;
     adcHandle->Init.LowPowerAutoWait      = DISABLE;
@@ -188,7 +194,8 @@ STATIC uint32_t adc_read_channel(ADC_HandleTypeDef *adcHandle) {
     uint32_t rawValue = 0;
 
     HAL_ADC_Start(adcHandle);
-    if (HAL_ADC_PollForConversion(adcHandle, 10) == HAL_OK && HAL_ADC_GetState(adcHandle) == HAL_ADC_STATE_EOC_REG) {
+    if (HAL_ADC_PollForConversion(adcHandle, 10) == HAL_OK
+            && (HAL_ADC_GetState(adcHandle) & HAL_ADC_STATE_EOC_REG)) {
         rawValue = HAL_ADC_GetValue(adcHandle);
     }
     HAL_ADC_Stop(adcHandle);
@@ -428,12 +435,18 @@ void adc_init_all(pyb_adc_all_obj_t *adc_all, uint32_t resolution) {
     adcHandle->Init.NbrOfConversion       = 1;
     adcHandle->Init.DMAContinuousRequests = DISABLE;
     adcHandle->Init.EOCSelection          = DISABLE;
-#if defined(MCU_SERIES_F4) || defined(MCU_SERIES_F7)
+#if defined(MCU_SERIES_F4)
     adcHandle->Init.ClockPrescaler        = ADC_CLOCKPRESCALER_PCLK_DIV2;
+#elif defined(MCU_SERIES_F7)
+    adcHandle->Init.ClockPrescaler        = ADC_CLOCKPRESCALER_PCLK_DIV4;
+#elif defined(MCU_SERIES_L4)
+    adcHandle->Init.ClockPrescaler        = ADC_CLOCK_ASYNC_DIV2;
+#endif
+
+#if defined(MCU_SERIES_F4) || defined(MCU_SERIES_F7)
     adcHandle->Init.ScanConvMode          = DISABLE;
     adcHandle->Init.ExternalTrigConv      = ADC_EXTERNALTRIGCONV_T1_CC1;
 #elif defined(MCU_SERIES_L4)
-    adcHandle->Init.ClockPrescaler        = ADC_CLOCK_ASYNC_DIV2;
     adcHandle->Init.ScanConvMode          = ADC_SCAN_DISABLE;
     adcHandle->Init.ExternalTrigConv      = ADC_EXTERNALTRIG_T1_CC1;
     adcHandle->Init.LowPowerAutoWait      = DISABLE;
