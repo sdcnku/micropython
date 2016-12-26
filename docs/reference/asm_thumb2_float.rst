@@ -2,9 +2,9 @@ Floating Point instructions
 ==============================
 
 These instructions support the use of the ARM floating point coprocessor
-(on platforms such as the Pyboard which are equipped with one). The FPU
+(on platforms such as the Pyboard and the OpenMV Cam which are equipped with one). The FPU
 has 32 registers known as ``s0-s31`` each of which can hold a single
-precision float. Data can be passed between the FPU registers and the
+precision floating point number. Data can be passed between the FPU registers and the
 ARM core registers with the ``vmov`` instruction.
 
 Note that MicroPython doesn't support passing floats to
@@ -31,7 +31,7 @@ Arithmetic
 * vsqrt(Sd, Sm) ``Sd = sqrt(Sm)``
 
 Registers may be identical: ``vmul(S0, S0, S0)`` will execute ``S0 = S0*S0``
- 
+
 Move between ARM core and FPU registers
 ---------------------------------------
 
@@ -40,7 +40,7 @@ Move between ARM core and FPU registers
 
 The FPU has a register known as FPSCR, similar to the ARM core's APSR, which stores condition
 codes plus other data. The following instructions provide access to this.
- 
+
 * vmrs(APSR\_nzcv, FPSCR)
 
 Move the floating-point N, Z, C, and V flags to the APSR N, Z, C, and V flags.
@@ -58,8 +58,8 @@ Move between FPU register and memory
 * vstr(Sd, [Rn, offset]) ``[Rn + offset] = Sd``
 
 Where ``[Rn + offset]`` denotes the memory address obtained by adding Rn to the offset. This
-is specified in bytes. Since each float value occupies a 32 bit word, when accessing arrays of
-floats the offset must always be a multiple of four bytes.
+is specified in bytes. When accessing arrays of floats the offset must always be a multiple of four bytes
+since each floating point value occupies a 32 bit word.
 
 Data Comparison
 ---------------
@@ -70,8 +70,8 @@ Compare the values in Sd and Sm and set the FPU N, Z,
 C, and V flags. This would normally be followed by ``vmrs(APSR_nzcv, FPSCR)``
 to enable the results to be tested.
 
-Convert between integer and float
----------------------------------
+Convert between integers and floats
+-----------------------------------
 
 * vcvt\_f32\_s32(Sd, Sm) ``Sd = float(Sm)``
 * vcvt\_s32\_f32(Sd, Sm) ``Sd = int(Sm)``

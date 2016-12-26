@@ -23,7 +23,7 @@ specifiers:
 * ne Not equal
 * cs Carry set
 * cc Carry clear
-* mi Minus (negaive)
+* mi Minus (negative)
 * pl Plus (positive)
 * vs Overflow set
 * vc Overflow clear
@@ -56,7 +56,7 @@ Branch to label
 Long branches
 -------------
 
-The code produced by the branch instructions listed above uses a fixed bit width to specify the
+The code produced by the branch instructions listed above use a fixed bit width to specify the
 branch destination, which is PC relative. Consequently in long programs where the
 branch instruction is remote from its destination the assembler will produce a "branch not in
 range" error. This can be overcome with the "wide" variants such as
@@ -69,7 +69,7 @@ Subroutines (functions)
 -----------------------
 
 When entering a subroutine the processor stores the return address in register r14, also
-known as the link register (lr). Return to the instruction after the subroutine call is
+known as the link register (lr). Returning to the instruction after the subroutine call is
 performed by updating the program counter (r15 or pc) from the link register, This
 process is handled by the following instructions.
 

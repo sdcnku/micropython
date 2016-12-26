@@ -34,7 +34,7 @@ Set if the result is negative.
 * C (carry)
 
 An addition sets the carry flag when the result overflows out of the MSB, for example adding
-0x80000000 and 0x80000000. By the nature of two's complement arithmetic this behaviour is reversed
+0x80000000 and 0x80000000. By the nature of two's complement arithmetic this behavior is reversed
 on subtraction, with a borrow indicated by the carry bit being clear. Thus 0x10 - 0x01 is executed
 as 0x10 + 0xffffffff which will set the carry bit.
 
@@ -59,7 +59,7 @@ These set the APSR (Application Program Status Register) N (negative), Z (zero),
 Conditional execution
 ---------------------
 
-The ``it`` and ``ite`` instructions provide a means of conditionally executing from one to four subsequent
+The ``it`` and ``ite`` instructions provide a means of conditionally executing one to four subsequent
 instructions without the need for a label.
 
 * it(<condition>) If then
@@ -86,5 +86,5 @@ subsequent one. Thus:
     mov(r0, 200) # runs if r0 != r1
     # execution continues here
 
-This may be extended to control the execution of upto four subsequent instructions: it[x[y[z]]]
+This may be extended to control the execution of up to four subsequent instructions: it[x[y[z]]]
 where x,y,z=t/e; e.g. itt, itee, itete, ittte, itttt, iteee, etc.

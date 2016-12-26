@@ -3,7 +3,7 @@
 Writing interrupt handlers
 ==========================
 
-On suitable hardware MicroPython offers the ability to write interrupt handlers in Python. Interrupt handlers
+On suitable hardware (like the OpenMV Cam) MicroPython offers the ability to write interrupt handlers in Python. Interrupt handlers
 - also known as interrupt service routines (ISR's) - are defined as callback functions. These are executed
 in response to an event such as a timer trigger or a voltage change on a pin. Such events can occur at any point
 in the execution of the program code. This carries significant consequences, some specific to the MicroPython
@@ -17,16 +17,15 @@ the nature of the main program, and the presence of other concurrent events.
 Tips and recommended practices
 ------------------------------
 
-This summarises the points detailed below and lists the principal recommendations for interrupt handler code.
+This summarizes the points detailed below and lists the principal recommendations for interrupt handler code.
 
 * Keep the code as short and simple as possible.
 * Avoid memory allocation: no appending to lists or insertion into dictionaries, no floating point.
-* Where an ISR returns multiple bytes use a pre-allocated ``bytearray``. If multiple integers are to be
+* When an ISR returns multiple bytes use a pre-allocated ``bytearray``. If multiple integers are to be
   shared between an ISR and the main program consider an array (``array.array``).
-* Where data is shared between the main program and an ISR, consider disabling interrupts prior to accessing
-  the data in the main program and re-enabling them immediately afterwards (see Critcal Sections).
+* When data is shared between the main program and an ISR, consider disabling interrupts prior to accessing
+  the data in the main program and re-enabling them immediately afterwards (see Critical Sections).
 * Allocate an emergency exception buffer (see below).
-
 
 MicroPython Issues
 ------------------
@@ -50,7 +49,7 @@ has to be done immediately after the event which caused it: operations which can
 to the main program loop. Typically an ISR will deal with the hardware device which caused the interrupt, making
 it ready for the next interrupt to occur. It will communicate with the main loop by updating shared data to indicate
 that the interrupt has occurred, and it will return. An ISR should return control to the main loop as quickly
-as possible. This is not a specific MicroPython issue so is covered in more detail :ref:`below <ISR>`.
+as possible. This is not a specific MicroPython issue so it is covered in more detail :ref:`below <ISR>`.
 
 Communication between an ISR and the main program
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -141,7 +140,7 @@ Overcoming the float limitation
 
 In general it is best to avoid using floats in ISR code: hardware devices normally handle integers and conversion
 to floats is normally done in the main loop. However there are a few DSP algorithms which require floating point.
-On platforms with hardware floating point (such as the Pyboard) the inline ARM Thumb assembler can be used to work
+On platforms with hardware floating point (such as the Pyboard and the OpenMV Cam) the inline ARM Thumb assembler can be used to work
 round this limitation. This is because the processor stores float values in a machine word; values can be shared
 between the ISR and main program code via an array of floats.
 
@@ -171,7 +170,7 @@ the main loop experiences pauses in its execution at random points in the code. 
 to diagnose bugs particularly if their duration is long or variable. In order to understand the implications of
 ISR run time, a basic grasp of interrupt priorities is required.
 
-Interrupts are organised according to a priority scheme. ISR code may itself be interrupted by a higher priority
+Interrupts are organized according to a priority scheme. ISR code may itself be interrupted by a higher priority
 interrupt. This has implications if the two interrupts share data (see Critical Sections below). If such an interrupt
 occurs it interposes a delay into the ISR code. If a lower priority interrupt occurs while the ISR is running, it
 will be delayed until the ISR is complete: if the delay is too long, the lower priority interrupt may fail. A
@@ -179,9 +178,9 @@ further issue with slow ISR's is the case where a second interrupt of the same t
 The second interrupt will be handled on termination of the first. However if the rate of incoming interrupts
 consistently exceeds the capacity of the ISR to service them the outcome will not be a happy one.
 
-Consequently looping constructs should be avoided or minimised. I/O to devices other than to the interrupting device
-should normally be avoided: I/O such as disk access, ``print`` statements and UART access is relatively slow, and
-its duration may vary. A further issue here is that filesystem functions are not reentrant: using filesystem I/O
+Consequently looping constructs should be avoided or minimized. I/O to devices other than to the interrupting device
+should normally be avoided: I/O such as disk access, ``print`` statements, and UART access are relatively slow, and
+their duration may vary. A further issue here is that filesystem functions are not reentrant: using filesystem I/O
 in an ISR and the main program would be hazardous. Crucially ISR code should not wait on an event. I/O is acceptable
 if the code can be guaranteed to return in a predictable period, for example toggling a pin or LED. Accessing the
 interrupting device via I2C or SPI may be necessary but the time taken for such accesses should be calculated or
@@ -197,7 +196,7 @@ Consider the following design. An ISR stores incoming data in a bytearray, then 
 received to an integer representing total bytes ready for processing. The main program reads the number of bytes,
 processes the bytes, then clears down the number of bytes ready. This will work until an interrupt occurs just
 after the main program has read the number of bytes. The ISR puts the added data into the buffer and updates
-the number received, but the main program has already read the number, so processes the data originally received.
+the number received, but the main program has already read the number, so it processes the data originally received.
 The newly arrived bytes are lost.
 
 There are various ways of avoiding this hazard, the simplest being to use a circular buffer. If it is not possible
@@ -275,7 +274,7 @@ MicroPython reads the value of ``t.counter``, adds 1 to it, and writes it back. 
 after the read and before the write. The interrupt modifies ``t.counter`` but its change is overwritten by the main
 loop when the ISR returns. In a real system this could lead to rare, unpredictable failures.
 
-As mentioned above, care should be taken if an instance of a Python built in type is modified in the main code and
+As mentioned above, care should be taken if an instance of a Python built-in type is modified in the main code and
 that instance is accessed in an ISR. The code performing the modification should be regarded as a critical
 section to ensure that the instance is in a valid state when the ISR runs.
 
@@ -296,7 +295,6 @@ use an object termed a mutex (name derived from the notion of mutual exclusion).
 before running the critical section and unlocks it at the end. The ISR tests whether the mutex is locked. If it is,
 it avoids the critical section and returns. The design challenge is defining what the ISR should do in the event
 that access to the critical variables is denied. A simple example of a mutex may be found
-`here <https://github.com/peterhinch/micropython-samples.git>`_. Note that the mutex code does disable interrupts,
+`here <http://github.com/peterhinch/micropython-samples.git>`_. Note that the mutex code does disable interrupts,
 but only for the duration of eight machine instructions: the benefit of this approach is that other interrupts are
 virtually unaffected.
-

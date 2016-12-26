@@ -12,7 +12,7 @@ the following will zero R0 (Python ``R0 ^= R0``) regardless of its initial conte
 
 * eor(r0, r0)
 
-These instructions affect the condition flags except where stated.
+These instructions affect the condition flags except when stated otherwise.
 
 Logical instructions
 --------------------

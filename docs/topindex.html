@@ -25,15 +25,19 @@
 
   <table class="contentstable"><tr>
     <td width="40%" style="padding-left:2em;">
-      {% if port in ("pyboard", "wipy", "esp8266") %}
+      {% if port in ("pyboard", "wipy", "esp8266", "openmvcam") %}
         <p class="biglink">
           <a class="biglink" href="{{ pathto(port + "/quickref") }}">Quick reference for {{ port_name }}</a><br/>
           <span class="linkdescr">pinout for {{ port_name }} and snippets of useful code</span>
         </p>
+      {% endif %}
+      {% if port in ("pyboard", "wipy", "esp8266") %}
         <p class="biglink">
           <a class="biglink" href="{{ pathto(port + "/general") }}">General information about {{ port_name }}</a><br/>
           <span class="linkdescr">read this first for a quick overview</span>
         </p>
+      {% endif %}
+      {% if port in ("pyboard", "wipy", "esp8266", "openmvcam") %}
         <p class="biglink">
           <a class="biglink" href="{{ pathto(port + "/tutorial/index") }}">Tutorials and code examples</a><br/>
           <span class="linkdescr">start here</span>
@@ -41,7 +45,7 @@
       {% endif %}
       <p class="biglink">
         <a class="biglink" href="{{ pathto("library/index") }}">Library Reference</a><br/>
-        {% if port == "pyboard" %}
+        {% if port == "pyboard" or port == "openmvcam" %}
           <span class="linkdescr">MicroPython libraries, including the <a href="{{ pathto("library/pyb") }}">pyb module</a></span>
         {% else %}
           <span class="linkdescr">MicroPython libraries, including the <a href="{{ pathto("library/machine") }}">machine module</a></span>
@@ -55,12 +59,12 @@
       </p>
       {% if port == "pyboard" %}
         <p class="biglink">
-            <a class="biglink" href="{{ pathto(port + "/hardware/index") }}">The {{ port }} hardware</a><br/>
-            <span class="linkdescr">schematics, dimensions and component datasheets</span>
+          <a class="biglink" href="{{ pathto(port + "/hardware/index") }}">The {{ port }} hardware</a><br/>
+          <span class="linkdescr">schematics, dimensions and component datasheets</span>
         </p>
         <p class="biglink">
-            <a class="biglink" href="http://micropython.org/resources/Micro-Python-Windows-setup.pdf">Guide for {{ port_name }} on Windows (PDF)</a><br/>
-            <span class="linkdescr">including DFU programming</span>
+          <a class="biglink" href="http://micropython.org/resources/Micro-Python-Windows-setup.pdf">Guide for {{ port_name }} on Windows (PDF)</a><br/>
+          <span class="linkdescr">including DFU programming</span>
         </p>
       {% endif %}
       <p class="biglink">
@@ -92,10 +96,30 @@
 
   <p><strong>External links:</strong></p>
 
+  {% if port == "openmvcam" %}
+    <table class="contentstable"><tr>
+      <td width="40%" style="padding-left:2em;">
+        <p class="biglink">
+          <a class="biglink" href="http://openmv.io">OpenMV homepage</a><br/>
+          <span class="linkdescr">the official OpenMV site</span>
+        </p>
+        <p class="biglink">
+          <a class="biglink" href="http://forums.openmv.io">OpenMV forum</a><br/>
+          <span class="linkdescr">community discussion for all things related to OpenMV</span>
+        </p>
+      </td>
+      <td width="40%" style="padding-left:2em;">
+        <p class="biglink">
+          <a class="biglink" href="http://github.com/openmv">OpenMV on GitHub</a><br/>
+          <span class="linkdescr">contribute to the source code on GitHub</span>
+        </p>
+      </td>
+    </tr></table>
+  {% endif %}
   <table class="contentstable"><tr>
     <td width="40%" style="padding-left:2em;">
       <p class="biglink">
-      <a class="biglink" href="http://micropython.org">MicroPython homepage</a><br/>
+        <a class="biglink" href="http://micropython.org">MicroPython homepage</a><br/>
         <span class="linkdescr">the official MicroPython site</span>
       </p>
       <p class="biglink">
@@ -105,7 +129,7 @@
     </td>
     <td width="40%" style="padding-left:2em;">
       <p class="biglink">
-        <a class="biglink" href="https://github.com/micropython">MicroPython on GitHub</a><br/>
+        <a class="biglink" href="http://github.com/micropython">MicroPython on GitHub</a><br/>
         <span class="linkdescr">contribute to the source code on GitHub</span>
       </p>
       {% if port == "wipy" %}

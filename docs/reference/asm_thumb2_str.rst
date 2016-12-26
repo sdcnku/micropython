@@ -4,7 +4,7 @@ Store register to memory
 Document conventions
 --------------------
 
-Notation: ``Rt, Rn`` denote ARM registers R0-R7 except where stated. ``immN`` represents an immediate
+Notation: ``Rt, Rn`` denote ARM registers R0-R7 except when stated otherwise. ``immN`` represents an immediate
 value having a width of N bits hence ``imm5`` is constrained to the range 0-31. ``[Rn + imm5]`` is the
 contents of the memory address obtained by adding Rn and the offset ``imm5``. Offsets are measured in
 bytes. These instructions do not affect the condition flags.
