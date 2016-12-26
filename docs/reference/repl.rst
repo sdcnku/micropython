@@ -8,7 +8,7 @@ which will be used to refer to this interactive prompt.
 Auto-indent
 -----------
 
-When typing python statements which end in a colon (for example if, for, while)
+When typing python statements which end in a colon (for example if, for, while, etc.)
 then the prompt will change to three dots (...) and the cursor will be indented
 by 4 spaces. When you press return, the next line will continue at the same
 level of indentation for regular statements or an additional level of indentation
@@ -49,8 +49,8 @@ Finally type ``print(i)``, press RETURN, press BACKSPACE and press RETURN again:
     3
     >>>
 
-Auto-indent won't be applied if the previous two lines were all spaces.  This
-means that you can finish entering a compound statment by pressing RETURN
+Auto-indent won't be applied if the previous two lines were all spaces. This
+means that you can finish entering a compound statement by pressing RETURN
 twice, and then a third press will finish and execute.
 
 Auto-completion
@@ -80,7 +80,7 @@ expansions:
 Interrupting a running program
 ------------------------------
 
-You can interupt a running program by pressing Ctrl-C. This will raise a KeyboardInterrupt
+You can interrupt a running program by pressing Ctrl-C. This will raise a KeyboardInterrupt
 which will bring you back to the REPL, providing your program doesn't intercept the
 KeyboardInterrupt exception.
 
@@ -146,7 +146,7 @@ Soft Reset
 ----------
 
 A soft reset will reset the python interpreter, but tries not to reset the
-method by which you're connected to the MicroPython board (USB-serial, or Wifi).
+method by which you're connected to the MicroPython board (USB-serial, or WiFi).
 
 You can perform a soft reset from the REPL by pressing Ctrl-D, or from your python
 code by executing: ::
@@ -184,8 +184,8 @@ variables no longer exist:
 The special variable _ (underscore)
 -----------------------------------
 
-When you use the REPL, you may perfom computations and see the results.
-MicroPython stores the results of the previous statment in the variable _ (underscore).
+When you use the REPL, you may perform computations and see the results.
+MicroPython stores the results of the previous statement in the variable _ (underscore).
 So you can use the underscore to save the result in a variable. For example:
 
     >>> 1 + 2 + 3 + 4 + 5
@@ -206,6 +206,6 @@ a Ctrl-D. The Ctrl-D will be acknowledged by 'OK' and then the python code will
 be compiled and executed. Any output (or errors) will be sent back. Entering
 Ctrl-B will leave raw mode and return the the regular (aka friendly) REPL.
 
-The ``tools/pyboard.py`` program uses the raw REPL to execute python files on the
+The GitHub ``micropython/tools/pyboard.py`` program uses the raw REPL to execute python files on a
 MicroPython board.
 

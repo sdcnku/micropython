@@ -9,7 +9,7 @@
 *.dis
 *.exe
 
-# Packages 
+# Packages
 ############
 
 # Logs and Databases
@@ -23,6 +23,8 @@
 # Build directory
 ######################
 build/
+docs/_build/
+docs/build/
 
 # Test failure outputs
 ######################

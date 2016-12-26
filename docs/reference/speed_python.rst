@@ -1,8 +1,8 @@
-Maximising Python Speed
+Maximizing Python Speed
 =======================
 
 This tutorial describes ways of improving the performance of MicroPython code.
-Optimisations involving other languages are covered elsewhere, namely the use
+Optimizations involving other languages are covered elsewhere, namely the use
 of modules written in C and the MicroPython inline ARM Thumb-2 assembler.
 
 The process of developing high performance code comprises the following stages
@@ -11,7 +11,7 @@ which should be performed in the order listed.
 * Design for speed.
 * Code and debug.
 
-Optimisation steps:
+Optimization steps:
 
 * Identify the slowest section of code.
 * Improve the efficiency of the Python code.
@@ -23,15 +23,15 @@ Designing for speed
 
 Performance issues should be considered at the outset. This involves taking a view
 on the sections of code which are most performance critical and devoting particular
-attention to their design. The process of optimisation begins when the code has
-been tested: if the design is correct at the outset optimisation will be
+attention to their design. The process of optimization begins when the code has
+been tested: if the design is correct at the outset optimization will be
 straightforward and may actually be unnecessary.
 
 Algorithms
 ~~~~~~~~~~
 
 The most important aspect of designing any routine for performance is ensuring that
-the best algorithm is employed. This is a topic for textbooks rather than for a 
+the best algorithm is employed. This is a topic for textbooks rather than for a
 MicroPython guide but spectacular performance gains can sometimes be achieved
 by adopting algorithms known for their efficiency.
 
@@ -60,15 +60,15 @@ used for communication with a device. A typical driver will create the buffer in
 constructor and use it in its I/O methods which will be called repeatedly.
 
 The MicroPython libraries typically provide support for pre-allocated buffers. For
-example, objects which support stream interface (e.g., file or UART) provide ``read()``
-method which allocate new buffer for read data, but also a ``readinto()`` method
+example, objects which support the stream interface (e.g., file or UART) provide a ``read()``
+method which allocates a new buffer for read data, but also a ``readinto()`` method
 to read data into an existing buffer.
 
 Floating Point
 ~~~~~~~~~~~~~~
 
 Some MicroPython ports allocate floating point numbers on heap. Some other ports
-may lack dedicated floating-point coprocessor, and perform arithmetic operations
+may lack a dedicated floating-point coprocessor (the OpenMV Cam has a dedicated floating-point coprocessor), and perform arithmetic operations
 on them in "software" at considerably lower speed than on integers. Where
 performance is important, use integer operations and restrict the use of floating
 point to sections of the code where performance is not paramount. For example,
@@ -86,7 +86,7 @@ code these should be pre-allocated and passed as arguments or as bound objects.
 
 When passing slices of objects such as ``bytearray`` instances, Python creates
 a copy which involves allocation of the size proportional to the size of slice.
-This can be alleviated using a ``memoryview`` object. ``memoryview`` itself
+This can be alleviated using a ``memoryview`` object. A ``memoryview`` object itself
 is allocated on heap, but is a small, fixed-size object, regardless of the size
 of slice it points too.
 
@@ -97,16 +97,16 @@ of slice it points too.
     mv = memoryview(ba)    # small object is allocated
     func(mv[30:2000])      # a pointer to memory is passed
 
-A ``memoryview`` can only be applied to objects supporting the buffer protocol - this
-includes arrays but not lists. Small caveat is that while memoryview object is live,
-it also keeps alive the original buffer object. So, a memoryview isn't a universal
+A ``memoryview`` object can only be applied to objects supporting the buffer protocol - this
+includes arrays but not lists. A small caveat is that while the memoryview object is live,
+it also keeps alive the original buffer object. So, a memoryview object isn't a universal
 panacea. For instance, in the example above, if you are done with 10K buffer and
 just need those bytes 30:2000 from it, it may be better to make a slice, and let
 the 10K buffer go (be ready for garbage collection), instead of making a
-long-living memoryview and keeping 10K blocked for GC.
+long-living memoryview object and keeping 10K blocked for GC.
 
-Nonetheless, ``memoryview`` is indispensable for advanced preallocated buffer
-management. ``.readinto()`` method discussed above puts data at the beginning
+Nonetheless, the ``memoryview`` class is indispensable for advanced preallocated buffer
+management. The ``.readinto()`` method discussed above puts data at the beginning
 of buffer and fills in entire buffer. What if you need to put data in the
 middle of existing buffer? Just create a memoryview into the needed section
 of buffer and pass it to ``.readinto()``.
@@ -194,7 +194,7 @@ Accessing hardware directly
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This comes into the category of more advanced programming and involves some knowledge
-of the target MCU. Consider the example of toggling an output pin on the Pyboard. The 
+of the target MCU. Consider the example of toggling an output pin on the Pyboard. The
 standard approach would be to write
 
 .. code:: python
@@ -227,24 +227,24 @@ no adaptation (but see below). It is invoked by means of a function decorator:
         buf = self.linebuf # Cached object
         # code
 
-There are certain limitations in the current implementation of the native code emitter. 
+There are certain limitations in the current implementation of the native code emitter.
 
 * Context managers are not supported (the ``with`` statement).
 * Generators are not supported.
 * If ``raise`` is used an argument must be supplied.
 
-The trade-off for the improved performance (roughly twices as fast as bytecode) is an
+The trade-off for the improved performance (roughly twice as fast as bytecode) is an
 increase in compiled code size.
 
 The Viper code emitter
 ----------------------
 
-The optimisations discussed above involve standards-compliant Python code. The 
+The optimizations discussed above involve standards-compliant Python code. The
 Viper code emitter is not fully compliant. It supports special Viper native data types
 in pursuit of performance. Integer processing is non-compliant because it uses machine
 words: arithmetic on 32 bit hardware is performed modulo 2**32.
 
-Like the Native emitter Viper produces machine instructions but further optimisations
+Like the Native emitter Viper produces machine instructions but further optimizations
 are performed, substantially increasing performance especially for integer arithmetic and
 bit manipulations. It is invoked using a decorator:
 
@@ -254,7 +254,7 @@ bit manipulations. It is invoked using a decorator:
     def foo(self, arg: int) -> int:
         # code
 
-As the above fragment illustrates it is beneficial to use Python type hints to assist the Viper optimiser. 
+As the above fragment illustrates it is beneficial to use Python type hints to assist the Viper optimizer.
 Type hints provide information on the data types of arguments and of the return value; these
 are a standard Python language feature formally defined here `PEP0484 <https://www.python.org/dev/peps/pep-0484/>`_.
 Viper supports its own set of types namely ``int``, ``uint`` (unsigned integer), ``ptr``, ``ptr8``,
@@ -266,9 +266,9 @@ In addition to the restrictions imposed by the native emitter the following cons
 
 * Functions may have up to four arguments.
 * Default argument values are not permitted.
-* Floating point may be used but is not optimised.
+* Floating point may be used but is not optimized.
 
-Viper provides pointer types to assist the optimiser. These comprise
+Viper provides pointer types to assist the optimizer. These comprise
 
 * ``ptr`` Pointer to an object.
 * ``ptr8`` Points to a byte.
@@ -315,8 +315,8 @@ microseconds. The rules for casting are as follows:
   then the Python object must either have the buffer protocol with read-write capabilities
   (in which case a pointer to the start of the buffer is returned) or it must be of integral
   type (in which case the value of that integral object is returned).
- 
-The following example illustrates the use of a ``ptr16`` cast to toggle pin X1 ``n`` times:
+
+The following example illustrates the use of a ``ptr16`` cast to toggle pin X1 on the Pyboard ``n`` times:
 
 .. code:: python
 
@@ -328,5 +328,5 @@ The following example illustrates the use of a ``ptr16`` cast to toggle pin X1 `
             odr[0] ^= BIT0
 
 A detailed technical description of the three code emitters may be found
-on Kickstarter here `Note 1 <https://www.kickstarter.com/projects/214379695/micro-python-python-for-microcontrollers/posts/664832>`_
-and here `Note 2 <https://www.kickstarter.com/projects/214379695/micro-python-python-for-microcontrollers/posts/665145>`_
+on Kickstarter here `Note 1 <http://www.kickstarter.com/projects/214379695/micro-python-python-for-microcontrollers/posts/664832>`_
+and here `Note 2 <http://www.kickstarter.com/projects/214379695/micro-python-python-for-microcontrollers/posts/665145>`_
