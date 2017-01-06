@@ -26,7 +26,7 @@ Constructors
 
 .. class:: machine.SD(id,... )
 
-   Create a SD card object. See ``init()`` for parameters if initialization. 
+   Create a SD card object. See ``init()`` for parameters if initialization.
 
 Methods
 -------

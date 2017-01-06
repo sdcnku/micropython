@@ -55,11 +55,11 @@ Functions
    which expresses a time as per localtime. It returns an integer which is
    the number of seconds since Jan 1, 2000.
 
-.. only:: port_unix or port_pyboard or port_esp8266
+.. only:: port_unix or port_pyboard or port_esp8266 or port_openmvcam
 
     .. function:: sleep(seconds)
-    
-       Sleep for the given number of seconds.  Seconds can be a floating-point number to
+
+       Sleep for the given number of seconds. Seconds can be a floating-point number to
        sleep for a fractional number of seconds. Note that other MicroPython ports may
        not accept floating-point argument, for compatibility with them use ``sleep_ms()``
        and ``sleep_us()`` functions.
@@ -67,10 +67,10 @@ Functions
 .. only:: port_wipy
 
     .. function:: sleep(seconds)
-    
+
        Sleep for the given number of seconds.
 
-.. only:: port_unix or port_pyboard or port_wipy or port_esp8266
+.. only:: port_unix or port_pyboard or port_wipy or port_esp8266 or port_openmvcam
 
     .. function::  sleep_ms(ms)
 
@@ -82,30 +82,30 @@ Functions
 
     .. function::  ticks_ms()
 
-        Returns an increasing millisecond counter with arbitrary reference point, 
-        that wraps after some (unspecified) value. The value should be treated as 
+        Returns an increasing millisecond counter with arbitrary reference point,
+        that wraps after some (unspecified) value. The value should be treated as
         opaque, suitable for use only with ticks_diff().
 
     .. function::  ticks_us()
 
        Just like ``ticks_ms`` above, but in microseconds.
 
-.. only:: port_wipy or port_pyboard
+.. only:: port_wipy or port_pyboard or port_openmvcam
 
     .. function::  ticks_cpu()
 
        Similar to ``ticks_ms`` and ``ticks_us``, but with higher resolution (usually CPU clocks).
 
-.. only:: port_unix or port_pyboard or port_wipy or port_esp8266
+.. only:: port_unix or port_pyboard or port_wipy or port_esp8266 or port_openmvcam
 
     .. function::  ticks_diff(old, new)
 
-       Measure period between consecutive calls to ticks_ms(), ticks_us(), or ticks_cpu(). 
-       The value returned by these functions may wrap around at any time, so directly 
-       subtracting them is not supported. ticks_diff() should be used instead. "old" value should 
+       Measure period between consecutive calls to ticks_ms(), ticks_us(), or ticks_cpu().
+       The value returned by these functions may wrap around at any time, so directly
+       subtracting them is not supported. ticks_diff() should be used instead. "old" value should
        actually precede "new" value in time, or result is undefined. This function should not be
-       used to measure arbitrarily long periods of time (because ticks_*() functions wrap around 
-       and usually would have short period). The expected usage pattern is implementing event 
+       used to measure arbitrarily long periods of time (because ticks_*() functions wrap around
+       and usually would have short period). The expected usage pattern is implementing event
        polling with timeout::
 
             # Wait for GPIO pin to be asserted, but at most 500us
@@ -117,7 +117,7 @@ Functions
 .. function:: time()
 
    Returns the number of seconds, as an integer, since the Epoch, assuming that underlying
-   RTC is set and maintained as decsribed above. If an RTC is not set, this function returns
+   RTC is set and maintained as described above. If an RTC is not set, this function returns
    number of seconds since a port-specific reference point in time (for embedded boards without
    a battery-backed RTC, usually since power up or reset). If you want to develop portable
    MicroPython application, you should not rely on this function to provide higher than second

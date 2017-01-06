@@ -3,7 +3,7 @@
 class Pin -- control I/O pins
 =============================
 
-A pin is the basic object to control I/O pins.  It has methods to set
+A pin is the basic object to control I/O pins. It has methods to set
 the mode of the pin (input, output, etc) and methods to get and set the
 digital logic level. For analog control of a pin, see the ADC class.
 
@@ -59,8 +59,8 @@ Constructors
 
 .. class:: machine.Pin(id, ...)
 
-   Create a new Pin object associated with the id.  If additional arguments are given,
-   they are used to initialise the pin.  See :meth:`pin.init`.
+   Create a new Pin object associated with the id. If additional arguments are given,
+   they are used to initialize the pin. See :meth:`pin.init`.
 
 Methods
 -------
@@ -68,12 +68,12 @@ Methods
 .. only:: port_wipy
 
     .. method:: pin.init(mode, pull, \*, drive, alt)
-    
-       Initialise the pin:
+
+       Initialize the pin:
 
          - ``mode`` can be one of:
 
-            - ``Pin.IN``  - input pin.
+            - ``Pin.IN`` - input pin.
             - ``Pin.OUT`` - output pin in push-pull mode.
             - ``Pin.OPEN_DRAIN`` - output pin in open-drain mode.
             - ``Pin.ALT`` - pin mapped to an alternate function.
@@ -83,7 +83,7 @@ Methods
 
             - ``None`` - no pull up or down resistor.
             - ``Pin.PULL_UP`` - pull up resistor enabled.
-            - ``Pin.PULL_DOWN`` - pull down resitor enabled.
+            - ``Pin.PULL_DOWN`` - pull down resistor enabled.
 
          - ``drive`` can be one of:
 
@@ -105,11 +105,11 @@ Methods
 
     .. method:: pin.init(mode, pull=None, \*, value)
 
-       Initialise the pin:
+       Initialize the pin:
 
          - `mode` can be one of:
 
-            - ``Pin.IN``  - input pin.
+            - ``Pin.IN`` - input pin.
             - ``Pin.OUT`` - output pin in push-pull mode.
 
          - `pull` can be one of:
@@ -125,8 +125,8 @@ Methods
    Get or set the digital logic level of the pin:
 
      - With no argument, return 0 or 1 depending on the logic level of the pin.
-     - With ``value`` given, set the logic level of the pin.  ``value`` can be
-       anything that converts to a boolean.  If it converts to ``True``, the pin
+     - With ``value`` given, set the logic level of the pin. ``value`` can be
+       anything that converts to a boolean. If it converts to ``True``, the pin
        is set high, otherwise it is set low.
 
 .. method:: pin([value])
@@ -169,7 +169,7 @@ Methods
                 - ``Pin.IRQ_RISING`` interrupt on rising edge.
                 - ``Pin.IRQ_LOW_LEVEL`` interrupt on low level.
                 - ``Pin.IRQ_HIGH_LEVEL`` interrupt on high level.
-              
+
               The values can be *ORed* together, for instance mode=Pin.IRQ_FALLING | Pin.IRQ_RISING
 
             - ``priority`` level of the interrupt. Can take values in the range 1-7.
@@ -224,7 +224,7 @@ Attributes
 Constants
 ---------
 
-The following constants are used to configure the pin objects.  Note that
+The following constants are used to configure the pin objects. Note that
 not all constants are available on all ports.
 
 .. data:: IN

@@ -7,11 +7,11 @@
 This module provides functions to wait for events on streams (select streams
 which are ready for operations).
 
-Pyboard specifics
------------------
+Pyboard and OpenMV Cam specifics
+--------------------------------
 
 Polling is an efficient way of waiting for read/write activity on multiple
-objects.  Current objects that support polling are: :class:`pyb.UART`,
+objects. Current objects that support polling are: :class:`pyb.UART`,
 :class:`pyb.USB_VCP`.
 
 Functions

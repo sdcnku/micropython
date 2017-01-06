@@ -5,9 +5,9 @@
 .. module:: network
    :synopsis: network configuration
 
-This module provides network drivers and routing configuration.  Network
+This module provides network drivers and routing configuration. Network
 drivers for specific hardware are available within this module and are
-used to configure a hardware network interface.  Configured interfaces
+used to configure a hardware network interface. Configured interfaces
 are then available for use via the :mod:`socket` module. To use this module
 the network build of firmware must be installed.
 
@@ -35,7 +35,7 @@ For example::
     class Server
     ============
 
-    The ``Server`` class controls the behaviour and the configuration of the FTP and telnet
+    The ``Server`` class controls the behavior and the configuration of the FTP and telnet
     services running on the WiPy. Any changes performed using this class' methods will
     affect both.
 
@@ -78,152 +78,152 @@ For example::
 
     class CC3K
     ==========
-    
-    This class provides a driver for CC3000 wifi modules.  Example usage::
-    
+
+    This class provides a driver for CC3000 wifi modules. Example usage::
+
         import network
         nic = network.CC3K(pyb.SPI(2), pyb.Pin.board.Y5, pyb.Pin.board.Y4, pyb.Pin.board.Y3)
         nic.connect('your-ssid', 'your-password')
         while not nic.isconnected():
             pyb.delay(50)
         print(nic.ifconfig())
-    
+
         # now use socket as usual
         ...
-    
+
     For this example to work the CC3000 module must have the following connections:
-    
+
         - MOSI connected to Y8
         - MISO connected to Y7
         - CLK connected to Y6
         - CS connected to Y5
         - VBEN connected to Y4
         - IRQ connected to Y3
-    
+
     It is possible to use other SPI busses and other pins for CS, VBEN and IRQ.
-    
+
     Constructors
     ------------
-    
+
     .. class:: CC3K(spi, pin_cs, pin_en, pin_irq)
-    
-       Create a CC3K driver object, initialise the CC3000 module using the given SPI bus
+
+       Create a CC3K driver object, initialize the CC3000 module using the given SPI bus
        and pins, and return the CC3K object.
-    
+
        Arguments are:
-    
+
          - ``spi`` is an :ref:`SPI object <pyb.SPI>` which is the SPI bus that the CC3000 is
            connected to (the MOSI, MISO and CLK pins).
          - ``pin_cs`` is a :ref:`Pin object <pyb.Pin>` which is connected to the CC3000 CS pin.
          - ``pin_en`` is a :ref:`Pin object <pyb.Pin>` which is connected to the CC3000 VBEN pin.
          - ``pin_irq`` is a :ref:`Pin object <pyb.Pin>` which is connected to the CC3000 IRQ pin.
-    
-       All of these objects will be initialised by the driver, so there is no need to
-       initialise them yourself.  For example, you can use::
-    
+
+       All of these objects will be initialized by the driver, so there is no need to
+       initialize them yourself. For example, you can use::
+
          nic = network.CC3K(pyb.SPI(2), pyb.Pin.board.Y5, pyb.Pin.board.Y4, pyb.Pin.board.Y3)
-    
+
     Methods
     -------
-    
+
     .. method:: cc3k.connect(ssid, key=None, \*, security=WPA2, bssid=None)
-    
+
        Connect to a wifi access point using the given SSID, and other security
        parameters.
-    
+
     .. method:: cc3k.disconnect()
-    
+
        Disconnect from the wifi access point.
-    
+
     .. method:: cc3k.isconnected()
-    
+
        Returns True if connected to a wifi access point and has a valid IP address,
        False otherwise.
-    
+
     .. method:: cc3k.ifconfig()
-    
+
        Returns a 7-tuple with (ip, subnet mask, gateway, DNS server, DHCP server,
        MAC address, SSID).
-    
+
     .. method:: cc3k.patch_version()
-    
+
        Return the version of the patch program (firmware) on the CC3000.
-    
+
     .. method:: cc3k.patch_program('pgm')
-    
-       Upload the current firmware to the CC3000.  You must pass 'pgm' as the first
+
+       Upload the current firmware to the CC3000. You must pass 'pgm' as the first
        argument in order for the upload to proceed.
-    
+
     Constants
     ---------
-    
+
     .. data:: CC3K.WEP
     .. data:: CC3K.WPA
     .. data:: CC3K.WPA2
-    
+
        security type to use
-    
+
     class WIZNET5K
     ==============
-    
-    This class allows you to control WIZnet5x00 Ethernet adaptors based on
+
+    This class allows you to control WIZnet5x00 Ethernet adapters based on
     the W5200 and W5500 chipsets (only W5200 tested).
-    
+
     Example usage::
-    
+
         import network
         nic = network.WIZNET5K(pyb.SPI(1), pyb.Pin.board.X5, pyb.Pin.board.X4)
         print(nic.ifconfig())
-    
+
         # now use socket as usual
         ...
-    
+
     For this example to work the WIZnet5x00 module must have the following connections:
-    
+
         - MOSI connected to X8
         - MISO connected to X7
         - SCLK connected to X6
         - nSS connected to X5
         - nRESET connected to X4
-    
+
     It is possible to use other SPI busses and other pins for nSS and nRESET.
-    
+
     Constructors
     ------------
-    
+
     .. class:: WIZNET5K(spi, pin_cs, pin_rst)
-    
-       Create a WIZNET5K driver object, initialise the WIZnet5x00 module using the given
+
+       Create a WIZNET5K driver object, initialize the WIZnet5x00 module using the given
        SPI bus and pins, and return the WIZNET5K object.
-    
+
        Arguments are:
-    
+
          - ``spi`` is an :ref:`SPI object <pyb.SPI>` which is the SPI bus that the WIZnet5x00 is
            connected to (the MOSI, MISO and SCLK pins).
          - ``pin_cs`` is a :ref:`Pin object <pyb.Pin>` which is connected to the WIZnet5x00 nSS pin.
          - ``pin_rst`` is a :ref:`Pin object <pyb.Pin>` which is connected to the WIZnet5x00 nRESET pin.
-    
-       All of these objects will be initialised by the driver, so there is no need to
-       initialise them yourself.  For example, you can use::
-    
+
+       All of these objects will be initialized by the driver, so there is no need to
+       initialize them yourself. For example, you can use::
+
          nic = network.WIZNET5K(pyb.SPI(1), pyb.Pin.board.X5, pyb.Pin.board.X4)
-    
+
     Methods
     -------
-    
+
     .. method:: wiznet5k.ifconfig([(ip, subnet, gateway, dns)])
-    
+
        Get/set IP address, subnet mask, gateway and DNS.
-    
+
        When called with no arguments, this method returns a 4-tuple with the above information.
-    
-       To set the above values, pass a 4-tuple with the required information.  For example::
-    
+
+       To set the above values, pass a 4-tuple with the required information. For example::
+
         nic.ifconfig(('192.168.0.4', '255.255.255.0', '192.168.0.1', '8.8.8.8'))
-    
+
     .. method:: wiznet5k.regs()
-    
-       Dump the WIZnet5x00 registers.  Useful for debugging.
+
+       Dump the WIZnet5x00 registers. Useful for debugging.
 
 .. _network.WLAN:
 
@@ -237,7 +237,7 @@ For example::
         Get or set the PHY mode.
 
         If the ``mode`` parameter is provided, sets the mode to its value. If
-        the function is called wihout parameters, returns the current mode.
+        the function is called without parameters, returns the current mode.
 
         The possible modes are defined as constants:
             * ``MODE_11B`` -- IEEE 802.11b,
@@ -247,7 +247,7 @@ For example::
     class WLAN
     ==========
 
-    This class provides a driver for WiFi network processor in the ESP8266.  Example usage::
+    This class provides a driver for WiFi network processor in the ESP8266. Example usage::
 
         import network
         # enable station interface and connect to WiFi access point
@@ -319,20 +319,20 @@ For example::
             * ``STAT_WRONG_PASSWORD`` -- failed due to incorrect password,
             * ``STAT_NO_AP_FOUND`` -- failed because no access point replied,
             * ``STAT_CONNECT_FAIL`` -- failed due to other problems,
-            * ``STAT_GOT_IP`` -- connection susccessful.
+            * ``STAT_GOT_IP`` -- connection successful.
 
     .. method:: wlan.isconnected()
 
         In case of STA mode, returns ``True`` if connected to a wifi access
-        point and has a valid IP address.  In AP mode returns ``True`` when a
+        point and has a valid IP address. In AP mode returns ``True`` when a
         station is connected. Returns ``False`` otherwise.
 
     .. method:: wlan.ifconfig([(ip, subnet, gateway, dns)])
 
-       Get/set IP-level network interface paremeters: IP address, subnet mask,
+       Get/set IP-level network interface parameters: IP address, subnet mask,
        gateway and DNS server. When called with no arguments, this method returns
        a 4-tuple with the above information. To set the above values, pass a
-       4-tuple with the required information.  For example::
+       4-tuple with the required information. For example::
 
         nic.ifconfig(('192.168.0.4', '255.255.255.0', '192.168.0.1', '8.8.8.8'))
 
@@ -343,8 +343,8 @@ For example::
        with additional parameters beyond standard IP configuration (as dealt with by
        ``wlan.ifconfig()``). These include network-specific and hardware-specific
        parameters. For setting parameters, keyword argument syntax should be used,
-       multiple parameters can be set at once. For querying, paremeters name should
-       be quoted as a string, and only one paramter can be queries at time::
+       multiple parameters can be set at once. For querying, parameters name should
+       be quoted as a string, and only one parameter can be queries at time::
 
         # Set WiFi access point name (formally known as ESSID) and WiFi channel
         ap.config(essid='My AP', channel=11)
@@ -365,8 +365,6 @@ For example::
        authmode   Authentication mode supported (enumeration, see module constants)
        password   Access password (string)
        =========  ===========
-
-
 
 .. only:: port_wipy
 
@@ -389,7 +387,7 @@ For example::
 
     Constructors
     ------------
-    
+
     .. class:: WLAN(id=0, ...)
 
        Create a WLAN object, and optionally configure it. See ``init`` for params of configuration.
@@ -397,7 +395,7 @@ For example::
     .. note::
 
        The ``WLAN`` constructor is special in the sense that if no arguments besides the id are given,
-       it will return the already exisiting ``WLAN`` instance without re-configuring it. This is
+       it will return the already existing ``WLAN`` instance without re-configuring it. This is
        because ``WLAN`` is a system feature of the WiPy. If the already existing instance is not
        initialized it will do the same as the other constructors an will initialize it with default
        values.
@@ -406,11 +404,11 @@ For example::
     -------
 
     .. method:: wlan.init(mode, \*, ssid, auth, channel, antenna)
-    
+
        Set or get the WiFi network processor configuration.
-    
+
        Arguments are:
-    
+
          - ``mode`` can be either ``WLAN.STA`` or ``WLAN.AP``.
          - ``ssid`` is a string with the ssid name. Only needed when mode is ``WLAN.AP``.
          - ``auth`` is a tuple with (sec, key). Security can be ``None``, ``WLAN.WEP``,
@@ -420,7 +418,7 @@ For example::
          - ``channel`` a number in the range 1-11. Only needed when mode is ``WLAN.AP``.
          - ``antenna`` selects between the internal and the external antenna. Can be either
            ``WLAN.INT_ANT`` or ``WLAN.EXT_ANT``.
-    
+
        For example, you can do::
 
           # create and configure as an access point
@@ -521,3 +519,129 @@ For example::
     .. data:: WLAN.EXT_ANT
 
        selects the antenna type
+
+.. only:: port_openmvcam
+
+    class WINC -- wifi shield driver
+    ================================
+
+    The ``WINC`` class is used for controlling the wifi shield.
+
+    Example usage::
+
+        import network
+
+        wlan = network.WINC()
+        wlan.connect("SSID", "KEY")
+
+        wlan.ifconfig()
+
+    Constructors
+    ------------
+
+    .. class:: WINC(enter_update_mode=0)
+
+       Creates a winc driver object and connects to the wifi shield which uses
+       I/O pins P0, P1, P2, P3, P6, P7, and P8.
+
+       If ``enter_update_mode`` is true then the WINC chip is put into firmware
+       update mode.
+
+    Methods
+    -------
+
+    .. method:: winc.connect(ssid, key, security=WPA_PSK)
+
+       Connect to a wifi network with ssid ``ssid`` using key ``key`` with
+       security ``security``.
+
+       After connecting to the network use the ``usocket`` module to open TCP/UDP
+       ports to send and receive data.
+
+       .. note:: This function takes a little while to return.
+
+    .. method:: winc.disconnect()
+
+       Disconnect from the wifi network.
+
+    .. method:: winc.isconnected()
+
+       Returns True if connected to an access point and an IP address has been
+       obtained.
+
+    .. method:: winc.ifconfig()
+
+       Returns a tuple containing:
+
+         - [0]: RSSI - received signal strength indicator (int)
+         - [1]: Authorization Type (see constants)
+         - [2]: Set Service Identifier String (SSID)
+         - [3]: MAC Address String (XX:XX:XX:XX:XX:XX) (BSSID)
+         - [4]: IP Address String (XXX.XXX.XXX.XXX)
+
+       While connected to the network.
+
+    .. method:: winc.scan()
+
+       Returns a list of tuples containing:
+
+         - [0]: Channel Number (int)
+         - [1]: RSSI - received signal strength indicator (int)
+         - [2]: Authorization Type (see constants)
+         - [3]: MAC Address String (XX:XX:XX:XX:XX:XX) (BSSID)
+         - [4]: Set Service Identifier String (SSID)
+
+       You don't need to be connected to call this.
+
+    .. method:: winc.rssi()
+
+       Returns the received signal strength indicator (int) of the currently
+       connected network.
+
+    .. method:: winc.fw_version()
+
+       Returns a tuple containing the wifi shield firmware version number.
+
+         - [0]: Firmware Major Version Number (int)
+         - [1]: Firmware Minor Version Number (int)
+         - [2]: Firmware Patch Version Number (int)
+         - [3]: Driver Major Version Number (int)
+         - [4]: Driver Minor Version Number (int)
+         - [5]: Driver Patch Version Number (int)
+         - [6]: Hardware Revision Number - Chip ID (int)
+
+    .. method:: winc.fw_dump()
+
+       Dumps the wifi shield firmware to a binary at "/firmware/fw_dump.bin"
+
+    .. method:: winc.fw_update()
+
+       Programs the wifi shield with binary image found at
+       "/firmware/m2m_aio_3a0.bin".
+
+    Constants
+    ---------
+
+    .. data:: WINC.OPEN
+
+       For connecting to an open wifi network.
+
+       .. note:: Insecure.
+
+    .. data:: WINC.WEP
+
+       For connecting to a WEP based password protected network.
+
+       .. note:: Insecure.
+
+    .. data:: WINC.WPA_PSK
+
+       For connecting to a WPA/PSK based password protected network.
+
+       .. note:: For networks that need a password for all users.
+
+    .. data:: WINC.802_1X
+
+       For connecting to a 802.1X based password protected network.
+
+       .. note:: For networks that need a separate password per user.

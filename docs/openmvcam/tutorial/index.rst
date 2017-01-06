@@ -5,7 +5,7 @@ MicroPython tutorial
 
 This tutorial is intended to get you started with your OpenMV Cam.
 All you need is a OpenMV Cam and a micro-USB cable to connect it to
-your PC.  If it is your first time, it is recommended to follow
+your PC. If it is your first time, it is recommended to follow
 the tutorial through in the order below.
 
 .. note:: The tutorial is not available yet. It will be in the following weeks.

@@ -79,7 +79,7 @@ Constants
 
 .. data:: modules
 
-   Dictionary of loaded modules. On some ports, it may not include builtin
+   Dictionary of loaded modules. On some ports, it may not include built-in
    modules.
 
 .. data:: path

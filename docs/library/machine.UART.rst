@@ -3,12 +3,12 @@
 class UART -- duplex serial communication bus
 =============================================
 
-UART implements the standard UART/USART duplex serial communications protocol.  At
-the physical level it consists of 2 lines: RX and TX.  The unit of communication
+UART implements the standard UART/USART duplex serial communications protocol. At
+the physical level it consists of 2 lines: RX and TX. The unit of communication
 is a character (not to be confused with a string character) which can be 8 or 9
 bits wide.
 
-UART objects can be created and initialised using::
+UART objects can be created and initialized using::
 
     from machine import UART
 
@@ -17,15 +17,14 @@ UART objects can be created and initialised using::
 
 .. only:: port_machineoard
 
-    Bits can be 7, 8 or 9.  Parity can be None, 0 (even) or 1 (odd).  Stop can be 1 or 2.
-    
-    *Note:* with parity=None, only 8 and 9 bits are supported.  With parity enabled,
+    Bits can be 7, 8 or 9. Parity can be None, 0 (even) or 1 (odd). Stop can be 1 or 2.
+
+    *Note:* with parity=None, only 8 and 9 bits are supported. With parity enabled,
     only 7 and 8 bits are supported.
 
 .. only:: port_wipy
 
-    Bits can be 5, 6, 7, 8.  Parity can be ``None``, ``UART.EVEN`` or ``UART.ODD``.  Stop can be 1 or 2.
-
+    Bits can be 5, 6, 7, 8. Parity can be ``None``, ``UART.EVEN`` or ``UART.ODD``. Stop can be 1 or 2.
 
 A UART object acts like a stream object and reading and writing is done
 using the standard stream methods::
@@ -62,8 +61,8 @@ Constructors
 .. only:: port_wipy
 
     .. class:: machine.UART(bus, ...)
-    
-       Construct a UART object on the given bus.  ``bus`` can be 0 or 1.
+
+       Construct a UART object on the given bus. ``bus`` can be 0 or 1.
        If the bus is not given, the default one will be selected (0) or the selection
        will be made based on the given pins.
 
@@ -73,17 +72,17 @@ Methods
 .. only:: port_wipy
 
     .. method:: uart.init(baudrate=9600, bits=8, parity=None, stop=1, \*, pins=(TX, RX, RTS, CTS))
-    
-       Initialise the UART bus with the given parameters:
-    
+
+       Initialize the UART bus with the given parameters:
+
          - ``baudrate`` is the clock rate.
          - ``bits`` is the number of bits per character, 7, 8 or 9.
          - ``parity`` is the parity, ``None``, ``UART.EVEN`` or ``UART.ODD``.
          - ``stop`` is the number of stop bits, 1 or 2.
          - ``pins`` is a 4 or 2 item list indicating the TX, RX, RTS and CTS pins (in that order).
            Any of the pins can be None if one wants the UART to operate with limited functionality.
-           If the RTS pin is given the the RX pin must be given as well. The same applies to CTS. 
-           When no pins are given, then the default set of TX and RX pins is taken, and hardware 
+           If the RTS pin is given the the RX pin must be given as well. The same applies to CTS.
+           When no pins are given, then the default set of TX and RX pins is taken, and hardware
            flow control will be disabled. If pins=None, no pin assignment will be made.
 
 .. method:: uart.deinit()
@@ -96,9 +95,9 @@ Methods
 
 .. method:: uart.read([nbytes])
 
-   Read characters.  If ``nbytes`` is specified then read at most that many bytes.
+   Read characters. If ``nbytes`` is specified then read at most that many bytes.
 
-   Return value: a bytes object containing the bytes read in.  Returns ``None``
+   Return value: a bytes object containing the bytes read in. Returns ``None``
    on timeout.
 
 .. method:: uart.readall()
@@ -109,8 +108,8 @@ Methods
 
 .. method:: uart.readinto(buf[, nbytes])
 
-   Read bytes into the ``buf``.  If ``nbytes`` is specified then read at most
-   that many bytes.  Otherwise, read at most ``len(buf)`` bytes.
+   Read bytes into the ``buf``. If ``nbytes`` is specified then read at most
+   that many bytes. Otherwise, read at most ``len(buf)`` bytes.
 
    Return value: number of bytes read and stored into ``buf`` or ``None`` on
    timeout.
@@ -129,7 +128,7 @@ Methods
 
 .. method:: uart.sendbreak()
 
-   Send a break condition on the bus.  This drives the bus low for a duration
+   Send a break condition on the bus. This drives the bus low for a duration
    of 13 bits.
    Return value: ``None``.
 
@@ -153,7 +152,7 @@ Methods
               - At least 1 new character is waiting in the Rx buffer and the Rx line has been
                 silent for the duration of 1 complete frame.
 
-          This means that when the handler function is called there will be between 1 to 8 
+          This means that when the handler function is called there will be between 1 to 8
           characters waiting.
 
        Returns an irq object.
@@ -164,7 +163,7 @@ Constants
 .. data:: UART.EVEN
 .. data:: UART.ODD
 
-    parity types (anlong with ``None``)
+    parity types (along with ``None``)
 
 .. data:: UART.RX_ANY
 

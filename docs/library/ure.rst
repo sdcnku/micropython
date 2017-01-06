@@ -35,7 +35,6 @@ Supported operators are:
 Counted repetitions (``{m,n}``), more advanced assertions, names groups,
 etc. are not supported.
 
-
 Functions
 ---------
 
@@ -58,7 +57,6 @@ Functions
 
    Flag value, display debug information about compiled expression.
 
-
 Regex objects
 -------------
 
@@ -70,7 +68,6 @@ Compiled regular expression. Instances of this class are created using
 .. method:: regex.search(string)
 
 .. method:: regex.split(string, max_split=-1)
-
 
 Match objects
 -------------

@@ -2,9 +2,8 @@ class USB_VCP -- USB virtual comm port
 ======================================
 
 The USB_VCP class allows creation of an object representing the USB
-virtual comm port.  It can be used to read and write data over USB to
+virtual comm port. It can be used to read and write data over USB to
 the connected host.
-
 
 Constructors
 ------------
@@ -13,17 +12,18 @@ Constructors
 
    Create a new USB_VCP object.
 
+   .. note:: DTR must be high for the USB_VCP() to be operational.
 
 Methods
 -------
 
 .. method:: usb_vcp.setinterrupt(chr)
 
-   Set the character which interrupts running Python code.  This is set
+   Set the character which interrupts running Python code. This is set
    to 3 (CTRL-C) by default, and when a CTRL-C character is received over
    the USB VCP port, a KeyboardInterrupt exception is raised.
 
-   Set to -1 to disable this interrupt feature.  This is useful when you
+   Set to -1 to disable this interrupt feature. This is useful when you
    want to send raw bytes over the USB VCP port.
 
 .. method:: usb_vcp.isconnected()
@@ -36,13 +36,13 @@ Methods
 
 .. method:: usb_vcp.close()
 
-   This method does nothing.  It exists so the USB_VCP object can act as
+   This method does nothing. It exists so the USB_VCP object can act as
    a file.
 
 .. method:: usb_vcp.read([nbytes])
 
    Read at most ``nbytes`` from the serial device and return them as a
-   bytes object.  If ``nbytes`` is not specified then the method acts as
+   bytes object. If ``nbytes`` is not specified then the method acts as
    ``readall()``. USB_VCP stream implicitly works in non-blocking mode,
    so if no pending data available, this method will return immediately
    with ``None`` value.
@@ -55,7 +55,7 @@ Methods
 .. method:: usb_vcp.readinto(buf, [maxlen])
 
    Read bytes from the serial device and store them into ``buf``, which
-   should be a buffer-like object.  At most ``len(buf)`` bytes are read.
+   should be a buffer-like object. At most ``len(buf)`` bytes are read.
    If ``maxlen`` is given and then at most ``min(maxlen, len(buf))`` bytes
    are read.
 
@@ -86,19 +86,19 @@ Methods
 .. method:: usb_vcp.recv(data, \*, timeout=5000)
 
    Receive data on the bus:
-   
+
      - ``data`` can be an integer, which is the number of bytes to receive,
        or a mutable buffer, which will be filled with received bytes.
      - ``timeout`` is the timeout in milliseconds to wait for the receive.
-   
+
    Return value: if ``data`` is an integer then a new buffer of the bytes received,
    otherwise the number of bytes read into ``data`` is returned.
 
 .. method:: usb_vcp.send(data, \*, timeout=5000)
 
    Send data over the USB VCP:
-   
+
      - ``data`` is the data to send (an integer to send, or a buffer object).
      - ``timeout`` is the timeout in milliseconds to wait for the send.
-   
+
    Return value: number of bytes sent.

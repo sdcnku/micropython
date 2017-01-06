@@ -3,27 +3,25 @@
 class ADC -- analog to digital conversion
 =========================================
 
-.. only:: port_pyboard
+.. only:: port_pyboard or port_openmvcam
 
     Usage::
 
         import pyb
-    
+
         adc = pyb.ADC(pin)              # create an analog object from a pin
         val = adc.read()                # read an analog value
-    
-        adc = pyb.ADCAll(resolution)    # creale an ADCAll object
+
+        adc = pyb.ADCAll(resolution)    # create an ADCAll object
         val = adc.read_channel(channel) # read the given channel
         val = adc.read_core_temp()      # read MCU temperature
         val = adc.read_core_vbat()      # read MCU VBAT
         val = adc.read_core_vref()      # read MCU VREF
 
- 
 Constructors
 ------------
 
-
-.. only:: port_pyboard
+.. only:: port_pyboard or port_openmvcam
 
     .. class:: pyb.ADC(pin)
 
@@ -37,31 +35,31 @@ Methods
 
     .. method:: adc.read()
 
-       Read the value on the analog pin and return it.  The returned value
+       Read the value on the analog pin and return it. The returned value
        will be between 0 and 4095.
 
     .. method:: adc.read_timed(buf, timer)
-    
+
        Read analog values into ``buf`` at a rate set by the ``timer`` object.
 
-       ``buf`` can be bytearray or array.array for example.  The ADC values have
+       ``buf`` can be bytearray or array.array for example. The ADC values have
        12-bit resolution and are stored directly into ``buf`` if its element size is
-       16 bits or greater.  If ``buf`` has only 8-bit elements (eg a bytearray) then
+       16 bits or greater. If ``buf`` has only 8-bit elements (eg a bytearray) then
        the sample resolution will be reduced to 8 bits.
 
        ``timer`` should be a Timer object, and a sample is read each time the timer
-       triggers.  The timer must already be initialised and running at the desired
+       triggers. The timer must already be initialized and running at the desired
        sampling frequency.
 
-       To support previous behaviour of this function, ``timer`` can also be an
-       integer which specifies the frequency (in Hz) to sample at.  In this case
+       To support previous behavior of this function, ``timer`` can also be an
+       integer which specifies the frequency (in Hz) to sample at. In this case
        Timer(6) will be automatically configured to run at the given frequency.
 
        Example using a Timer object (preferred way)::
 
            adc = pyb.ADC(pyb.Pin.board.X19)    # create an ADC on pin X19
            tim = pyb.Timer(6, freq=10)         # create a timer running at 10Hz
-           buf = bytearray(100)                # creat a buffer to store the samples
+           buf = bytearray(100)                # create a buffer to store the samples
            adc.read_timed(buf, tim)            # sample 100 values, taking 10s
 
        Example using an integer for the frequency::
@@ -75,10 +73,52 @@ Methods
 
        This function does not allocate any memory.
 
+.. only:: port_openmvcam
+
+    .. method:: adc.read()
+
+       Read the value on the analog pin and return it. The returned value
+       will be between 0 and 4095.
+
+    .. method:: adc.read_timed(buf, timer)
+
+       Read analog values into ``buf`` at a rate set by the ``timer`` object.
+
+       ``buf`` can be bytearray or array.array for example. The ADC values have
+       12-bit resolution and are stored directly into ``buf`` if its element size is
+       16 bits or greater. If ``buf`` has only 8-bit elements (eg a bytearray) then
+       the sample resolution will be reduced to 8 bits.
+
+       ``timer`` should be a Timer object, and a sample is read each time the timer
+       triggers. The timer must already be initialized and running at the desired
+       sampling frequency.
+
+       To support previous behavior of this function, ``timer`` can also be an
+       integer which specifies the frequency (in Hz) to sample at. In this case
+       Timer(6) will be automatically configured to run at the given frequency.
+
+       Example using a Timer object (preferred way)::
+
+           adc = pyb.ADC('P6')                 # create an ADC on pin P6
+           tim = pyb.Timer(6, freq=10)         # create a timer running at 10Hz
+           buf = bytearray(100)                # create a buffer to store the samples
+           adc.read_timed(buf, tim)            # sample 100 values, taking 10s
+
+       Example using an integer for the frequency::
+
+           adc = pyb.ADC('P6')                 # create an ADC on pin P6
+           buf = bytearray(100)                # create a buffer of 100 bytes
+           adc.read_timed(buf, 10)             # read analog values into buf at 10Hz
+                                               #   this will take 10 seconds to finish
+           for val in buf:                     # loop over all values
+               print(val)                      # print the value out
+
+       This function does not allocate any memory.
+
 The ADCAll Object
 -----------------
 
-.. only:: port_pyboard
+.. only:: port_pyboard or port_openmvcam
 
     Instantiating this changes all ADC pins to analog inputs. The raw MCU temperature,
     VREF and VBAT data can be accessed on ADC channels 16, 17 and 18 respectively.
@@ -89,7 +129,7 @@ The ADCAll Object
     the backup battery voltage and the (1.21V nominal) reference voltage using the
     3.3V supply as a reference. Assuming the ``ADCAll`` object has been Instantiated with
     ``adc = pyb.ADCAll(12)`` the 3.3V supply voltage may be calculated:
-    
+
     ``v33 = 3.3 * 1.21 / adc.read_core_vref()``
 
     If the 3.3V supply is correct the value of ``adc.read_core_vbat()`` will be
@@ -101,7 +141,7 @@ The ADCAll Object
     ``vback = adc.read_core_vbat() * 1.21 / adc.read_core_vref()``
 
     It is possible to access these values without incurring the side effects of ``ADCAll``::
-    
+
         def adcread(chan):                              # 16 temp 17 vbat 18 vref
             assert chan >= 16 and chan <= 18, 'Invalid ADC channel'
             start = pyb.millis()
@@ -138,5 +178,3 @@ The ADCAll Object
 
         def temperature():
             return 25 + 400 * (3.3 * adcread(16) / 4096 - 0.76)
-
-    

@@ -173,5 +173,5 @@ Subscripting pointer with other integer values but 0 are supported too,
 with the same semantics as in C.
 
 Summing up, accessing structure fields generally follows C syntax,
-except for pointer derefence, you need to use ``[0]`` operator instead
+except for pointer dereference, you need to use ``[0]`` operator instead
 of ``*``.

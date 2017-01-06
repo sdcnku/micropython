@@ -6,7 +6,6 @@
 
 The ``esp`` module contains specific functions related to the ESP8266 module.
 
-
 Functions
 ---------
 
@@ -15,7 +14,7 @@ Functions
     Get or set the sleep type.
 
     If the ``sleep_type`` parameter is provided, sets the sleep type to its
-    value. If the function is called wihout parameters, returns the current
+    value. If the function is called without parameters, returns the current
     sleep type.
 
     The possible sleep types are defined as constants:

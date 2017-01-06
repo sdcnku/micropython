@@ -12,7 +12,6 @@ Example usage::
     rtc.init((2014, 5, 1, 4, 13, 0, 0, 0))
     print(rtc.now())
 
-
 Constructors
 ------------
 
@@ -25,8 +24,8 @@ Methods
 
 .. method:: rtc.init(datetime)
 
-   Initialise the RTC. Datetime is a tuple of the form:
-   
+   Initialize the RTC. Datetime is a tuple of the form:
+
       ``(year, month, day[, hour[, minute[, second[, microsecond[, tzinfo]]]]])``
 
 .. method:: rtc.now()

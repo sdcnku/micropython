@@ -9,7 +9,7 @@ class Timer -- control internal timers
     counting events, and generating a PWM signal are among the most common use cases.
     Each timer consists of two 16-bit channels and this channels can be tied together to
     form one 32-bit timer. The operating mode needs to be configured per timer, but then
-    the period (or the frequency) can be independently configured on each channel. 
+    the period (or the frequency) can be independently configured on each channel.
     By using the callback method, the timer event can call a Python function.
 
     Example usage to toggle an LED at a fixed frequency::
@@ -52,7 +52,7 @@ class Timer -- control internal timers
 .. note::
 
     Memory can't be allocated inside irq handlers (an interrupt) and so
-    exceptions raised within a handler don't give much information.  See
+    exceptions raised within a handler don't give much information. See
     :func:`micropython.alloc_emergency_exception_buf` for how to get around this
     limitation.
 
@@ -65,7 +65,6 @@ Constructors
 
        Construct a new timer object of the given id. ``id`` can take values from 0 to 3.
 
-
 Methods
 -------
 
@@ -73,18 +72,18 @@ Methods
 
     .. method:: timer.init(mode, \*, width=16)
 
-       Initialise the timer. Example::
+       Initialize the timer. Example::
 
            tim.init(Timer.PERIODIC)             # periodic 16-bit timer
            tim.init(Timer.ONE_SHOT, width=32)   # one shot 32-bit timer
 
        Keyword arguments:
-       
+
          - ``mode`` can be one of:
-         
-           - ``Timer.ONE_SHOT`` - The timer runs once until the configured 
+
+           - ``Timer.ONE_SHOT`` - The timer runs once until the configured
              period of the channel expires.
-           - ``Timer.PERIODIC`` - The timer runs periodically at the configured 
+           - ``Timer.PERIODIC`` - The timer runs periodically at the configured
              frequency of the channel.
            - ``Timer.PWM``      - Output a PWM signal on a pin.
 
@@ -94,22 +93,22 @@ Methods
 
 .. method:: timer.deinit()
 
-   Deinitialises the timer. Disables all channels and associated IRQs.
+   Deinitializes the timer. Disables all channels and associated IRQs.
    Stops the timer, and disables the timer peripheral.
 
 .. only:: port_wipy
 
     .. method:: timer.channel(channel, \**, freq, period, polarity=Timer.POSITIVE, duty_cycle=0)
-    
+
        If only a channel identifier passed, then a previously initialized channel
        object is returned (or ``None`` if there is no previous channel).
 
-       Othwerwise, a TimerChannel object is initialized and returned.
-       
+       Otherwise, a TimerChannel object is initialized and returned.
+
        The operating mode is is the one configured to the Timer object that was used to
        create the channel.
 
-       - ``channel`` if the width of the timer is 16-bit, then must be either ``TIMER.A``, ``TIMER.B``. 
+       - ``channel`` if the width of the timer is 16-bit, then must be either ``TIMER.A``, ``TIMER.B``.
          If the width is 32-bit then it **must be** ``TIMER.A | TIMER.B``.
 
        Keyword only arguments:
@@ -152,7 +151,7 @@ Methods
 
     .. method:: timerchannel.irq(\*, trigger, priority=1, handler=None)
 
-        The behavior of this callback is heaviliy dependent on the operating
+        The behavior of this callback is heavily dependent on the operating
         mode of the timer channel:
 
             - If mode is ``Timer.PERIODIC`` the callback is executed periodically

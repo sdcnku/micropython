@@ -30,7 +30,7 @@ Functions
 
         .. note::
 
-           SSL sockets need to be created the following way before wrapping them with 
+           SSL sockets need to be created the following way before wrapping them with
            ``ssl.wrap_socket``::
 
               import socket
@@ -40,8 +40,8 @@ Functions
 
 .. function:: socket.getaddrinfo(host, port)
 
-   Translate the host/port argument into a sequence of 5-tuples that contain all the 
-   necessary arguments for creating a socket connected to that service. The list of 
+   Translate the host/port argument into a sequence of 5-tuples that contain all the
+   necessary arguments for creating a socket connected to that service. The list of
    5-tuples has following structure::
 
       (family, type, proto, canonname, sockaddr)
@@ -86,10 +86,10 @@ Methods
 
     .. method:: socket.close
 
-       Mark the socket closed. Once that happens, all future operations on the socket 
+       Mark the socket closed. Once that happens, all future operations on the socket
        object will fail. The remote end will receive no more data (after queued data is flushed).
 
-       Sockets are automatically closed when they are garbage-collected, but it is recommended 
+       Sockets are automatically closed when they are garbage-collected, but it is recommended
        to close() them explicitly, or to use a with statement around them.
 
     .. method:: socket.bind(address)
@@ -98,9 +98,9 @@ Methods
 
     .. method:: socket.listen([backlog])
 
-       Enable a server to accept connections. If backlog is specified, it must be at least 0 
+       Enable a server to accept connections. If backlog is specified, it must be at least 0
        (if it's lower, it will be set to 0); and specifies the number of unaccepted connections
-       tha the system will allow before refusing new connections. If not specified, a default
+       that the system will allow before refusing new connections. If not specified, a default
        reasonable value is chosen.
 
     .. method:: socket.accept()
@@ -189,8 +189,8 @@ Methods
 
     .. method:: socket.readinto(buf[, nbytes])
 
-       Read bytes into the ``buf``.  If ``nbytes`` is specified then read at most
-       that many bytes.  Otherwise, read at most ``len(buf)`` bytes.
+       Read bytes into the ``buf``. If ``nbytes`` is specified then read at most
+       that many bytes. Otherwise, read at most ``len(buf)`` bytes.
 
        Return value: number of bytes read and stored into ``buf``.
 

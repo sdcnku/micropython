@@ -1,13 +1,15 @@
 class CAN -- controller area network communication bus
 ======================================================
 
-CAN implements the standard CAN communications protocol.  At
-the physical level it consists of 2 lines: RX and TX.  Note that
-to connect the pyboard to a CAN bus you must use a CAN transceiver
-to convert the CAN logic signals from the pyboard to the correct
+CAN implements the standard CAN communications protocol. At
+the physical level it consists of 2 lines: RX and TX. Note that
+to connect the pyboard or the OpenMV Cam to a CAN bus you must use a CAN transceiver
+to convert the CAN logic signals from the pyboard or the OpenMV Cam to the correct
 voltage levels on the bus.
 
 Example usage (works without anything connected)::
+
+.. only:: port_pyboard
 
     from pyb import CAN
     can = CAN(1, CAN.LOOPBACK)
@@ -15,40 +17,66 @@ Example usage (works without anything connected)::
     can.send('message!', 123)   # send a message with id 123
     can.recv(0)                 # receive message on FIFO 0
 
+.. only:: port_openmvcam
+
+    from pyb import CAN
+    can = CAN(2, CAN.LOOPBACK)
+    can.setfilter(0, CAN.LIST16, 0, (123, 124, 125, 126))  # set a filter to receive messages with id=123, 124, 125 and 126
+    can.send('message!', 123)   # send a message with id 123
+    can.recv(0)                 # receive message on FIFO 0
 
 Constructors
 ------------
 
-.. class:: pyb.CAN(bus, ...)
+.. only:: port_pyboard
 
-   Construct a CAN object on the given bus.  ``bus`` can be 1-2, or 'YA' or 'YB'.
-   With no additional parameters, the CAN object is created but not
-   initialised (it has the settings from the last initialisation of
-   the bus, if any).  If extra arguments are given, the bus is initialised.
-   See ``init`` for parameters of initialisation.
+    .. class:: pyb.CAN(bus, ...)
 
-   The physical pins of the CAN busses are:
+       Construct a CAN object on the given bus. ``bus`` can be 1-2, or 'YA' or 'YB'.
+       With no additional parameters, the CAN object is created but not
+       initialized (it has the settings from the last initialization of
+       the bus, if any). If extra arguments are given, the bus is initialized.
+       See ``init`` for parameters of initialization.
 
-     - ``CAN(1)`` is on ``YA``: ``(RX, TX) = (Y3, Y4) = (PB8, PB9)``
-     - ``CAN(2)`` is on ``YB``: ``(RX, TX) = (Y5, Y6) = (PB12, PB13)``
+       The physical pins of the CAN buses are:
+
+         - ``CAN(1)`` is on ``YA``: ``(RX, TX) = (Y3, Y4) = (PB8, PB9)``
+         - ``CAN(2)`` is on ``YB``: ``(RX, TX) = (Y5, Y6) = (PB12, PB13)``
+
+.. only:: port_openmvcam
+
+    .. class:: pyb.CAN(bus, ...)
+
+       Construct a CAN object on the given bus. ``bus`` can be 2.
+       With no additional parameters, the CAN object is created but not
+       initialized (it has the settings from the last initialization of
+       the bus, if any). If extra arguments are given, the bus is initialized.
+       See ``init`` for parameters of initialization.
+
+       The physical pins of the CAN buses are:
+
+         - ``CAN(2)``: ``(RX, TX) = (P3, P2) = (PB12, PB13)``
 
 Class Methods
 -------------
-.. method:: CAN.initfilterbanks(nr)
 
-   Reset and disable all filter banks and assign how many banks should be available for CAN(1).
+.. only:: port_pyboard
 
-   STM32F405 has 28 filter banks that are shared between the two available CAN bus controllers.
-   This function configures how many filter banks should be assigned to each. ``nr`` is the number of banks
-   that will be assigned to CAN(1), the rest of the 28 are assigned to CAN(2).
-   At boot, 14 banks are assigned to each controller.
+    .. method:: CAN.initfilterbanks(nr)
+
+       Reset and disable all filter banks and assign how many banks should be available for CAN(1).
+
+       STM32F405 has 28 filter banks that are shared between the two available CAN bus controllers.
+       This function configures how many filter banks should be assigned to each. ``nr`` is the number of banks
+       that will be assigned to CAN(1), the rest of the 28 are assigned to CAN(2).
+       At boot, 14 banks are assigned to each controller.
 
 Methods
 -------
 
 .. method:: can.init(mode, extframe=False, prescaler=100, \*, sjw=1, bs1=6, bs2=8)
 
-   Initialise the CAN bus with the given parameters:
+   Initialize the CAN bus with the given parameters:
 
      - ``mode`` is one of:  NORMAL, LOOPBACK, SILENT, SILENT_LOOPBACK
      - if ``extframe`` is True then the bus uses extended identifiers in the frames
@@ -62,21 +90,27 @@ Methods
      - ``bs2`` defines the location of the transmit point in units of the time quanta;
        it can be between 1 and 16 inclusive
 
-   The time quanta tq is the basic unit of time for the CAN bus.  tq is the CAN
+   The time quanta tq is the basic unit of time for the CAN bus. tq is the CAN
    prescaler value divided by PCLK1 (the frequency of internal peripheral bus 1);
    see :meth:`pyb.freq()` to determine PCLK1.
 
-   A single bit is made up of the synchronisation segment, which is always 1 tq.
-   Then follows bit segment 1, then bit segment 2.  The sample point is after bit
-   segment 1 finishes.  The transmit point is after bit segment 2 finishes.
+   A single bit is made up of the synchronization segment, which is always 1 tq.
+   Then follows bit segment 1, then bit segment 2. The sample point is after bit
+   segment 1 finishes. The transmit point is after bit segment 2 finishes.
    The baud rate will be 1/bittime, where the bittime is 1 + BS1 + BS2 multiplied
    by the time quanta tq.
 
    For example, with PCLK1=42MHz, prescaler=100, sjw=1, bs1=6, bs2=8, the value of
-   tq is 2.38 microseconds.  The bittime is 35.7 microseconds, and the baudrate
+   tq is 2.38 microseconds. The bittime is 35.7 microseconds, and the baudrate
    is 28kHz.
 
-   See page 680 of the STM32F405 datasheet for more details.
+    .. only:: port_pyboard
+
+       See page 680 of the STM32F405 datasheet for more details.
+
+    .. only:: port_openmvcam
+
+        See the datasheet for more details.
 
 .. method:: can.deinit()
 
@@ -108,8 +142,8 @@ Methods
    +-----------+---------------------------------------------------------+
 
    - ``rtr`` is an array of booleans that states if a filter should accept a
-     remote transmission request message.  If this argument is not given
-     then it defaults to False for all entries.  The length of the array
+     remote transmission request message. If this argument is not given
+     then it defaults to False for all entries. The length of the array
      depends on the ``mode`` argument.
 
    +-----------+----------------------+
@@ -156,7 +190,7 @@ Methods
      - ``id`` is the id of the message to be sent.
      - ``timeout`` is the timeout in milliseconds to wait for the send.
      - ``rtr`` is a boolean that specifies if the message shall be sent as
-       a remote transmission request.  If ``rtr`` is True then only the length
+       a remote transmission request. If ``rtr`` is True then only the length
        of ``data`` is used to fill in the DLC slot of the frame; the actual
        bytes in ``data`` are unused.
 
@@ -199,7 +233,7 @@ Methods
        if reason == 2:
            print('overflow')
 
-     can = CAN(1, CAN.LOOPBACK)
+     can = CAN(2, CAN.LOOPBACK)
      can.rxcallback(0, cb0)
 
 Constants

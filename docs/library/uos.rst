@@ -10,21 +10,33 @@ function.
 Port specifics
 --------------
 
-The filesystem has ``/`` as the root directory and the
-available physical drives are accessible from here.  They are currently:
-
-    ``/flash``      -- the internal flash filesystem
-
-    ``/sd``         -- the SD card (if it exists)
-
 .. only:: port_pyboard
 
-    On boot up, the current directory is ``/flash`` if no SD card is inserted,
-    otherwise it is ``/sd``.
+    The filesystem has ``/`` as the root directory and the
+    available physical drives are accessible from here. They are currently:
+
+        ``/flash``      -- the internal flash filesystem
+
+        ``/sd``         -- the SD card (if it exists)
+
+        On boot up, the current directory is ``/flash`` if no SD card is inserted,
+        otherwise it is ``/sd``.
 
 .. only:: port_wipy
 
-    On boot up, the current directory is ``/flash``.
+    The filesystem has ``/`` as the root directory and the
+    available physical drives are accessible from here. They are currently:
+
+        ``/flash``      -- the internal flash filesystem
+
+        ``/sd``         -- the SD card (if it exists)
+
+        On boot up, the current directory is ``/flash``.
+
+.. only:: port_openmvcam
+
+    On boot up, the current directory is ``/`` of the flash if not SD card is inserted,
+    otherwise it is ``/`` of the SD card.
 
 Functions
 ---------
@@ -39,7 +51,7 @@ Functions
 
 .. function:: listdir([dir])
 
-   With no argument, list the current directory.  Otherwise list the given directory.
+   With no argument, list the current directory. Otherwise list the given directory.
 
 .. function:: mkdir(path)
 
@@ -63,7 +75,7 @@ Functions
 
 .. function:: sync()
 
-   Sync all filesystems.
+   Sync all file-systems.
 
 .. function:: urandom(n)
 
