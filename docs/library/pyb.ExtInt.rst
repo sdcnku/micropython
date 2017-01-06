@@ -17,7 +17,7 @@ Note: ExtInt will automatically configure the gpio line as an input. ::
 
     extint = pyb.ExtInt(pin, pyb.ExtInt.IRQ_FALLING, pyb.Pin.PULL_UP, callback)
 
-Now every time a falling edge is seen on the X1 pin, the callback will be
+Now every time a falling edge is seen on the pin, the callback will be
 called. Caution: mechanical pushbuttons have "bounce" and pushing or
 releasing a switch will often generate multiple edges.
 See: http://www.eng.utah.edu/~cs5780/debouncing.pdf for a detailed
@@ -46,14 +46,13 @@ There is also a C API, so that drivers which require EXTI interrupt lines
 can also use this code. See extint.h for the available functions and
 usrsw.h for an example of using this.
 
-
 Constructors
 ------------
 
 .. class:: pyb.ExtInt(pin, mode, pull, callback)
 
    Create an ExtInt object:
-   
+
      - ``pin`` is the pin on which to enable the interrupt (can be a pin object or any valid pin name).
      - ``mode`` can be one of:
        - ``ExtInt.IRQ_RISING`` - trigger on a rising edge;
@@ -63,10 +62,9 @@ Constructors
        - ``pyb.Pin.PULL_NONE`` - no pull up or down resistors;
        - ``pyb.Pin.PULL_UP`` - enable the pull-up resistor;
        - ``pyb.Pin.PULL_DOWN`` - enable the pull-down resistor.
-     - ``callback`` is the function to call when the interrupt triggers.  The
+     - ``callback`` is the function to call when the interrupt triggers. The
        callback function must accept exactly 1 argument, which is the line that
        triggered the interrupt.
-
 
 Class methods
 -------------
@@ -74,7 +72,6 @@ Class methods
 .. method:: ExtInt.regs()
 
    Dump the values of the EXTI registers.
-
 
 Methods
 -------
@@ -95,7 +92,6 @@ Methods
 .. method:: extint.swint()
 
    Trigger the callback from software.
-
 
 Constants
 ---------

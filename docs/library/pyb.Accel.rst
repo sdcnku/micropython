@@ -1,7 +1,7 @@
 class Accel -- accelerometer control
 ====================================
 
-Accel is an object that controls the accelerometer.  Example usage::
+Accel is an object that controls the accelerometer. Example usage::
 
     accel = pyb.Accel()
     for i in range(10):
@@ -9,14 +9,13 @@ Accel is an object that controls the accelerometer.  Example usage::
 
 Raw values are between -32 and 31.
 
-
 Constructors
 ------------
 
 .. class:: pyb.Accel()
 
    Create and return an accelerometer object.
-   
+
 Methods
 -------
 
@@ -26,7 +25,7 @@ Methods
 
    Implementation note: this method is currently implemented as taking the
    sum of 4 samples, sampled from the 3 previous calls to this function along
-   with the sample from the current call.  Returned values are therefore 4
+   with the sample from the current call. Returned values are therefore 4
    times the size of what they would be from the raw x(), y() and z() calls.
 
 .. method:: accel.tilt()

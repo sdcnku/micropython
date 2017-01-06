@@ -8,4 +8,3 @@ MicroPython documentation contents
     library/index.rst
     reference/index.rst
     license.rst
-

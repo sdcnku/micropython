@@ -15,13 +15,12 @@ Constructors
 
     Create and return a socket object.
 
-
 TCP Methods
 -----------
 
 .. method:: socket.connect(addr)
 
-    Connect to the adress and port specified in the ``addr`` tuple.
+    Connect to the address and port specified in the ``addr`` tuple.
 
 .. method:: socket.close()
 
@@ -49,7 +48,6 @@ TCP Methods
 
     Receive and return bytes from the socket.
 
-
 UDP Methods
 -----------
 
@@ -60,7 +58,6 @@ UDP Methods
 .. method:: socket.recvfrom(addr)
 
     Placeholder for UDP support, not implemented yet.
-
 
 Callback Setter Methods
 -----------------------

@@ -208,4 +208,3 @@ Ctrl-B will leave raw mode and return the the regular (aka friendly) REPL.
 
 The GitHub ``micropython/tools/pyboard.py`` program uses the raw REPL to execute python files on a
 MicroPython board.
-

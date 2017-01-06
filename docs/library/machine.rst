@@ -27,14 +27,14 @@ Reset related functions
 
        Disable interrupt requests.
        Returns the previous IRQ state: ``False``/``True`` for disabled/enabled IRQs
-       respectively.  This return value can be passed to enable_irq to restore
+       respectively. This return value can be passed to enable_irq to restore
        the IRQ to its original state.
 
     .. function:: enable_irq(state=True)
 
        Enable interrupt requests.
        If ``state`` is ``True`` (the default value) then IRQs are enabled.
-       If ``state`` is ``False`` then IRQs are disabled.  The most common use of
+       If ``state`` is ``False`` then IRQs are disabled. The most common use of
        this function is to pass it the value returned by ``disable_irq`` to
        exit a critical section.
 
@@ -59,7 +59,7 @@ Power related functions
    Gates the clock to the CPU, useful to reduce power consumption at any time during
    short or long periods. Peripherals continue working and execution resumes as soon
    as any interrupt is triggered (on many ports this includes system timer
-   interrupt occuring at regular intervals on the order of millisecond).
+   interrupt occurring at regular intervals on the order of millisecond).
 
 .. function:: sleep()
 
@@ -87,7 +87,7 @@ Miscellaneous functions
 
     .. function:: main(filename)
 
-        Set the filename of the main script to run after boot.py is finished.  If
+        Set the filename of the main script to run after boot.py is finished. If
         this function is not called then the default file main.py will be executed.
 
         It only makes sense to call this function from within boot.py.
@@ -98,7 +98,7 @@ Miscellaneous functions
 
 .. function:: unique_id()
 
-   Returns a byte string with a unique idenifier of a board/SoC. It will vary
+   Returns a byte string with a unique identifier of a board/SoC. It will vary
    from a board/SoC instance to another, if underlying hardware allows. Length
    varies by hardware (so use substring of a full value if you expect a short
    ID). In some MicroPython ports, ID corresponds to the network MAC address.

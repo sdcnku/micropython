@@ -4,7 +4,7 @@
 .. module:: cmath
    :synopsis: mathematical functions for complex numbers
 
-The ``cmath`` module provides some basic mathematical funtions for
+The ``cmath`` module provides some basic mathematical functions for
 working with complex numbers.
 
 Functions
@@ -20,11 +20,11 @@ Functions
 
 .. function:: log(z)
 
-   Return the natural logarithm of ``z``.  The branch cut is along the negative real axis.
+   Return the natural logarithm of ``z``. The branch cut is along the negative real axis.
 
 .. function:: log10(z)
 
-   Return the base-10 logarithm of ``z``.  The branch cut is along the negative real axis.
+   Return the base-10 logarithm of ``z``. The branch cut is along the negative real axis.
 
 .. function:: phase(z)
 

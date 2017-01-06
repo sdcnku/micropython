@@ -10,4 +10,3 @@ MicroPython documentation contents
     reference/index.rst
     pyboard/hardware/index.rst
     license.rst
-

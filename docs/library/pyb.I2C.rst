@@ -3,34 +3,34 @@
 class I2C -- a two-wire serial protocol
 =======================================
 
-I2C is a two-wire protocol for communicating between devices.  At the physical
+I2C is a two-wire protocol for communicating between devices. At the physical
 level it consists of 2 wires: SCL and SDA, the clock and data lines respectively.
 
-I2C objects are created attached to a specific bus.  They can be initialised
-when created, or initialised later on.
+I2C objects are created attached to a specific bus. They can be initialized
+when created, or initialized later on.
 
-.. only:: port_pyboard
+.. only:: port_pyboard or port_openmvcam
 
     Example::
 
         from pyb import I2C
 
-        i2c = I2C(1)                         # create on bus 1
-        i2c = I2C(1, I2C.MASTER)             # create and init as a master
+        i2c = I2C(2)                         # create on bus 2
+        i2c = I2C(2, I2C.MASTER)             # create and init as a master
         i2c.init(I2C.MASTER, baudrate=20000) # init as a master
         i2c.init(I2C.SLAVE, addr=0x42)       # init as a slave with given address
         i2c.deinit()                         # turn off the peripheral
 
 Printing the i2c object gives you information about its configuration.
 
-.. only:: port_pyboard
+.. only:: port_pyboard or port_openmvcam
 
     The basic methods are send and recv::
 
         i2c.send('abc')      # send 3 bytes
         i2c.send(0x42)       # send a single byte, given by the number
         data = i2c.recv(3)   # receive 3 bytes
-    
+
     To receive inplace, first create a bytearray::
 
         data = bytearray(3)  # create a buffer
@@ -63,24 +63,43 @@ Constructors
 
     .. class:: pyb.I2C(bus, ...)
 
-       Construct an I2C object on the given bus.  ``bus`` can be 1 or 2, 'X' or
+       Construct an I2C object on the given bus. ``bus`` can be 1 or 2, 'X' or
        'Y'. With no additional parameters, the I2C object is created but not
-       initialised (it has the settings from the last initialisation of
-       the bus, if any).  If extra arguments are given, the bus is initialised.
-       See ``init`` for parameters of initialisation.
+       initialized (it has the settings from the last initialization of
+       the bus, if any). If extra arguments are given, the bus is initialized.
+       See ``init`` for parameters of initialization.
 
-       The physical pins of the I2C busses on Pyboards V1.0 and V1.1 are:
+       The physical pins of the I2C buses on Pyboards V1.0 and V1.1 are:
 
          - ``I2C(1)`` is on the X position: ``(SCL, SDA) = (X9, X10) = (PB6, PB7)``
          - ``I2C(2)`` is on the Y position: ``(SCL, SDA) = (Y9, Y10) = (PB10, PB11)``
-       
+
        On the Pyboard Lite:
-       
+
          - ``I2C(1)`` is on the X position: ``(SCL, SDA) = (X9, X10) = (PB6, PB7)``
          - ``I2C(3)`` is on the Y position: ``(SCL, SDA) = (Y9, Y10) = (PA8, PB8)``
-         
+
        Calling the constructor with 'X' or 'Y' enables portability between Pyboard
        types.
+
+.. only:: port_openmvcam
+
+    .. class:: pyb.I2C(bus, ...)
+
+       Construct an I2C object on the given bus. ``bus`` can be 2.
+       With no additional parameters, the I2C object is created but not
+       initialized (it has the settings from the last initialization of
+       the bus, if any). If extra arguments are given, the bus is initialized.
+       See ``init`` for parameters of initialization.
+
+       The physical pins of the I2C buses on the OpenMV Cam are:
+
+         - ``I2C(2)``: ``(SCL, SDA) = (P4, P5) = (PB10, PB11)``
+
+       On the OpenMV Cam M7:
+
+         - ``I2C(2)``: ``(SCL, SDA) = (P4, P5) = (PB10, PB11)``
+         - ``I2C(4)``: ``(SCL, SDA) = (P7, P8) = (PD12, PD13)``
 
 Methods
 -------
@@ -89,11 +108,11 @@ Methods
 
    Turn off the I2C bus.
 
-.. only:: port_pyboard
+.. only:: port_pyboard or port_openmvcam
 
     .. method:: i2c.init(mode, \*, addr=0x12, baudrate=400000, gencall=False)
 
-      Initialise the I2C bus with the given parameters:
+      Initialize the I2C bus with the given parameters:
 
          - ``mode`` must be either ``I2C.MASTER`` or ``I2C.SLAVE``
          - ``addr`` is the 7-bit address (only sensible for a slave)
@@ -102,7 +121,7 @@ Methods
 
     .. method:: i2c.is_ready(addr)
 
-       Check if an I2C device responds to the given address.  Only valid when in master mode.
+       Check if an I2C device responds to the given address. Only valid when in master mode.
 
     .. method:: i2c.mem_read(data, addr, memaddr, \*, timeout=5000, addr_size=8)
 
@@ -138,7 +157,7 @@ Methods
            or a mutable buffer, which will be filled with received bytes
          - ``addr`` is the address to receive from (only required in master mode)
          - ``timeout`` is the timeout in milliseconds to wait for the receive
-    
+
        Return value: if ``recv`` is an integer then a new buffer of the bytes received,
        otherwise the same buffer that was passed in to ``recv``.
 
@@ -162,10 +181,10 @@ Constants
 
 .. data:: I2C.MASTER
 
-   for initialising the bus to master mode
+   for initializing the bus to master mode
 
-.. only:: port_pyboard
+.. only:: port_pyboard or port_openmvcam
 
     .. data:: I2C.SLAVE
-    
-       for initialising the bus to slave mode
+
+       for initializing the bus to slave mode

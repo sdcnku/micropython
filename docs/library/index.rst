@@ -10,16 +10,16 @@ Python standard libraries and micro-libraries
 ---------------------------------------------
 
 The following standard Python libraries have been "micro-ified" to fit in with
-the philosophy of MicroPython.  They provide the core functionality of that
+the philosophy of MicroPython. They provide the core functionality of that
 module and are intended to be a drop-in replacement for the standard Python
 library.
 
 .. only:: not port_unix
 
-    The modules are available by their u-name, and also by their non-u-name.  The
+    The modules are available by their u-name, and also by their non-u-name. The
     non-u-name can be overridden by a file of that name in your package path.
     For example, ``import json`` will first search for a file ``json.py`` or
-    directory ``json`` and load that package if it is found.  If nothing is found,
+    directory ``json`` and load that package if it is found. If nothing is found,
     it will fallback to loading the built-in ``ujson`` module.
 
 .. only:: port_unix
@@ -105,6 +105,18 @@ library.
        utime.rst
        uzlib.rst
 
+.. only:: port_openmvcam
+
+    .. toctree::
+       :maxdepth: 1
+
+       gc.rst
+       math.rst
+       os.rst
+       select.rst
+       struct.rst
+       sys.rst
+       time.rst
 
 MicroPython-specific libraries
 ------------------------------
@@ -115,11 +127,8 @@ the following libraries.
 .. toctree::
    :maxdepth: 1
 
-   machine.rst
    micropython.rst
    network.rst
-   uctypes.rst
-
 
 .. only:: port_pyboard
 
@@ -131,6 +140,8 @@ the following libraries.
    .. toctree::
       :maxdepth: 2
 
+      machine.rst
+      uctypes.rst
       pyb.rst
 
 .. only:: port_wipy
@@ -143,8 +154,9 @@ the following libraries.
    .. toctree::
       :maxdepth: 2
 
+      machine.rst
+      uctypes.rst
       wipy.rst
-
 
 .. only:: port_esp8266
 
@@ -156,4 +168,25 @@ the following libraries.
    .. toctree::
       :maxdepth: 2
 
+      machine.rst
+      uctypes.rst
       esp.rst
+
+.. only:: port_openmvcam
+
+   Libraries specific to the OpenMV Cam
+   ------------------------------------
+
+   The following libraries are specific to the OpenMV Cam.
+
+   .. toctree::
+      :maxdepth: 2
+
+      pyb.rst
+      omv.time.rst
+      omv.sensor.rst
+      omv.image.rst
+      omv.gif.rst
+      omv.mjpeg.rst
+      omv.lcd.rst
+      omv.fir.rst

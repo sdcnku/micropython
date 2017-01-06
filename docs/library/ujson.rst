@@ -16,5 +16,5 @@ Functions
 
 .. function:: loads(str)
 
-   Parse the JSON ``str`` and return an object.  Raises ValueError if the
+   Parse the JSON ``str`` and return an object. Raises ValueError if the
    string is not correctly formed.
