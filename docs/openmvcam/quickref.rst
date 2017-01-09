@@ -3,9 +3,15 @@
 Quick reference for the openmvcam
 =================================
 
+OpenMV Cam M4
+-------------
+
 .. image:: cam-v2-pinout.png
     :alt: OpenMV Cam pinout
     :width: 700px
+
+OpenMV Cam M7
+-------------
 
 .. image:: cam-v3-pinout.png
     :alt: OpenMV Cam pinout
