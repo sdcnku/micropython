@@ -112,11 +112,11 @@ library.
 
        gc.rst
        math.rst
-       os.rst
+       uos.rst
        select.rst
-       struct.rst
+       ustruct.rst
        sys.rst
-       time.rst
+       utime.rst
 
 MicroPython-specific libraries
 ------------------------------
@@ -183,6 +183,18 @@ the following libraries.
       :maxdepth: 2
 
       pyb.rst
+      pyb.ADC.rst
+      pyb.CAN.rst
+      pyb.DAC.rst
+      pyb.ExtInt.rst
+      pyb.I2C.rst
+      pyb.LED.rst
+      pyb.Pin.rst
+      pyb.Servo.rst
+      pyb.SPI.rst
+      pyb.Timer.rst
+      pyb.UART.rst
+      pyb.USB_VCP.rst
       omv.time.rst
       omv.sensor.rst
       omv.image.rst
@@ -190,3 +202,4 @@ the following libraries.
       omv.mjpeg.rst
       omv.lcd.rst
       omv.fir.rst
+      omv.cpufreq.rst

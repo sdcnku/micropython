@@ -305,7 +305,7 @@ Flow Control
     to the target's ``nRTS`` and the OpenMV Cam's ``nRTS`` to the target's ``nCTS``.
 
     CTS: target controls OpenMV Cam transmitter
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     If CTS flow control is enabled the write behavior is as follows:
 
@@ -321,7 +321,7 @@ Flow Control
     will be raised. The character will be transmitted as soon as the target asserts ``nCTS``.
 
     RTS: OpenMV Cam controls target's transmitter
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     If RTS flow control is enabled, behavior is as follows:
 

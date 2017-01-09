@@ -41,11 +41,11 @@ For example::
 
     Example::
 
-    import network
-    server = network.Server()
-    server.deinit() # disable the server
-    # enable the server again with new settings
-    server.init(login=('user', 'password'), timeout=600)
+        import network
+        server = network.Server()
+        server.deinit() # disable the server
+        # enable the server again with new settings
+        server.init(login=('user', 'password'), timeout=600)
 
     Constructors
     ------------
@@ -558,7 +558,9 @@ For example::
        After connecting to the network use the ``usocket`` module to open TCP/UDP
        ports to send and receive data.
 
-       .. note:: This function takes a little while to return.
+       .. note::
+
+          This function takes a little while to return.
 
     .. method:: winc.disconnect()
 
@@ -573,11 +575,11 @@ For example::
 
        Returns a tuple containing:
 
-         - [0]: RSSI - received signal strength indicator (int)
-         - [1]: Authorization Type (see constants)
-         - [2]: Set Service Identifier String (SSID)
-         - [3]: MAC Address String (XX:XX:XX:XX:XX:XX) (BSSID)
-         - [4]: IP Address String (XXX.XXX.XXX.XXX)
+          * [0]: RSSI - received signal strength indicator (int)
+          * [1]: Authorization Type (see constants)
+          * [2]: Set Service Identifier String (SSID)
+          * [3]: MAC Address String (XX:XX:XX:XX:XX:XX) (BSSID)
+          * [4]: IP Address String (XXX.XXX.XXX.XXX)
 
        While connected to the network.
 
@@ -585,11 +587,11 @@ For example::
 
        Returns a list of tuples containing:
 
-         - [0]: Channel Number (int)
-         - [1]: RSSI - received signal strength indicator (int)
-         - [2]: Authorization Type (see constants)
-         - [3]: MAC Address String (XX:XX:XX:XX:XX:XX) (BSSID)
-         - [4]: Set Service Identifier String (SSID)
+          * [0]: Channel Number (int)
+          * [1]: RSSI - received signal strength indicator (int)
+          * [2]: Authorization Type (see constants)
+          * [3]: MAC Address String (XX:XX:XX:XX:XX:XX) (BSSID)
+          * [4]: Set Service Identifier String (SSID)
 
        You don't need to be connected to call this.
 
@@ -602,13 +604,13 @@ For example::
 
        Returns a tuple containing the wifi shield firmware version number.
 
-         - [0]: Firmware Major Version Number (int)
-         - [1]: Firmware Minor Version Number (int)
-         - [2]: Firmware Patch Version Number (int)
-         - [3]: Driver Major Version Number (int)
-         - [4]: Driver Minor Version Number (int)
-         - [5]: Driver Patch Version Number (int)
-         - [6]: Hardware Revision Number - Chip ID (int)
+          * [0]: Firmware Major Version Number (int)
+          * [1]: Firmware Minor Version Number (int)
+          * [2]: Firmware Patch Version Number (int)
+          * [3]: Driver Major Version Number (int)
+          * [4]: Driver Minor Version Number (int)
+          * [5]: Driver Patch Version Number (int)
+          * [6]: Hardware Revision Number - Chip ID (int)
 
     .. method:: winc.fw_dump()
 
@@ -622,26 +624,34 @@ For example::
     Constants
     ---------
 
-    .. data:: WINC.OPEN
+    .. data:: winc.OPEN
 
        For connecting to an open wifi network.
 
-       .. note:: Insecure.
+       .. note::
 
-    .. data:: WINC.WEP
+          Insecure.
+
+    .. data:: winc.WEP
 
        For connecting to a WEP based password protected network.
 
-       .. note:: Insecure.
+       .. note::
 
-    .. data:: WINC.WPA_PSK
+          Insecure.
+
+    .. data:: winc.WPA_PSK
 
        For connecting to a WPA/PSK based password protected network.
 
-       .. note:: For networks that need a password for all users.
+       .. note::
 
-    .. data:: WINC.802_1X
+          For networks that need a password for all users.
+
+    .. data:: winc.802_1X
 
        For connecting to a 802.1X based password protected network.
 
-       .. note:: For networks that need a separate password per user.
+       .. note::
+
+          For networks that need a separate password per user.

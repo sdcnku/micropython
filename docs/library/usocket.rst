@@ -73,7 +73,9 @@ Constants
 
 .. data:: socket.IPPROTO_UDP
 .. data:: socket.IPPROTO_TCP
+
 .. only:: port_wipy
+
    .. data:: socket.IPPROTO_SEC
 
       protocol numbers
