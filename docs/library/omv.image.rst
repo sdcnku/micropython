@@ -9,78 +9,100 @@ The ``image`` module is used for machine vision.
 Functions
 ---------
 
-.. function:: rgb_to_lab((r, g, b))
+.. function:: image.rgb_to_lab(rgb_tuple)
 
-   Returns the LAB tuple for the RGB888 tuple.
+   Returns the LAB tuple (l, a, b) for the RGB888 ``rgb_tuple`` (r, g, b).
 
-   .. note:: RGB888 means 8-bits (0-255) for red, green, and blue. For LAB, L
-             goes from 0-100 and a/b go from -128 to 127.
+   .. note::
 
-.. function:: lab_to_rgb((l, a, b))
+      RGB888 means 8-bits (0-255) for red, green, and blue. For LAB, L
+      goes from 0-100 and a/b go from -128 to 127.
 
-   Returns the RGB888 tuple for the LAB tuple.
+.. function:: image.lab_to_rgb(lab_tuple)
 
-   .. note:: RGB888 means 8-bits (0-255) for red, green, and blue. For LAB, L
-             goes from 0-100 and a/b go from -128 to 127.
+   Returns the RGB888 tuple (r, g, b) for the LAB ``lab_tuple`` (l, a, b).
 
-.. function:: rgb_to_grayscale((r, g, b))
+   .. note::
 
-   Returns the grayscale value for the RGB888 tuple.
+      RGB888 means 8-bits (0-255) for red, green, and blue. For LAB, L
+      goes from 0-100 and a/b go from -128 to 127.
 
-   .. note:: RGB888 means 8-bits (0-255) for red, green, and blue. The grayscale
-             values goes between 0-255.
+.. function:: image.rgb_to_grayscale(rgb_tuple)
 
-.. function:: grayscale_to_rgb(gs)
+   Returns the grayscale value for the RGB888 ``rgb_tuple`` (r, g, b).
 
-   Returns the RGB888 tuple for the grayscale value.
+   .. note::
 
-   .. note:: RGB888 means 8-bits (0-255) for red, green, and blue. The grayscale
-             values goes between 0-255.
+      RGB888 means 8-bits (0-255) for red, green, and blue. The grayscale
+      values goes between 0-255.
 
-.. function:: load_decriptor(type, path)
+.. function:: image.grayscale_to_rgb(g_value)
 
-   Loads a descriptor object saved by your OpenMV Cam or the OpenMV IDE into
-   memory and returns a descriptor object.
+   Returns the RGB888 tuple (r, a, b) for the grayscale ``g_value``.
 
-   ``type`` is the descriptor type to load which can be either ``image.LBP`` or
-   ``image.FREAK``.
+   .. note::
 
-   ``path`` is the path to the descriptor file.
+       RGB888 means 8-bits (0-255) for red, green, and blue. The grayscale
+       values goes between 0-255.
 
-   .. note:: This function needs to be reworked for usability. You shouldn't
-             have to pass the descriptor type to load one. The descriptor file
-             format needs to be updated to support this...
+.. function:: image.load_decriptor(type, path)
 
-.. function:: save_descriptor(type, path, descriptor)
+   Loads a descriptor object from disk.
+
+   ``type`` is the descriptor type to load:
+
+       * ``image.DESC_LBP``
+       * ``image.DESC_ORB``
+
+   ``path`` is the path to the descriptor file to load.
+
+.. function:: image.save_descriptor(type, path, descriptor)
 
    Saves the descriptor object ``descriptor`` to disk.
 
-   ``type`` is the descriptor type to save which can be either ``image.LBP`` or
-   ``image.FREAK``.
+   ``type`` is the descriptor type to save:
 
-   ``path`` is the path to the descriptor file.
+       * ``image.DESC_LBP``
+       * ``image.DESC_ORB``
 
-   .. note:: This function needs to be reworked for usability. You shouldn't
-             have to pass the descriptor type to save one. The descriptor file
-             format needs to be updated to support this...
+   ``path`` is the path to the descriptor file to save.
 
-.. function:: match_descriptor(type, descritor0, descriptor1, threshold=60)
+.. function:: image.match_descriptor(type, descritor0, descriptor1, threshold=70, filter_outliers=False)
 
-   For LBP descriptors this function returns an integer representing the difference
-   between the two descriptors. As of right now, this is rather... hard to use...
+   ``type`` is the descriptor type to match:
 
-   For FREAK descriptors this function returns the center matching area between
-   the two sets of keypoints. Threshold (0-100) controls the matching rate where
-   a higher threshold results in less false positives but less matches.
+       * ``image.DESC_LBP``
+       * ``image.DESC_ORB``
 
-   ``type`` is the descriptor type to save which can be either ``image.LBP`` or
-   ``image.FREAK``.
+   For LBP descriptors this function returns an integer representing the
+   difference between the two descriptors. You may then threshold/compare this
+   distance metric as necessary. The distance is a measure of similarity. The
+   closer it is to zero the better the LBP keypoint match.
 
-   .. note:: Like the other descriptor functions this function needs to be reworked
-             to auto detect descriptors and additionally should return bounding
-             boxes around matching areas along with the centroid. Anyway, there
-             wasn't time to rework this for the initial release so this is what
-             we have for right now.
+   For ORB descriptors this function returns a tuple containing the following
+   values:
+
+       * [0] - X Centroid (int)
+       * [1] - Y Centroid (int)
+       * [2] - Bounding Box X (int)
+       * [3] - Bounding Box Y (int)
+       * [4] - Bounding Box W (int)
+       * [5] - Bounding Box H (int)
+       * [6] - Number of keypoints matched (int)
+       * [7] - Estimated angle of rotation between keypoints in degrees.
+
+   ``threshold`` is used for ORB keypoints to filter ambiguous matches. A lower
+   ``threshold`` value tightens the keypoint matching algorithm. ``threshold``
+   may be between 0-100 (int). Defaults to 70.
+
+   ``filter_outliers`` is used for ORB keypoints to filter out outlier
+   keypoints allow you to raise the ``threshold``. Defaults to False.
+
+   .. note::
+
+      ``threshold`` and ``filter_outliers`` are keyword arguments which must be
+      explicitly invoked in the function call by writing ``threshold=`` and
+      ``filter_outliers=``.
 
 class HaarCascade -- Feature Descriptor
 =======================================
@@ -93,38 +115,538 @@ Constructors
 
 .. class:: image.HaarCascade(path, stages=Auto)
 
-    Loads a Haar Cascade into memory from a Haar Cascade binary file formatted for
-    your OpenMV Cam. If you pass "frontalface" instead of a path then this constructor
-    will load the built-in frontal face Haar Cascade into memory. Additionally, you
-    can also pass "eye" to load a Haar Cascade for eyes into memory. Finally, this
-    method returns the loaded Haar Cascade object for use with ``image.find_features()``.
+    Loads a Haar Cascade into memory from a Haar Cascade binary file formatted
+    for your OpenMV Cam. If you pass "frontalface" instead of a path then this
+    constructor will load the built-in frontal face Haar Cascade into memory.
+    Additionally, you can also pass "eye" to load a Haar Cascade for eyes into
+    memory. Finally, this method returns the loaded Haar Cascade object for use
+    with ``image.find_features()``.
 
-    ``stages`` defaults to the number of stages in the Haar Cascade. However, you
-    can specify a lower number of stages to speed up processing the feature detector
-    at the cost of a higher rate of false positives.
+    ``stages`` defaults to the number of stages in the Haar Cascade. However,
+    you can specify a lower number of stages to speed up processing the feature
+    detector at the cost of a higher rate of false positives.
 
     .. note:: You can make your own Haar Cascades to use with your OpenMV Cam.
-              First, Google for "<thing> Haar Cascade" to see if someone already
-              made an OpenCV Haar Cascade for an object you want to detect. If not...
-              then you'll have to generate your own (which is a lot of work). If
-              so, then see the ``openmv-cascade.py`` script for converting OpenCV
-              Haar Cascades into a format your OpenMV Cam can read.
+              First, Google for "<thing> Haar Cascade" to see if someone
+              already made an OpenCV Haar Cascade for an object you want to
+              detect. If not... then you'll have to generate your own (which is
+              a lot of work). See `here <http://coding-robin.de/2013/07/22/train-your-own-opencv-haar-classifier.html>`_
+              for how to make your own Haar Cascade. Then see this `script <https://github.com/openmv/openmv/blob/master/usr/openmv-cascade.py>`_
+              for converting OpenCV Haar Cascades into a format your OpenMV Cam
+              can read.
 
     Q: What is a Haar Cascade?
+
     A: A Haar Cascade is a series of contrast checks that are used to determine
     if an object is present in the image. The contrast checks are split of into
-    stages where a stage is only run if previous stages have already passed. The
-    contrast checks are simple things like checking if the center vertical of the
-    image is lighter than the edges. Large area checks are performed first in the
-    earlier stages followed by more numerous and smaller area checks in later
-    stages.
+    stages where a stage is only run if previous stages have already passed.
+    The contrast checks are simple things like checking if the center vertical
+    of the image is lighter than the edges. Large area checks are performed
+    first in the earlier stages followed by more numerous and smaller area
+    checks in later stages.
 
     Q: How are Haar Cascades made?
-    A: Haar Cascades are made by training the generator algorithm against positive
-    and negative labeled images. For example, you'd train the generator algorithm
-    against hundreds of pictures with cats in them that have been labeled as images
-    with cats and against hundreds of images with not cat like things labeled differently.
-    The generator algorithm will then produce a Haar Cascade that detects cats.
+
+    A: Haar Cascades are made by training the generator algorithm against
+    positive and negative labeled images. For example, you'd train the
+    generator algorithm against hundreds of pictures with cats in them that
+    have been labeled as images with cats and against hundreds of images with
+    not cat like things labeled differently. The generator algorithm will then
+    produce a Haar Cascade that detects cats.
+
+    .. note::
+
+      ``stages`` is a keyword argument which must be explicitly invoked in the
+      function call by writing ``stages=``.
+
+class Histogram -- Histogram Object
+===================================
+
+The histogram object is returned by ``image.get_histogram``.
+
+Grayscale histograms have one channel with some number of bins. All bins are
+normalized so that all bins sum to 1.
+
+RGB565 histograms have three channels with some number of bins each. All bins
+are normalized so that all bins in a channel sum to 1.
+
+Methods
+-------
+
+.. method:: histogram.bins()
+
+   Returns a list of floats for the grayscale histogram.
+
+   You may also get this value doing ``[0]`` on the object.
+
+.. method:: histogram.l_bins()
+
+   Returns a list of floats for the RGB565 histogram LAB L channel.
+
+   You may also get this value doing ``[0]`` on the object.
+
+.. method:: histogram.a_bins()
+
+   Returns a list of floats for the RGB565 histogram LAB A channel.
+
+   You may also get this value doing ``[1]`` on the object.
+
+.. method:: histogram.b_bins()
+
+   Returns a list of floats for the RGB565 histogram LAB B channel.
+
+   You may also get this value doing ``[2]`` on the object.
+
+.. method:: histogram.get_percentile(percentile)
+
+   Computes the CDF of the histogram channels and returns a ``percentile``
+   object with the values of the histogram at the passed in ``percentile`` (0.0
+   - 1.0) (float). So, if you pass in 0.1 this method will tell you (going from
+   left-to-right in the histogram) what bin when summed into an accumulator
+   caused the accumulator to cross 0.1. This is useful to determine min (with
+   0.1) and max (with 0.9) of a color distribution without outlier effects
+   ruining your results for adaptive color tracking.
+
+.. method:: histogram.get_statistics()
+
+   Computes the mean, median, mode, standard deviation, min, max, lower
+   quartile, and upper quartile of each color channel in the histogram and
+   returns a ``statistics`` object.
+
+   You may also use ``histogram.statistics()`` and ``histogram.get_stats()``
+   as aliases for this method.
+
+class Percentile -- Percentile Object
+=====================================
+
+The percentile object is returned by ``histogram.get_percentile``.
+
+Grayscale percentiles have one channel. Use the non ``l_*``, ``a_*``, and
+``b_*`` method.
+
+RGB565 percentiles have three channels. Use the ``l_*``, ``a_*``, and ``b_*``
+methods.
+
+Methods
+-------
+
+.. method:: percentile.value()
+
+   Return the grayscale percentile value (between 0 and 255).
+
+   You may also get this value doing ``[0]`` on the object.
+
+.. method:: percentile.l_value()
+
+   Return the RGB565 LAB L channel percentile value (between 0 and 100).
+
+   You may also get this value doing ``[0]`` on the object.
+
+.. method:: percentile.a_value()
+
+   Return the RGB565 LAB A channel percentile value (between -128 and 127).
+
+   You may also get this value doing ``[1]`` on the object.
+
+.. method:: percentile.b_value()
+
+   Return the RGB565 LAB B channel percentile value (between -128 and 127).
+
+   You may also get this value doing ``[2]`` on the object.
+
+class Statistics -- Statistics Object
+=====================================
+
+The percentile object is returned by ``histogram.get_statistics`` or
+``image.get_statistics``.
+
+Grayscale statistics have one channel. Use the non ``l_*``, ``a_*``, and
+``b_*`` method.
+
+RGB565 statistics have three channels. Use the ``l_*``, ``a_*``, and ``b_*``
+methods.
+
+Methods
+-------
+
+.. method:: statistics.mean()
+
+   Returns the grayscale mean (0-255) (int).
+
+   You may also get this value doing ``[0]`` on the object.
+
+.. method:: statistics.median()
+
+   Returns the grayscale median (0-255) (int).
+
+   You may also get this value doing ``[1]`` on the object.
+
+.. method:: statistics.mode()
+
+   Returns the grayscale mode (0-255) (int).
+
+   You may also get this value doing ``[2]`` on the object.
+
+.. method:: statistics.stdev()
+
+   Returns the grayscale standard deviation (0-255) (int).
+
+   You may also get this value doing ``[3]`` on the object.
+
+.. method:: statistics.min()
+
+   Returns the grayscale min (0-255) (int).
+
+   You may also get this value doing ``[4]`` on the object.
+
+.. method:: statistics.max()
+
+   Returns the grayscale max (0-255) (int).
+
+   You may also get this value doing ``[5]`` on the object.
+
+.. method:: statistics.lq()
+
+   Returns the grayscale lower quartile (0-255) (int).
+
+   You may also get this value doing ``[6]`` on the object.
+
+.. method:: statistics.uq()
+
+   Returns the grayscale upper quartile (0-255) (int).
+
+   You may also get this value doing ``[7]`` on the object.
+
+.. method:: statistics.l_mean()
+
+   Returns the RGB565 LAB L mean (0-255) (int).
+
+   You may also get this value doing ``[0]`` on the object.
+
+.. method:: statistics.l_median()
+
+   Returns the RGB565 LAB L median (0-255) (int).
+
+   You may also get this value doing ``[1]`` on the object.
+
+.. method:: statistics.l_mode()
+
+   Returns the RGB565 LAB L mode (0-255) (int).
+
+   You may also get this value doing ``[2]`` on the object.
+
+.. method:: statistics.l_stdev()
+
+   Returns the RGB565 LAB L standard deviation (0-255) (int).
+
+   You may also get this value doing ``[3]`` on the object.
+
+.. method:: statistics.l_min()
+
+   Returns the RGB565 LAB L min (0-255) (int).
+
+   You may also get this value doing ``[4]`` on the object.
+
+.. method:: statistics.l_max()
+
+   Returns the RGB565 LAB L max (0-255) (int).
+
+   You may also get this value doing ``[5]`` on the object.
+
+.. method:: statistics.l_lq()
+
+   Returns the RGB565 LAB L lower quartile (0-255) (int).
+
+   You may also get this value doing ``[6]`` on the object.
+
+.. method:: statistics.l_uq()
+
+   Returns the RGB565 LAB L upper quartile (0-255) (int).
+
+   You may also get this value doing ``[7]`` on the object.
+
+.. method:: statistics.a_mean()
+
+   Returns the RGB565 LAB A mean (0-255) (int).
+
+   You may also get this value doing ``[8]`` on the object.
+
+.. method:: statistics.a_median()
+
+   Returns the RGB565 LAB A median (0-255) (int).
+
+   You may also get this value doing ``[9]`` on the object.
+
+.. method:: statistics.a_mode()
+
+   Returns the RGB565 LAB A mode (0-255) (int).
+
+   You may also get this value doing ``[10]`` on the object.
+
+.. method:: statistics.a_stdev()
+
+   Returns the RGB565 LAB A standard deviation (0-255) (int).
+
+   You may also get this value doing ``[11]`` on the object.
+
+.. method:: statistics.a_min()
+
+   Returns the RGB565 LAB A min (0-255) (int).
+
+   You may also get this value doing ``[12]`` on the object.
+
+.. method:: statistics.a_max()
+
+   Returns the RGB565 LAB A max (0-255) (int).
+
+   You may also get this value doing ``[13]`` on the object.
+
+.. method:: statistics.a_lq()
+
+   Returns the RGB565 LAB A lower quartile (0-255) (int).
+
+   You may also get this value doing ``[14]`` on the object.
+
+.. method:: statistics.a_uq()
+
+   Returns the RGB565 LAB A upper quartile (0-255) (int).
+
+   You may also get this value doing ``[15]`` on the object.
+
+.. method:: statistics.b_mean()
+
+   Returns the RGB565 LAB B mean (0-255) (int).
+
+   You may also get this value doing ``[16]`` on the object.
+
+.. method:: statistics.b_median()
+
+   Returns the RGB565 LAB B median (0-255) (int).
+
+   You may also get this value doing ``[17]`` on the object.
+
+.. method:: statistics.b_mode()
+
+   Returns the RGB565 LAB B mode (0-255) (int).
+
+   You may also get this value doing ``[18]`` on the object.
+
+.. method:: statistics.b_stdev()
+
+   Returns the RGB565 LAB B standard deviation (0-255) (int).
+
+   You may also get this value doing ``[19]`` on the object.
+
+.. method:: statistics.b_min()
+
+   Returns the RGB565 LAB B min (0-255) (int).
+
+   You may also get this value doing ``[20]`` on the object.
+
+.. method:: statistics.b_max()
+
+   Returns the RGB565 LAB B max (0-255) (int).
+
+   You may also get this value doing ``[21]`` on the object.
+
+.. method:: statistics.b_lq()
+
+   Returns the RGB565 LAB B lower quartile (0-255) (int).
+
+   You may also get this value doing ``[22]`` on the object.
+
+.. method:: statistics.b_uq()
+
+   Returns the RGB565 LAB B upper quartile (0-255) (int).
+
+   You may also get this value doing ``[23]`` on the object.
+
+class Blob -- Blob object
+=========================
+
+The blob object is returned by ``image.find_blobs``.
+
+Methods
+-------
+
+.. method:: blob.rect()
+
+   Returns a rectangle tuple (x, y, w, h) for use with other ``image`` methods
+   like ``image.draw_rectangle`` of the blob's bounding box.
+
+.. method:: blob.x()
+
+   Returns the blob's bounding box x coordinate (int).
+
+   You may also get this value doing ``[0]`` on the object.
+
+.. method:: blob.y()
+
+   Returns the blob's bounding box y coordinate (int).
+
+   You may also get this value doing ``[1]`` on the object.
+
+.. method:: blob.w()
+
+   Returns the blob's bounding box w coordinate (int).
+
+   You may also get this value doing ``[2]`` on the object.
+
+.. method:: blob.h()
+
+   Returns the blob's bounding box h coordinate (int).
+
+   You may also get this value doing ``[3]`` on the object.
+
+.. method:: blob.pixels()
+
+   Returns the number of pixels that are part of this blob (int).
+
+   You may also get this value doing ``[4]`` on the object.
+
+.. method:: blob.cx()
+
+   Returns the centroid x position of the blob (int).
+
+   You may also get this value doing ``[5]`` on the object.
+
+.. method:: blob.cy()
+
+   Returns the centroid y position of the blob (int).
+
+   You may also get this value doing ``[6]`` on the object.
+
+.. method:: blob.rotation()
+
+   Returns the rotation of the blob in radians (float). If the blob is like
+   a pencil or pen this value will be unique for 0-180 degrees. If the blob
+   is round this value is not useful. You'll only be able to get 0-360 degrees
+   of rotation from this if the blob has no symmetry at all.
+
+   You may also get this value doing ``[7]`` on the object.
+
+.. method:: blob.code()
+
+   Returns a 16-bit binary number with a bit set in it for each color threshold
+   that's part of this blob. For example, if you passed ``image.find_blobs``
+   three color thresholds to look for then bits 0/1/2 may be set for this blob.
+   Note that only one bit will be set for each blob unless ``image.find_blobs``
+   was called with ``merge=True``. Then its possible for multiple blobs with
+   different color thresholds to be merged together. You can use this method
+   along with multiple thresholds to implement color code tracking.
+
+   You may also get this value doing ``[8]`` on the object.
+
+.. method:: blob.count()
+
+   Returns the number of blobs merged into this blob. THis is 1 unless you
+   called ``image.find_blobs`` with ``merge=True``.
+
+   You may also get this value doing ``[9]`` on the object.
+
+.. method:: blob.area()
+
+   Returns the area of the bounding box around the blob. (w * h).
+
+.. method:: blob.density()
+
+   Returns the density ratio of the blob. This is the number of pixels in the
+   blob over its bounding box area. A low density ratio means in general that
+   the lock on the object isn't very good.
+
+class QRCode -- QRCode object
+=============================
+
+The qrcode object is returned by ``image.find_qrcodes``.
+
+.. method:: qrcode.rect()
+
+   Returns a rectangle tuple (x, y, w, h) for use with other ``image`` methods
+   like ``image.draw_rectangle`` of the qrcode's bounding box.
+
+.. method:: qrcode.x()
+
+   Returns the qrcode's bounding box x coordinate (int).
+
+   You may also get this value doing ``[0]`` on the object.
+
+.. method:: qrcode.y()
+
+   Returns the qrcode's bounding box y coordinate (int).
+
+   You may also get this value doing ``[1]`` on the object.
+
+.. method:: qrcode.w()
+
+   Returns the qrcode's bounding box w coordinate (int).
+
+   You may also get this value doing ``[2]`` on the object.
+
+.. method:: qrcode.h()
+
+   Returns the qrcode's bounding box h coordinate (int).
+
+   You may also get this value doing ``[3]`` on the object.
+
+.. method:: qrcode.payload()
+
+   Returns the payload string of the qrcode.
+
+   You may also get this value doing ``[4]`` on the object.
+
+.. method:: qrcode.version()
+
+   Returns the version number of the qrcode (int).
+
+   You may also get this value doing ``[5]`` on the object.
+
+.. method:: qrcode.ecc_level()
+
+   Returns the ecc_level of the qrcode (int).
+
+   You may also get this value doing ``[6]`` on the object.
+
+.. method:: qrcode.mask()
+
+   Returns the mask of the qrcode (int).
+
+   You may also get this value doing ``[7]`` on the object.
+
+.. method:: qrcode.data_type()
+
+   Returns the data type of the qrcode (int).
+
+   You may also get this value doing ``[8]`` on the object.
+
+.. method:: qrcode.eci()
+
+   Returns the eci of the qrcode (int). The eci stores the encoding of data
+   bytes in the QR Code. If you plan to handling QR Codes that contain more
+   than just standard ASCII text you will need to look at this value.
+
+   You may also get this value doing ``[9]`` on the object.
+
+.. method:: qrcode.is_numeric()
+
+   Returns True if the data_type of the qrcode is numeric.
+
+.. method:: qrcode.is_alphanumeric()
+
+   Returns True if the data_type of the qrcode is alpha numeric.
+
+.. method:: qrcode.is_binary()
+
+   Returns True if the data_type of the qrcode is binary. If you are serious
+   about handling all types of text you need to check the eci if this is True
+   to determine the text encoding of the data. Usually, it's just standard
+   ASCII, but, it could be UTF8 that has some 2-byte characters in it.
+
+.. method:: qrcode.is_kanji()
+
+   Returns True if the data_type of the qrcode is alpha Kanji. If this is True
+   then you'll need to decode the string yourself as Kanji symbols are 10-bits
+   per character and MicroPython has no support to parse this kind of text. The
+   payload in this case must be treated as just a large byte array.
 
 class Image -- Image object
 ===========================
@@ -134,24 +656,44 @@ The image object is the basic object for machine vision operations.
 Constructors
 ------------
 
-.. class:: image.Image(path)
+.. class:: image.Image(path, copy_to_fb=False)
 
    Creates a new image object from a file at ``path``.
 
    Supports bmp/pgm/ppm/jpg/jpeg image files.
 
-   .. note:: This constructor is supposed to be used for loading image to do
-             template matching. Due to memory constraints you should only load
-             images that are small in size. For example, under 80x60.
+   ``copy_to_fb`` if True the image is loaded directly into the frame buffer
+   allowing you to load up large images. If False, the image is loaded into
+   MicroPython's heap which is much smaller than the frame buffer.
+
+      *
+        On the OpenMV Cam M4 you should try to keep images sizes less than
+        8KB in size if ``copy_to_fb`` is False. Otherwise, images can be
+        up to 160KB in size.
+
+      *
+        On the OpenMV Cam M7 you should try to keep images sizes less than
+        16KB in size if ``copy_to_fb`` is False. Otherwise, images can be
+        up to 320KB in size.
 
    Images support "[]" notation. Do ``image[index] = 8/16-bit value`` to assign
-   an image pixel or ``image[index]`` to get an image pixel which will be either
-   an 8-bit value for grayscale images of a 16-bit RGB565 value for RGB images.
+   an image pixel or ``image[index]`` to get an image pixel which will be
+   either an 8-bit value for grayscale images of a 16-bit RGB565 value for RGB
+   images.
 
-   For JPEG images the "[]" allows you to access the compressed JPEG image blob as a byte-array.
+   For JPEG images the "[]" allows you to access the compressed JPEG image blob
+   as a byte-array. Reading and writing to the data array is opaque however as
+   JPEG images are compressed byte streams.
 
    Images also support read buffer operations. You can pass images to all sorts
-   of MicroPython functions like as if the image were a byte-array object.
+   of MicroPython functions like as if the image were a byte-array object. In
+   particular, if you'd like to transmit an image you can just pass it to the
+   UART/SPI/I2C write functions to be transmitted automatically.
+
+   .. note::
+
+      ``copy_to_fb`` is a keyword argument which must be explicitly invoked in
+      the function call by writing ``copy_to_fb=``.
 
 Methods
 -------
@@ -160,54 +702,50 @@ Methods
 
    Creates a copy of the image object.
 
-   ``roi`` is the region-of-interest rectangle (x, y, w, h). If not specified,
-   it is equal to the image rectangle.
+   ``roi`` is the region-of-interest rectangle (x, y, w, h) to copy from.
+   If not specified, it is equal to the image rectangle which copies the entire
+   image. This argument is not applicable for JPEG images.
 
-   roi is not applicable when copying jpeg images.
+   Keep in mind that image copies are stored in the MicroPython heap and not
+   the frame buffer. As such, you need to keep image copies under 8KB for the
+   OpenMV Cam M4 and 16KB for the OpenMV Cam M7. If you attempt a copy
+   operation that uses up all the heap space this function will throw an
+   exception. Since images are large this is rather easy to trigger.
 
-   .. note:: You will run out of memory trying to make copies of images unless
-             you keep the copy image sizes tiny. For example, under 80x60.
+   .. note::
+
+      ``roi`` is a keyword argument which must be explicitly invoked in
+      the function call by writing ``roi=``.
 
 .. method:: image.save(path, roi=Auto, quality=50)
 
    Saves a copy of the image to the filesystem at ``path``.
 
-   Supports bmp/pgm/ppm/jpg/jpeg image files.
+   Supports bmp/pgm/ppm/jpg/jpeg image files. Note that you cannot save jpeg
+   compressed images to an uncompressed format.
 
-   ``roi`` is the region-of-interest rectangle (x, y, w, h). If not specified,
-   it is equal to the image rectangle.
-
-   roi is not applicable when saving jpeg images.
+   ``roi`` is the region-of-interest rectangle (x, y, w, h) to copy from.
+   If not specified, it is equal to the image rectangle which copies the entire
+   image. This argument is not applicable for JPEG images.
 
    ``quality`` is the jpeg compression quality to use to save the image to jpeg
    format if the image is not already compressed.
 
-   .. note:: You cannot save jpeg compressed image to an uncompressed format.
+   .. note::
 
-.. method:: image.compress(quality=50)
-
-   JPEG compresses a non-compressed image in place.
-
-   ``quality`` is the compression quality (0-100). Note that adjusting this value
-   does not improve quality by much since we're already employing a few quality
-   reduction tricks to make JPEG compression faster. On future OpenMV Cam's you'll
-   be able to control the image quality more easily.
-
-   .. note:: You should use this function to compress images before hand that
-             you want to save to disk or add to an mjpeg. If the image object
-             points to the frame buffer then this function can use the additional
-             frame buffer space to compress the image at a higher quality. Finally,
-             after the frame buffer is compressed it does not have to be compressed
-             again to be streamed to the IDE (speeding things up).
+      ``roi`` and ``quality`` are keyword arguments which must be explicitly
+      invoked in the function call by writing ``roi=`` or ``quality=``.
 
 .. method:: image.compressed(quality=50)
 
    Returns a JPEG compressed image - the original image is untouched.
 
-   ``quality`` is the compression quality (0-100). Note that adjusting this value
-   does not improve quality by much since we're already employing a few quality
-   reduction tricks to make JPEG compression faster. On future OpenMV Cam's you'll
-   be able to control the image quality more easily.
+   ``quality`` is the compression quality (0-100) (int).
+
+   .. note::
+
+      ``quality`` is a keyword argument which must be explicitly
+      invoked in the function call by writing ``quality=``.
 
 .. method:: image.width()
 
@@ -226,82 +764,117 @@ Methods
 
    Returns the image size in bytes.
 
+.. method:: image.clear()
+
+   Zeros all bytes in GRAYSCALE or RGB565 images. Do not call this method on
+   JPEG images.
+
 .. method:: image.get_pixel(x, y)
 
-   For grayscale images: Returns the pixel value at location (x, y).
-   For RGB images: Returns the pixel tuple (r, g, b) at location (x, y).
+   For grayscale images: Returns the grayscale pixel value at location (x, y).
+   For RGB images: Returns the rgb888 pixel tuple (r, g, b) at location (x, y).
 
    Not supported on compressed images.
 
 .. method:: image.set_pixel(x, y, pixel)
 
-   For grayscale images: Sets the pixel at location (x, y) to the value ``pixel``.
-   For RGB images: Sets the pixel at location (x, y) to the tuple (r, g, b) ``pixel``.
+   For grayscale images: Sets the pixel at location (x, y) to the grayscale
+   value ``pixel``.
+   For RGB images: Sets the pixel at location (x, y) to the rgb888 tuple
+   (r, g, b) ``pixel``.
 
    Not supported on compressed images.
 
-.. method:: image.draw_line((x0, y0, x1, y1), color=White)
+.. method:: image.draw_line(line_tuple, color=White)
 
-   Draws a line from (x0, y0) to (x1, y1).
+   Draws a line using the ``line_tuple`` (x0, y0, x1, y1) from (x0, y0) to
+   (x1, y1) on the image.
 
-   ``color`` is a value (0-255) for grayscale images and a RGB888 tuple
-   (r, g, b) for RGB images.
+   ``color`` is an int value (0-255) for grayscale images and a RGB888 tuple
+   (r, g, b) for RGB images. Defaults to white.
+
+   Not supported on compressed images.
+
+   .. note::
+
+      ``color`` is a keyword argument which must be explicitly
+      invoked in the function call by writing ``color=``.
+
+.. method:: image.draw_rectangle(rect_tuple, color=White)
+
+   Draws an unfilled rectangle using the ``rect_tuple`` (x, y, w, h) on the
+   image.
+
+   ``color`` is an int value (0-255) for grayscale images and a RGB888 tuple
+   (r, g, b) for RGB images. Defaults to white.
 
    Not supported on compressed images.
 
-.. method:: image.draw_rectangle((x, y, w, h), color=White)
+   .. note::
 
-   Draws an unfilled rectangle from (x, y) to (x+w, y+h).
-
-   ``color`` is a value (0-255) for grayscale images and a RGB888 tuple
-   (r, g, b) for RGB images.
-
-   Not supported on compressed images.
+      ``color`` is a keyword argument which must be explicitly
+      invoked in the function call by writing ``color=``.
 
 .. method:: image.draw_circle(x, y, radius, color=White)
 
-   Draws an unfilled circle at (x, y) with integer radius ``radius``.
+   Draws an unfilled circle at (``x``, ``y``) with integer ``radius`` on the
+   image.
 
-   ``color`` is a value (0-255) for grayscale images and a RGB888 tuple
-   (r, g, b) for RGB images.
+   ``color`` is an int value (0-255) for grayscale images and a RGB888 tuple
+   (r, g, b) for RGB images. Defaults to white.
 
    Not supported on compressed images.
+
+   .. note::
+
+      ``color`` is a keyword argument which must be explicitly
+      invoked in the function call by writing ``color=``.
 
 .. method:: image.draw_string(x, y, text, color=White)
 
-   Draws 8x10 text starting at (x, y) using text ``text``.
-
+   Draws 8x10 text starting at (``x``, ``y``) using ``text`` on the image.
    ``\n``, ``\r``, and ``\r\n`` line endings move the cursor to the next line.
 
-   ``color`` is a value (0-255) for grayscale images and a RGB888 tuple
-   (r, g, b) for RGB images.
+   ``color`` is an int value (0-255) for grayscale images and a RGB888 tuple
+   (r, g, b) for RGB images. Defaults to white.
 
    Not supported on compressed images.
+
+   .. note::
+
+      ``color`` is a keyword argument which must be explicitly
+      invoked in the function call by writing ``color=``.
 
 .. method:: image.draw_cross(x, y, size=5, color=White)
 
-   Draws a cross at (x, y) whose sides are ``size`` long.
+   Draws a cross at (``x``, ``y``) whose sides are ``size`` (int) long on the
+   image.
 
-   ``color`` is a value (0-255) for grayscale images and a RGB888 tuple
-   (r, g, b) for RGB images.
+   ``color`` is an int value (0-255) for grayscale images and a RGB888 tuple
+   (r, g, b) for RGB images. Defaults to white.
+
+   Not supported on compressed images.
+
+   .. note::
+
+      ``size`` and ``color`` are keyword arguments which must be explicitly
+      invoked in the function call by writing ``size=`` or ``color=``.
+
+.. method:: image.draw_keypoints(keypoints, size=Auto, color=White)
+
+   Draws the keypoints of a keypoints object on the image. ``size`` controls
+   the size of the keypoints and is scaled to look good on the image unless
+   overridden.
+
+   ``color`` is an int value (0-255) for grayscale images and a RGB888 tuple
+   (r, g, b) for RGB images. Defaults to white.
 
    Not supported on compressed images.
 
-.. method:: image.draw_keypoints(keypoints, size=10, color=White)
+   .. note::
 
-   If ``keypoints`` is a keypoints object then this method draws a number of
-   circles with diameter ``size`` for each keypoint in ``keypoints``.
-
-   If ``keypoints`` a list of tuples [(x, y, angle), (x, y, angle), ...] then
-   this method draws a number of circles with diameter ``size`` and angle lines
-   with length ``size`` for each tuple in the list of tuples ``keypoints``.
-
-   Angle is a floating point number in radians.
-
-   ``color`` is a value (0-255) for grayscale images and a RGB888 tuple
-   (r, g, b) for RGB images.
-
-   Not supported on compressed images.
+      ``size`` and ``color`` are keyword arguments which must be explicitly
+      invoked in the function call by writing ``size=`` or ``color=``.
 
 .. method:: image.binary(thresholds, invert=False)
 
@@ -309,9 +882,10 @@ Methods
    pixel thresholds to segment the image by. Segmentation converts all pixels
    within the thresholds to 1 (white) and all pixels outside to 0 (black).
 
-   For RGB images ``thresholds`` is a list of (l_lo, l_hi, a_lo, a_hi, b_lo, b_hi)
-   LAB pixel thresholds to segment the image by. Segmentation converts all pixels
-   within the thresholds to 1 (white) and all pixels outside to 0 (black).
+   For RGB images ``thresholds`` is a list of (l_lo, l_hi, a_lo, a_hi, b_lo,
+   b_hi) LAB pixel thresholds to segment the image by. Segmentation converts
+   all pixels within the thresholds to 1 (white) and all pixels outside to 0
+   (black).
 
    Lo/Hi thresholds being swapped is automatically handled.
 
@@ -319,29 +893,17 @@ Methods
 
    Not supported on compressed images.
 
+   .. note::
+
+      ``invert`` is a keyword argument which must be explicitly
+      invoked in the function call by writing ``invert=``.
+
 .. method:: image.invert()
 
    Inverts the binary image 0 (black) pixels go to 1 (white) and 1 (white)
    pixels go to 0 (black).
 
    Not supported on compressed images.
-
-.. method:: image.and(image)
-
-   Logically ANDs this image with another image.
-
-   ``image`` can either be an image object or a path to an uncompressed image
-   file (bmp/pgm/ppm).
-
-   Both images must be the same size and the same type (grayscale/rgb).
-
-   Not supported on compressed images.
-
-   .. note:: You can use this function to mask out parts of an image you don't
-             want processed for things like frame differencing. For example,
-             you can create a mask image on your computer, save it as a BMP
-             file, and then use that file with this method. You'd set all areas
-             you'd like to mask to black and all unmasked areas to white.
 
 .. method:: image.nand(image)
 
@@ -353,23 +915,6 @@ Methods
    Both images must be the same size and the same type (grayscale/rgb).
 
    Not supported on compressed images.
-
-.. method:: image.or(image)
-
-   Logically ORs this image with another image.
-
-   ``image`` can either be an image object or a path to an uncompressed image
-   file (bmp/pgm/ppm).
-
-   Both images must be the same size and the same type (grayscale/rgb).
-
-   Not supported on compressed images.
-
-   .. note:: You can use this function to mask out parts of an image you don't
-             want processed for things like frame differencing. For example,
-             you can create a mask image on your computer, save it as a BMP
-             file, and then use that file with this method. You'd set all areas
-             you'd like to mask to white and all unmasked areas to black.
 
 .. method:: image.nor(image)
 
@@ -410,31 +955,40 @@ Methods
 
    This method works by convolving a kernel of ((size*2)+1)x((size*2)+1) pixels
    across the image and zeroing the center pixel of the kernel if the sum of
-   the neighbor pixels set is not greater than ``threshold``.
+   the neighbour pixels set is not greater than ``threshold``.
 
    This method works like the standard erode method if threshold is not set. If
    ``threshold`` is set then you can specify erode to only erode pixels that
    have, for example, less than 2 pixels set around them with a threshold of 2.
 
-   Not supported on compressed images.
+   Not supported on compressed images. This method is designed to work on
+   binary images.
 
-   .. note:: This method is designed to work on binary images.
+   .. note::
+
+      ``threshold`` is a keyword argument which must be explicitly
+      invoked in the function call by writing ``threshold=``.
 
 .. method:: image.dilate(size, threshold=Auto)
 
-   Adds pixels from the edges of segmented areas.
+   Adds pixels to the edges of segmented areas.
 
    This method works by convolving a kernel of ((size*2)+1)x((size*2)+1) pixels
    across the image and setting the center pixel of the kernel if the sum of
-   the neighbor pixels set is greater than ``threshold``.
+   the neighbour pixels set is greater than ``threshold``.
 
-   This method works like the standard dilate method if threshold is not set. If
-   ``threshold`` is set then you can specify dilate to only dilate pixels that
-   have, for example, more than 2 pixels set around them with a threshold of 2.
+   This method works like the standard dilate method if threshold is not set.
+   If ``threshold`` is set then you can specify dilate to only dilate pixels
+   that have, for example, more than 2 pixels set around them with a threshold
+   of 2.
 
-   Not supported on compressed images.
+   Not supported on compressed images. This method is designed to work on
+   binary images.
 
-   .. note:: This method is designed to work on binary images.
+   .. note::
+
+      ``threshold`` is a keyword argument which must be explicitly
+      invoked in the function call by writing ``threshold=``.
 
 .. method:: image.negate()
 
@@ -454,9 +1008,9 @@ Methods
 
    Not supported on compressed images.
 
-   .. note:: This function is used for frame differencing which you can then use
-             to do motion detection. You can then mask the resulting image using
-             AND/OR before running statistics functions on the image.
+   .. note:: This function is used for frame differencing which you can then
+             use to do motion detection. You can then mask the resulting image
+             using NAND/NOR before running statistics functions on the image.
 
 .. method:: image.replace(image)
 
@@ -482,6 +1036,11 @@ Methods
 
    Not supported on compressed images.
 
+   .. note::
+
+      ``alpha`` is a keyword argument which must be explicitly
+      invoked in the function call by writing ``alpha=``.
+
 .. method:: image.morph(size, kernel, mul=Auto, add=0)
 
    Convolves the image by a filter kernel.
@@ -497,65 +1056,13 @@ Methods
 
    ``add`` is a value to add to each convolution pixel result.
 
-   .. note:: ``mul`` basically allows you to do a global contrast adjustment and
-             ``add`` allows you to do a global brightness adjustment.
+   ``mul`` basically allows you to do a global contrast adjustment and ``add``
+   allows you to do a global brightness adjustment.
 
-.. method:: image.statistics(roi=Auto)
+   .. note::
 
-   Computes basic color channel statistics for the image and returns a tuple
-   containing the stats:
-
-   ``roi`` is the region-of-interest rectangle (x, y, w, h). If not specified,
-   it is equal to the image rectangle.
-
-   For grayscale images:
-
-     - [0]: Grayscale Mean
-     - [1]: Grayscale Median (50% value)
-     - [2]: Grayscale Mode
-     - [3]: Grayscale Standard Deviation
-     - [4]: Grayscale Minimum
-     - [5]: Grayscale Maximum
-     - [6]: Grayscale Lower Quartile (25% value)
-     - [7]: Grayscale Upper Quartile (75% value)
-
-   For rgb images:
-
-     - [0]: L Mean
-     - [1]: L Median (50% value)
-     - [2]: L Mode
-     - [3]: L Standard Deviation
-     - [4]: L Minimum
-     - [5]: L Maximum
-     - [6]: L Lower Quartile (25% value)
-     - [7]: L Upper Quartile (75% value)
-     - [8]: A Mean
-     - [9]: A Median (50% value)
-     - [10]: A Mode
-     - [11]: A Standard Deviation
-     - [12]: A Minimum
-     - [13]: A Maximum
-     - [14]: A Lower Quartile (25% value)
-     - [15]: A Upper Quartile (75% value)
-     - [16]: B Mean
-     - [17]: B Median (50% value)
-     - [18]: B Mode
-     - [19]: B Standard Deviation
-     - [20]: B Minimum
-     - [21]: B Maximum
-     - [22]: B Lower Quartile (25% value)
-     - [23]: B Upper Quartile (75% value)
-
-   In the future we'll make this method return an object instead of a tuple...
-
-   Not supported on compressed images.
-
-   .. note:: This method is your basic work horse for quickly determining what's
-             going on in the image. For example, if you need to determine motion
-             after frame differencing you can use this method to see if the pixels
-             in the image aren't close to zero (which they should be for no motion).
-             You can also use this method for automatically updating binary/find_blobs
-             threshold settings.
+      ``mul`` and ``add`` are keyword arguments which must be explicitly
+      invoked in the function call by writing ``mul=`` or ``add=``.
 
 .. method:: image.midpoint(size, bias=0.5)
 
@@ -564,11 +1071,14 @@ Methods
    ``size`` is the kernel size. Use 1 (3x3 kernel), 2 (5x5 kernel), or higher.
 
    ``bias`` controls the min/max mixing. 0 for min filtering only, 1.0 for max
-   filtering only.
+   filtering only. By using the ``bias`` you can min/max filter the image.
 
    Not supported on compressed images.
 
-   .. note:: By using the ``bias`` you can min/max filter the image.
+   .. note::
+
+      ``bias`` is a keyword argument which must be explicitly
+      invoked in the function call by writing ``bias=``.
 
 .. method:: image.mean(size)
 
@@ -580,26 +1090,38 @@ Methods
 
 .. method:: median(size, percentile=0.5)
 
-   Runs the median filter on the image. The median filter is the best filter for
-   smoothing surfaces while preserving edges... but, it's slow...
+   Runs the median filter on the image. The median filter is the best filter
+   for smoothing surfaces while preserving edges but it is very slow.
 
    ``size`` is the kernel size. Use 1 (3x3 kernel) or 2 (5x5 kernel).
 
-   ``percentile`` control the percentile of the value used in the kernel. By
+   ``percentile`` controls the percentile of the value used in the kernel. By
    default each pixel is replace with the 50th percentile (center) of it's
-   neighbors. You can set this to 0 for a min filter, 0.25 for a lower quartile
+   neighbours. You can set this to 0 for a min filter, 0.25 for a lower quartile
    filter, 0.75 for an upper quartile filter, and 1.0 for a max filter.
 
    Not supported on compressed images.
 
+   .. note::
+
+      ``percentile`` is a keyword argument which must be explicitly
+      invoked in the function call by writing ``percentile=``.
+
 .. method:: image.mode(size)
 
    Runs the mode filter on the image by replacing each pixel with the mode of
-   their neighbors. This method works great on grayscale images. However, on
+   their neighbours. This method works great on grayscale images. However, on
    RGB images it creates a lot of artifacts on edges because of the non-linear
    nature of the operation.
 
    ``size`` is the kernel size. Use 1 (3x3 kernel) or 2 (5x5 kernel).
+
+   Not supported on compressed images.
+
+.. method:: image.gaussian(size)
+
+   Smooths the image with the gaussian kernel. ``size`` may be either 3 or 5
+   for a 3x3 or 5x5 kernel.
 
    Not supported on compressed images.
 
@@ -610,176 +1132,398 @@ Methods
 
    Not supported on compressed images.
 
-.. method:: image.find_blobs(thresholds, invert=False, roi=Auto, feature_filter=Auto)
+.. method:: image.lens_corr(size)
 
-   Finds all "blobs" (connected pixel regions that pass a threshold test) in the
-   image and returns a list of them along with basic features about each one.
+   Performs lens correction to un-fisheye the image due to the lens.
 
-   Each blob returned is a tuple with the following fields:
+   ``size`` is a float defining how much to un-fisheye the image. Try 1.5 out
+   by default and then increase or decrease from there until the image looks
+   good.
 
-     - [0]: x position of bounding rectangle
-     - [1]: y position of bounding rectangle
-     - [2]: width of bounding rectangle
-     - [3]: height of bounding rectangle
-     - [4]: number of pixels that passed the threshold test in the blob
-     - [5]: x position center of mass
-     - [6]: y position center of mass
-     - [7]: angle of rotation in radians (is float - others are ints)
-     - [8]: count of blobs that make of this blob (see ``find_markers()``)
-     - [9]: 1 << (index of threshold tuple used to find this blob) - this is the color code which lets you know what threshold tuple produced this blob.
+   Only supported on grayscale images.
 
-   This method returns a list of the above tuples. If no blobs are found the
-   returned list is empty.
+.. method:: image.get_histogram(roi=Auto, bin_count=Auto, l_bin_count=Auto, a_bin_count=Auto, b_bin_count=Auto)
 
-   For grayscale images ``thresholds`` is a list of (lower, upper) grayscale
-   pixel thresholds to threshold the image by.
+   Computes the normalized histogram on all color channels for an ``roi`` and
+   returns a ``histogram`` object. Please see the ``histogram`` object for more
+   information. You can also invoke this method by using ``image.get_hist`` or
+   ``image.histogram``.
 
-   For RGB images ``thresholds`` is a list of (l_lo, l_hi, a_lo, a_hi, b_lo, b_hi)
-   LAB pixel thresholds to threshold the image by.
+   Unless you need to do something advanced with color statistics just use the
+   ``image.get_statistics`` method instead of this method for looking at pixel
+   areas in an image.
 
-   Lo/Hi thresholds being swapped is automatically handled.
+   ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+   specified, it is equal to the image rectangle. Only pixels within the
+   ``roi`` are operated on.
 
-   ``invert`` inverts the threshold boundaries.
-
-   ``roi`` is the region-of-interest rectangle (x, y, w, h). If not specified,
-   it is equal to the image rectangle.
-
-   ``feature_filter`` is a python function which is passed the image object and
-   the blob object and should return True (to keep the blob) or False (to throw
-   away the blob). If no ``feature_filter`` is specified this method will
-   automatically filter out blobs less than 1/1000th of the image pixels.
+   ``bin_count`` and others are the number of bins to use for the histogram
+   channels. For grayscale images use ``bin_count`` and for RGB565 images use
+   the others for each channel. The bin counts must be greater than 2 for each
+   channel. Additionally, it makes no sense to set the bin count larger than
+   the number of unique pixel values for each channel.
 
    Not supported on compressed images.
 
-   .. note:: Yes, you can call image methods on the image object passed to
-             the ``feature_filter`` function. However, your OpenMV Cam does not
-             have an infinite amount of memory so don't abuse the feature...
+   .. note::
 
-.. method:: image.find_markers(blobs, margin=2, feature_filter=Auto)
+      ``roi``, ``bin_count``, and etc. are keyword arguments which must be
+      explicitly invoked in the function call by writing ``roi=``, etc.
 
-   After using ``find_blobs`` to find all blobs in an image you can use this
-   method to merge blobs that overlap by ``margin`` pixels. This method then
-   returns the new list of merged blobs.
+.. method:: image.get_statistics(roi=Auto, bin_count=Auto, l_bin_count=Auto, a_bin_count=Auto, b_bin_count=Auto)
 
-   Merged blob tuples have the following fields:
+   Computes the mean, median, mode, standard deviation, min, max, lower
+   quartile, and upper quartile for all color channels for an ``roi`` and
+   returns a ``statistics`` object. Please see the ``statistics`` object for
+   more information. You can also invoke this method by using
+   ``image.get_stats`` or ``image.statistics``.
 
-     - [0]: x position of bounding rectangle (surrounds merged blobs)
-     - [1]: y position of bounding rectangle (surrounds merged blobs)
-     - [2]: width of bounding rectangle (surrounds merged blobs)
-     - [3]: height of bounding rectangle (surrounds merged blobs)
-     - [4]: number of pixels that passed the threshold test for all blobs merged
-     - [5]: x position center of mass of merged blobs
-     - [6]: y position center of mass of merged blobs
-     - [7]: angle of rotation in radians of merged blobs (is float - others are ints)
-     - [8]: count of blobs that make of this blob
-     - [9]: logical OR of all the color codes of merged blobs
+   You'll want to use this method any time you need to get information about
+   the values of an area of pixels in an image. For example, after if you're
+   trying to detect motion using frame differencing you'll want to use this
+   method to determine a change in the color channels of the image to trigger
+   your motion detection threshold.
 
-   This method is called find_markers because it can find color markers in the
-   image which are objects painted with two slightly interlocked colors.
+   ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+   specified, it is equal to the image rectangle. Only pixels within the
+   ``roi`` are operated on.
 
-   ``margin`` specifies how many pixels to grow the blob rectangles by before
-   the intersection test between two blobs to check if they overlap.
-
-   ``feature_filter`` is a python function which is passed the image object and
-   the merged blob object and should return True (to keep the blob) or False (to
-   throw away the blob). If no ``feature_filter`` is specified this method will
-   not filter out any blobs.
+   ``bin_count`` and others are the number of bins to use for the histogram
+   channels. For grayscale images use ``bin_count`` and for RGB565 images use
+   the others for each channel. The bin counts must be greater than 2 for each
+   channel. Additionally, it makes no sense to set the bin count larger than
+   the number of unique pixel values for each channel.
 
    Not supported on compressed images.
 
-   .. note:: Yes, you can call image methods on the image object passed to
-             the ``feature_filter`` function. However, your OpenMV Cam does not
-             have an infinite amount of memory so don't abuse the feature...
+   .. note::
 
-.. method:: image.find_features(cascade, threshold=0.5, scale=1.5)
+      ``roi``, ``bin_count``, and etc. are keyword arguments which must be
+      explicitly invoked in the function call by writing ``roi=``, etc.
+
+.. method:: image.find_blobs(thresholds, roi=Auto, x_stride=2, y_stride=1, invert=False, area_threshold=10, pixels_threshold=10, merge=False, margin=0)
+
+   Finds all blobs (connected pixel regions that pass a threshold test) in the
+   image and returns a list of ``blob`` objects which describe each blob.
+   Please see the ``blob`` object more more information.
+
+   ``thresholds`` must be a list of tuples
+   ``[(lo, hi), (lo, hi), ..., (lo, hi)]`` defining the ranges of color you
+   want to track. You may pass up to 16 threshold tuples in one
+   ``image.find_blobs`` call. For grayscale images each tuple needs to contain
+   two values - a min grayscale value and a max grayscale value. Only pixel
+   regions that fall between these thresholds will be considered. For RGB565
+   images each tuple needs to have six values (l_lo, l_hi, a_lo, a_hi, b_lo,
+   b_hi) - which are minimums and maximums for the LAB L, A, and B channels
+   respectively. To easy usage this function will automatically fix swapped
+   min and max values. Additionally, a tuple is larger than six values the
+   rest are ignored. Conversely, if the tuple is too short the rest of the
+   thresholds are assumed to be zero.
+
+   .. note::
+
+      To get the thresholds for the object you want to track just select (click
+      and drag) on the object you want to track. The histogram will then update
+      to just be in that area. Then just write down where the color
+      distribution starts and falls off in each histogram channel. These will
+      be your low and high values for ``thresholds``. It's best to manually
+      determine the thresholds versus using the upper and lower quartile
+      statistics because they are too tight.
+
+   ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+   specified, it is equal to the image rectangle. Only pixels within the
+   ``roi`` are operated on.
+
+   ``x_stride`` is the number of pixels to skip when searching for
+
+   ``invert`` inverts the thresholding operation such that instead of matching
+   pixels inside of some known color bounds pixels are matched that are outside
+   of the known color bounds.
+
+   If a blob's bounding box area is less than ``area_threshold`` it is filtered
+   out.
+
+   If a blob's pixel count is less than ``pixel_threshold`` it is filtered out.
+
+   ``merge`` if True merges all not filtered out blobs who's bounding
+   rectangles intersect each other. ``margin`` can be used to increase or
+   decrease the size of the bounding rectangles for blobs during the
+   intersection test. For example, with a margin of 1 blobs who's bounding
+   rectangles are 1 pixel away from each other will be merged.
+
+   Merging blobs allows you to implement color code tracking. Each blob object
+   has a ``code`` value which is a bit vector made up of 1s for each color
+   threshold. For example, if you pass ``image.find_blobs`` two color
+   thresholds then the first threshold has a code of 1 and the second 2 (a
+   third threshold would be 4 and a fourth would be 8 and so on). Merged blobs
+   logically OR all their codes together so that you know what colors produced
+   them. This allows you to then track two colors if you get a blob object
+   back with two colors then you know it might be a color code.
+
+   You might also want to merge blobs if you are using tight color bounds which
+   do not fully track all the pixels of an object you are trying to follow.
+
+   Finally, if you want to merge blobs, but, don't want two color thresholds to
+   be merged then just call ``image.finc_blobs`` twice with separate thresholds
+   so that blobs aren't merged.
+
+   Not supported on compressed images.
+
+   .. note::
+
+      All the arguments except ``thresholds`` are keyword arguments and must
+      be explicitly invoked with their name and an equal sign.
+
+.. method:: image.find_qrcodes(roi=Auto)
+
+   Finds all qrcodes within the ``roi`` and returns a list of ``qrcode``
+   objects. Please see the ``qrcode`` object for more information.
+
+   QR Codes need to be relatively flat in the image for this method to work.
+   You can achieve a flatter image that is not effected by lens distortion by
+   either using the ``sensor.set_windowing`` function to zoom in the on the
+   center of the lens, ``image.lens_corr`` to undo lens barrel distortion, or
+   by just changing out the lens for something with a narrower fields of view.
+   There are machine vision lenses available which do not cause barrel
+   distortion but they are much more expensive to than the standard lenses
+   supplied by OpenMV so we don't stock them (since they wouldn't sell).
+
+   ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+   specified, it is equal to the image rectangle. Only pixels within the
+   ``roi`` are operated on.
+
+   Not supported on compressed images.
+
+   .. note::
+
+      ``roi`` is a keyword argument which must be explicitly invoked in the
+      function call by writing ``roi=``.
+
+.. method:: image.midpoint_pooled(x_div, y_div, bias=0.5)
+
+   Finds the midpoint of ``x_div`` * ``y_div`` squares in the image and returns
+   a new image composed of the midpoint of each square.
+
+   A ``bias`` of 0 returns the min of each area while a ``bias`` of 1.0 returns
+   the max of each area.
+
+   This methods is useful for preparing images for phase_correlation.
+
+   Not supported on compressed images.
+
+   .. note::
+
+      ``bias`` is a keyword argument which must be explicitly
+      invoked in the function call by writing ``bias=``.
+
+.. method:: image.mean_pooled(x_div, y_div, bias=0.5)
+
+   Finds the mean of ``x_div`` * ``y_div`` squares in the image and returns
+   a new image composed of the mean of each square.
+
+   This methods is useful for preparing images for phase_correlation.
+
+   Not supported on compressed images.
+
+.. method:: image.find_template(template, threshold, roi=Auto, step=2, search=image.SEARCH_EX)
+
+   Tries to find the first location in the image where template matches using
+   Normalized Cross Correlation. Returns a bounding box tuple (x, y, w, h) for
+   the matching location otherwise None.
+
+   ``template`` is a small image object that is matched against this image
+   object. Note that both images must be grayscale.
+
+   ``threshold`` is floating point number (0.0-1.0) where a higher threshold
+   prevents false positives while lowering the detection rate while a lower
+   threshold does the opposite.
+
+   ``roi`` is the region-of-interest rectangle (x, y, w, h) to search in.
+
+   ``step`` is the number of pixels to skip past while looking for the
+   template. Skipping pixels considerably speeds the algorithm up. This only
+   affects the algorithm in SERACH_EX mode.
+
+   ``search`` can be either ``image.SEARCH_DS`` or ``image.SEARCH_EX``.
+   ``image.SEARCH_DS`` searches for the template using as faster algorithm
+   than ``image.SEARCH_EX`` but may not find the template if it's near the
+   edges of the image. ``image.SEARCH_EX`` does an exhaustive search for the
+   image but can be much slower than ``image.SEARCH_DS``.
+
+   .. note::
+
+      ``roi``, ``step``, and ``search`` are keyword arguments which must be
+      explicitly invoked in the function call by writing ``roi=``, ``step=``,
+      or ``search=``.
+
+.. method:: image.find_displacement(template)
+
+   Find the translation offset of the this image from the template. This
+   method can be used to do optical flow. This method returns a tuple with
+   three values (x_offset, y_offset, response). Where ``x_offset`` is a
+   floating point value of the translation in x pixels between each image.
+   ``y_offset`` is thus the floating point y translation between images.
+   ``response`` is a floating point confidence value that ranges between
+   0.0 and 1.0. As the confidence value falls you should trust ``x_offset``
+   and ``y_offset`` less. In general, as long as the ``response`` is above
+   0.2 or so it's okay. When the ``response`` starts to fall it falls rapidly.
+
+   Note that this algorithm requires a large amount of temporary scratch memory
+   to turn and thus won't work on images larger than 32x32 pixels or so on the
+   OpenMV Cam M4. You can work on larger images with the OpenMV Cam M7. You
+   should use the pooling functions to shrink both images before calling this
+   method to get the displacement.
+
+.. method:: image.find_features(cascade, roi=Auto, threshold=0.5, scale=1.5)
 
    This method searches the image for all areas that match the passed in Haar
-   Cascade and returns a list of bounding box rectangles around those features.
-   Returns an empty list if no features are found.
+   Cascade and returns a list of bounding box rectangles tuples (x, y, w, h)
+   around those features. Returns an empty list if no features are found.
 
    ``cascade`` is a Haar Cascade object. See ``image.HaarCascade()`` for more
    details.
+
+   ``roi`` is the region-of-interest rectangle (x, y, w, h) to work in.
+   If not specified, it is equal to the image rectangle.
 
    ``threshold`` is a threshold (0.0-1.0) where a smaller value increase the
    detection rate while raising the false positive rate. Conversely, a higher
    value decreases the detection rate while lowering the false positive rate.
 
-   ``scale`` is a scale factor which changes the size of features that can be
-   detected. A scale smaller than 1.0 detects smaller objects while a scale
-   greater than 1.0 will detect larger objects.
+   ``scale`` is a float that must be greater than 1.0. A higher scale
+   factor will run faster but will have much poorer image matches. A good
+   value is between 1.35 and 1.5.
 
    Not supported on compressed images.
 
-.. method:: image.find_eye((x, y, w, h))
+   .. note::
 
-   Searches for the pupil in a region-of-interest around an eye. Returns a tuple
-   with the (x, y) location of the pupil in the image. Returns (0,0) if no pupils
-   are found.
+      ``roi``, ``threshold`` and ``scale`` are keyword arguments which must be
+      explicitly invoked in the function call by writing ``roi``,
+      ``threshold=`` or ``scale=``.
 
-   To use this function first use ``image.find_features`` with the frontalface
-   HaarCascade to find someone's face. Then use ``image.find_features`` with the
-   eye HaarCascade to find the eyes on the face. Finally, call this method on
-   each eye roi returned by ``image.find_features`` to get the pupil coordinates.
+.. method:: image.find_eye(roi)
 
-   Not supported on compressed images.
+   Searches for the pupil in a region-of-interest (x, y, w, h) tuple around an
+   eye. Returns a tuple with the (x, y) location of the pupil in the image.
+   Returns (0,0) if no pupils are found.
 
-.. method:: image.find_template(template, threshold)
+   To use this function first use ``image.find_features`` with the
+   ``frontalface`` HaarCascade to find someone's face. Then use
+   ``image.find_features`` with the ``eye`` HaarCascade to find the eyes on the
+   face. Finally, call this method on each eye roi returned by
+   ``image.find_features`` to get the pupil coordinates.
 
-   Tries to find the first location in the image where template matches using
-   Normalized Cross Correlation. Returns a bounding box tuple (x, y, w, h) for
-   the matching location.
+   Only for grayscale images.
 
-   ``template`` is a small image object that is matched against this image object.
+.. method:: image.find_lbp(roi)
 
-   ``threshold`` is floating point number (0.0-1.0) where a higher threshold prevents
-   false positives while lowering the detection rate while a lower threshold does
-   the opposite.
+   Extracts LBP (local-binary-patterns) keypoints from the region-of-interest
+   (x, y, w, h) tuple. You can then use then use the ``image.match_descriptor``
+   function to compare two sets of keypoints to get the matching distance.
 
-   .. note:: This method needs to be reworked and will change in future
-             OpenMV Cams. It's not powerful/usable right now. We ran out of
-             time to rework this method before release.
+   Only for grayscale images.
 
-   Not supported on compressed images.
+.. method:: image.find_keypoints(roi=Auto, threshold=20, scale_factor=1.5, max_keypoints=100, corner_detector=CORNER_AGAST)
 
-.. method:: image.find_lbp((x, y, w, h))
+   Extracts ORB keypoints from the region-of-interest (x, y, w, h) tuple. You
+   can then use then use the ``image.match_descriptor`` function to compare
+   two sets of keypoints to get the matching areas. Returns None if no
+   keypoints were found.
 
-   Extracts a local binary patterns descriptor from the region-of-interest
-   tuple. You can use then use the descriptor matching functions to match
-   the LBP descriptor against a known descriptor.
+   ``threshold`` is a number (between 0 - 255) which controls the number of
+   extracted corners. For the default AGAST corner detector this should be
+   around 20. FOr the FAST corner detector this should be around 60-80. The
+   lower the threshold the more extracted corners you get.
 
-   .. note:: LBP descriptors suck right now compared to FAST/FREAK descriptors.
-             We will be re-working support for them to make them much better.
+   ``scale_factor`` is a float that must be greater than 1.0. A higher scale
+   factor will run faster but will have much poorer image matches. A good
+   value is between 1.35 and 1.5.
 
-.. method:: image.find_keypoints(roi=Auto, threshold=32, normalized=False)
+   ``max_keypoints`` is the maximum number of keypoints a keypoint object may
+   hold. If keypoint objects are too big and causing out of RAM issues then
+   decrease this value.
 
-   Extracts FAST/FREAK keypoints from the region-of-interest tuple. You can use
-   then use the descriptor matching functions to match the FAST/FREAK descriptor
-   against a known descriptor.
+   ``corner_detector`` is the corner detector algorithm to use which extracts
+   keypoints from the image. It can be either ``image.FAST`` or
+   ``image.AGAST``. The FAST corner detector is faster but much less accurate.
 
-   ``roi`` is the region-of-interest rectangle (x, y, w, h). If not specified,
-   it is equal to the image rectangle.
+   Only for grayscale images.
 
-   ``threshold`` is a number between (unbounded) which control how many keypoints
-   to extract. A larger threshold results in more keypoints being extracted from
-   the region-of-interest. More keypoints == more memory == you run out of RAM.
+   .. note::
 
-   ``normalized`` if True makes the keypoints not rotation invariant.
+      ``roi``, ``threshold``, ``scale_factor``, ``max_keypoints``, and
+      ``corner_detector`` are keyword argument which must be explicitly
+      invoked in the function call by writing ``roi=``, ``threshold=``, etc.
 
-   .. note:: This method also needs some more re-working. It's usable right now...
-             but, can sometimes use up all the RAM out of nowhere causing the script
-             to crash if the scene becomes too complex (lots of edges)... Of course,
-             this method is still cool because it can learn descriptors for generic
-             objects on the fly.
+.. method:: image.find_lines(roi=Auto, threshold=50)
 
-   Not supported on compressed images.
+   For grayscale images only. Finds the lines in a edge detected image using
+   the Hough Transform. Returns a list of line tuples (x0, y0, x1, y1).
+
+   ``roi`` is the region-of-interest rectangle (x, y, w, h) to work in.
+   If not specified, it is equal to the image rectangle.
+
+   ``threshold`` may be between 0-255. The lower the threshold the more lines
+   are pulled out of the image.
+
+   Only for grayscale images.
+
+   .. note::
+
+      ``roi`` and ``threshold`` are keyword argument which must be explicitly
+      invoked in the function call by writing ``roi=`` and ``threshold=``.
+
+.. method:: image.find_edges(edge_type, threshold=[100,200])
+
+   For grayscale images only. Does edge detection on the image and replaces the
+   image with an image that only has edges. ``edge_type`` can either be:
+
+      * image.EDGE_SIMPLE - Simple thresholded high pass filter algorithm.
+      * image.EDGE_CANNY - Canny edge detection algorithm.
+
+   ``threshold`` is a two valued tuple containing a low threshold and high
+   threshold. You can control the quality of edges by adjusting these values.
+
+   Only for grayscale images.
+
+   .. note::
+
+      ``threshold`` is keyword argument which must be explicitly invoked in the
+      function call by writing ``threshold=``.
 
 Constants
 ---------
 
 .. data:: image.LBP
 
-   Switch for descriptor function to use LBP code.
+   Switch for descriptor functions for LBP.
 
-.. data:: image.FREAK
+.. data:: image.ORB
 
-   Switch for descriptor function to use FREAK code.
+   Switch for descriptor functions for ORB.
+
+.. data:: image.SEARCH_EX
+
+   Exhaustive template matching search.
+
+.. data:: image.SEARCH_DS
+
+   Faster template matching search.
+
+.. data:: image.EDGE_CANNY
+
+   Use the canny edge detection algorithm for doing edge detection on an image.
+
+.. data:: image.EDGE_SIMPLE
+
+   Use a simple thresholded high pass filter algorithm for doing edge detection
+   on an image.
+
+.. data:: image.CORNER_FAST
+
+   Faster and less accurate corner detection algorithm for ORB keypoints.
+
+.. data:: image.CORNER_AGAST
+
+   Slower and more accurate corner detection algorithm for ORB keypoints.
