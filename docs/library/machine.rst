@@ -6,6 +6,12 @@
 
 The ``machine`` module contains specific functions related to the board.
 
+.. only:: port_openmvcam
+
+   Please use the ``pyb`` module functions/methods to control your OpenMV Cam.
+   The machine module exists for understanding other Micro Python code written
+   for other Micro Python boards.
+
 Reset related functions
 -----------------------
 
@@ -14,11 +20,13 @@ Reset related functions
    Resets the device in a manner similar to pushing the external RESET
    button.
 
-.. function:: reset_cause()
+.. only:: not port_openmvcam
 
-   Get the reset cause. See :ref:`constants <machine_constants>` for the possible return values.
+   .. function:: reset_cause()
 
-.. only:: port_wipy
+      Get the reset cause. See :ref:`constants <machine_constants>` for the possible return values.
+
+.. only:: port_wipy or port_openmvcam
 
     Interrupt related functions
     ---------------------------
@@ -43,7 +51,11 @@ Power related functions
 
 .. function:: freq()
 
-    .. only:: not port_wipy
+    .. only:: port_openmvcam
+
+        See ``pyb.freq()``.
+
+    .. only:: not port_wipy and not port_openmvcam
 
         Returns CPU frequency in hertz.
 
@@ -96,6 +108,12 @@ Miscellaneous functions
 
         Return a 24-bit software generated random number.
 
+.. only:: port_openmvcam
+
+.. function:: rng()
+
+   Hardware generated random number (int).
+
 .. function:: unique_id()
 
    Returns a byte string with a unique identifier of a board/SoC. It will vary
@@ -103,43 +121,64 @@ Miscellaneous functions
    varies by hardware (so use substring of a full value if you expect a short
    ID). In some MicroPython ports, ID corresponds to the network MAC address.
 
-.. _machine_constants:
+.. only:: port_openmvcam
 
-Constants
----------
+   .. function:: info()
 
-.. data:: machine.IDLE
-.. data:: machine.SLEEP
-.. data:: machine.DEEPSLEEP
+      Prints out system info.
 
-    irq wake values
+   .. function:: bootloader()
 
-.. data:: machine.POWER_ON
-.. data:: machine.HARD_RESET
-.. data:: machine.WDT_RESET
-.. data:: machine.DEEPSLEEP_RESET
-.. data:: machine.SOFT_RESET
+      Activate the DFU bootloader without the BOOT0 pin.
 
-    reset causes
+.. only:: not port_openmvcam
 
-.. data:: machine.WLAN_WAKE
-.. data:: machine.PIN_WAKE
-.. data:: machine.RTC_WAKE
+   .. _machine_constants:
 
-    wake reasons
+   Constants
+   ---------
+
+   .. data:: machine.IDLE
+   .. data:: machine.SLEEP
+   .. data:: machine.DEEPSLEEP
+
+      irq wake values
+
+   .. data:: machine.POWER_ON
+   .. data:: machine.HARD_RESET
+   .. data:: machine.WDT_RESET
+   .. data:: machine.DEEPSLEEP_RESET
+   .. data:: machine.SOFT_RESET
+
+      reset causes
+
+   .. data:: machine.WLAN_WAKE
+   .. data:: machine.PIN_WAKE
+   .. data:: machine.RTC_WAKE
+
+      wake reasons
 
 Classes
 -------
 
-.. toctree::
-   :maxdepth: 1
+.. only:: not port_openmvcam
 
-   machine.ADC.rst
-   machine.I2C.rst
-   machine.Pin.rst
-   machine.RTC.rst
-   machine.SD.rst
-   machine.SPI.rst
-   machine.Timer.rst
-   machine.UART.rst
-   machine.WDT.rst
+   .. toctree::
+      :maxdepth: 1
+
+      machine.ADC.rst
+      machine.I2C.rst
+      machine.Pin.rst
+      machine.RTC.rst
+      machine.SD.rst
+      machine.SPI.rst
+      machine.Timer.rst
+      machine.UART.rst
+      machine.WDT.rst
+
+.. only:: port_openmvcam
+
+   .. toctree::
+      :maxdepth: 1
+
+      machine.I2C.rst

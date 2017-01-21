@@ -1132,17 +1132,17 @@ Methods
 
    Not supported on compressed images.
 
-.. method:: image.lens_corr(size)
+.. method:: image.lens_corr(strength=1.8, zoom=1.0)
 
    Performs lens correction to un-fisheye the image due to the lens.
 
-   ``size`` is a float defining how much to un-fisheye the image. Try 1.5 out
-   by default and then increase or decrease from there until the image looks
-   good.
+   ``strength`` is a float defining how much to un-fisheye the image. Try 1.8
+   out by default and then increase or decrease from there until the image
+   looks good.
 
-   Only supported on grayscale images.
+   ``zoom`` is the amount to zoom in on the image by. 1.0 by default.
 
-.. method:: image.get_histogram(roi=Auto, bin_count=Auto, l_bin_count=Auto, a_bin_count=Auto, b_bin_count=Auto)
+.. method:: image.get_histogram(roi=Auto, bins=Auto, l_bins=Auto, a_bins=Auto, b_bins=Auto)
 
    Computes the normalized histogram on all color channels for an ``roi`` and
    returns a ``histogram`` object. Please see the ``histogram`` object for more
@@ -1170,7 +1170,7 @@ Methods
       ``roi``, ``bin_count``, and etc. are keyword arguments which must be
       explicitly invoked in the function call by writing ``roi=``, etc.
 
-.. method:: image.get_statistics(roi=Auto, bin_count=Auto, l_bin_count=Auto, a_bin_count=Auto, b_bin_count=Auto)
+.. method:: image.get_statistics(roi=Auto, bins=Auto, l_bins=Auto, a_bins=Auto, b_bins=Auto)
 
    Computes the mean, median, mode, standard deviation, min, max, lower
    quartile, and upper quartile for all color channels for an ``roi`` and

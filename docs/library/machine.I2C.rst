@@ -39,6 +39,11 @@ Printing the i2c object gives you information about its configuration.
         i2c.writeto_mem(0x42, 2, 'abc')     # write 'abc' (3 bytes) to memory of slave 0x42
                                             # starting at address 2 in the slave, timeout after 1 second
 
+.. only:: port_openmvcam
+
+   Please use ``pyb.I2C`` instead of this object if possible for high-speed I2C.
+   This class is for low-speed software I2C done via bit-banging.
+
 Constructors
 ------------
 
@@ -56,42 +61,66 @@ Constructors
        Construct and return a new I2C object.
        See the init method below for a description of the arguments.
 
+.. only:: port_openmvcam
+
+    .. class:: machine.I2C(scl, sda, \*, freq=400000)
+
+       Construct and return a new I2C object.
+       See the init method below for a description of the arguments.
+
 General Methods
 ---------------
 
 .. only:: port_wipy
 
     .. method:: i2c.init(mode, \*, baudrate=100000, pins=(SDA, SCL))
+      :noindex:
 
-      Initialize the I2C bus with the given parameters:
+       Initialize the I2C bus with the given parameters:
 
-         - ``mode`` must be ``I2C.MASTER``
-         - ``baudrate`` is the SCL clock rate
-         - ``pins`` is an optional tuple with the pins to assign to the I2C bus.
+          - ``mode`` must be ``I2C.MASTER``
+          - ``baudrate`` is the SCL clock rate
+          - ``pins`` is an optional tuple with the pins to assign to the I2C bus.
 
 .. only:: port_esp8266
 
     .. method:: i2c.init(scl, sda, \*, freq=400000)
+      :noindex:
 
-      Initialize the I2C bus with the given arguments:
+       Initialize the I2C bus with the given arguments:
 
-         - `scl` is a pin object for the SCL line
-         - `sda` is a pin object for the SDA line
-         - `freq` is the SCL clock rate
+          - `scl` is a pin object for the SCL line
+          - `sda` is a pin object for the SDA line
+          - `freq` is the SCL clock rate
 
-.. method:: i2c.deinit()
+.. only:: port_openmvcam
 
-   Turn off the I2C bus.
+    .. method:: i2c.init(scl, sda, \*, freq=400000)
+      :noindex:
 
-   Availability: WiPy.
+       Initialize the I2C bus with the given arguments:
+
+          - `scl` is a pin object for the SCL line
+          - `sda` is a pin object for the SDA line
+          - `freq` is the SCL clock rate
+
+.. only:: port_wipy
+
+   .. method:: i2c.deinit()
+      :noindex:
+
+      Turn off the I2C bus.
 
 .. method:: i2c.scan()
+   :noindex:
 
    Scan all I2C addresses between 0x08 and 0x77 inclusive and return a list of
    those that respond. A device responds if it pulls the SDA line low after
    its address (including a read bit) is sent on the bus.
 
-   Note: on WiPy the I2C object must be in master mode for this method to be valid.
+   .. only:: port_wipy
+
+      Note: on WiPy the I2C object must be in master mode for this method to be valid.
 
 Primitive I2C operations
 ------------------------
@@ -100,33 +129,27 @@ The following methods implement the primitive I2C master bus operations and can
 be combined to make any I2C transaction. They are provided if you need more
 control over the bus, otherwise the standard methods (see below) can be used.
 
-.. method:: i2c.start()
+.. only:: port_esp8266 or port_openmvcam
 
-   Send a start bit on the bus (SDA transitions to low while SCL is high).
+   .. method:: i2c.start()
 
-   Availability: ESP8266.
+      Send a start bit on the bus (SDA transitions to low while SCL is high).
 
-.. method:: i2c.stop()
+   .. method:: i2c.stop()
 
-   Send a stop bit on the bus (SDA transitions to high while SCL is high).
+      Send a stop bit on the bus (SDA transitions to high while SCL is high).
 
-   Availability: ESP8266.
+   .. method:: i2c.readinto(buf)
 
-.. method:: i2c.readinto(buf)
+      Reads bytes from the bus and stores them into `buf`. The number of bytes
+      read is the length of `buf`. An ACK will be sent on the bus after
+      receiving all but the last byte, and a NACK will be sent following the last
+      byte.
 
-   Reads bytes from the bus and stores them into `buf`. The number of bytes
-   read is the length of `buf`. An ACK will be sent on the bus after
-   receiving all but the last byte, and a NACK will be sent following the last
-   byte.
+   .. method:: i2c.write(buf)
 
-   Availability: ESP8266.
-
-.. method:: i2c.write(buf)
-
-   Write all the bytes from `buf` to the bus. Checks that an ACK is received
-   after each byte and raises an OSError if not.
-
-   Availability: ESP8266.
+      Write all the bytes from `buf` to the bus. Checks that an ACK is received
+      after each byte and raises an OSError if not.
 
 Standard bus operations
 -----------------------
@@ -144,8 +167,10 @@ operations that target a given slave device.
    Read into `buf` from the slave specified by `addr`.
    The number of bytes read will be the length of `buf`.
 
-   On WiPy the return value is the number of bytes read. Otherwise the
-   return value is `None`.
+   .. only:: port_wipy
+
+      On WiPy the return value is the number of bytes read. Otherwise the
+      return value is `None`.
 
 .. method:: i2c.writeto(addr, buf, \*, stop=True)
 
@@ -155,8 +180,10 @@ operations that target a given slave device.
    sent at the end of the transfer. If `False` the transfer should be
    continued later on.
 
-   On WiPy the return value is the number of bytes written. Otherwise the
-   return value is `None`.
+   .. only:: port_wipy
+
+      On WiPy the return value is the number of bytes written. Otherwise the
+      return value is `None`.
 
 Memory operations
 -----------------
@@ -182,8 +209,10 @@ methods are convenience functions to communicate with such devices.
    The argument `addrsize` specifies the address size in bits (on ESP8266
    this argument is not recognized and the address size is always 8 bits).
 
-   On WiPy the return value is the number of bytes read. Otherwise the
-   return value is `None`.
+   .. only:: port_wipy
+
+      On WiPy the return value is the number of bytes read. Otherwise the
+      return value is `None`.
 
 .. method:: i2c.writeto_mem(addr, memaddr, buf, \*, addrsize=8)
 
@@ -192,14 +221,17 @@ methods are convenience functions to communicate with such devices.
    The argument `addrsize` specifies the address size in bits (on ESP8266
    this argument is not recognized and the address size is always 8 bits).
 
-   On WiPy the return value is the number of bytes written. Otherwise the
-   return value is `None`.
+   .. only:: port_wipy
 
-Constants
----------
+      On WiPy the return value is the number of bytes written. Otherwise the
+      return value is `None`.
 
-.. data:: I2C.MASTER
+.. only:: port_wipy
 
-   for initializing the bus to master mode
+   Constants
+   ---------
 
-   Availability: WiPy.
+   .. data:: I2C.MASTER
+      :noindex:
+
+      for initializing the bus to master mode

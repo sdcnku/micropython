@@ -203,3 +203,5 @@ the following libraries.
       omv.lcd.rst
       omv.fir.rst
       omv.cpufreq.rst
+      machine.rst
+      machine.I2C.rst
