@@ -56,8 +56,8 @@
 
 // LEDs
 #define MICROPY_HW_LED1             (pin_C0) // red
-#define MICROPY_HW_LED2             (pin_C2) // green
-#define MICROPY_HW_LED3             (pin_C1) // blue
+#define MICROPY_HW_LED2             (pin_C1) // green
+#define MICROPY_HW_LED3             (pin_C2) // blue
 #define MICROPY_HW_LED4             (pin_E2) // IR
 #define MICROPY_HW_LED_OTYPE        (GPIO_MODE_OUTPUT_PP)
 #define MICROPY_HW_LED_ON(pin)      (pin->gpio->BSRR = (pin->pin_mask << 16))
