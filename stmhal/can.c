@@ -366,6 +366,9 @@ STATIC mp_obj_t pyb_can_make_new(const mp_obj_type_t *type, mp_uint_t n_args, mp
         }
     } else {
         o->can_id = mp_obj_get_int(args[0]);
+        if (o->can_id != 2) {
+            nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_ValueError, "CAN port %d is not supported", o->can_id));
+        }
     }
     o->rxcallback0 = mp_const_none;
     o->rxcallback1 = mp_const_none;
@@ -405,6 +408,7 @@ STATIC mp_obj_t pyb_can_deinit(mp_obj_t self_in) {
         HAL_NVIC_DisableIRQ(CAN2_RX1_IRQn);
         __CAN2_FORCE_RESET();
         __CAN2_RELEASE_RESET();
+        __CAN1_CLK_DISABLE();
         __CAN2_CLK_DISABLE();
     }
     return mp_const_none;

@@ -16,7 +16,7 @@
 #define MICROPY_HW_ENABLE_SPI2      (1)
 #define MICROPY_HW_ENABLE_SPI3      (0)
 #define MICROPY_HW_ENABLE_SPI4      (0)
-#define MICROPY_HW_ENABLE_CAN       (0)
+#define MICROPY_HW_ENABLE_CAN       (1)
 
 #define MICROPY_HW_CLK_PLLM (12)
 #define MICROPY_HW_CLK_PLLN (432)
@@ -39,6 +39,9 @@
 #define MICROPY_HW_SPI2_SCK  (pin_B13)
 #define MICROPY_HW_SPI2_MISO (pin_B14)
 #define MICROPY_HW_SPI2_MOSI (pin_B15)
+
+// CAN busses
+#define MICROPY_HW_CAN2_NAME "CAN2" // CAN2 on RX,TX = Y5,Y6 = PB12,PB13
 
 // SD card detect switch
 #define MICROPY_HW_SDCARD_DETECT_PIN        (pin_A15)
