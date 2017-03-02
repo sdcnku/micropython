@@ -4,7 +4,7 @@
 .. module:: uhashlib
    :synopsis: hashing algorithm
 
-.. only:: port_pyboard
+.. only:: port_pyboard or port_openmvcam
 
     This module implements binary data hashing algorithms. Currently, it
     implements SHA256 algorithm. Choosing SHA256 was a deliberate choice,
@@ -22,7 +22,7 @@
 Constructors
 ------------
 
-.. only:: port_pyboard
+.. only:: port_pyboard or port_openmvcam
 
     .. class:: uhashlib.sha256([data])
 

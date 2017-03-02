@@ -24,7 +24,7 @@ Example usage::
 Functions
 ---------
 
-.. function:: init(type=1):
+.. function:: lcd.init(type=1):
 
    Initializes an attached lcd shield using I/O pins P0, P2, P3, P6, P7, and P8.
 
@@ -38,32 +38,32 @@ Functions
       ``type`` is keyword arguments which must be explicitly invoked in the
       function call by writing ``type=``.
 
-.. function:: deinit():
+.. function:: lcd.deinit():
 
    Deinitializes the lcd shield freeing up I/O pins.
 
-.. function:: width():
+.. function:: lcd.width():
 
    Returns the width (horizontal resolution) of the lcd shield.
 
       * None: 0 pixels.
       * lcd shield: 128 pixels.
 
-.. function:: height():
+.. function:: lcd.height():
 
    Returns the height (vertical resolution) of the lcd shield.
 
       * None: 0 pixels.
       * lcd shield: 160 pixels.
 
-.. function:: type():
+.. function:: lcd.type():
 
    Returns the type of the lcd shield (for future use possibly):
 
       * 0: None
       * 1: lcd Shield
 
-.. function:: set_backlight(state):
+.. function:: lcd.set_backlight(state):
 
    Set the lcd shield backlight state (False for off - True for on). Turning
    off the backlight dramatically reduces the lcd shield's current consumption.
@@ -76,12 +76,12 @@ Functions
    backlight jumper on the lcd shield (leaving the backlight permanently on).
    This frees up P6 as long as you do not call this function.
 
-.. function:: get_backlight():
+.. function:: lcd.get_backlight():
 
    Returns the backlight state (False for off - True for on) if
    ``set_backlight`` had been called previously.
 
-.. function:: display(image, roi=Auto):
+.. function:: lcd.display(image, roi=Auto):
 
    Displays an ``image`` (GRAYSCALE or RGB565) on the lcd screen.
 
@@ -109,6 +109,6 @@ Functions
       ``roi`` is keyword arguments which must be explicitly invoked in the
       function call by writing ``roi=``.
 
-.. function:: clear():
+.. function:: lcd.clear():
 
    Clears the lcd screen to black.

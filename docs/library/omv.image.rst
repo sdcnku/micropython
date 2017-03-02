@@ -45,34 +45,19 @@ Functions
        RGB888 means 8-bits (0-255) for red, green, and blue. The grayscale
        values goes between 0-255.
 
-.. function:: image.load_decriptor(type, path)
+.. function:: image.load_decriptor(path)
 
    Loads a descriptor object from disk.
 
-   ``type`` is the descriptor type to load:
-
-       * ``image.DESC_LBP``
-       * ``image.DESC_ORB``
-
    ``path`` is the path to the descriptor file to load.
 
-.. function:: image.save_descriptor(type, path, descriptor)
+.. function:: image.save_descriptor(path, descriptor)
 
    Saves the descriptor object ``descriptor`` to disk.
 
-   ``type`` is the descriptor type to save:
-
-       * ``image.DESC_LBP``
-       * ``image.DESC_ORB``
-
    ``path`` is the path to the descriptor file to save.
 
-.. function:: image.match_descriptor(type, descritor0, descriptor1, threshold=70, filter_outliers=False)
-
-   ``type`` is the descriptor type to match:
-
-       * ``image.DESC_LBP``
-       * ``image.DESC_ORB``
+.. function:: image.match_descriptor(descritor0, descriptor1, threshold=70, filter_outliers=False)
 
    For LBP descriptors this function returns an integer representing the
    difference between the two descriptors. You may then threshold/compare this
@@ -648,6 +633,180 @@ The qrcode object is returned by ``image.find_qrcodes``.
    per character and MicroPython has no support to parse this kind of text. The
    payload in this case must be treated as just a large byte array.
 
+class AprilTag -- AprilTag object
+=================================
+
+The apriltag object is returned by ``image.find_apriltags``.
+
+.. method:: apriltag.rect()
+
+   Returns a rectangle tuple (x, y, w, h) for use with other ``image`` methods
+   like ``image.draw_rectangle`` of the apriltag's bounding box.
+
+.. method:: apriltag.x()
+
+   Returns the apriltag's bounding box x coordinate (int).
+
+   You may also get this value doing ``[0]`` on the object.
+
+.. method:: apriltag.y()
+
+   Returns the apriltag's bounding box y coordinate (int).
+
+   You may also get this value doing ``[1]`` on the object.
+
+.. method:: apriltag.w()
+
+   Returns the apriltag's bounding box w coordinate (int).
+
+   You may also get this value doing ``[2]`` on the object.
+
+.. method:: apriltag.h()
+
+   Returns the apriltag's bounding box h coordinate (int).
+
+   You may also get this value doing ``[3]`` on the object.
+
+.. method:: apriltag.id()
+
+   Returns the numeric id of the apriltag.
+
+     * TAG16H5 -> 0 to 29
+     * TAG25H7 -> 0 to 241
+     * TAG25H9 -> 0 to 34
+     * TAG36H10 -> 0 to 2319
+     * TAG36H11 -> 0 to 586
+     * ARTOOLKIT -> 0 to 511
+
+   You may also get this value doing ``[4]`` on the object.
+
+.. method:: apriltag.family()
+
+   Returns the numeric family of the apriltag.
+
+     * image.TAG16H5
+     * image.TAG25H7
+     * image.TAG25H9
+     * image.TAG36H10
+     * image.TAG36H11
+     * image.ARTOOLKIT
+
+   You may also get this value doing ``[5]`` on the object.
+
+.. method:: apriltag.cx()
+
+   Returns the centroid x position of the apriltag (int).
+
+   You may also get this value doing ``[6]`` on the object.
+
+.. method:: apriltag.cy()
+
+   Returns the centroid y position of the apriltag (int).
+
+   You may also get this value doing ``[7]`` on the object.
+
+.. method:: apriltag.rotation()
+
+   Returns the rotation of the apriltag in radians (float).
+
+   You may also get this value doing ``[8]`` on the object.
+
+.. method:: apriltag.decision_margin()
+
+   Returns the quality of the apriltag match (0.0 - 1.0) where 1.0 is the best.
+
+   You may also get this value doing ``[9]`` on the object.
+
+.. method:: apriltag.hamming()
+
+   Returns the number of accepted bit errors for this tag.
+
+     * TAG16H5 -> 0 bit errors will be accepted
+     * TAG25H7 -> up to 1 bit error may be accepted
+     * TAG25H9 -> up to 3 bit errors may be accepted
+     * TAG36H10 -> up to 3 bit errors may be accepted
+     * TAG36H11 -> up to 4 bit errors may be accepted
+     * ARTOOLKIT -> 0 bit errors will be accepted
+
+   You may also get this value doing ``[10]`` on the object.
+
+.. method:: apriltag.goodness()
+
+   Returns the quality of the apriltag image (0.0 - 1.0) where 1.0 is the best.
+
+   .. note::
+
+      This value is always 0.0 for now. We may enable a feature called "tag
+      refinement" in the future which will allow detection of small apriltags.
+      However, this feature currently drops the frame rate to less than 1 FPS.
+
+   You may also get this value doing ``[11]`` on the object.
+
+.. method:: apriltag.x_translation()
+
+   Returns the translation in unknown units from the camera in the X direction.
+
+   This method is useful for determining the apriltag's location away from the
+   camera. However, the size of the apriltag, the lens you are using, etc. all
+   come into play as to actually determining what the X units are in. For ease
+   of use we recommend you use a lookup table to convert the output of this
+   method to something useful for your application.
+
+   Note that this is the left-to-right direction.
+
+   You may also get this value doing ``[12]`` on the object.
+
+.. method:: apriltag.y_translation()
+
+   Returns the translation in unknown units from the camera in the Y direction.
+
+   This method is useful for determining the apriltag's location away from the
+   camera. However, the size of the apriltag, the lens you are using, etc. all
+   come into play as to actually determining what the Y units are in. For ease
+   of use we recommend you use a lookup table to convert the output of this
+   method to something useful for your application.
+
+   Note that this is the up-to-down direction.
+
+   You may also get this value doing ``[13]`` on the object.
+
+.. method:: apriltag.z_translation()
+
+   Returns the translation in unknown units from the camera in the Z direction.
+
+   This method is useful for determining the apriltag's location away from the
+   camera. However, the size of the apriltag, the lens you are using, etc. all
+   come into play as to actually determining what the Z units are in. For ease
+   of use we recommend you use a lookup table to convert the output of this
+   method to something useful for your application.
+
+   Note that this is the front-to-back direction.
+
+   You may also get this value doing ``[14]`` on the object.
+
+.. method:: apriltag.x_rotation()
+
+   Returns the rotation in radians of the apriltag in the X plane. E.g. moving
+   the camera left-to-right while looking at the tag.
+
+   You may also get this value doing ``[15]`` on the object.
+
+.. method:: apriltag.y_rotation()
+
+   Returns the rotation in radians of the apriltag in the Y plane. E.g. moving
+   the camera up-to-down while looking at the tag.
+
+   You may also get this value doing ``[16]`` on the object.
+
+.. method:: apriltag.z_rotation()
+
+   Returns the rotation in radians of the apriltag in the Z plane. E.g.
+   rotating the camera while looking directly at the tag.
+
+   Note that this is just a renamed version of ``apriltag.rotation()``.
+
+   You may also get this value doing ``[17]`` on the object.
+
 class Image -- Image object
 ===========================
 
@@ -1201,7 +1360,7 @@ Methods
       ``roi``, ``bin_count``, and etc. are keyword arguments which must be
       explicitly invoked in the function call by writing ``roi=``, etc.
 
-.. method:: image.find_blobs(thresholds, roi=Auto, x_stride=2, y_stride=1, invert=False, area_threshold=10, pixels_threshold=10, merge=False, margin=0)
+.. method:: image.find_blobs(thresholds, roi=Auto, x_stride=2, y_stride=1, invert=False, area_threshold=10, pixels_threshold=10, merge=False, margin=0, threshold_cb=None, merge_cb=None)
 
    Finds all blobs (connected pixel regions that pass a threshold test) in the
    image and returns a list of ``blob`` objects which describe each blob.
@@ -1264,8 +1423,18 @@ Methods
    do not fully track all the pixels of an object you are trying to follow.
 
    Finally, if you want to merge blobs, but, don't want two color thresholds to
-   be merged then just call ``image.finc_blobs`` twice with separate thresholds
+   be merged then just call ``image.find_blobs`` twice with separate thresholds
    so that blobs aren't merged.
+
+   ``threshold_cb`` may be set to the function to call on every blob after its
+   been thresholded to filter it from the list of blobs to be merged. The call
+   back function will receive one argument - the blob object to be filtered.
+   The call back then must return True to keep the blob and False to filter it.
+
+   ``merge_cb`` may be set to the function to call on every two blobs about to
+   be merged to prevent or allow the merge. The call back function will receive
+   two arguments - the two blob objects to be merged. The call back then must
+   return True to merge the blobs or False to prevent merging the blobs.
 
    Not supported on compressed images.
 
@@ -1298,6 +1467,69 @@ Methods
 
       ``roi`` is a keyword argument which must be explicitly invoked in the
       function call by writing ``roi=``.
+
+.. method:: image.find_apriltags(roi=Auto, families=image.TAG36H11, fx=Auto, fy=Auto, cx=Auto, cy=Auto)
+
+   Finds all apriltags within the ``roi`` and returns a list of ``apriltag``
+   objects. Please see the ``apriltag`` object for more information.
+
+   Unlike QR Codes, AprilTags can be detected at much farther distances, worse
+   lighting, in warped images, etc. AprilTags are robust too all kinds of
+   image distortion issues that QR Codes are not to. That said, AprilTags
+   can only encode a numeric ID as their payload.
+
+   AprilTags can also be used for localization purposes. Each ``apriltag``
+   object returns its translation and rotation from the camera. The units
+   of the translation are determined by ``fx``, ``fy``, ``cx``, and ``cy``
+   which are the focal lengths and center points of the image in the X and
+   Y directions respectively.
+
+   .. note::
+
+      To create AprilTags use the tag generator tool built-in to OpenMV IDE.
+      The tag generator can create printable 8.5"x11" AprilTags.
+
+   ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+   specified, it is equal to the image rectangle. Only pixels within the
+   ``roi`` are operated on.
+
+   ``families`` is bitmask of tag families to decode. It is the logical OR of:
+
+     * image.TAG16H5
+     * image.TAG25H7
+     * image.TAG25H9
+     * image.TAG36H10
+     * image.TAG36H11
+     * image.ARTOOLKIT
+
+   By default it is just ``image.TAG36H11`` which is the best tag family to
+   use. Note that ``find_apriltags`` slows down a bit per enabled tag family.
+
+   ``fx`` is the camera X focal length in pixels. For the standard OpenMV Cam
+   this is (2.8 / 3.984) * 656. Which is the lens focal length in mm, divided
+   by the camera sensor length in the X direction multiplied by the number of
+   camera sensor pixels in the X direction (for the OV7725 camera).
+
+   ``fx`` is the camera Y focal length in pixels. For the standard OpenMV Cam
+   this is (2.8 / 2.952) * 488. Which is the lens focal length in mm, divided
+   by the camera sensor length in the Y direction multiplied by the number of
+   camera sensor pixels in the Y direction (for the OV7725 camera).
+
+   ``cx`` is the image center which is just ``image.width()/2``. This is not
+   ``roi.w()/2``.
+
+   ``cy`` is the image center which is just ``image.height()/2``. This is not
+   ``roi.h()/2``.
+
+   Not supported on compressed images.
+
+   Only supported on the OpenMV Cam M7 or better (not enough RAM on the M4).
+
+   .. note::
+
+      ``roi``, ``families``, ``fx``, ``fy``, ``cx``, and ``cy`` are keyword
+      arguments which must be explicitly invoked in the function call by
+      writing ``roi=``, ``families=``, ``fx=``, ``fy=``, ``cx=``, and ``cy=``.
 
 .. method:: image.midpoint_pooled(x_div, y_div, bias=0.5)
 
@@ -1527,3 +1759,27 @@ Constants
 .. data:: image.CORNER_AGAST
 
    Slower and more accurate corner detection algorithm for ORB keypoints.
+
+.. data:: image.TAG16H5
+
+   TAG1H5 tag family bit mask enum. Used for AprilTags.
+
+.. data:: image.TAG25H7
+
+   TAG25H7 tag family bit mask enum. Used for AprilTags.
+
+.. data:: image.TAG25H9
+
+   TAG25H9 tag family bit mask enum. Used for AprilTags.
+
+.. data:: image.TAG36H10
+
+   TAG36H10 tag family bit mask enum. Used for AprilTags.
+
+.. data:: image.TAG36H11
+
+   TAG36H11 tag family bit mask enum. Used for AprilTags.
+
+.. data:: image.ARTOOLKIT
+
+   ARTOOLKIT tag family bit mask enum. Used for AprilTags.
