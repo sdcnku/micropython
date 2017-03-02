@@ -112,11 +112,18 @@ library.
 
        gc.rst
        math.rst
-       uos.rst
        select.rst
-       ustruct.rst
        sys.rst
+       ubinascii.rst
+       uhashlib.rst
+       uio.rst
+       ujson.rst
+       uos.rst
+       ure.rst
+       usocket.rst
+       ustruct.rst
        utime.rst
+       uzlib.rst
 
 MicroPython-specific libraries
 ------------------------------

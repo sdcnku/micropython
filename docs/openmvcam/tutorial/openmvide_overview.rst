@@ -269,6 +269,26 @@ to re-program your OpenMV Cam with or a ``.dfu`` file. The boot-loader
 feature is only for advanced users who plan on changing the default OpenMV Cam
 firmware.
 
+Open Terminal
+-------------
+
+The Open Terminal feature allows you to create new serial terminals using
+OpenMV IDE to remotely debug your OpenMV Cam while it is not connected to your
+computer. The Open Terminal feature can also be used to program any MicroPython
+development board.
+
+You can use the Open Terminal feature to open terminals connected to serial
+ports, tcp ports, or udp ports. Note that serial ports can be bluetooth ports
+for wireless connectivity.
+
+Machine Vision
+--------------
+
+The Machine Vision submenu includes a lot of Machine Vision tools for your
+OpenMV Cam. For example, the you can use the color threshold editor to get
+the best color tracking thresholds for ``image.find_blobs()``. We'll make
+new machine vision tools available regularly to make life easier for you.
+
 Options
 -------
 
