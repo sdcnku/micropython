@@ -57,19 +57,19 @@ Constructors
 Methods
 -------
 
-.. method:: mjpeg.width():
+.. method:: mjpeg.width()
 
    Returns the width (horizontal resolution) for the mjpeg object.
 
-.. method:: mjpeg.height():
+.. method:: mjpeg.height()
 
    Returns the height (vertical resolution) for the mjpeg object.
 
-.. method:: mjpeg.size():
+.. method:: mjpeg.size()
 
    Returns the file size of the mjpeg so far. This value is updated after adding frames.
 
-.. method:: mjpeg.add_frame(image, quality=50):
+.. method:: mjpeg.add_frame(image, quality=50)
 
    Add an image to the mjpeg recording. The image width, height, and color mode,
    must be equal to the same width, height, and color modes used in the constructor
@@ -83,7 +83,7 @@ Methods
       ``quality`` is keyword arguments which must be explicitly invoked in the
       function call by writing ``quality=``.
 
-.. method:: mjpeg.close(fps):
+.. method:: mjpeg.close(fps)
 
    Finalizes the mjpeg recording. This method must be called once the recording
    is complete to make the file viewable.

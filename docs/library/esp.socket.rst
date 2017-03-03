@@ -62,18 +62,18 @@ UDP Methods
 Callback Setter Methods
 -----------------------
 
-.. method:: onconnect(lambda)::
+.. method:: onconnect(lambda)
 
     When connection is established, call the callback ``lambda``.
 
-.. method:: onrecv(lambda)::
+.. method:: onrecv(lambda)
 
     When data is received, call the callback ``lambda``.
 
-.. method:: onsent(lamda)::
+.. method:: onsent(lamda)
 
     What data is finished sending, call the callback ``lambda``.
 
-.. method:: ondisconnect(lambda)::
+.. method:: ondisconnect(lambda)
 
     Call the callback ``lambda`` when the connection is closed.
