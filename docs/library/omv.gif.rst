@@ -65,27 +65,27 @@ Constructors
 Methods
 -------
 
-.. method:: gif.width():
+.. method:: gif.width()
 
    Returns the width (horizontal resolution) for the gif object.
 
-.. method:: gif.height():
+.. method:: gif.height()
 
    Returns the height (vertical resolution) for the gif object.
 
-.. method:: gif.format():
+.. method:: gif.format()
 
    Returns ``sensor.RGB565`` if color or ``sensor.GRAYSCALE`` if not.
 
-.. method:: gif.size():
+.. method:: gif.size()
 
    Returns the file size of the gif so far. This value is updated after adding frames.
 
-.. method:: gif.loop():
+.. method:: gif.loop()
 
    Returns if the gif object had loop set in its constructor.
 
-.. method:: gif.add_frame(image, delay=10):
+.. method:: gif.add_frame(image, delay=10)
 
    Add an image to the gif recording. The image width, height, and color mode,
    must be equal to the same width, height, and color modes used in the constructor
@@ -99,7 +99,7 @@ Methods
       ``delay`` is keyword arguments which must be explicitly invoked in the
       function call by writing ``delay=``.
 
-.. method:: gif.close():
+.. method:: gif.close()
 
    Finalizes the gif recording. This method must be called once the recording
    is complete to make the file viewable.

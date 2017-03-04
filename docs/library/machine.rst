@@ -110,16 +110,16 @@ Miscellaneous functions
 
 .. only:: port_openmvcam
 
-.. function:: rng()
+    .. function:: rng()
 
-   Hardware generated random number (int).
+       Hardware generated random number (int).
 
-.. function:: unique_id()
+    .. function:: unique_id()
 
-   Returns a byte string with a unique identifier of a board/SoC. It will vary
-   from a board/SoC instance to another, if underlying hardware allows. Length
-   varies by hardware (so use substring of a full value if you expect a short
-   ID). In some MicroPython ports, ID corresponds to the network MAC address.
+       Returns a byte string with a unique identifier of a board/SoC. It will vary
+       from a board/SoC instance to another, if underlying hardware allows. Length
+       varies by hardware (so use substring of a full value if you expect a short
+       ID). In some MicroPython ports, ID corresponds to the network MAC address.
 
 .. only:: port_openmvcam
 

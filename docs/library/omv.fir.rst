@@ -75,14 +75,14 @@ Functions
       * None: 0 pixels.
       * thermopile shield: 4 pixels.
 
-.. function:: fir.type():
+.. function:: fir.type()
 
    Returns the type of the thermopile shield (for future use possibly):
 
       * 0: None
       * 1: thermopile shield
 
-.. function:: fir.read_ta():
+.. function:: fir.read_ta()
 
    Returns the ambient temperature (i.e. sensor temperature).
 
@@ -92,7 +92,7 @@ Functions
 
    The value returned is a float that represents the temperature in Celsius.
 
-.. function:: fir.read_ir():
+.. function:: fir.read_ir()
 
    Returns a tuple containing the ambient temperature (i.e. sensor temperature),
    the temperature list (width * height), the minimum temperature seen, and
@@ -108,7 +108,7 @@ Functions
 
       ``ir`` is a (width * height) list of floats.
 
-.. function:: fir.draw_ta(image, ta, alpha=128, scale=[-17.7778, 37.7778]):
+.. function:: fir.draw_ta(image, ta, alpha=128, scale=[-17.7778, 37.7778])
 
    Draws the ambient temperature (``ta``) on the ``image`` using a rainbow
    table color conversion.
@@ -130,7 +130,7 @@ Functions
       ``alpha`` and ``scale`` are keyword arguments which must be explicitly
       invoked in the function call by writing ``alpha=`` and ``scale=``.
 
-.. function:: fir.draw_ta(image, ir, alpha=128, scale=[auto, auto]):
+.. function:: fir.draw_ta(image, ir, alpha=128, scale=[auto, auto])
 
    Draws the temperature list (``ir``) on the ``image`` using a rainbow
    table color conversion.
