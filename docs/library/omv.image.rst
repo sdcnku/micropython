@@ -1656,7 +1656,7 @@ Methods
 
    Only for grayscale images.
 
-.. method:: image.find_keypoints(roi=Auto, threshold=20, scale_factor=1.5, max_keypoints=100, corner_detector=CORNER_AGAST)
+.. method:: image.find_keypoints(roi=Auto, threshold=20, normalized=False, scale_factor=1.5, max_keypoints=100, corner_detector=CORNER_AGAST)
 
    Extracts ORB keypoints from the region-of-interest (x, y, w, h) tuple. You
    can then use then use the ``image.match_descriptor`` function to compare
@@ -1667,6 +1667,10 @@ Methods
    extracted corners. For the default AGAST corner detector this should be
    around 20. FOr the FAST corner detector this should be around 60-80. The
    lower the threshold the more extracted corners you get.
+
+   ``normalized`` is a boolean value that if True turns off extracting
+   keypoints at multiple resolutions. Set this to true if you don't care
+   about dealing with scaling issues and want the algorithm to run faster.
 
    ``scale_factor`` is a float that must be greater than 1.0. A higher scale
    factor will run faster but will have much poorer image matches. A good
@@ -1684,8 +1688,8 @@ Methods
 
    .. note::
 
-      ``roi``, ``threshold``, ``scale_factor``, ``max_keypoints``, and
-      ``corner_detector`` are keyword argument which must be explicitly
+      ``roi``, ``threshold``, ``normalized``m ``scale_factor``, ``max_keypoints``,
+      and ``corner_detector`` are keyword argument which must be explicitly
       invoked in the function call by writing ``roi=``, ``threshold=``, etc.
 
 .. method:: image.find_lines(roi=Auto, threshold=50)
