@@ -172,7 +172,7 @@ void spi_init(SPI_HandleTypeDef *spi, bool enable_nss_pin) {
     // init the GPIO lines
     GPIO_InitTypeDef GPIO_InitStructure;
     GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStructure.Speed = GPIO_SPEED_LOW;
+    GPIO_InitStructure.Speed = GPIO_SPEED_MEDIUM;
     GPIO_InitStructure.Pull = spi->Init.CLKPolarity == SPI_POLARITY_LOW ? GPIO_PULLDOWN : GPIO_PULLUP;
 
     const pyb_spi_obj_t *self;
