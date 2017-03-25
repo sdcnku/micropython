@@ -539,18 +539,44 @@ For example::
     Constructors
     ------------
 
-    .. class:: WINC(enter_update_mode=0)
+    .. class:: WINC(mode=MODE_STATION)
 
        Creates a winc driver object and connects to the wifi shield which uses
        I/O pins P0, P1, P2, P3, P6, P7, and P8.
 
-       If ``enter_update_mode`` is true then the WINC chip is put into firmware
-       update mode.
+       ``mode`` controls the mode the WINC module works in:
+
+         * network.WINC.MODE_STATION
+
+           The module connects to an access point as a client. This is the default mode.
+
+         * network.WINC.MODE_AP
+
+           The module will create an AP (Access Point) and
+           accept connections from a client.
+
+           Note1: The start_ap() function must be called after setting AP mode to configure the AP.
+
+           Note2: The WINC1500 has some limitations in its AP implementation:
+
+             * Only one client can connect at a time.
+             * Only OPEN or WEP security are supported.
+             * There's a bug in the FW, when the client disconnects any bound sockets are lost (they just stop working). As a workaround, set a timeout for the server socket to force it to raise an exception and then reopen it (See the example script).
+
+         * network.WINC.MODE_P2P
+
+           Enable Peer-to-Peer mode, also known as WiFiDirect. This mode is similar to AP, it allows two devices to connect and exchange data directly.
+           Note: This mode is Not implemented Yet.
+
+         * network.WINC.MODE_FIRMWARE:
+
+           This mode enables WiFi module firmware update.
+           Note: Do NOT use unless you know what you're doing, modules are shipped with the latest FW update there's No need to update the FW.
 
     Methods
     -------
 
-    .. method:: winc.connect(ssid, key, security=WPA_PSK)
+    .. method:: winc.connect(ssid, key=KEY, security=WPA_PSK)
 
        Connect to a wifi network with ssid ``ssid`` using key ``key`` with
        security ``security``.
@@ -561,6 +587,16 @@ For example::
        .. note::
 
           This function takes a little while to return.
+
+    .. method:: winc.start_ap(SSID, key=KEY, security=WEP, channel=2)
+
+       When running in AP mode this function must be called after creating
+       a WINC object to configure and start the AP .
+
+         * SSID: The AP SSID (must be set)
+         * Key: The AP encryption key. A Key is required only if security is WEP.
+         * security: AP security mode. (Only network.WINC.OPEN or network.WINC.WEP are supported).
+         * channel: WiFi channel, change this if you have another AP running at the same channel.
 
     .. method:: winc.disconnect()
 
@@ -620,6 +656,14 @@ For example::
 
        Programs the wifi shield with binary image found at
        "/firmware/m2m_aio_3a0.bin".
+
+    .. method:: winc.connected_sta()
+
+       This method returns the connected client IP.
+
+    .. method:: winc.wait_for_sta(timeout)
+
+       This function blocks and waits for a client to connect. If timeout is 0 this will block forever.
 
     Constants
     ---------
