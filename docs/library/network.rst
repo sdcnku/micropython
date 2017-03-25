@@ -576,7 +576,7 @@ For example::
     Methods
     -------
 
-    .. method:: winc.connect(ssid, key=KEY, security=WPA_PSK)
+    .. method:: winc.connect(ssid, key=None, security=WPA_PSK)
 
        Connect to a wifi network with ssid ``ssid`` using key ``key`` with
        security ``security``.
@@ -588,7 +588,7 @@ For example::
 
           This function takes a little while to return.
 
-    .. method:: winc.start_ap(SSID, key=KEY, security=WEP, channel=2)
+    .. method:: winc.start_ap(SSID, key=None, security=OPEN, channel=1)
 
        When running in AP mode this function must be called after creating
        a WINC object to configure and start the AP .
