@@ -575,7 +575,7 @@ The qrcode object is returned by ``image.find_qrcodes``.
 
 .. method:: qrcode.payload()
 
-   Returns the payload string of the qrcode.
+   Returns the payload string of the qrcode. E.g. the URL.
 
    You may also get this value doing ``[4]`` on the object.
 
@@ -807,6 +807,84 @@ The apriltag object is returned by ``image.find_apriltags``.
 
    You may also get this value doing ``[17]`` on the object.
 
+class BarCode -- BarCode object
+===============================
+
+The barcode object is returned by ``image.find_barcodes``.
+
+.. method:: barcode.rect()
+
+   Returns a rectangle tuple (x, y, w, h) for use with other ``image`` methods
+   like ``image.draw_rectangle`` of the barcode's bounding box.
+
+.. method:: barcode.x()
+
+   Returns the barcode's bounding box x coordinate (int).
+
+   You may also get this value doing ``[0]`` on the object.
+
+.. method:: barcode.y()
+
+   Returns the barcode's bounding box y coordinate (int).
+
+   You may also get this value doing ``[1]`` on the object.
+
+.. method:: barcode.w()
+
+   Returns the barcode's bounding box w coordinate (int).
+
+   You may also get this value doing ``[2]`` on the object.
+
+.. method:: barcode.h()
+
+   Returns the barcode's bounding box h coordinate (int).
+
+   You may also get this value doing ``[3]`` on the object.
+
+.. method:: barcode.payload()
+
+   Returns the payload string of the barcode. E.g. The number.
+
+   You may also get this value doing ``[4]`` on the object.
+
+.. method:: barcode.type()
+
+   Returns the type enumeration of the barcode (int).
+
+   You may also get this value doing ``[5]`` on the object.
+
+     * image.EAN2
+     * image.EAN5
+     * image.EAN8
+     * image.UPCE
+     * image.ISBN10
+     * image.UPCA
+     * image.EAN13
+     * image.ISBN13
+     * image.I25
+     * image.DATABAR
+     * image.DATABAR_EXP
+     * image.CODABAR
+     * image.CODE39
+     * image.PDF417 - Future (e.g. doesn't work right now).
+     * image.CODE93
+     * image.CODE128
+
+.. method:: barcode.rotation()
+
+   Returns the rotation of the barcode in radians (float).
+
+   You may also get this value doing ``[6]`` on the object.
+
+.. method:: barcode.quality()
+
+   Returns the number of times this barcode was detected in the image (int).
+
+   When scanning a barcode each new scanline can decode the same barcode. This
+   value increments for a barcode each time that happens...
+
+   You may also get this value doing ``[7]`` on the object.
+
 class Image -- Image object
 ===========================
 
@@ -895,9 +973,11 @@ Methods
       ``roi`` and ``quality`` are keyword arguments which must be explicitly
       invoked in the function call by writing ``roi=`` or ``quality=``.
 
-.. method:: image.compressed(quality=50)
+.. method:: image.compress(quality=50)
 
-   Returns a JPEG compressed image - the original image is untouched.
+   JPEG compresses the image in place. Use this method versus ``compressed``
+   to save heap space and to use a higher ``quality`` for compression at the
+   cost of destroying the original image.
 
    ``quality`` is the compression quality (0-100) (int).
 
@@ -905,6 +985,69 @@ Methods
 
       ``quality`` is a keyword argument which must be explicitly
       invoked in the function call by writing ``quality=``.
+
+   Only call this on Grayscale and RGB565 images.
+
+.. method:: image.compress_for_ide(quality=50)
+
+   JPEG compresses the image in place. Use this method versus ``compressed``
+   to save heap space and to use a higher ``quality`` for compression at the
+   cost of destroying the original image.
+
+   This method JPEG compresses the image and then formats the JPEG data for
+   transmission to OpenMV IDE to display by encoding every 6-bits as a byte
+   valued between 128-191. This is done to prevent JPEG data from being
+   misinterpreted as other text data in the byte stream.
+
+   You need to use this method to format image data for display to terminal
+   windows created via "Open Terminal" in OpenMV IDE.
+
+   ``quality`` is the compression quality (0-100) (int).
+
+   .. note::
+
+      ``quality`` is a keyword argument which must be explicitly
+      invoked in the function call by writing ``quality=``.
+
+   Only call this on Grayscale and RGB565 images.
+
+.. method:: image.compressed(quality=50)
+
+   Returns a JPEG compressed image - the original image is untouched. However,
+   this method requires a somewhat large allocation of heap space so the image
+   compression quality must be low and the image resolution must be low.
+
+   ``quality`` is the compression quality (0-100) (int).
+
+   .. note::
+
+      ``quality`` is a keyword argument which must be explicitly
+      invoked in the function call by writing ``quality=``.
+
+   Only call this on Grayscale and RGB565 images.
+
+.. method:: image.compressed_for_ide(quality=50)
+
+   Returns a JPEG compressed image - the original image is untouched. However,
+   this method requires a somewhat large allocation of heap space so the image
+   compression quality must be low and the image resolution must be low.
+
+   This method JPEG compresses the image and then formats the JPEG data for
+   transmission to OpenMV IDE to display by encoding every 6-bits as a byte
+   valued between 128-191. This is done to prevent JPEG data from being
+   misinterpreted as other text data in the byte stream.
+
+   You need to use this method to format image data for display to terminal
+   windows created via "Open Terminal" in OpenMV IDE.
+
+   ``quality`` is the compression quality (0-100) (int).
+
+   .. note::
+
+      ``quality`` is a keyword argument which must be explicitly
+      invoked in the function call by writing ``quality=``.
+
+   Only call this on Grayscale and RGB565 images.
 
 .. method:: image.width()
 
@@ -1531,6 +1674,49 @@ Methods
       arguments which must be explicitly invoked in the function call by
       writing ``roi=``, ``families=``, ``fx=``, ``fy=``, ``cx=``, and ``cy=``.
 
+.. method:: image.find_barcodes(roi=Auto)
+
+   Finds all 1D barcodes within the ``roi`` and returns a list of ``barcode``
+   objects. Please see the ``barcode`` object for more information.
+
+   For best results use a 640 by 40/80/160 window. The lower the vertical res
+   the faster everything will run. Since bar codes are linear 1D images you
+   just need a lot of resolution in one direction and just a little resolution
+   in the other direction. Note that this function scans both horizontally and
+   vertically so use can use a 40/80/160 by 480 window if you want. Finally,
+   make sure to adjust your lens so that the bar code is positioned where the
+   focal length produces the sharpest image. Blurry bar codes can't be decoded.
+
+   This function supports all these 1D barcodes (basically all barcodes):
+
+     * image.EAN2
+     * image.EAN5
+     * image.EAN8
+     * image.UPCE
+     * image.ISBN10
+     * image.UPCA
+     * image.EAN13
+     * image.ISBN13
+     * image.I25
+     * image.DATABAR (RSS-14)
+     * image.DATABAR_EXP (RSS-Expanded)
+     * image.CODABAR
+     * image.CODE39
+     * image.PDF417
+     * image.CODE93
+     * image.CODE128
+
+   ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+   specified, it is equal to the image rectangle. Only pixels within the
+   ``roi`` are operated on.
+
+   Not supported on compressed images.
+
+   .. note::
+
+      ``roi`` is a keyword argument which must be explicitly invoked in the
+      function call by writing ``roi=``.
+
 .. method:: image.midpoint_pooled(x_div, y_div, bias=0.5)
 
    Finds the midpoint of ``x_div`` * ``y_div`` squares in the image and returns
@@ -1787,3 +1973,67 @@ Constants
 .. data:: image.ARTOOLKIT
 
    ARTOOLKIT tag family bit mask enum. Used for AprilTags.
+
+.. data:: image.EAN2
+
+   EAN2 barcode type enum.
+
+.. data:: image.EAN5
+
+   EAN5 barcode type enum.
+
+.. data:: image.EAN8
+
+   EAN8 barcode type enum.
+
+.. data:: image.UPCE
+
+   UPCE barcode type enum.
+
+.. data:: image.ISBN10
+
+   ISBN10 barcode type enum.
+
+.. data:: image.UPCA
+
+   UPCA barcode type enum.
+
+.. data:: image.EAN13
+
+   EAN13 barcode type enum.
+
+.. data:: image.ISBN13
+
+   ISBN13 barcode type enum.
+
+.. data:: image.I25
+
+   I25 barcode type enum.
+
+.. data:: image.DATABAR
+
+   DATABAR barcode type enum.
+
+.. data:: image.DATABAR_EXP
+
+   DATABAR_EXP barcode type enum.
+
+.. data:: image.CODABAR
+
+   CODABAR barcode type enum.
+
+.. data:: image.CODE39
+
+   CODE39 barcode type enum.
+
+.. data:: image.PDF417
+
+   PDF417 barcode type enum - Future (e.g. doesn't work right now).
+
+.. data:: image.CODE93
+
+   CODE93 barcode type enum.
+
+.. data:: image.CODE128
+
+   CODE128 barcode type enum.
