@@ -807,6 +807,76 @@ The apriltag object is returned by ``image.find_apriltags``.
 
    You may also get this value doing ``[17]`` on the object.
 
+class DataMatrix -- DataMatrix object
+=====================================
+
+The datamatrix object is returned by ``image.find_datamatrices``.
+
+.. method:: datamatrix.rect()
+
+   Returns a rectangle tuple (x, y, w, h) for use with other ``image`` methods
+   like ``image.draw_rectangle`` of the datamatrix's bounding box.
+
+.. method:: datamatrix.x()
+
+   Returns the datamatrix's bounding box x coordinate (int).
+
+   You may also get this value doing ``[0]`` on the object.
+
+.. method:: datamatrix.y()
+
+   Returns the datamatrix's bounding box y coordinate (int).
+
+   You may also get this value doing ``[1]`` on the object.
+
+.. method:: datamatrix.w()
+
+   Returns the datamatrix's bounding box w coordinate (int).
+
+   You may also get this value doing ``[2]`` on the object.
+
+.. method:: datamatrix.h()
+
+   Returns the datamatrix's bounding box h coordinate (int).
+
+   You may also get this value doing ``[3]`` on the object.
+
+.. method:: datamatrix.payload()
+
+   Returns the payload string of the datamatrix. E.g. The string.
+
+   You may also get this value doing ``[4]`` on the object.
+
+.. method:: datamatrix.rotation()
+
+   Returns the rotation of the datamatrix in radians (float).
+
+   You may also get this value doing ``[5]`` on the object.
+
+.. method:: datamatrix.rows()
+
+   Returns the number of rows in the data matrix (int).
+
+   You may also get this value doing ``[6]`` on the object.
+
+.. method:: datamatrix.columns()
+
+   Returns the number of columns in the data matrix (int).
+
+   You may also get this value doing ``[7]`` on the object.
+
+.. method:: datamatrix.capacity()
+
+   Returns how many characters could fit in this data matrix.
+
+   You may also get this value doing ``[8]`` on the object.
+
+.. method:: datamatrix.padding()
+
+   Returns how many unused characters are in this data matrix.
+
+   You may also get this value doing ``[9]`` on the object.
+
 class BarCode -- BarCode object
 ===============================
 
@@ -1673,6 +1743,40 @@ Methods
       ``roi``, ``families``, ``fx``, ``fy``, ``cx``, and ``cy`` are keyword
       arguments which must be explicitly invoked in the function call by
       writing ``roi=``, ``families=``, ``fx=``, ``fy=``, ``cx=``, and ``cy=``.
+
+.. method:: image.find_datamatrices(roi=Auto, effort=200)
+
+   Finds all datamatrices within the ``roi`` and returns a list of ``datamatrix``
+   objects. Please see the ``datamatrix`` object for more information.
+
+   Data Matrices need to be relatively flat in the image for this method to work.
+   You can achieve a flatter image that is not effected by lens distortion by
+   either using the ``sensor.set_windowing`` function to zoom in the on the
+   center of the lens, ``image.lens_corr`` to undo lens barrel distortion, or
+   by just changing out the lens for something with a narrower fields of view.
+   There are machine vision lenses available which do not cause barrel
+   distortion but they are much more expensive to than the standard lenses
+   supplied by OpenMV so we don't stock them (since they wouldn't sell).
+
+   ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+   specified, it is equal to the image rectangle. Only pixels within the
+   ``roi`` are operated on.
+
+   ``effort`` controls how much time to spend trying to find data matrix matches.
+   The default value of 200 should be good for all use-cases. However, you may
+   increase the effort, at a cost of the frame rate, to increase detection. You
+   may also lower the effort to increase the frame rate, but, at a cost of
+   detections... note that when ``effort`` is set to below 160 or so you will
+   not detect anything anymore. Also note that you can make ``effort`` as high
+   as you like. But, any values above 240 or so do not result in much increase
+   in the detection rate.
+
+   Not supported on compressed images.
+
+   .. note::
+
+      ``roi`` and ``effort`` are keyword arguments which must be explicitly
+      invoked in the function call by writing ``roi=`` and/or ``effort=``.
 
 .. method:: image.find_barcodes(roi=Auto)
 
