@@ -539,6 +539,64 @@ Methods
    blob over its bounding box area. A low density ratio means in general that
    the lock on the object isn't very good.
 
+class Line -- Line object
+=========================
+
+The line object is returned by ``image.find_lines`` or ``image.find_line_segments``.
+
+.. method:: line.line()
+
+   Returns a line tuple (x1, y1, x2, y2) for use with other ``image`` methods
+   like ``image.draw_line``.
+
+.. method:: line.x1()
+
+   Returns the line's p1 x component.
+
+   You may also get this value doing ``[0]`` on the object.
+
+.. method:: line.y1()
+
+   Returns the line's p1 y component.
+
+   You may also get this value doing ``[1]`` on the object.
+
+.. method:: line.x2()
+
+   Returns the line's p2 x component.
+
+   You may also get this value doing ``[2]`` on the object.
+
+.. method:: line.y2()
+
+   Returns the line's p2 y component.
+
+   You may also get this value doing ``[3]`` on the object.
+
+.. method:: line.length()
+
+   Returns the line's length - sqrt(((x2-x1)^2) + ((y2-y1)^2).
+
+   You may also get this value doing ``[4]`` on the object.
+
+.. method:: line.magnitude()
+
+   Returns the magnitude of the line from the hough transform.
+
+   You may also get this value doing ``[5]`` on the object.
+
+.. method:: line.theta()
+
+   Returns the angle of the line from the hough transform - (0 - 179) degrees.
+
+   You may also get this value doing ``[7]`` on the object.
+
+.. method:: line.rho()
+
+   Returns the the rho value for the line from the hough transform.
+
+   You may also get this value doing ``[8]`` on the object.
+
 class QRCode -- QRCode object
 =============================
 
@@ -1587,26 +1645,36 @@ Methods
    regions that fall between these thresholds will be considered. For RGB565
    images each tuple needs to have six values (l_lo, l_hi, a_lo, a_hi, b_lo,
    b_hi) - which are minimums and maximums for the LAB L, A, and B channels
-   respectively. To easy usage this function will automatically fix swapped
-   min and max values. Additionally, a tuple is larger than six values the
+   respectively. For easy usage this function will automatically fix swapped
+   min and max values. Additionally, if a tuple is larger than six values the
    rest are ignored. Conversely, if the tuple is too short the rest of the
    thresholds are assumed to be zero.
 
    .. note::
 
       To get the thresholds for the object you want to track just select (click
-      and drag) on the object you want to track. The histogram will then update
-      to just be in that area. Then just write down where the color
-      distribution starts and falls off in each histogram channel. These will
-      be your low and high values for ``thresholds``. It's best to manually
-      determine the thresholds versus using the upper and lower quartile
-      statistics because they are too tight.
+      and drag) on the object you want to track in the IDE frame buffer. The
+      histogram will then update to just be in that area. Then just write down
+      where the color distribution starts and falls off in each histogram channel.
+      These will be your low and high values for ``thresholds``. It's best to
+      manually determine the thresholds versus using the upper and lower
+      quartile statistics because they are too tight.
+
+      The latest version of OpenMV IDE features a threshold editor to help make
+      picking thresholds easer. It lets you control the threshold with sliders
+      so you can see what the thresholds are segmenting.
 
    ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
    specified, it is equal to the image rectangle. Only pixels within the
    ``roi`` are operated on.
 
-   ``x_stride`` is the number of pixels to skip when searching for
+   ``x_stride`` is the number of x pixels to skip when searching for a blob.
+   Once a blob is found the line fill algorithm will be pixel accurate.
+   Increase ``x_stride`` to speed up finding blobs if blobs are know to be large.
+
+   ``y_stride`` is the number of y pixels to skip when searching for a blob.
+   Once a blob is found the line fill algorithm will be pixel accurate.
+   Increase ``y_stride`` to speed up finding blobs if blobs are know to be large.
 
    ``invert`` inverts the thresholding operation such that instead of matching
    pixels inside of some known color bounds pixels are matched that are outside
@@ -1655,6 +1723,86 @@ Methods
 
       All the arguments except ``thresholds`` are keyword arguments and must
       be explicitly invoked with their name and an equal sign.
+
+.. method:: image.find_lines(roi=Auto, x_stride=2, y_stride=1, threshold=1000, theta_margin=25, rho_margin=25)
+
+    Finds all infinite lines in the image using the hough transform. Returns a list
+    of ``line`` objects (see above).
+
+    ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+    specified, it is equal to the image rectangle. Only pixels within the
+    ``roi`` are operated on.
+
+    ``x_stride`` is the number of x pixels to skip when doing the hough transform.
+    Only increase this if lines you are searching for are large and bulky.
+
+    ``y_stride`` is the number of y pixels to skip when doing the hough transform.
+    Only increase this if lines you are searching for are large and bulky.
+
+    ``threshold`` controls what lines are detected from the hough transform. Only
+    lines with a magnitude greater than or equal to ``threshold`` are returned. The
+    right value of ``threshold`` for your application is image dependent. Note that
+    the magnitude of a line is the sum of all sobel filter magnitudes of pixels
+    that make up that line.
+
+    ``theta_margin`` controls the merging of detected lines. Lines which are
+    ``theta_margin`` degrees apart and ``rho_margin`` rho apart are merged.
+
+    ``rho_margin`` controls the merging of detected lines. Lines which are
+    ``theta_margin`` degrees apart and ``rho_margin`` rho apart are merged.
+
+    This method working by running the sobel filter over the image and taking
+    the magnitude and gradient responses from the sobel filter to feed a hough
+    transform. It does not require any preprocessing on the image first. However,
+    my cleaning up the image filter you may get more stable results.
+
+    .. note::
+
+      All the arguments are keyword arguments and must be explicitly invoked
+      with their name and an equal sign.
+
+.. method:: image.find_line_segments(roi=Auto, x_stride=2, y_stride=1, threshold=1000, theta_margin=25, rho_margin=25, segment_threshold=100)
+
+    Finds line segments in the image using the hough transform. Returns a list
+    of ``line`` objects (see above).
+
+    ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+    specified, it is equal to the image rectangle. Only pixels within the
+    ``roi`` are operated on.
+
+    ``x_stride`` is the number of x pixels to skip when doing the hough transform.
+    Only increase this if lines you are searching for are large and bulky.
+
+    ``y_stride`` is the number of y pixels to skip when doing the hough transform.
+    Only increase this if lines you are searching for are large and bulky.
+
+    ``threshold`` controls what lines are detected from the hough transform. Only
+    lines with a magnitude greater than or equal to ``threshold`` are returned. The
+    right value of ``threshold`` for your application is image dependent. Note that
+    the magnitude of a line is the sum of all sobel filter magnitudes of pixels
+    that make up that line.
+
+    ``theta_margin`` controls the merging of detected lines. Lines which are
+    ``theta_margin`` degrees apart and ``rho_margin`` rho apart are merged.
+
+    ``rho_margin`` controls the merging of detected lines. Lines which are
+    ``theta_margin`` degrees apart and ``rho_margin`` rho apart are merged.
+
+    ``segment_threshold`` controls what pixels are added to line segments. This
+    is a threshold check on the magnitude of each pixel under an infinite line
+    before it is added to a line segment under an infinite line.
+
+    This method works by calling ``find_lines`` internally and then walking
+    each line found and checking the magnitude (using the sobel filter). If
+    the magnitude passes the threshold check and if the pixel's gradient direction
+    points in the same direction as the line then the pixel is added to a line
+    segment under that line. All line segments are then merged repeatedly to
+    create nice clean line segments.
+
+    .. note::
+
+      All the arguments are keyword arguments and must be explicitly invoked
+      with their name and an equal sign.
 
 .. method:: image.find_qrcodes(roi=Auto)
 
