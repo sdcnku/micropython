@@ -7,5 +7,5 @@ follow us on `twitter <https://twitter.com/openmvcam>`_ to receive update
 notifications.
 
 If you need help please search through our `forums <http://forums.openmv.io/>`_
-and if you can't find the answer you need then create and account and ask us.
+and if you can't find the answer you need then create an account and ask us.
 You should get a response to your question in just a few minutes to hours.
