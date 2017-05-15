@@ -29,7 +29,7 @@ the changes when you click on the OpenMV IDE window again.
 
 .. note::
 
-    Only one instance of OpenMV IDE is allowed one your computer at a time.
+    Only one instance of OpenMV IDE is allowed on your computer at a time.
     This is done so that if you try to open a file via your file explorer the
     one instance of OpenMV IDE will open the file. This also allows you to
     open files using drag-and-drop.
