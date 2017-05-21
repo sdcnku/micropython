@@ -82,6 +82,7 @@
 
 extern void __fatal_error(const char*);
 extern DCMI_HandleTypeDef DCMIHandle;
+extern void DCMI_VsyncExtiCallback();
 extern PCD_HandleTypeDef pcd_fs_handle;
 extern PCD_HandleTypeDef pcd_hs_handle;
 
@@ -456,7 +457,7 @@ void EXTI9_5_IRQHandler(void) {
     IRQ_ENTER(EXTI9_5_IRQn);
     Handle_EXTI_Irq(5);
     Handle_EXTI_Irq(6);
-    Handle_EXTI_Irq(7);
+    DCMI_VsyncExtiCallback();
     Handle_EXTI_Irq(8);
     Handle_EXTI_Irq(9);
     IRQ_EXIT(EXTI9_5_IRQn);
