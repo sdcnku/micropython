@@ -29,7 +29,7 @@ Functions
 Constructors
 ------------
 
-.. class:: time.Clock()
+.. class:: time.clock()
 
    Returns a clock object.
 
