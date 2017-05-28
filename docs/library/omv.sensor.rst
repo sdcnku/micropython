@@ -58,12 +58,22 @@ Functions
       ``line_filter`` is keyword arguments which must be explicitly invoked in
       the function call by writing ``line_filter=``.
 
-.. function:: sensor.skip_frames(n=10)
+.. function:: sensor.skip_frames([n, time])
 
    Takes ``n`` number of snapshots to let the camera image stabilize after
+   changing camera settings. ``n`` is passed as normal argument, e.g.
+   ``skip_frames(10)`` to skip 10 frames. You should call this function after
    changing camera settings.
 
-   .. note: You should call this function after changing camera settings.
+   Alternatively, you can pass the keyword argument ``time`` to skip frames
+   for some number of milliseconds, e.g. ``skip_frames(time = 2000)`` to skip
+   frames for 2000 milliseconds.
+
+   If neither ``n`` nor ``time`` is specified this method skips frames for
+   300 milliseconds.
+
+   If both are specified this method skips ``n`` number of frames but will
+   timeout after ``time`` milliseconds.
 
 .. function:: sensor.get_fb()
 
@@ -95,20 +105,34 @@ Functions
 
    Sets the frame size for the camera module.
 
-      * sensor.B40X30: 160x120 (for use with ``image.find_displacement``)
-      * sensor.B64X32: 160x120 (for use with ``image.find_displacement``)
-      * sensor.B64X64: 160x120 (for use with ``image.find_displacement``)
-      * sensor.QQVGA: 160x120
-      * sensor.QQVGA2: 128x160 (for use with the lcd shield)
-      * sensor.HQVGA: 220x160
-      * sensor.QVGA: 320x120
-      * sensor.VGA: 640x480 (only on the OpenMV Cam M7 in Grayscale)
-      * sensor.SVGA: 800x600 (only in JPEG mode for the OV2640 sensor)
-      * sensor.SXGA: 1280x1024 (only in JPEG mode for the OV2640 sensor)
-      * sensor.UXGA: 1600x1200 (only in JPEG mode for the OV2640 sensor)
+      * sensor.QQQQCIF: 22x18
+      * sensor.QQQCIF: 44x36
       * sensor.QQCIF: 88x72
       * sensor.QCIF: 176x144
       * sensor.CIF: 352x288
+      * sensor.QQQQSIF: 22x15
+      * sensor.QQQSIF: 44x30
+      * sensor.QQSIF: 88x60
+      * sensor.QSIF: 176x120
+      * sensor.SIF: 352x240
+      * sensor.QQQQVGA: 40x30
+      * sensor.QQQVGA: 80x60
+      * sensor.QQVGA: 160x120
+      * sensor.QVGA: 320x240
+      * sensor.VGA: 640x480
+      * sensor.HQQQQVGA: 40x20
+      * sensor.HQQQVGA: 80x40
+      * sensor.HQQVGA: 160x80
+      * sensor.HQVGA: 240x160
+      * sensor.HVGA: 480x320
+      * sensor.LCD: 128x160 (for use with the lcd shield)
+      * sensor.QQVGA2: 128x160 (for use with the lcd shield)
+      * sensor.B40x30: 160x120 (for use with ``image.find_displacement``)
+      * sensor.B64x32: 160x120 (for use with ``image.find_displacement``)
+      * sensor.B64x64: 160x120 (for use with ``image.find_displacement``)
+      * sensor.SVGA: 800x600 (only in JPEG mode for the OV2640 sensor)
+      * sensor.SXGA: 1280x1024 (only in JPEG mode for the OV2640 sensor)
+      * sensor.UXGA: 1600x1200 (only in JPEG mode for the OV2640 sensor)
 
 .. function:: sensor.set_windowing(roi)
 
@@ -212,6 +236,12 @@ Functions
    ``radi`` integer radius of pixels to correct (int).
    ``coef`` power of correction (int).
 
+.. function:: sensor.set_vsync_output(pin_object)
+
+   ``pin_object`` created with ``pyb.Pin``. The VSYNC signal from the camera
+   will be generated on this pin to power FSIN on another OpenMV Cam to sync
+   both camera image streams for stereo vision applications...
+
 .. function:: sensor.__write_reg(address, value)
 
    Write ``value`` (int) to camera register at ``address`` (int).
@@ -262,38 +292,13 @@ Constants
 
    ``sensor.get_id()`` returns this for the OV7725 camera.
 
-.. data:: sensor.B40X30
+.. data:: sensor.QQQQCIF
 
-   40x30 resolution for the camera sensor (for use with ``image.find_displacement``).
+   22x18 resolution for the camera sensor.
 
-.. data:: sensor.B64X32
+.. data:: sensor.QQQCIF
 
-   64x32 resolution for the camera sensor (for use with ``image.find_displacement``).
-
-.. data:: sensor.B64X64
-
-   64x64 resolution for the camera sensor (for use with ``image.find_displacement``).
-
-.. data:: sensor.QQVGA
-
-   160x120 resolution for the camera sensor.
-
-.. data:: sensor.QQVGA2
-
-   128x160 resolution for the camera sensor (for use with the lcd shield).
-
-.. data:: sensor.QVGA
-
-   320x120 resolution for the camera sensor.
-
-.. data:: sensor.HQVGA
-
-   220x160 resolution for the camera sensor.
-
-.. data:: sensor.VGA
-
-   640x480 resolution for the camera sensor.
-   Only works for the OV2640 camera or the OpenMV Cam M7.
+   44x36 resolution for the camera sensor.
 
 .. data:: sensor.QQCIF
 
@@ -307,20 +312,99 @@ Constants
 
    352x288 resolution for the camera sensor.
 
+.. data:: sensor.QQQQSIF
+
+   22x15 resolution for the camera sensor.
+
+.. data:: sensor.QQQSIF
+
+   44x30 resolution for the camera sensor.
+
+.. data:: sensor.QQSIF
+
+   88x60 resolution for the camera sensor.
+
+.. data:: sensor.QSIF
+
+   176x120 resolution for the camera sensor.
+
+.. data:: sensor.SIF
+
+   352x240 resolution for the camera sensor.
+
+.. data:: sensor.QQQQVGA
+
+   40x30 resolution for the camera sensor.
+
+.. data:: sensor.QQQVGA
+
+   80x60 resolution for the camera sensor.
+
+.. data:: sensor.QQVGA
+
+   160x120 resolution for the camera sensor.
+
+.. data:: sensor.QVGA
+
+   320x120 resolution for the camera sensor.
+
+.. data:: sensor.VGA
+
+   640x480 resolution for the camera sensor.
+   Only works for the OV2640 camera or the OpenMV Cam M7.
+
+.. data:: sensor.HQQQQVGA
+
+   30x20 resolution for the camera sensor.
+
+.. data:: sensor.HQQQVGA
+
+   60x40 resolution for the camera sensor.
+
+.. data:: sensor.HQQVGA
+
+   120x80 resolution for the camera sensor.
+
+.. data:: sensor.HQVGA
+
+   240x160 resolution for the camera sensor.
+
+.. data:: sensor.HVGA
+
+   480x320 resolution for the camera sensor.
+   Only works for the OV2640 camera or the OpenMV Cam M7.
+
+.. data:: sensor.LCD
+
+   128x160 resolution for the camera sensor (for use with the lcd shield).
+
+.. data:: sensor.QQVGA2
+
+   128x160 resolution for the camera sensor (for use with the lcd shield).
+
+.. data:: sensor.B40x30
+
+   40x30 resolution for the camera sensor (for use with ``image.find_displacement``).
+
+.. data:: sensor.B64x32
+
+   64x32 resolution for the camera sensor (for use with ``image.find_displacement``).
+
+.. data:: sensor.B64x64
+
+   64x64 resolution for the camera sensor (for use with ``image.find_displacement``).
+
 .. data:: sensor.SVGA
 
-   800x600 resolution for the camera sensor.
-   Only works for the OV2640 camera.
+   800x600 resolution for the camera sensor. Only works for the OV2640 camera.
 
 .. data:: sensor.SXGA
 
-   1280x1024 resolution for the camera sensor.
-   Only works for the OV2640 camera.
+   1280x1024 resolution for the camera sensor. Only works for the OV2640 camera.
 
 .. data:: sensor.UXGA
 
-   1600x1200 resolution for the camera sensor.
-   Only works for the OV2640 camera.
+   1600x1200 resolution for the camera sensor. Only works for the OV2640 camera.
 
 .. data:: sensor.NORMAL
 

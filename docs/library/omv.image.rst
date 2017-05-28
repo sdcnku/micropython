@@ -64,17 +64,7 @@ Functions
    distance metric as necessary. The distance is a measure of similarity. The
    closer it is to zero the better the LBP keypoint match.
 
-   For ORB descriptors this function returns a tuple containing the following
-   values:
-
-       * [0] - X Centroid (int)
-       * [1] - Y Centroid (int)
-       * [2] - Bounding Box X (int)
-       * [3] - Bounding Box Y (int)
-       * [4] - Bounding Box W (int)
-       * [5] - Bounding Box H (int)
-       * [6] - Number of keypoints matched (int)
-       * [7] - Estimated angle of rotation between keypoints in degrees.
+   For ORB descriptors this function returns the ``kptmatch`` object. See above.
 
    ``threshold`` is used for ORB keypoints to filter ambiguous matches. A lower
    ``threshold`` value tightens the keypoint matching algorithm. ``threshold``
@@ -1010,6 +1000,64 @@ The barcode object is returned by ``image.find_barcodes``.
 
    When scanning a barcode each new scanline can decode the same barcode. This
    value increments for a barcode each time that happens...
+
+   You may also get this value doing ``[7]`` on the object.
+
+class kptmatch -- Keypoint Object
+=================================
+
+The kptmatch object is returned by ``image.match_descriptor`` for keypoint matches.
+
+.. method:: kptmatch.rect()
+
+   Returns a rectangle tuple (x, y, w, h) for use with other ``image`` methods
+   like ``image.draw_rectangle`` of the kptmatch's bounding box.
+
+.. method:: kptmatch.cx()
+
+   Returns the centroid x position of the kptmatch (int).
+
+   You may also get this value doing ``[0]`` on the object.
+
+.. method:: kptmatch.cy()
+
+   Returns the centroid y position of the kptmatch (int).
+
+   You may also get this value doing ``[1]`` on the object.
+
+.. method:: kptmatch.x()
+
+   Returns the kptmatch's bounding box x coordinate (int).
+
+   You may also get this value doing ``[2]`` on the object.
+
+.. method:: kptmatch.y()
+
+   Returns the kptmatch's bounding box y coordinate (int).
+
+   You may also get this value doing ``[3]`` on the object.
+
+.. method:: kptmatch.w()
+
+   Returns the kptmatch's bounding box w coordinate (int).
+
+   You may also get this value doing ``[4]`` on the object.
+
+.. method:: kptmatch.h()
+
+   Returns the kptmatch's bounding box h coordinate (int).
+
+   You may also get this value doing ``[5]`` on the object.
+
+.. method:: kptmatch.match()
+
+   Returns the number of keypoints matched (int).
+
+   You may also get this value doing ``[6]`` on the object.
+
+.. method:: kptmatch.theta()
+
+   Returns the estimated angle of rotation for the keypoint (int).
 
    You may also get this value doing ``[7]`` on the object.
 
