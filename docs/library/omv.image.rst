@@ -1383,20 +1383,9 @@ Methods
 
    Not supported on compressed images.
 
-.. method:: image.nand(image)
+.. method:: image.b_and(image)
 
-   Logically NANDs this image with another image.
-
-   ``image`` can either be an image object or a path to an uncompressed image
-   file (bmp/pgm/ppm).
-
-   Both images must be the same size and the same type (grayscale/rgb).
-
-   Not supported on compressed images.
-
-.. method:: image.nor(image)
-
-   Logically NORs this image with another image.
+   Logically ANDs this image with another image.
 
    ``image`` can either be an image object or a path to an uncompressed image
    file (bmp/pgm/ppm).
@@ -1405,9 +1394,9 @@ Methods
 
    Not supported on compressed images.
 
-.. method:: image.xor(image)
+.. method:: image.b_or(image)
 
-   Logically XORs this image with another image.
+   Logically ORs this image with another image.
 
    ``image`` can either be an image object or a path to an uncompressed image
    file (bmp/pgm/ppm).
@@ -1416,9 +1405,46 @@ Methods
 
    Not supported on compressed images.
 
-.. method:: image.xnor(image)
+.. method:: image.b_nand(image)
 
-   Logically XNORs this image with another image.
+   Logically NANDs this image with another image. You can also invoke this
+   method by using ``image.nand``.
+
+   ``image`` can either be an image object or a path to an uncompressed image
+   file (bmp/pgm/ppm).
+
+   Both images must be the same size and the same type (grayscale/rgb).
+
+   Not supported on compressed images.
+
+.. method:: image.b_nor(image)
+
+   Logically NORs this image with another image. You can also invoke this
+   method by using ``image.nor``.
+
+   ``image`` can either be an image object or a path to an uncompressed image
+   file (bmp/pgm/ppm).
+
+   Both images must be the same size and the same type (grayscale/rgb).
+
+   Not supported on compressed images.
+
+.. method:: image.b_xor(image)
+
+   Logically XORs this image with another image. You can also invoke this
+   method by using ``image.xor``.
+
+   ``image`` can either be an image object or a path to an uncompressed image
+   file (bmp/pgm/ppm).
+
+   Both images must be the same size and the same type (grayscale/rgb).
+
+   Not supported on compressed images.
+
+.. method:: image.b_xnor(image)
+
+   Logically XNORs this image with another image. You can also invoke this
+   method by using ``image.xnor``.
 
    ``image`` can either be an image object or a path to an uncompressed image
    file (bmp/pgm/ppm).
