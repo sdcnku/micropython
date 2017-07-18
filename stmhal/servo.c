@@ -41,7 +41,7 @@
 // this servo driver uses hardware PWM to drive servos on PD12, PD13 
 // TIM4 have CH1, CH2 PD12-PD13 respectively
 
-#define PYB_SERVO_NUM (2)
+#define PYB_SERVO_NUM (3)
 
 typedef struct _pyb_servo_obj_t {
     mp_obj_base_t base;
@@ -103,6 +103,7 @@ void servo_timer_irq_callback(void) {
             switch (s->servo_id) {
                 case 1: TIM4->CCR1 = s->pulse_cur; break;
                 case 2: TIM4->CCR2 = s->pulse_cur; break;
+                case 3: TIM4->CCR3 = s->pulse_cur; break;
             }
         }
     }
@@ -119,6 +120,7 @@ STATIC void servo_init_channel(pyb_servo_obj_t *s) {
     switch (s->servo_id) {
         case 1: pin = GPIO_PIN_12; channel = TIM_CHANNEL_1; break;
         case 2: pin = GPIO_PIN_13; channel = TIM_CHANNEL_2; break;
+        case 3: pin = GPIO_PIN_14; channel = TIM_CHANNEL_3; break;
         default: return;
     }
 
@@ -154,6 +156,7 @@ STATIC mp_obj_t pyb_servo_set(mp_obj_t port, mp_obj_t value) {
     switch (p) {
         case 1: TIM4->CCR1 = v; break;
         case 2: TIM4->CCR2 = v; break;
+        case 3: TIM4->CCR3 = v; break;
     }
     return mp_const_none;
 }
