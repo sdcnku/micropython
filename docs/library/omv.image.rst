@@ -532,7 +532,7 @@ Methods
 class Line -- Line object
 =========================
 
-The line object is returned by ``image.find_lines`` or ``image.find_line_segments``.
+The line object is returned by ``image.find_lines``, ``image.find_line_segments``, or ``image.get_regression``.
 
 .. method:: line.line()
 
@@ -587,10 +587,98 @@ The line object is returned by ``image.find_lines`` or ``image.find_line_segment
 
    You may also get this value doing ``[8]`` on the object.
 
+class Circle -- Circle object
+=============================
+
+The circle object is returned by ``image.find_circles``.
+
+Methods
+-------
+
+.. method:: circle.x()
+
+   Returns the circle's x position.
+
+   You may also get this value doing ``[0]`` on the object.
+
+.. method:: circle.y()
+
+   Returns the circle's y position.
+
+   You may also get this value doing ``[1]`` on the object.
+
+.. method:: circle.r()
+
+   Returns the circle's radius.
+
+   You may also get this value doing ``[2]`` on the object.
+
+.. method:: circle.magnitude()
+
+   Returns the circle's magnitude.
+
+   You may also get this value doing ``[3]`` on the object.
+
+class Rect -- Rectangle Object
+==============================
+
+The rect object is returned by ``image.find_rects``.
+
+Methods
+-------
+
+.. method:: rect.corners()
+
+   Returns a list of 4 (x,y) tuples of the 4 corners of the object. Corners are
+   always returned in sorted clock-wise order starting from the top left.
+
+.. method:: rect.rect()
+
+   Returns a rectangle tuple (x, y, w, h) for use with other ``image`` methods
+   like ``image.draw_rectangle`` of the rect's bounding box.
+
+.. method:: rect.x()
+
+   Returns the rectangle's top left corner's x position.
+
+   You may also get this value doing ``[0]`` on the object.
+
+.. method:: rect.y()
+
+   Returns the rectangle's top left corner's y position.
+
+   You may also get this value doing ``[1]`` on the object.
+
+.. method:: rect.w()
+
+   Returns the rectangle's width.
+
+   You may also get this value doing ``[2]`` on the object.
+
+.. method:: rect.h()
+
+   Returns the rectangle's height.
+
+   You may also get this value doing ``[3]`` on the object.
+
+.. method:: rect.magnitude()
+
+   Returns the rectangle's magnitude.
+
+   You may also get this value doing ``[4]`` on the object.
+
 class QRCode -- QRCode object
 =============================
 
 The qrcode object is returned by ``image.find_qrcodes``.
+
+Methods
+-------
+
+.. method:: qrcode.corners()
+
+   Returns a list of 4 (x,y) tuples of the 4 corners of the object. Corners are
+   always returned in sorted clock-wise order starting from the top left.
 
 .. method:: qrcode.rect()
 
@@ -685,6 +773,14 @@ class AprilTag -- AprilTag object
 =================================
 
 The apriltag object is returned by ``image.find_apriltags``.
+
+Methods
+-------
+
+.. method:: apriltag.corners()
+
+   Returns a list of 4 (x,y) tuples of the 4 corners of the object. Corners are
+   always returned in sorted clock-wise order starting from the top left.
 
 .. method:: apriltag.rect()
 
@@ -860,6 +956,14 @@ class DataMatrix -- DataMatrix object
 
 The datamatrix object is returned by ``image.find_datamatrices``.
 
+Methods
+-------
+
+.. method:: datamatrix.corners()
+
+   Returns a list of 4 (x,y) tuples of the 4 corners of the object. Corners are
+   always returned in sorted clock-wise order starting from the top left.
+
 .. method:: datamatrix.rect()
 
    Returns a rectangle tuple (x, y, w, h) for use with other ``image`` methods
@@ -929,6 +1033,14 @@ class BarCode -- BarCode object
 ===============================
 
 The barcode object is returned by ``image.find_barcodes``.
+
+Methods
+-------
+
+.. method:: barcode.corners()
+
+   Returns a list of 4 (x,y) tuples of the 4 corners of the object. Corners are
+   always returned in sorted clock-wise order starting from the top left.
 
 .. method:: barcode.rect()
 
@@ -1008,6 +1120,9 @@ class kptmatch -- Keypoint Object
 
 The kptmatch object is returned by ``image.match_descriptor`` for keypoint matches.
 
+Methods
+-------
+
 .. method:: kptmatch.rect()
 
    Returns a rectangle tuple (x, y, w, h) for use with other ``image`` methods
@@ -1060,6 +1175,77 @@ The kptmatch object is returned by ``image.match_descriptor`` for keypoint match
    Returns the estimated angle of rotation for the keypoint (int).
 
    You may also get this value doing ``[7]`` on the object.
+
+class ImageWriter -- ImageWriter object
+=======================================
+
+The ImageWriter object allows you to write uncompressed images to disk quickly.
+
+Constructors
+------------
+
+.. class:: image.ImageWriter(path)
+
+   Creates an ImageWriter object which allow you to write uncompressed images
+   to disk in a simple file format for OpenMV Cams. The uncompressed images
+   may then read back in using the ImageReader class.
+
+Methods
+-------
+
+.. method:: imagewriter.size()
+
+   Returns the size of the file being written to.
+
+.. method:: imagewriter.add_frame(img)
+
+   Writes an image to disk. Since the image is uncompressed this executes
+   quickly but uses up a large amount of disk space.
+
+.. method:: imagewriter.close()
+
+   Closes the image stream file. You must close files or they become corrupted.
+
+class ImageReader -- ImageReader object
+=======================================
+
+The ImageReader object allows you to read uncompressed images from disk quickly.
+
+Constructors
+------------
+
+.. class:: image.ImageReader(path)
+
+   Creates an ImageReader object that plays back image data written by an
+   ImageWriter object. The frames played back by the ImageWriter object will
+   be played back at the same FPS as they were written to disk at.
+
+Methods
+-------
+
+.. method:: imagereader.size()
+
+   Returns the size of the file being read.
+
+.. method:: imagereader.next_frame([copy_to_fb=True, loop=True])
+
+   Returns an image object from the file written by ImageWriter. If
+   ``copy_to_fb`` is True then the image object will be directly loaded into
+   the frame buffer. Otherwise, the image object will be placed in the heap.
+   Note that unless the image is small the heap likely doesn't have enough
+   space to store the image object. If ``loop`` is True then after the last
+   image from the stream is read playback will start from the beginning again.
+   Otherwise, this method will return None after all frames have been read.
+
+   Note that next_frame() tries to limit playback speed by pausing after
+   reading frames to match the speed frames were recorded at. Otherwise this
+   method would zoom through all images at 200+ FPS.
+
+.. method:: imagereader.close()
+
+   Closes the file being read. You should do this before destroying the
+   imagereader object. However, since the file is being only read it will
+   not be corrupted if it is not closed...
 
 class Image -- Image object
 ===========================
@@ -1705,7 +1891,72 @@ Methods
       ``roi``, ``bin_count``, and etc. are keyword arguments which must be
       explicitly invoked in the function call by writing ``roi=``, etc.
 
-.. method:: image.find_blobs(thresholds, roi=Auto, x_stride=2, y_stride=1, invert=False, area_threshold=10, pixels_threshold=10, merge=False, margin=0, threshold_cb=None, merge_cb=None)
+.. method:: image.get_linear_regression(thresholds, [roi=Auto, x_stride=2, y_stride=1, invert=False, robust=False])
+
+   Computes a linear regression on all the thresholded pixels in the image. The
+   linear regression is computed using least-squares normally which is fast but
+   cannot handle any outliers. If ``robust`` is True then the Theil–Sen linear
+   regression is used instead which computes the median of all slopes between
+   all thresholded pixels in the image. This is an N^2 operation which may drops
+   your FPS down to below 5 even on an 80x60 image if too many pixels are set
+   after thresholding. However, as long as the number of pixels set after
+   thresholding remains low the linear regression will be valid even in the case
+   of up to 30% of the thresholded pixels being outliers (e.g. it's robust).
+
+   This method returns a ``line`` object. See this blog post on how to use the
+   line object easily: https://openmv.io/blogs/news/linear-regression-line-following
+
+   ``thresholds`` must be a list of tuples
+   ``[(lo, hi), (lo, hi), ..., (lo, hi)]`` defining the ranges of color you
+   want to track. You may pass up to 16 threshold tuples in one
+   ``image.find_blobs`` call. For grayscale images each tuple needs to contain
+   two values - a min grayscale value and a max grayscale value. Only pixel
+   regions that fall between these thresholds will be considered. For RGB565
+   images each tuple needs to have six values (l_lo, l_hi, a_lo, a_hi, b_lo,
+   b_hi) - which are minimums and maximums for the LAB L, A, and B channels
+   respectively. For easy usage this function will automatically fix swapped
+   min and max values. Additionally, if a tuple is larger than six values the
+   rest are ignored. Conversely, if the tuple is too short the rest of the
+   thresholds are assumed to be zero.
+
+   .. note::
+
+      To get the thresholds for the object you want to track just select (click
+      and drag) on the object you want to track in the IDE frame buffer. The
+      histogram will then update to just be in that area. Then just write down
+      where the color distribution starts and falls off in each histogram channel.
+      These will be your low and high values for ``thresholds``. It's best to
+      manually determine the thresholds versus using the upper and lower
+      quartile statistics because they are too tight.
+
+      The latest version of OpenMV IDE features a threshold editor to help make
+      picking thresholds easer. It lets you control the threshold with sliders
+      so you can see what the thresholds are segmenting.
+
+   ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+   specified, it is equal to the image rectangle. Only pixels within the
+   ``roi`` are operated on.
+
+   ``x_stride`` is the number of x pixels to skip when searching for a blob.
+   Once a blob is found the line fill algorithm will be pixel accurate.
+   Increase ``x_stride`` to speed up finding blobs if blobs are know to be large.
+
+   ``y_stride`` is the number of y pixels to skip when searching for a blob.
+   Once a blob is found the line fill algorithm will be pixel accurate.
+   Increase ``y_stride`` to speed up finding blobs if blobs are know to be large.
+
+   ``invert`` inverts the thresholding operation such that instead of matching
+   pixels inside of some known color bounds pixels are matched that are outside
+   of the known color bounds.
+
+   Not supported on compressed images.
+
+   .. note::
+
+      All the arguments except ``thresholds`` are keyword arguments and must
+      be explicitly invoked with their name and an equal sign.
+
+.. method:: image.find_blobs(thresholds, [roi=Auto, x_stride=2, y_stride=1, invert=False, area_threshold=10, pixels_threshold=10, merge=False, margin=0, threshold_cb=None, merge_cb=None])
 
    Finds all blobs (connected pixel regions that pass a threshold test) in the
    image and returns a list of ``blob`` objects which describe each blob.
@@ -1877,6 +2128,71 @@ Methods
 
       All the arguments are keyword arguments and must be explicitly invoked
       with their name and an equal sign.
+
+.. method:: image.find_circles([roi=Auto, x_stride=2, y_stride=1, threshold=1600, x_margin=10, y_margin=10, r_margin=10])
+
+   Finds circles in the image using the hough transform. Returns a list of
+   ``circle`` objects (see above).
+
+   ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+   specified, it is equal to the image rectangle. Only pixels within the
+   ``roi`` are operated on.
+
+   ``x_stride`` is the number of x pixels to skip when doing the hough transform.
+   Only increase this if circles you are searching for are large and bulky.
+
+   ``y_stride`` is the number of y pixels to skip when doing the hough transform.
+   Only increase this if circles you are searching for are large and bulky.
+
+   ``threshold`` controls what circles are detected from the hough transform. Only
+   circles with a magnitude greater than or equal to ``threshold`` are returned. The
+   right value of ``threshold`` for your application is image dependent. Note that
+   the magnitude of a circle is the sum of all sobel filter magnitudes of pixels
+   that make up that circle.
+
+   ``x_margin`` controls the merging of detected circles. Circles which are
+   ``x_margin``, ``y_margin``, and ``r_margin`` pixels apart are merged.
+
+   ``y_margin`` controls the merging of detected circles. Circles which are
+   ``x_margin``, ``y_margin``, and ``r_margin`` pixels apart are merged.
+
+   ``r_margin`` controls the merging of detected circles. Circles which are
+   ``x_margin``, ``y_margin``, and ``r_margin`` pixels apart are merged.
+
+   .. note::
+
+      All the arguments are keyword arguments and must be explicitly invoked
+      with their name and an equal sign.
+
+   .. note::
+
+      This method is only for the OpenMV Cam M7.
+
+.. method:: image.find_rects([roi=Auto, threshold=10000])
+
+   Find rectangles in the image using the quad detection algorithm used to find
+   apriltags. Works best of rectangles that have good contrast against their
+   background. The apriltag quad detection algorithm can handle
+   any scale/rotation/shear on rectangles. Returns a list of ``rect`` objects
+   (see above).
+
+   ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+   specified, it is equal to the image rectangle. Only pixels within the
+   ``roi`` are operated on.
+
+   Rectangles which have an edge magnitude (which is computed by sliding the
+   sobel operator across all pixels on the edges of the rectangle and summing
+   the value) less than ``threshold`` are filtered out of the returned list.
+   The correct value of ``threshold`` is depended on your application/scene.
+
+   .. note::
+
+      All the arguments are keyword arguments and must be explicitly invoked
+      with their name and an equal sign.
+
+   .. note::
+
+      This method is only for the OpenMV Cam M7.
 
 .. method:: image.find_qrcodes(roi=Auto)
 

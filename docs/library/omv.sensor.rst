@@ -27,6 +27,12 @@ Functions
 
    Initializes the camera sensor.
 
+.. function:: sensor.flush()
+
+   Copies whatever was in the frame buffer to the IDE. You should call this
+   method to display the last image your OpenMV Cam takes if it's not running
+   a script with an infinite loop.
+
 .. function:: sensor.snapshot(line_filter=None)
 
    Takes a picture using the camera and returns an ``image`` object.
@@ -74,6 +80,14 @@ Functions
 
    If both are specified this method skips ``n`` number of frames but will
    timeout after ``time`` milliseconds.
+
+.. function:: sensor.width()
+
+   Returns the sensor resolution width.
+
+.. function:: sensor.height()
+
+   Returns the sensor resolution height.
 
 .. function:: sensor.get_fb()
 
