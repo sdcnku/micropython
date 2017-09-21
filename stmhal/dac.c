@@ -67,7 +67,7 @@
 ///     dac = DAC(1)
 ///     dac.write_timed(buf, 400 * len(buf), mode=DAC.CIRCULAR)
 
-#if MICROPY_HW_ENABLE_DAC
+#if defined(MICROPY_HW_ENABLE_DAC) && MICROPY_HW_ENABLE_DAC
 
 STATIC DAC_HandleTypeDef DAC_Handle;
 
@@ -139,7 +139,7 @@ typedef enum {
 typedef struct _pyb_dac_obj_t {
     mp_obj_base_t base;
     uint32_t dac_channel; // DAC_CHANNEL_1 or DAC_CHANNEL_2
-    DMA_Stream_TypeDef *dma_stream; // DMA1_Stream5 or DMA1_Stream6
+    const dma_descr_t *tx_dma_descr;
     uint16_t pin; // GPIO_PIN_4 or GPIO_PIN_5
     uint8_t bits; // 8 or 12
     uint8_t state;
@@ -162,9 +162,23 @@ STATIC mp_obj_t pyb_dac_init_helper(pyb_dac_obj_t *self, mp_uint_t n_args, const
     HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
 
     // DAC peripheral clock
+    #if defined(MCU_SERIES_F4) || defined(MCU_SERIES_F7)
     __DAC_CLK_ENABLE();
+    #elif defined(MCU_SERIES_L4)
+    __HAL_RCC_DAC1_CLK_ENABLE();
+    #else
+    #error Unsupported Processor
+    #endif
 
     // stop anything already going on
+    __DMA1_CLK_ENABLE();
+    DMA_HandleTypeDef DMA_Handle;
+    /* Get currently configured dma */
+    dma_init_handle(&DMA_Handle, self->tx_dma_descr, (void*)NULL);
+    // Need to deinit DMA first
+    DMA_Handle.State = HAL_DMA_STATE_READY;
+    HAL_DMA_DeInit(&DMA_Handle);
+
     HAL_DAC_Stop(&DAC_Handle, self->dac_channel);
     if ((self->dac_channel == DAC_CHANNEL_1 && DAC_Handle.DMA_Handle1 != NULL)
             || (self->dac_channel == DAC_CHANNEL_2 && DAC_Handle.DMA_Handle2 != NULL)) {
@@ -192,7 +206,7 @@ STATIC mp_obj_t pyb_dac_init_helper(pyb_dac_obj_t *self, mp_uint_t n_args, const
 ///
 /// `port` can be a pin object, or an integer (1 or 2).
 /// DAC(1) is on pin X5 and DAC(2) is on pin X6.
-STATIC mp_obj_t pyb_dac_make_new(const mp_obj_type_t *type, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
+STATIC mp_obj_t pyb_dac_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *args) {
     // check arguments
     mp_arg_check_num(n_args, n_kw, 1, MP_OBJ_FUN_ARGS_MAX, true);
 
@@ -215,11 +229,11 @@ STATIC mp_obj_t pyb_dac_make_new(const mp_obj_type_t *type, mp_uint_t n_args, mp
     if (dac_id == 1) {
         dac->pin = GPIO_PIN_4;
         dac->dac_channel = DAC_CHANNEL_1;
-        dac->dma_stream = DMA_STREAM_DAC1;
+        dac->tx_dma_descr = &dma_DAC_1_TX;
     } else if (dac_id == 2) {
         dac->pin = GPIO_PIN_5;
         dac->dac_channel = DAC_CHANNEL_2;
-        dac->dma_stream = DMA_STREAM_DAC2;
+        dac->tx_dma_descr = &dma_DAC_2_TX;
     } else {
         nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_ValueError, "DAC %d does not exist", dac_id));
     }
@@ -237,6 +251,21 @@ STATIC mp_obj_t pyb_dac_init(mp_uint_t n_args, const mp_obj_t *args, mp_map_t *k
     return pyb_dac_init_helper(args[0], n_args - 1, args + 1, kw_args);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(pyb_dac_init_obj, 1, pyb_dac_init);
+
+/// \method deinit()
+/// Turn off the DAC, enable other use of pin.
+STATIC mp_obj_t pyb_dac_deinit(mp_obj_t self_in) {
+    pyb_dac_obj_t *self = self_in;
+    if (self->dac_channel == DAC_CHANNEL_1) {
+        DAC_Handle.Instance->CR &= ~DAC_CR_EN1;
+        DAC_Handle.Instance->CR |= DAC_CR_BOFF1;
+    } else {
+        DAC_Handle.Instance->CR &= ~DAC_CR_EN2;
+        DAC_Handle.Instance->CR |= DAC_CR_BOFF2;
+    }
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(pyb_dac_deinit_obj, pyb_dac_deinit);
 
 #if defined(TIM6)
 /// \method noise(freq)
@@ -369,9 +398,12 @@ mp_obj_t pyb_dac_write_timed(mp_uint_t n_args, const mp_obj_t *pos_args, mp_map_
 
     __DMA1_CLK_ENABLE();
 
+    DMA_HandleTypeDef DMA_Handle;
+    /* Get currently configured dma */
+    dma_init_handle(&DMA_Handle, self->tx_dma_descr, (void*)NULL);
     /*
-    DMA_Cmd(self->dma_stream, DISABLE);
-    while (DMA_GetCmdStatus(self->dma_stream) != DISABLE) {
+    DMA_Cmd(DMA_Handle->Instance, DISABLE);
+    while (DMA_GetCmdStatus(DMA_Handle->Instance) != DISABLE) {
     }
 
     DAC_Cmd(self->dac_channel, DISABLE);
@@ -387,18 +419,10 @@ mp_obj_t pyb_dac_write_timed(mp_uint_t n_args, const mp_obj_t *pos_args, mp_map_
     DAC_Init(self->dac_channel, &DAC_InitStructure);
     */
 
-    // DMA1_Stream[67] channel7 configuration
-    DMA_HandleTypeDef DMA_Handle;
-    DMA_Handle.Instance = self->dma_stream;
-
     // Need to deinit DMA first
     DMA_Handle.State = HAL_DMA_STATE_READY;
     HAL_DMA_DeInit(&DMA_Handle);
 
-    DMA_Handle.Init.Channel = DMA_CHANNEL_DAC1;  // DAC1 & DAC2 both use the same channel
-    DMA_Handle.Init.Direction = DMA_MEMORY_TO_PERIPH;
-    DMA_Handle.Init.PeriphInc = DMA_PINC_DISABLE;
-    DMA_Handle.Init.MemInc = DMA_MINC_ENABLE;
     if (self->bits == 8) {
         DMA_Handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
         DMA_Handle.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
@@ -407,11 +431,6 @@ mp_obj_t pyb_dac_write_timed(mp_uint_t n_args, const mp_obj_t *pos_args, mp_map_
         DMA_Handle.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
     }
     DMA_Handle.Init.Mode = args[2].u_int;
-    DMA_Handle.Init.Priority = DMA_PRIORITY_HIGH;
-    DMA_Handle.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
-    DMA_Handle.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_HALFFULL;
-    DMA_Handle.Init.MemBurst = DMA_MBURST_SINGLE;
-    DMA_Handle.Init.PeriphBurst = DMA_PBURST_SINGLE;
     HAL_DMA_Init(&DMA_Handle);
 
     if (self->dac_channel == DAC_CHANNEL_1) {
@@ -442,8 +461,8 @@ mp_obj_t pyb_dac_write_timed(mp_uint_t n_args, const mp_obj_t *pos_args, mp_map_
 
     /*
     // enable DMA stream
-    DMA_Cmd(self->dma_stream, ENABLE);
-    while (DMA_GetCmdStatus(self->dma_stream) == DISABLE) {
+    DMA_Cmd(DMA_Handle->Instance, ENABLE);
+    while (DMA_GetCmdStatus(DMA_Handle->Instance) == DISABLE) {
     }
 
     // enable DAC channel
@@ -460,19 +479,20 @@ mp_obj_t pyb_dac_write_timed(mp_uint_t n_args, const mp_obj_t *pos_args, mp_map_
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(pyb_dac_write_timed_obj, 1, pyb_dac_write_timed);
 #endif
 
-STATIC const mp_map_elem_t pyb_dac_locals_dict_table[] = {
+STATIC const mp_rom_map_elem_t pyb_dac_locals_dict_table[] = {
     // instance methods
-    { MP_OBJ_NEW_QSTR(MP_QSTR_init), (mp_obj_t)&pyb_dac_init_obj },
-    { MP_OBJ_NEW_QSTR(MP_QSTR_write), (mp_obj_t)&pyb_dac_write_obj },
+    { MP_ROM_QSTR(MP_QSTR_init), MP_ROM_PTR(&pyb_dac_init_obj) },
+    { MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&pyb_dac_deinit_obj) },
+    { MP_ROM_QSTR(MP_QSTR_write), MP_ROM_PTR(&pyb_dac_write_obj) },
     #if defined(TIM6)
-    { MP_OBJ_NEW_QSTR(MP_QSTR_noise), (mp_obj_t)&pyb_dac_noise_obj },
-    { MP_OBJ_NEW_QSTR(MP_QSTR_triangle), (mp_obj_t)&pyb_dac_triangle_obj },
-    { MP_OBJ_NEW_QSTR(MP_QSTR_write_timed), (mp_obj_t)&pyb_dac_write_timed_obj },
+    { MP_ROM_QSTR(MP_QSTR_noise), MP_ROM_PTR(&pyb_dac_noise_obj) },
+    { MP_ROM_QSTR(MP_QSTR_triangle), MP_ROM_PTR(&pyb_dac_triangle_obj) },
+    { MP_ROM_QSTR(MP_QSTR_write_timed), MP_ROM_PTR(&pyb_dac_write_timed_obj) },
     #endif
 
     // class constants
-    { MP_OBJ_NEW_QSTR(MP_QSTR_NORMAL),      MP_OBJ_NEW_SMALL_INT(DMA_NORMAL) },
-    { MP_OBJ_NEW_QSTR(MP_QSTR_CIRCULAR),    MP_OBJ_NEW_SMALL_INT(DMA_CIRCULAR) },
+    { MP_ROM_QSTR(MP_QSTR_NORMAL), MP_ROM_INT(DMA_NORMAL) },
+    { MP_ROM_QSTR(MP_QSTR_CIRCULAR), MP_ROM_INT(DMA_CIRCULAR) },
 };
 
 STATIC MP_DEFINE_CONST_DICT(pyb_dac_locals_dict, pyb_dac_locals_dict_table);
@@ -481,7 +501,7 @@ const mp_obj_type_t pyb_dac_type = {
     { &mp_type_type },
     .name = MP_QSTR_DAC,
     .make_new = pyb_dac_make_new,
-    .locals_dict = (mp_obj_t)&pyb_dac_locals_dict,
+    .locals_dict = (mp_obj_dict_t*)&pyb_dac_locals_dict,
 };
 
 #endif // MICROPY_HW_ENABLE_DAC

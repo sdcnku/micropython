@@ -36,7 +36,7 @@ information they hold.
 Using the IP address we can make a socket and connect to the server::
 
     >>> s = socket.socket()
-    >>> s.connect(addr[0][-1])
+    >>> s.connect(addr)
 
 Now that we are connected we can download and display the data::
 
@@ -72,6 +72,7 @@ Let's define a function that can download and print a URL::
                 print(str(data, 'utf8'), end='')
             else:
                 break
+        s.close()
 
 Make sure that you import the socket module before running this function.  Then
 you can try::

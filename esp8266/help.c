@@ -24,11 +24,9 @@
  * THE SOFTWARE.
  */
 
-#include <stdio.h>
+#include "py/builtin.h"
 
-#include "lib/utils/pyhelp.h"
-
-STATIC const char *help_text =
+const char *esp_help_text =
 "Welcome to MicroPython!\n"
 "\n"
 "For online docs please visit http://docs.micropython.org/en/latest/esp8266/ .\n"
@@ -37,7 +35,7 @@ STATIC const char *help_text =
 "Basic WiFi configuration:\n"
 "\n"
 "import network\n"
-"sta_if = network.WLAN(network.STA_IF)\n"
+"sta_if = network.WLAN(network.STA_IF); sta_if.active(True)\n"
 "sta_if.scan()                             # Scan for available access points\n"
 "sta_if.connect(\"<AP_name>\", \"<password>\") # Connect to an AP\n"
 "sta_if.isconnected()                      # Check for successful connection\n"
@@ -54,17 +52,3 @@ STATIC const char *help_text =
 "\n"
 "For further help on a specific object, type help(obj)\n"
 ;
-
-STATIC mp_obj_t builtin_help(uint n_args, const mp_obj_t *args) {
-    if (n_args == 0) {
-        // print a general help message
-        printf("%s", help_text);
-
-    } else {
-        // try to print something sensible about the given object
-        pyhelp_print_obj(args[0]);
-    }
-
-    return mp_const_none;
-}
-MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mp_builtin_help_obj, 0, 1, builtin_help);

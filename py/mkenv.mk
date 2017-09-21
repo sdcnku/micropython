@@ -58,6 +58,10 @@ CXX += -m32
 LD += -m32
 endif
 
+MAKE_FROZEN = $(TOP)/tools/make-frozen.py
+MPY_CROSS = $(TOP)/mpy-cross/mpy-cross
+MPY_TOOL = $(TOP)/tools/mpy-tool.py
+
 all:
 .PHONY: all
 

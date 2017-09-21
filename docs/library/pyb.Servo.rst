@@ -1,3 +1,4 @@
+.. currentmodule:: pyb
 .. _pyb.Servo:
 
 class Servo -- 3-wire hobby servo driver
@@ -72,7 +73,7 @@ Constructors
 Methods
 -------
 
-.. method:: servo.angle([angle, time=0])
+.. method:: Servo.angle([angle, time=0])
 
    If no arguments are given, this function returns the current angle.
 
@@ -83,7 +84,7 @@ Methods
        angle. If omitted, then the servo moves as quickly as possible to its
        new position.
 
-.. method:: servo.speed([speed, time=0])
+.. method:: Servo.speed([speed, time=0])
 
    If no arguments are given, this function returns the current speed.
 
@@ -93,14 +94,14 @@ Methods
      - ``time`` is the number of milliseconds to take to get to the specified
        speed. If omitted, then the servo accelerates as quickly as possible.
 
-.. method:: servo.pulse_width([value])
+.. method:: Servo.pulse_width([value])
 
    If no arguments are given, this function returns the current raw pulse-width
    value.
 
    If an argument is given, this function sets the raw pulse-width value.
 
-.. method:: servo.calibration([pulse_min, pulse_max, pulse_centre, [pulse_angle_90, pulse_speed_100]])
+.. method:: Servo.calibration([pulse_min, pulse_max, pulse_centre, [pulse_angle_90, pulse_speed_100]])
 
    If no arguments are given, this function returns the current calibration
    data, as a 5-tuple.

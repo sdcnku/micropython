@@ -88,7 +88,7 @@ bool mp_repl_continue_with_input(const char *input) {
             } else if (in_quote == Q_NONE || in_quote == Q_1_DOUBLE) {
                 in_quote = Q_1_DOUBLE - in_quote;
             }
-        } else if (*i == '\\' && (i[1] == '\'' || i[1] == '"')) {
+        } else if (*i == '\\' && (i[1] == '\'' || i[1] == '"' || i[1] == '\\')) {
             if (in_quote != Q_NONE) {
                 i++;
             }
@@ -126,6 +126,7 @@ bool mp_repl_continue_with_input(const char *input) {
 
 mp_uint_t mp_repl_autocomplete(const char *str, mp_uint_t len, const mp_print_t *print, const char **compl_str) {
     // scan backwards to find start of "a.b.c" chain
+    const char *org_str = str;
     const char *top = str + len;
     for (const char *s = top; --s >= str;) {
         if (!(unichar_isalpha(*s) || unichar_isdigit(*s) || *s == '_' || *s == '.')) {
@@ -152,7 +153,7 @@ mp_uint_t mp_repl_autocomplete(const char *str, mp_uint_t len, const mp_print_t 
             mp_obj_t obj = MP_OBJ_NULL;
             for (mp_uint_t i = 0; i < dict->map.alloc; i++) {
                 if (MP_MAP_SLOT_IS_FILLED(&dict->map, i)) {
-                    mp_uint_t d_len;
+                    size_t d_len;
                     const char *d_str = mp_obj_str_get_data(dict->map.table[i].key, &d_len);
                     if (s_len == d_len && strncmp(s_start, d_str, d_len) == 0) {
                         obj = dict->map.table[i].value;
@@ -196,7 +197,7 @@ mp_uint_t mp_repl_autocomplete(const char *str, mp_uint_t len, const mp_print_t 
             mp_uint_t match_len = 0;
             for (mp_uint_t i = 0; i < dict->map.alloc; i++) {
                 if (MP_MAP_SLOT_IS_FILLED(&dict->map, i)) {
-                    mp_uint_t d_len;
+                    size_t d_len;
                     const char *d_str = mp_obj_str_get_data(dict->map.table[i].key, &d_len);
                     if (s_len <= d_len && strncmp(s_start, d_str, s_len) == 0) {
                         if (match_str == NULL) {
@@ -219,6 +220,16 @@ mp_uint_t mp_repl_autocomplete(const char *str, mp_uint_t len, const mp_print_t 
 
             // nothing found
             if (n_found == 0) {
+                // If there're no better alternatives, and if it's first word
+                // in the line, try to complete "import".
+                if (s_start == org_str) {
+                    static const char import_str[] = "import ";
+                    if (memcmp(s_start, import_str, s_len) == 0) {
+                        *compl_str = import_str + s_len;
+                        return sizeof(import_str) - 1 - s_len;
+                    }
+                }
+
                 return 0;
             }
 
@@ -236,7 +247,7 @@ mp_uint_t mp_repl_autocomplete(const char *str, mp_uint_t len, const mp_print_t 
             int line_len = MAX_LINE_LEN; // force a newline for first word
             for (mp_uint_t i = 0; i < dict->map.alloc; i++) {
                 if (MP_MAP_SLOT_IS_FILLED(&dict->map, i)) {
-                    mp_uint_t d_len;
+                    size_t d_len;
                     const char *d_str = mp_obj_str_get_data(dict->map.table[i].key, &d_len);
                     if (s_len <= d_len && strncmp(s_start, d_str, s_len) == 0) {
                         int gap = (line_len + WORD_SLOT_LEN - 1) / WORD_SLOT_LEN * WORD_SLOT_LEN - line_len;

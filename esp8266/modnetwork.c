@@ -27,13 +27,12 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-#include <errno.h>
 
 #include "py/nlr.h"
 #include "py/objlist.h"
 #include "py/runtime.h"
 #include "py/mphal.h"
-#include "netutils.h"
+#include "lib/netutils/netutils.h"
 #include "queue.h"
 #include "user_interface.h"
 #include "espconn.h"
@@ -98,20 +97,26 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(esp_active_obj, 1, 2, esp_active);
 STATIC mp_obj_t esp_connect(mp_uint_t n_args, const mp_obj_t *args) {
     require_if(args[0], STATION_IF);
     struct station_config config = {{0}};
-    mp_uint_t len;
+    size_t len;
     const char *p;
 
-    p = mp_obj_str_get_data(args[1], &len);
-    memcpy(config.ssid, p, len);
-    p = mp_obj_str_get_data(args[2], &len);
-    memcpy(config.password, p, len);
+    if (n_args > 1) {
+        p = mp_obj_str_get_data(args[1], &len);
+        len = MIN(len, sizeof(config.ssid));
+        memcpy(config.ssid, p, len);
+        if (n_args > 2) {
+            p = mp_obj_str_get_data(args[2], &len);
+            len = MIN(len, sizeof(config.password));
+            memcpy(config.password, p, len);
+        }
 
-    error_check(wifi_station_set_config(&config), "Cannot set STA config");
+        error_check(wifi_station_set_config(&config), "Cannot set STA config");
+    }
     error_check(wifi_station_connect(), "Cannot connect to AP");
 
     return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(esp_connect_obj, 3, 7, esp_connect);
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(esp_connect_obj, 1, 7, esp_connect);
 
 STATIC mp_obj_t esp_disconnect(mp_obj_t self_in) {
     require_if(self_in, STATION_IF);
@@ -131,22 +136,36 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_1(esp_status_obj, esp_status);
 
 STATIC mp_obj_t *esp_scan_list = NULL;
 
-STATIC void esp_scan_cb(scaninfo *si, STATUS status) {
+STATIC void esp_scan_cb(void *result, STATUS status) {
     if (esp_scan_list == NULL) {
         // called unexpectedly
         return;
     }
-    if (si->pbss && status == 0) {
-        struct bss_info *bs;
-        STAILQ_FOREACH(bs, si->pbss, next) {
-            mp_obj_tuple_t *t = mp_obj_new_tuple(6, NULL);
-            t->items[0] = mp_obj_new_bytes(bs->ssid, strlen((char*)bs->ssid));
-            t->items[1] = mp_obj_new_bytes(bs->bssid, sizeof(bs->bssid));
-            t->items[2] = MP_OBJ_NEW_SMALL_INT(bs->channel);
-            t->items[3] = MP_OBJ_NEW_SMALL_INT(bs->rssi);
-            t->items[4] = MP_OBJ_NEW_SMALL_INT(bs->authmode);
-            t->items[5] = MP_OBJ_NEW_SMALL_INT(bs->is_hidden);
-            mp_obj_list_append(*esp_scan_list, MP_OBJ_FROM_PTR(t));
+    if (result && status == 0) {
+        // we need to catch any memory errors
+        nlr_buf_t nlr;
+        if (nlr_push(&nlr) == 0) {
+            for (struct bss_info *bs = result; bs; bs = STAILQ_NEXT(bs, next)) {
+                mp_obj_tuple_t *t = mp_obj_new_tuple(6, NULL);
+                #if 1
+                // struct bss_info::ssid_len is not documented in SDK API Guide,
+                // but is present in SDK headers since 1.4.0
+                t->items[0] = mp_obj_new_bytes(bs->ssid, bs->ssid_len);
+                #else
+                t->items[0] = mp_obj_new_bytes(bs->ssid, strlen((char*)bs->ssid));
+                #endif
+                t->items[1] = mp_obj_new_bytes(bs->bssid, sizeof(bs->bssid));
+                t->items[2] = MP_OBJ_NEW_SMALL_INT(bs->channel);
+                t->items[3] = MP_OBJ_NEW_SMALL_INT(bs->rssi);
+                t->items[4] = MP_OBJ_NEW_SMALL_INT(bs->authmode);
+                t->items[5] = MP_OBJ_NEW_SMALL_INT(bs->is_hidden);
+                mp_obj_list_append(*esp_scan_list, MP_OBJ_FROM_PTR(t));
+            }
+            nlr_pop();
+        } else {
+            mp_obj_print_exception(&mp_plat_print, MP_OBJ_FROM_PTR(nlr.ret_val));
+            // indicate error
+            *esp_scan_list = MP_OBJ_NULL;
         }
     } else {
         // indicate error
@@ -156,14 +175,25 @@ STATIC void esp_scan_cb(scaninfo *si, STATUS status) {
 }
 
 STATIC mp_obj_t esp_scan(mp_obj_t self_in) {
-    if (wifi_get_opmode() == SOFTAP_MODE) {
+    require_if(self_in, STATION_IF);
+    if ((wifi_get_opmode() & STATION_MODE) == 0) {
         nlr_raise(mp_obj_new_exception_msg(&mp_type_OSError,
-            "scan unsupported in AP mode"));
+            "STA must be active"));
     }
     mp_obj_t list = mp_obj_new_list(0, NULL);
     esp_scan_list = &list;
     wifi_station_scan(NULL, (scan_done_cb_t)esp_scan_cb);
-    ETS_POLL_WHILE(esp_scan_list != NULL);
+    while (esp_scan_list != NULL) {
+        // our esp_scan_cb is called via ets_loop_iter so it's safe to set the
+        // esp_scan_list variable to NULL without disabling interrupts
+        if (MP_STATE_VM(mp_pending_exception) != NULL) {
+            esp_scan_list = NULL;
+            mp_obj_t obj = MP_STATE_VM(mp_pending_exception);
+            MP_STATE_VM(mp_pending_exception) = MP_OBJ_NULL;
+            nlr_raise(obj);
+        }
+        ets_loop_iter();
+    }
     if (list == MP_OBJ_NULL) {
         nlr_raise(mp_obj_new_exception_msg(&mp_type_OSError, "scan failed"));
     }
@@ -271,7 +301,7 @@ STATIC mp_obj_t esp_config(size_t n_args, const mp_obj_t *args, mp_map_t *kwargs
                 switch ((uintptr_t)kwargs->table[i].key) {
                     case QS(MP_QSTR_mac): {
                         mp_buffer_info_t bufinfo;
-                        mp_get_buffer_raise(args[1], &bufinfo, MP_BUFFER_READ);
+                        mp_get_buffer_raise(kwargs->table[i].value, &bufinfo, MP_BUFFER_READ);
                         if (bufinfo.len != 6) {
                             nlr_raise(mp_obj_new_exception_msg(&mp_type_ValueError,
                                 "invalid buffer length"));
@@ -281,7 +311,7 @@ STATIC mp_obj_t esp_config(size_t n_args, const mp_obj_t *args, mp_map_t *kwargs
                     }
                     case QS(MP_QSTR_essid): {
                         req_if = SOFTAP_IF;
-                        mp_uint_t len;
+                        size_t len;
                         const char *s = mp_obj_str_get_data(kwargs->table[i].value, &len);
                         len = MIN(len, sizeof(cfg.ap.ssid));
                         memcpy(cfg.ap.ssid, s, len);
@@ -300,7 +330,7 @@ STATIC mp_obj_t esp_config(size_t n_args, const mp_obj_t *args, mp_map_t *kwargs
                     }
                     case QS(MP_QSTR_password): {
                         req_if = SOFTAP_IF;
-                        mp_uint_t len;
+                        size_t len;
                         const char *s = mp_obj_str_get_data(kwargs->table[i].value, &len);
                         len = MIN(len, sizeof(cfg.ap.password) - 1);
                         memcpy(cfg.ap.password, s, len);
@@ -310,6 +340,14 @@ STATIC mp_obj_t esp_config(size_t n_args, const mp_obj_t *args, mp_map_t *kwargs
                     case QS(MP_QSTR_channel): {
                         req_if = SOFTAP_IF;
                         cfg.ap.channel = mp_obj_get_int(kwargs->table[i].value);
+                        break;
+                    }
+                    case QS(MP_QSTR_dhcp_hostname): {
+                        req_if = STATION_IF;
+                        if (self->if_id == STATION_IF) {
+                            const char *s = mp_obj_str_get_str(kwargs->table[i].value);
+                            wifi_station_set_hostname((char*)s);
+                        }
                         break;
                     }
                     default:
@@ -365,6 +403,12 @@ STATIC mp_obj_t esp_config(size_t n_args, const mp_obj_t *args, mp_map_t *kwargs
             req_if = SOFTAP_IF;
             val = MP_OBJ_NEW_SMALL_INT(cfg.ap.channel);
             break;
+        case QS(MP_QSTR_dhcp_hostname): {
+            req_if = STATION_IF;
+            char* s = wifi_station_get_hostname();
+            val = mp_obj_new_str(s, strlen(s), false);
+            break;
+        }
         default:
             goto unknown;
     }
@@ -460,6 +504,5 @@ STATIC MP_DEFINE_CONST_DICT(mp_module_network_globals, mp_module_network_globals
 
 const mp_obj_module_t network_module = {
     .base = { &mp_type_module },
-    .name = MP_QSTR_network,
     .globals = (mp_obj_dict_t*)&mp_module_network_globals,
 };

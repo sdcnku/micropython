@@ -86,9 +86,7 @@ double __aeabi_dmul(double x , double y) {
 
 #endif // defined(__thumb__)
 
-// TODO this needs a better way of testing for Thumb2 FP hardware
 #if defined(__thumb2__)
-
 float sqrtf(float x) {
     asm volatile (
             "vsqrt.f32  %[r], %[x]\n"
@@ -96,9 +94,9 @@ float sqrtf(float x) {
             : [x] "t"  (x));
     return x;
 }
-
 #endif
 
+#ifndef NDEBUG
 float copysignf(float x, float y) {
     float_s_t fx={.f = x};
     float_s_t fy={.f = y};
@@ -108,6 +106,7 @@ float copysignf(float x, float y) {
 
     return fx.f;
 }
+#endif
 
 // some compilers define log2f in terms of logf
 #ifdef log2f

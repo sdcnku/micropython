@@ -35,6 +35,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <errno.h>
+#include <signal.h>
 
 #include "py/mpstate.h"
 #include "py/nlr.h"
@@ -45,6 +46,7 @@
 #include "py/gc.h"
 #include "py/stackctrl.h"
 #include "py/mphal.h"
+#include "py/mpthread.h"
 #include "extmod/misc.h"
 #include "genhdr/mpversion.h"
 #include "input.h"
@@ -89,19 +91,33 @@ STATIC int handle_uncaught_exception(mp_obj_base_t *exc) {
     return 1;
 }
 
+#define LEX_SRC_STR (1)
+#define LEX_SRC_VSTR (2)
+#define LEX_SRC_FILENAME (3)
+#define LEX_SRC_STDIN (4)
+
 // Returns standard error codes: 0 for success, 1 for all other errors,
 // except if FORCED_EXIT bit is set then script raised SystemExit and the
 // value of the exit is in the lower 8 bits of the return value
-STATIC int execute_from_lexer(mp_lexer_t *lex, mp_parse_input_kind_t input_kind, bool is_repl) {
-    if (lex == NULL) {
-        printf("MemoryError: lexer could not allocate memory\n");
-        return 1;
-    }
-
+STATIC int execute_from_lexer(int source_kind, const void *source, mp_parse_input_kind_t input_kind, bool is_repl) {
     mp_hal_set_interrupt_char(CHAR_CTRL_C);
 
     nlr_buf_t nlr;
     if (nlr_push(&nlr) == 0) {
+        // create lexer based on source kind
+        mp_lexer_t *lex;
+        if (source_kind == LEX_SRC_STR) {
+            const char *line = source;
+            lex = mp_lexer_new_from_str_len(MP_QSTR__lt_stdin_gt_, line, strlen(line), false);
+        } else if (source_kind == LEX_SRC_VSTR) {
+            const vstr_t *vstr = source;
+            lex = mp_lexer_new_from_str_len(MP_QSTR__lt_stdin_gt_, vstr->buf, vstr->len, false);
+        } else if (source_kind == LEX_SRC_FILENAME) {
+            lex = mp_lexer_new_from_file((const char*)source);
+        } else { // LEX_SRC_STDIN
+            lex = mp_lexer_new_from_fd(MP_QSTR__lt_stdin_gt_, 0, false);
+        }
+
         qstr source_name = lex->source_name;
 
         #if MICROPY_PY___FILE__
@@ -112,11 +128,14 @@ STATIC int execute_from_lexer(mp_lexer_t *lex, mp_parse_input_kind_t input_kind,
 
         mp_parse_tree_t parse_tree = mp_parse(lex, input_kind);
 
-        /*
-        printf("----------------\n");
-        mp_parse_node_print(parse_tree.root, 0);
-        printf("----------------\n");
-        */
+        #if defined(MICROPY_UNIX_COVERAGE)
+        // allow to print the parse tree in the coverage build
+        if (mp_verbose_flag >= 3) {
+            printf("----------------\n");
+            mp_parse_node_print(parse_tree.root, 0);
+            printf("----------------\n");
+        }
+        #endif
 
         mp_obj_t module_fun = mp_compile(&parse_tree, source_name, emit_opt, is_repl);
 
@@ -236,8 +255,7 @@ STATIC int do_repl(void) {
 
         mp_hal_stdio_mode_orig();
 
-        mp_lexer_t *lex = mp_lexer_new_from_str_len(MP_QSTR__lt_stdin_gt_, line.buf, line.len, false);
-        ret = execute_from_lexer(lex, parse_input_kind, true);
+        ret = execute_from_lexer(LEX_SRC_VSTR, &line, parse_input_kind, true);
         if (ret & FORCED_EXIT) {
             return ret;
         }
@@ -245,7 +263,7 @@ STATIC int do_repl(void) {
 
     #else
 
-    // use GNU or simple readline
+    // use simple readline
 
     for (;;) {
         char *line = prompt(">>> ");
@@ -264,8 +282,7 @@ STATIC int do_repl(void) {
             line = line3;
         }
 
-        mp_lexer_t *lex = mp_lexer_new_from_str_len(MP_QSTR__lt_stdin_gt_, line, strlen(line), false);
-        int ret = execute_from_lexer(lex, MP_PARSE_SINGLE_INPUT, true);
+        int ret = execute_from_lexer(LEX_SRC_STR, line, MP_PARSE_SINGLE_INPUT, true);
         if (ret & FORCED_EXIT) {
             return ret;
         }
@@ -276,13 +293,11 @@ STATIC int do_repl(void) {
 }
 
 STATIC int do_file(const char *file) {
-    mp_lexer_t *lex = mp_lexer_new_from_file(file);
-    return execute_from_lexer(lex, MP_PARSE_FILE_INPUT, false);
+    return execute_from_lexer(LEX_SRC_FILENAME, file, MP_PARSE_FILE_INPUT, false);
 }
 
 STATIC int do_str(const char *str) {
-    mp_lexer_t *lex = mp_lexer_new_from_str_len(MP_QSTR__lt_stdin_gt_, str, strlen(str), false);
-    return execute_from_lexer(lex, MP_PARSE_FILE_INPUT, false);
+    return execute_from_lexer(LEX_SRC_STR, str, MP_PARSE_FILE_INPUT, false);
 }
 
 STATIC int usage(char **argv) {
@@ -292,7 +307,7 @@ STATIC int usage(char **argv) {
 "-v : verbose (trace various operations); can be multiple\n"
 "-O[N] : apply bytecode optimizations of level N\n"
 "\n"
-"Implementation specific options:\n", argv[0]
+"Implementation specific options (-X):\n", argv[0]
 );
     int impl_opts_cnt = 0;
     printf(
@@ -302,7 +317,7 @@ STATIC int usage(char **argv) {
     impl_opts_cnt++;
 #if MICROPY_ENABLE_GC
     printf(
-"  heapsize=<n> -- set the heap size for the GC (default %ld)\n"
+"  heapsize=<n>[w][K|M] -- set the heap size for the GC (default %ld)\n"
 , heap_size);
     impl_opts_cnt++;
 #endif
@@ -350,12 +365,24 @@ STATIC void pre_process_options(int argc, char **argv) {
                         heap_size *= 1024;
                     } else if ((*end | 0x20) == 'm') {
                         heap_size *= 1024 * 1024;
+                    } else {
+                        // Compensate for ++ below
+                        --end;
+                    }
+                    if (*++end != 0) {
+                        goto invalid_arg;
                     }
                     if (word_adjust) {
                         heap_size = heap_size * BYTES_PER_WORD / 4;
                     }
+                    // If requested size too small, we'll crash anyway
+                    if (heap_size < 700) {
+                        goto invalid_arg;
+                    }
 #endif
                 } else {
+invalid_arg:
+                    printf("Invalid option\n");
                     exit(usage(argv));
                 }
                 a++;
@@ -379,6 +406,9 @@ STATIC void set_sys_argv(char *argv[], int argc, int start_arg) {
 MP_NOINLINE int main_(int argc, char **argv);
 
 int main(int argc, char **argv) {
+    #if MICROPY_PY_THREAD
+    mp_thread_init();
+    #endif
     // We should capture stack top ASAP after start, and it should be
     // captured guaranteedly before any other stack variables are allocated.
     // For this, actual main (renamed main_) should not be inlined into
@@ -389,6 +419,20 @@ int main(int argc, char **argv) {
 }
 
 MP_NOINLINE int main_(int argc, char **argv) {
+    #ifdef SIGPIPE
+    // Do not raise SIGPIPE, instead return EPIPE. Otherwise, e.g. writing
+    // to peer-closed socket will lead to sudden termination of MicroPython
+    // process. SIGPIPE is particularly nasty, because unix shell doesn't
+    // print anything for it, so the above looks like completely sudden and
+    // silent termination for unknown reason. Ignoring SIGPIPE is also what
+    // CPython does. Note that this may lead to problems using MicroPython
+    // scripts as pipe filters, but again, that's what CPython does. So,
+    // scripts which want to follow unix shell pipe semantics (where SIGPIPE
+    // means "pipe was requested to terminate, it's not an error"), should
+    // catch EPIPE themselves.
+    signal(SIGPIPE, SIG_IGN);
+    #endif
+
     mp_stack_set_limit(40000 * (BYTES_PER_WORD / 4));
 
     pre_process_options(argc, argv);
@@ -400,9 +444,6 @@ MP_NOINLINE int main_(int argc, char **argv) {
 
     mp_init();
 
-    // create keyboard interrupt object
-    MP_STATE_VM(keyboard_interrupt_obj) = mp_obj_new_exception(&mp_type_KeyboardInterrupt);
-
     char *home = getenv("HOME");
     char *path = getenv("MICROPYPATH");
     if (path == NULL) {
@@ -412,7 +453,10 @@ MP_NOINLINE int main_(int argc, char **argv) {
         path = "~/.micropython/lib:/usr/lib/micropython";
         #endif
     }
-    mp_uint_t path_num = 1; // [0] is for current dir (or base dir of the script)
+    size_t path_num = 1; // [0] is for current dir (or base dir of the script)
+    if (*path == ':') {
+        path_num++;
+    }
     for (char *p = path; p != NULL; p = strchr(p, PATHLIST_SEP_CHAR)) {
         path_num++;
         if (p != NULL) {
@@ -432,10 +476,12 @@ MP_NOINLINE int main_(int argc, char **argv) {
         }
         if (p[0] == '~' && p[1] == '/' && home != NULL) {
             // Expand standalone ~ to $HOME
-            CHECKBUF(buf, PATH_MAX);
-            CHECKBUF_APPEND(buf, home, strlen(home));
-            CHECKBUF_APPEND(buf, p + 1, (size_t)(p1 - p - 1));
-            path_items[i] = MP_OBJ_NEW_QSTR(qstr_from_strn(buf, CHECKBUF_LEN(buf)));
+            int home_l = strlen(home);
+            vstr_t vstr;
+            vstr_init(&vstr, home_l + (p1 - p - 1) + 1);
+            vstr_add_strn(&vstr, home, home_l);
+            vstr_add_strn(&vstr, p + 1, p1 - p - 1);
+            path_items[i] = mp_obj_new_str_from_vstr(&mp_type_str, &vstr);
         } else {
             path_items[i] = MP_OBJ_NEW_QSTR(qstr_from_strn(p, p1 - p));
         }
@@ -447,7 +493,7 @@ MP_NOINLINE int main_(int argc, char **argv) {
 
     #if defined(MICROPY_UNIX_COVERAGE)
     {
-        MP_DECLARE_CONST_FUN_OBJ(extra_coverage_obj);
+        MP_DECLARE_CONST_FUN_OBJ_0(extra_coverage_obj);
         mp_store_global(QSTR_FROM_STR_STATIC("extra_coverage"), MP_OBJ_FROM_PTR(&extra_coverage_obj));
     }
     #endif
@@ -507,6 +553,9 @@ MP_NOINLINE int main_(int argc, char **argv) {
 
                 mp_obj_t mod;
                 nlr_buf_t nlr;
+                bool subpkg_tried = false;
+
+            reimport:
                 if (nlr_push(&nlr) == 0) {
                     mod = mp_builtin___import__(MP_ARRAY_SIZE(import_args), import_args);
                     nlr_pop();
@@ -515,11 +564,17 @@ MP_NOINLINE int main_(int argc, char **argv) {
                     return handle_uncaught_exception(nlr.ret_val) & 0xff;
                 }
 
-                if (mp_obj_is_package(mod)) {
-                    // TODO
-                    mp_printf(&mp_stderr_print, "%s: -m for packages not yet implemented\n", argv[0]);
-                    exit(1);
+                if (mp_obj_is_package(mod) && !subpkg_tried) {
+                    subpkg_tried = true;
+                    vstr_t vstr;
+                    int len = strlen(argv[a + 1]);
+                    vstr_init(&vstr, len + sizeof(".__main__"));
+                    vstr_add_strn(&vstr, argv[a + 1], len);
+                    vstr_add_strn(&vstr, ".__main__", sizeof(".__main__") - 1);
+                    import_args[0] = mp_obj_new_str_from_vstr(&mp_type_str, &vstr);
+                    goto reimport;
                 }
+
                 ret = 0;
                 break;
             } else if (strcmp(argv[a], "-X") == 0) {
@@ -565,8 +620,7 @@ MP_NOINLINE int main_(int argc, char **argv) {
             ret = do_repl();
             prompt_write_history();
         } else {
-            mp_lexer_t *lex = mp_lexer_new_from_fd(MP_QSTR__lt_stdin_gt_, 0, false);
-            ret = execute_from_lexer(lex, MP_PARSE_FILE_INPUT, false);
+            ret = execute_from_lexer(LEX_SRC_STDIN, NULL, MP_PARSE_FILE_INPUT, false);
         }
     }
 

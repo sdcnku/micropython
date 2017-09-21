@@ -70,8 +70,8 @@ struct _nlr_buf_t {
 NORETURN void nlr_setjmp_jump(void *val);
 // nlr_push() must be defined as a macro, because "The stack context will be
 // invalidated if the function which called setjmp() returns."
-#define nlr_push(buf) ((buf)->prev = MP_STATE_VM(nlr_top), MP_STATE_VM(nlr_top) = (buf), setjmp((buf)->jmpbuf))
-#define nlr_pop() { MP_STATE_VM(nlr_top) = MP_STATE_VM(nlr_top)->prev; }
+#define nlr_push(buf) ((buf)->prev = MP_STATE_THREAD(nlr_top), MP_STATE_THREAD(nlr_top) = (buf), setjmp((buf)->jmpbuf))
+#define nlr_pop() { MP_STATE_THREAD(nlr_top) = MP_STATE_THREAD(nlr_top)->prev; }
 #define nlr_jump(val) nlr_setjmp_jump(val)
 #else
 unsigned int nlr_push(nlr_buf_t *);
@@ -82,37 +82,16 @@ NORETURN void nlr_jump(void *val);
 // This must be implemented by a port.  It's called by nlr_jump
 // if no nlr buf has been pushed.  It must not return, but rather
 // should bail out with a fatal error.
-void nlr_jump_fail(void *val);
+NORETURN void nlr_jump_fail(void *val);
 
 // use nlr_raise instead of nlr_jump so that debugging is easier
-extern void fb_alloc_free_till_mark();
-#ifndef DEBUG
-#define nlr_raise(val) \
-    do { \
-        fb_alloc_free_till_mark(); \
-        nlr_jump(MP_OBJ_TO_PTR(val)); \
-    } while (0)
-// fb_alloc_mark() is the only allowed caller.
-#define nlr_raise_for_fb_alloc_mark(val) \
-    do { \
-        nlr_jump(MP_OBJ_TO_PTR(val)); \
-    } while (0)
+#ifndef MICROPY_DEBUG_NLR
+#define nlr_raise(val) nlr_jump(MP_OBJ_TO_PTR(val))
 #else
 #include "mpstate.h"
 #define nlr_raise(val) \
     do { \
-        fb_alloc_free_till_mark(); \
-        /*printf("nlr_raise: nlr_top=%p\n", MP_STATE_VM(nlr_top)); \
-        fflush(stdout);*/ \
-        void *_val = MP_OBJ_TO_PTR(val); \
-        assert(_val != NULL); \
-        assert(mp_obj_is_exception_instance(val)); \
-        nlr_jump(_val); \
-    } while (0)
-// fb_alloc_mark() is the only allowed caller.
-#define nlr_raise_for_fb_alloc_mark(val) \
-    do { \
-        /*printf("nlr_raise: nlr_top=%p\n", MP_STATE_VM(nlr_top)); \
+        /*printf("nlr_raise: nlr_top=%p\n", MP_STATE_THREAD(nlr_top)); \
         fflush(stdout);*/ \
         void *_val = MP_OBJ_TO_PTR(val); \
         assert(_val != NULL); \
@@ -122,11 +101,11 @@ extern void fb_alloc_free_till_mark();
 
 #if !MICROPY_NLR_SETJMP
 #define nlr_push(val) \
-    assert(MP_STATE_VM(nlr_top) != val),nlr_push(val)
+    assert(MP_STATE_THREAD(nlr_top) != val),nlr_push(val)
 
 /*
 #define nlr_push(val) \
-    printf("nlr_push: before: nlr_top=%p, val=%p\n", MP_STATE_VM(nlr_top), val),assert(MP_STATE_VM(nlr_top) != val),nlr_push(val)
+    printf("nlr_push: before: nlr_top=%p, val=%p\n", MP_STATE_THREAD(nlr_top), val),assert(MP_STATE_THREAD(nlr_top) != val),nlr_push(val)
 #endif
 */
 #endif

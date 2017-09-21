@@ -8,7 +8,7 @@ which will be used to refer to this interactive prompt.
 Auto-indent
 -----------
 
-When typing python statements which end in a colon (for example if, for, while, etc.)
+When typing python statements which end in a colon (for example if, for, while)
 then the prompt will change to three dots (...) and the cursor will be indented
 by 4 spaces. When you press return, the next line will continue at the same
 level of indentation for regular statements or an additional level of indentation
@@ -49,7 +49,7 @@ Finally type ``print(i)``, press RETURN, press BACKSPACE and press RETURN again:
     3
     >>>
 
-Auto-indent won't be applied if the previous two lines were all spaces. This
+Auto-indent won't be applied if the previous two lines were all spaces.  This
 means that you can finish entering a compound statement by pressing RETURN
 twice, and then a third press will finish and execute.
 
@@ -146,7 +146,7 @@ Soft Reset
 ----------
 
 A soft reset will reset the python interpreter, but tries not to reset the
-method by which you're connected to the MicroPython board (USB-serial, or WiFi).
+method by which you're connected to the MicroPython board (USB-serial, or Wifi).
 
 You can perform a soft reset from the REPL by pressing Ctrl-D, or from your python
 code by executing: ::
@@ -206,5 +206,6 @@ a Ctrl-D. The Ctrl-D will be acknowledged by 'OK' and then the python code will
 be compiled and executed. Any output (or errors) will be sent back. Entering
 Ctrl-B will leave raw mode and return the the regular (aka friendly) REPL.
 
-The GitHub ``micropython/tools/pyboard.py`` program uses the raw REPL to execute python files on a
+The ``tools/pyboard.py`` program uses the raw REPL to execute python files on the
 MicroPython board.
+
