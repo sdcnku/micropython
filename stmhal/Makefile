@@ -56,7 +56,6 @@ CFLAGS_MCU_l4 = $(CFLAGS_CORTEX_M) -mtune=cortex-m4 -mcpu=cortex-m4 -DMCU_SERIES
 CFLAGS += $(INC) -Wall -Wpointer-arith -Werror -std=gnu99 -nostdlib $(CFLAGS_MOD)
 CFLAGS += -D$(CMSIS_MCU)
 CFLAGS += $(CFLAGS_MCU_$(MCU_SERIES))
-CFLAGS += $(COPT)
 CFLAGS += -Iboards/$(BOARD)
 CFLAGS += -DSTM32_HAL_H='<stm32$(MCU_SERIES)xx_hal.h>'
 
@@ -66,14 +65,6 @@ LIBS = $(shell $(CC) $(CFLAGS) -print-libgcc-file-name)
 # Remove uncalled code from the final image.
 CFLAGS += -fdata-sections -ffunction-sections
 LDFLAGS += --gc-sections
-
-# Debugging/Optimization
-ifeq ($(DEBUG), 1)
-CFLAGS += -g -DPENDSV_DEBUG
-COPT = -O0
-else
-COPT += -Os -DNDEBUG
-endif
 
 SRC_LIB = $(addprefix lib/,\
 	libc/string0.c \
@@ -263,16 +254,6 @@ OBJ += $(addprefix $(BUILD)/, $(SRC_O))
 OBJ += $(addprefix $(BUILD)/, $(SRC_USBDEV:.c=.o))
 OBJ += $(addprefix $(BUILD)/, $(SRC_MOD:.c=.o))
 OBJ += $(BUILD)/pins_$(BOARD).o
-
-# We put several files into the first 16K section with the ISRs.
-# If we compile these using -O0 then it won't fit. So if you really want these
-# to be compiled with -O0, then edit boards/common.ld (in the .isr_vector section)
-# and comment out the following lines.
-$(BUILD)/$(FATFS_DIR)/ff.o: COPT += -Os
-$(filter $(PY_BUILD)/../extmod/vfs_fat_%.o, $(PY_O)): COPT += -Os
-$(PY_BUILD)/formatfloat.o: COPT += -Os
-$(PY_BUILD)/parsenum.o: COPT += -Os
-$(PY_BUILD)/mpprint.o: COPT += -Os
 
 all: $(OBJ)
 
