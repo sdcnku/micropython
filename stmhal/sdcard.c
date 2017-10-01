@@ -110,7 +110,7 @@
 //       if an sd card is detected. This will save approx 260 bytes of RAM
 //       when no sdcard was being used.
 static SD_HandleTypeDef sd_handle;
-static DMA_HandleTypeDef sd_rx_dma, sd_tx_dma;
+static DMA_HandleTypeDef sd_dma;
 
 void sdcard_init(void) {
     // invalidate the sd_handle
@@ -259,8 +259,8 @@ mp_uint_t sdcard_read_blocks(uint8_t *dest, uint32_t block_num, uint32_t num_blo
         // we must disable USB irqs to prevent MSC contention with SD card
         uint32_t basepri = raise_irq_pri(IRQ_PRI_OTG_FS);
 
-        dma_init(&sd_rx_dma, &SDMMC_RX_DMA, &sd_handle);
-        sd_handle.hdmarx = &sd_rx_dma;
+        dma_init(&sd_dma, &SDMMC_RX_DMA, &sd_handle);
+        sd_handle.hdmarx = &sd_dma;
 
         // make sure cache is flushed and invalidated so when DMA updates the RAM
         // from reading the peripheral the CPU then reads the new data
@@ -301,8 +301,8 @@ mp_uint_t sdcard_write_blocks(const uint8_t *src, uint32_t block_num, uint32_t n
         // we must disable USB irqs to prevent MSC contention with SD card
         uint32_t basepri = raise_irq_pri(IRQ_PRI_OTG_FS);
 
-        dma_init(&sd_tx_dma, &SDMMC_TX_DMA, &sd_handle);
-        sd_handle.hdmatx = &sd_tx_dma;
+        dma_init(&sd_dma, &SDMMC_TX_DMA, &sd_handle);
+        sd_handle.hdmatx = &sd_dma;
 
         // make sure cache is flushed to RAM so the DMA can read the correct data
         MP_HAL_CLEAN_DCACHE(src, num_blocks * SDCARD_BLOCK_SIZE);
