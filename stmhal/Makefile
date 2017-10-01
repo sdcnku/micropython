@@ -109,7 +109,6 @@ DRIVERS_SRC_C = $(addprefix drivers/,\
 	)
 
 SRC_C = \
-	main.c \
 	system_stm32.c \
 	stm32_it.c \
 	usbd_conf.c \
