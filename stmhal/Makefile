@@ -16,7 +16,7 @@ include boards/$(BOARD)/mpconfigboard.mk
 override QSTR_DEFS += qstrdefsport.h $(BUILD)/pins_qstr.h $(BUILD)/modstm_qstr.h
 
 # directory containing scripts to be frozen as bytecode
-FROZEN_MPY_DIR ?= modules
+#FROZEN_MPY_DIR ?= modules
 
 # include py core make definitions
 include ../py/py.mk
