@@ -19,7 +19,7 @@ override QSTR_DEFS += qstrdefsport.h $(BUILD)/pins_qstr.h $(BUILD)/modstm_qstr.h
 #FROZEN_MPY_DIR ?= modules
 
 # include py core make definitions
-include ../py/py.mk
+include $(TOP)/py/py.mk
 
 LD_DIR=boards
 CMSIS_DIR=cmsis
@@ -27,10 +27,10 @@ HAL_DIR=hal/$(MCU_SERIES)
 USBDEV_DIR=usbdev
 #USBHOST_DIR=usbhost
 FATFS_DIR=lib/oofatfs
-DFU=../tools/dfu.py
+DFU=$(TOP)/tools/dfu.py
 # may need to prefix dfu-util with sudo
 USE_PYDFU ?= 1
-PYDFU ?= ../tools/pydfu.py
+PYDFU ?= $(TOP)/tools/pydfu.py
 DFU_UTIL ?= dfu-util
 DEVICE=0483:df11
 STFLASH ?= st-flash
@@ -59,6 +59,13 @@ CFLAGS += $(CFLAGS_MCU_$(MCU_SERIES))
 CFLAGS += -Iboards/$(BOARD)
 CFLAGS += -DSTM32_HAL_H='<stm32$(MCU_SERIES)xx_hal.h>'
 
+ifeq ($(MICROPY_FLOAT_IMPL),double)
+CFLAGS += -DMICROPY_FLOAT_IMPL=MICROPY_FLOAT_IMPL_DOUBLE
+else
+CFLAGS += -DMICROPY_FLOAT_IMPL=MICROPY_FLOAT_IMPL_FLOAT
+CFLAGS += -fsingle-precision-constant -Wdouble-promotion
+endif
+
 LDFLAGS = -nostdlib -L $(LD_DIR) -T $(LD_FILE) -Map=$(@:.elf=.map) --cref
 LIBS = $(shell $(CC) $(CFLAGS) -print-libgcc-file-name)
 
@@ -68,33 +75,6 @@ LDFLAGS += --gc-sections
 
 SRC_LIB = $(addprefix lib/,\
 	libc/string0.c \
-	libm/math.c \
-	libm/thumb_vfp_sqrtf.c \
-	libm/asinfacosf.c \
-	libm/atanf.c \
-	libm/atan2f.c \
-	libm/fmodf.c \
-	libm/roundf.c \
-	libm/nearbyintf.c \
-	libm/log1pf.c \
-	libm/acoshf.c \
-	libm/asinhf.c \
-	libm/atanhf.c \
-	libm/kf_rem_pio2.c \
-	libm/kf_sin.c \
-	libm/kf_cos.c \
-	libm/kf_tan.c \
-	libm/ef_rem_pio2.c \
-	libm/erf_lgamma.c \
-	libm/sf_sin.c \
-	libm/sf_cos.c \
-	libm/sf_tan.c \
-	libm/sf_frexp.c \
-	libm/sf_modf.c \
-	libm/sf_ldexp.c \
-	libm/sf_erf.c \
-	libm/wf_lgamma.c \
-	libm/wf_tgamma.c \
 	oofatfs/ff.c \
 	oofatfs/option/unicode.c \
 	mp-readline/readline.c \
@@ -102,7 +82,87 @@ SRC_LIB = $(addprefix lib/,\
 	timeutils/timeutils.c \
 	utils/pyexec.c \
 	utils/interrupt_char.c \
+	utils/sys_stdio_mphal.c \
 	)
+
+ifeq ($(MICROPY_FLOAT_IMPL),double)
+SRC_LIBM = $(addprefix lib/libm_dbl/,\
+	__cos.c \
+	__expo2.c \
+	__fpclassify.c \
+	__rem_pio2.c \
+	__rem_pio2_large.c \
+	__signbit.c \
+	__sin.c \
+	__tan.c \
+	acos.c \
+	acosh.c \
+	asin.c \
+	asinh.c \
+	atan.c \
+	atan2.c \
+	atanh.c \
+	ceil.c \
+	cos.c \
+	cosh.c \
+	erf.c \
+	exp.c \
+	expm1.c \
+	floor.c \
+	fmod.c \
+	frexp.c \
+	ldexp.c \
+	lgamma.c \
+	log.c \
+	log10.c \
+	log1p.c \
+	modf.c \
+	nearbyint.c \
+	pow.c \
+	rint.c \
+	scalbn.c \
+	sin.c \
+	sinh.c \
+	sqrt.c \
+	tan.c \
+	tanh.c \
+	tgamma.c \
+	trunc.c \
+	)
+else
+SRC_LIBM = $(addprefix lib/libm/,\
+	math.c \
+	thumb_vfp_sqrtf.c \
+	acoshf.c \
+	asinfacosf.c \
+	asinhf.c \
+	atan2f.c \
+	atanf.c \
+	atanhf.c \
+	ef_rem_pio2.c \
+	erf_lgamma.c \
+	fmodf.c \
+	kf_cos.c \
+	kf_rem_pio2.c \
+	kf_sin.c \
+	kf_tan.c \
+	log1pf.c \
+	nearbyintf.c \
+	sf_cos.c \
+	sf_erf.c \
+	sf_frexp.c \
+	sf_ldexp.c \
+	sf_modf.c \
+	sf_sin.c \
+	sf_tan.c \
+	wf_lgamma.c \
+	wf_tgamma.c \
+	)
+endif
+
+EXTMOD_SRC_C = $(addprefix extmod/,\
+	modonewire.c \
+        )
 
 DRIVERS_SRC_C = $(addprefix drivers/,\
 	memory/spiflash.c \
@@ -136,9 +196,7 @@ SRC_C = \
 	usb.c \
 	wdt.c \
 	gccollect.c \
-	pybstdio.c \
 	help.c \
-	input.c \
 	machine_i2c.c \
 	modmachine.c \
 	modpyb.c \
@@ -246,6 +304,8 @@ endif
 OBJ =
 OBJ += $(PY_O)
 OBJ += $(addprefix $(BUILD)/, $(SRC_LIB:.c=.o))
+OBJ += $(addprefix $(BUILD)/, $(SRC_LIBM:.c=.o))
+OBJ += $(addprefix $(BUILD)/, $(EXTMOD_SRC_C:.c=.o))
 OBJ += $(addprefix $(BUILD)/, $(DRIVERS_SRC_C:.c=.o))
 OBJ += $(addprefix $(BUILD)/, $(SRC_C:.c=.o))
 OBJ += $(addprefix $(BUILD)/, $(SRC_O))
@@ -316,8 +376,8 @@ GEN_PINS_QSTR = $(BUILD)/pins_qstr.h
 GEN_PINS_AF_CONST = $(HEADER_BUILD)/pins_af_const.h
 GEN_PINS_AF_PY = $(BUILD)/pins_af.py
 
-INSERT_USB_IDS = ../tools/insert-usb-ids.py
-FILE2H = ../tools/file2h.py
+INSERT_USB_IDS = $(TOP)/tools/insert-usb-ids.py
+FILE2H = $(TOP)/tools/file2h.py
 
 USB_IDS_FILE = usb.h
 CDCINF_TEMPLATE = openmv.inf_template
@@ -325,7 +385,7 @@ GEN_CDCINF_FILE = $(HEADER_BUILD)/openmv.inf
 GEN_CDCINF_HEADER = $(HEADER_BUILD)/openmv_inf.h
 
 # List of sources for qstr extraction
-SRC_QSTR += $(SRC_C) $(SRC_MOD) $(SRC_LIB)
+SRC_QSTR += $(SRC_C) $(SRC_MOD) $(SRC_LIB) $(EXTMOD_SRC_C)
 # Append any auto-generated sources that are needed by sources listed in
 # SRC_QSTR
 SRC_QSTR_AUTO_DEPS += $(GEN_CDCINF_HEADER)
@@ -374,4 +434,4 @@ $(GEN_CDCINF_FILE): $(CDCINF_TEMPLATE) $(INSERT_USB_IDS) $(USB_IDS_FILE) | $(HEA
 	$(ECHO) "Create $@"
 	$(Q)$(PYTHON) $(INSERT_USB_IDS) $(USB_IDS_FILE) $< > $@
 
-include ../py/mkrules.mk
+include $(TOP)/py/mkrules.mk

@@ -1,5 +1,5 @@
 /*
- * This file is part of the Micro Python project, http://micropython.org/
+ * This file is part of the MicroPython project, http://micropython.org/
  *
  * The MIT License (MIT)
  *
@@ -23,6 +23,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#ifndef MICROPY_INCLUDED_STMHAL_USB_H
+#define MICROPY_INCLUDED_STMHAL_USB_H
 
 #include "usbd_cdc_msc_hid0.h"
 
@@ -47,7 +49,6 @@ typedef enum {
 } USB_PHY_ID;
 
 extern mp_uint_t pyb_usb_flags;
-extern struct _USBD_HandleTypeDef hUSBDDevice;
 extern pyb_usb_storage_medium_t pyb_usb_storage_medium;
 extern const struct _mp_obj_tuple_t pyb_usb_hid_mouse_obj;
 extern const struct _mp_obj_tuple_t pyb_usb_hid_keyboard_obj;
@@ -68,3 +69,5 @@ void usb_vcp_send_strn_cooked(const char *str, int len);
 void pyb_usb_host_init(void);
 void pyb_usb_host_process(void);
 uint pyb_usb_host_get_keyboard(void);
+
+#endif // MICROPY_INCLUDED_STMHAL_USB_H

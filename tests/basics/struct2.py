@@ -6,9 +6,8 @@ except:
     try:
         import struct
     except ImportError:
-        import sys
         print("SKIP")
-        sys.exit()
+        raise SystemExit
 
 print(struct.calcsize('0s'))
 print(struct.unpack('0s', b''))
@@ -39,5 +38,32 @@ except:
 
 try:
     struct.calcsize('0z')
+except:
+    print('Exception')
+
+# check that a count without a type specifier raises an exception
+
+try:
+    struct.calcsize('1')
+except:
+    print('Exception')
+
+try:
+    struct.pack('1')
+except:
+    print('Exception')
+
+try:
+    struct.pack_into('1', bytearray(4), 0, 'xx')
+except:
+    print('Exception')
+
+try:
+    struct.unpack('1', 'xx')
+except:
+    print('Exception')
+
+try:
+    struct.unpack_from('1', 'xx')
 except:
     print('Exception')
