@@ -132,6 +132,7 @@ SRC_LIBM = $(addprefix lib/libm_dbl/,\
 else
 SRC_LIBM = $(addprefix lib/libm/,\
 	math.c \
+	roundf.c \
 	thumb_vfp_sqrtf.c \
 	acoshf.c \
 	asinfacosf.c \
