@@ -41,9 +41,6 @@
 // The driver uses hardware PWM to drive servos on pins X1, X2, X3, X4 which are
 // assumed to be on PA0, PA1, PA2, PA3 but not necessarily in that order (the
 // pins PA0-PA3 are used directly if the X pins are not defined).
-//
-// TIM2 and TIM5 have CH1-CH4 on PA0-PA3 respectively.  They are both 32-bit
-// counters with 16-bit prescaler.  TIM5 is used by this driver.
 
 #define PYB_SERVO_NUM (3)
 
@@ -107,7 +104,7 @@ void servo_timer_irq_callback(void) {
                 need_it = true;
             }
             // set the pulse width
-            *(&TIM4->CCR1 + s->pin->pin) = s->pulse_cur;
+            *(&TIM4->CCR1 + (s->pin->pin - 12)) = s->pulse_cur;
         }
     }
     if (need_it) {
@@ -120,10 +117,10 @@ void servo_timer_irq_callback(void) {
 STATIC void servo_init_channel(pyb_servo_obj_t *s) {
     static const uint8_t channel_table[3] =
         {TIM_CHANNEL_1, TIM_CHANNEL_2, TIM_CHANNEL_3};
-    uint32_t channel = channel_table[s->pin->pin];
+    uint32_t channel = channel_table[s->pin->pin - 12];
 
     // GPIO configuration
-    mp_hal_pin_config(s->pin, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, GPIO_AF2_TIM5);
+    mp_hal_pin_config(s->pin, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, GPIO_AF2_TIM4);
 
     // PWM mode configuration
     TIM_OC_InitTypeDef oc_init;
