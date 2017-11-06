@@ -3,7 +3,7 @@ Hints and tips
 
 The following are some examples of the use of the inline assembler and some
 information on how to work around its limitations. In this document the term
-"assembler function" refers to a function declared in Python with the
+"assembler function" refers to a function declared in Python with the 
 ``@micropython.asm_thumb`` decorator, whereas "subroutine" refers to assembler
 code called from within an assembler function.
 
@@ -43,7 +43,7 @@ in the style of Python functions.
 
 The following code example demonstrates a nested (recursive) call: the classic
 Fibonacci sequence. Here, prior to a recursive call, the link register is saved
-along with other registers which program logic requires to be preserved.
+along with other registers which the program logic requires to be preserved.
 
 ::
 
@@ -55,11 +55,11 @@ along with other registers which program logic requires to be preserved.
         cmp(r0, 1)
         ble(FIBDONE)
         sub(r0, 1)
-        mov(r2, r0) # r2 = n-1
+        mov(r2, r0) # r2 = n -1
         bl(DOFIB)
-        mov(r1, r0) # r1 = fib(n-1)
+        mov(r1, r0) # r1 = fib(n -1)
         sub(r0, r2, 1)
-        bl(DOFIB)   # r0 = fib(n-2)
+        bl(DOFIB)   # r0 = fib(n -2)
         add(r0, r0, r1)
         label(FIBDONE)
         pop({r1, r2, lr})
@@ -75,11 +75,11 @@ Argument passing and return
 
 The tutorial details the fact that assembler functions can support from zero to
 three arguments, which must (if used) be named ``r0``, ``r1`` and ``r2``. When
-the code executes the registers will be initialized to those values.
+the code executes the registers will be initialised to those values.
 
 The data types which can be passed in this way are integers and memory
-addresses. With current firmware all possible 32-bit values may be passed and
-returned. If the return value has the most significant bit set a Python
+addresses. With current firmware all possible 32 bit values may be passed and
+returned. If the return value may have the most significant bit set a Python
 type hint should be employed to enable MicroPython to determine whether the
 value should be interpreted as a signed or unsigned integer: types are
 ``int`` or ``uint``.
@@ -106,8 +106,8 @@ function can return multiple values by assigning them to array elements.
 Assembler functions have no means of determining the length of an array:
 this will need to be passed to the function.
 
-This use of arrays can be extended to enable more than three arrays to be used.
-This is done using indirection: the ``uctypes`` module supports ``addressof()``
+This use of arrays can be extended to enable more than three arrays to be used. 
+This is done using indirection: the ``uctypes`` module supports ``addressof()`` 
 which will return the address of an array passed as its argument. Thus you can
 populate an integer array with the addresses of other arrays:
 
@@ -159,8 +159,8 @@ Named constants
 ---------------
 
 Assembler code may be made more readable and maintainable by using named
-constants rather than littering code with numbers. This can be achieved
-by:
+constants rather than littering code with numbers. This may be achieved
+thus:
 
 ::
 
@@ -180,7 +180,7 @@ Assembler code as class methods
 
 MicroPython passes the address of the object instance as the first argument
 to class methods. This is normally of little use to an assembler function.
-It can be avoided by declaring the function as a static method - e.g:
+It can be avoided by declaring the function as a static method thus:
 
 ::
 
@@ -208,11 +208,11 @@ indicates that each subsequent argument is a two byte quantity.
 Overcoming MicroPython's integer restriction
 --------------------------------------------
 
-The STM32 chip includes a CRC generator. Its use presents a problem in
-MicroPython because the returned values cover the full gamut of 32-bit
+The Pyboard chip includes a CRC generator. Its use presents a problem in
+MicroPython because the returned values cover the full gamut of 32 bit
 quantities whereas small integers in MicroPython cannot have differing values
 in bits 30 and 31. This limitation is overcome with the following code, which
-uses the assembler to put the result into an array and Python code to
+uses assembler to put the result into an array and Python code to
 coerce the result into an arbitrary precision unsigned integer.
 
 ::

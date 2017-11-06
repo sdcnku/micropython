@@ -12,14 +12,14 @@ the following will add the contents of R0 to itself, placing the result in R0:
 
 * add(r0, r0, r0)
 
-Arithmetic instructions affect the condition flags except when stated otherwise.
+Arithmetic instructions affect the condition flags except where stated.
 
 Addition
 --------
 
 * add(Rdn, imm8) ``Rdn = Rdn + imm8``
 * add(Rd, Rn, imm3) ``Rd = Rn + imm3``
-* add(Rd, Rn, Rm) ``Rd = Rn + Rm``
+* add(Rd, Rn, Rm) ``Rd = Rn +Rm``
 * adc(Rd, Rn) ``Rd = Rd + Rn + carry``
 
 Subtraction
@@ -40,7 +40,7 @@ Multiplication and division
 
 * mul(Rd, Rn) ``Rd = Rd * Rn``
 
-This produces a 32 bit result where the overflow bits are lost. The result may be treated as
+This produces a 32 bit result with overflow lost. The result may be treated as
 signed or unsigned according to the definition of the operands.
 
 * sdiv(Rd, Rn, Rm) ``Rd = Rn / Rm``
