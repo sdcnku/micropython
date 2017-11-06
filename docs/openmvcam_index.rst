@@ -7,11 +7,5 @@ MicroPython documentation and references
     openmvcam/tutorial/index.rst
     library/index.rst
     reference/index.rst
+    genrst/index.rst
     license.rst
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
