@@ -2325,7 +2325,7 @@ Methods
    the faster everything will run. Since bar codes are linear 1D images you
    just need a lot of resolution in one direction and just a little resolution
    in the other direction. Note that this function scans both horizontally and
-   vertically so use can use a 40/80/160 by 480 window if you want. Finally,
+   vertically so you can use a 40/80/160 by 480 window if you want. Finally,
    make sure to adjust your lens so that the bar code is positioned where the
    focal length produces the sharpest image. Blurry bar codes can't be decoded.
 
