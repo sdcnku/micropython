@@ -9,10 +9,7 @@
 The ``math`` module provides some basic mathematical functions for
 working with floating-point numbers.
 
-*Note:* On the pyboard and the OpenMV Cam, floating-point numbers have 32-bit precision.
-
-Availability: not available on WiPy. Floating point support required
-for this module.
+*Note:* On the pyboard, floating-point numbers have 32-bit precision.
 
 Functions
 ---------
@@ -97,7 +94,7 @@ Functions
 
    Decomposes a floating-point number into its mantissa and exponent.
    The returned value is the tuple ``(m, e)`` such that ``x == m * 2**e``
-   exactly. If ``x == 0`` then the function returns ``(0.0, 0)``, otherwise
+   exactly.  If ``x == 0`` then the function returns ``(0.0, 0)``, otherwise
    the relation ``0.5 <= abs(m) < 1`` holds.
 
 .. function:: gamma(x)
@@ -139,7 +136,7 @@ Functions
 .. function:: modf(x)
 
    Return a tuple of two floats, being the fractional and integral parts of
-   ``x``. Both return values have the same sign as ``x``.
+   ``x``.  Both return values have the same sign as ``x``.
 
 .. function:: pow(x, y)
 

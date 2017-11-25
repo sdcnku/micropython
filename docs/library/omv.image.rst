@@ -534,6 +534,9 @@ class Line -- Line object
 
 The line object is returned by ``image.find_lines``, ``image.find_line_segments``, or ``image.get_regression``.
 
+Methods
+-------
+
 .. method:: line.line()
 
    Returns a line tuple (x1, y1, x2, y2) for use with other ``image`` methods
@@ -1832,6 +1835,27 @@ Methods
 
    ``zoom`` is the amount to zoom in on the image by. 1.0 by default.
 
+.. method:: img.rotation_corr(x_rotation=0.0, y_rotation=0.0, z_rotation=0.0, x_translation=0.0, y_translation=0.0, zoom=1.0)
+
+   Corrects perspective issues in the image by doing a 3D rotation of the frame buffer.
+
+   ``x_rotation`` is the number of degrees to rotation the image in the frame buffer
+   around the x axis (i.e. this spins the image up and down).
+
+   ``y_rotation`` is the number of degrees to rotation the image in the frame buffer
+   around the y axis (i.e. this spins the image left and right).
+
+   ``z_rotation`` is the number of degrees to rotation the image in the frame buffer
+   around the z axis (i.e. this spins the image in place).
+
+   ``x_translation`` is the number of units to move the image to the left or right
+   after rotation. Because this translation is applied in 3D space the units aren't pixels...
+
+   ``y_translation`` is the number of units to move the image to the up or down
+   after rotation. Because this translation is applied in 3D space the units aren't pixels...
+
+   ``zoom`` is the amount to zoom in on the image by. 1.0 by default.
+
 .. method:: image.get_histogram(roi=Auto, bins=Auto, l_bins=Auto, a_bins=Auto, b_bins=Auto)
 
    Computes the normalized histogram on all color channels for an ``roi`` and
@@ -2086,7 +2110,7 @@ Methods
       All the arguments are keyword arguments and must be explicitly invoked
       with their name and an equal sign.
 
-.. method:: image.find_line_segments(roi=Auto, x_stride=2, y_stride=1, threshold=1000, theta_margin=25, rho_margin=25, segment_threshold=100)
+.. method:: image.find_line_segments(roi=Auto, merge_distance=0, max_theta_difference=15)
 
     Finds line segments in the image using the hough transform. Returns a list
     of ``line`` objects (see above).
@@ -2095,34 +2119,16 @@ Methods
     specified, it is equal to the image rectangle. Only pixels within the
     ``roi`` are operated on.
 
-    ``x_stride`` is the number of x pixels to skip when doing the hough transform.
-    Only increase this if lines you are searching for are large and bulky.
+    ``merge_distance`` specifies the maximum number of pixels two line segements
+    can be seperated by each other (at any point on one line) to be merged.
 
-    ``y_stride`` is the number of y pixels to skip when doing the hough transform.
-    Only increase this if lines you are searching for are large and bulky.
+    ``max_theta_difference`` is the maximum theta difference in degrees two line
+    segements that are ``merge_distance`` above to be merged.
 
-    ``threshold`` controls what lines are detected from the hough transform. Only
-    lines with a magnitude greater than or equal to ``threshold`` are returned. The
-    right value of ``threshold`` for your application is image dependent. Note that
-    the magnitude of a line is the sum of all sobel filter magnitudes of pixels
-    that make up that line.
+    This method uses the LSD library (also used by OpenCV) to find line segements
+    in the image. It's somewhat slow but very accurate and lines don't jump around.
 
-    ``theta_margin`` controls the merging of detected lines. Lines which are
-    ``theta_margin`` degrees apart and ``rho_margin`` rho apart are merged.
-
-    ``rho_margin`` controls the merging of detected lines. Lines which are
-    ``theta_margin`` degrees apart and ``rho_margin`` rho apart are merged.
-
-    ``segment_threshold`` controls what pixels are added to line segments. This
-    is a threshold check on the magnitude of each pixel under an infinite line
-    before it is added to a line segment under an infinite line.
-
-    This method works by calling ``find_lines`` internally and then walking
-    each line found and checking the magnitude (using the sobel filter). If
-    the magnitude passes the threshold check and if the pixel's gradient direction
-    points in the same direction as the line then the pixel is added to a line
-    segment under that line. All line segments are then merged repeatedly to
-    create nice clean line segments.
+    Only supported on the OpenMV Cam M7 or better (not enough RAM on the M4).
 
     .. note::
 
@@ -2211,6 +2217,8 @@ Methods
    ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
    specified, it is equal to the image rectangle. Only pixels within the
    ``roi`` are operated on.
+
+   Only supported on the OpenMV Cam M7 or better (not enough RAM on the M4).
 
    Not supported on compressed images.
 

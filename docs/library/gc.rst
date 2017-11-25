@@ -15,7 +15,7 @@ Functions
 
 .. function:: disable()
 
-   Disable automatic garbage collection. Heap memory can still be allocated,
+   Disable automatic garbage collection.  Heap memory can still be allocated,
    and garbage collection can still be initiated manually using :meth:`gc.collect`.
 
 .. function:: collect()

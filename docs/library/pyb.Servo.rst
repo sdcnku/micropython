@@ -4,71 +4,36 @@
 class Servo -- 3-wire hobby servo driver
 ========================================
 
-.. only:: port_pyboard
+Servo objects control standard hobby servo motors with 3-wires (ground, power,
+signal).  There are 4 positions on the pyboard where these motors can be plugged
+in: pins X1 through X4 are the signal pins, and next to them are 4 sets of power
+and ground pins.
 
-    Servo objects control standard hobby servo motors with 3-wires (ground, power,
-    signal). There are 4 positions on the pyboard where these motors can be plugged
-    in: pins X1 through X4 are the signal pins, and next to them are 4 sets of power
-    and ground pins.
+Example usage::
 
-    Example usage::
+    import pyb
 
-        import pyb
+    s1 = pyb.Servo(1)   # create a servo object on position X1
+    s2 = pyb.Servo(2)   # create a servo object on position X2
 
-        s1 = pyb.Servo(1)   # create a servo object on position X1
-        s2 = pyb.Servo(2)   # create a servo object on position X2
+    s1.angle(45)        # move servo 1 to 45 degrees
+    s2.angle(0)         # move servo 2 to 0 degrees
 
-        s1.angle(45)        # move servo 1 to 45 degrees
-        s2.angle(0)         # move servo 2 to 0 degrees
+    # move servo1 and servo2 synchronously, taking 1500ms
+    s1.angle(-60, 1500)
+    s2.angle(30, 1500)
 
-        # move servo1 and servo2 synchronously, taking 1500ms
-        s1.angle(-60, 1500)
-        s2.angle(30, 1500)
-
-    .. note:: The Servo objects use Timer(5) to produce the PWM output. You can
-       use Timer(5) for Servo control, or your own purposes, but not both at the
-       same time.
-
-.. only:: port_pyboard
-
-    Servo objects control standard hobby servo motors with 3-wires (ground, power,
-    signal). There are 2 positions on the OpenMV Cam where these motors can be plugged
-    in: pins P7 through P8 are the signal pins.
-
-    Example usage::
-
-        import pyb
-
-        s1 = pyb.Servo(1)   # create a servo object on position P7
-        s2 = pyb.Servo(2)   # create a servo object on position P8
-
-        s1.angle(45)        # move servo 1 to 45 degrees
-        s2.angle(0)         # move servo 2 to 0 degrees
-
-        # move servo1 and servo2 synchronously, taking 1500ms
-        s1.angle(-60, 1500)
-        s2.angle(30, 1500)
-
-    .. note:: The Servo objects use Timer(4) to produce the PWM output. You can
-       use Timer(4) for Servo control, or your own purposes, but not both at the
-       same time.
-
-    On the OpenMV Cam M7 P9 exposes an additional Servo(3) channel.
+.. note:: The Servo objects use Timer(5) to produce the PWM output.  You can
+   use Timer(5) for Servo control, or your own purposes, but not both at the
+   same time.
 
 Constructors
 ------------
 
 .. class:: pyb.Servo(id)
 
-   .. only:: port_pyboard
+   Create a servo object.  ``id`` is 1-4, and corresponds to pins X1 through X4.
 
-        Create a servo object. ``id`` is 1-4, and corresponds to pins X1 through X4.
-
-   .. only:: port_openmvcam
-
-        Create a servo object. ``id`` is 1-2, and corresponds to pins P6 through P7.
-
-        On the OpenMV Cam M7 P9 exposes an additional Servo(3) channel.
 
 Methods
 -------
@@ -81,7 +46,7 @@ Methods
 
      - ``angle`` is the angle to move to in degrees.
      - ``time`` is the number of milliseconds to take to get to the specified
-       angle. If omitted, then the servo moves as quickly as possible to its
+       angle.  If omitted, then the servo moves as quickly as possible to its
        new position.
 
 .. method:: Servo.speed([speed, time=0])
@@ -92,7 +57,7 @@ Methods
 
      - ``speed`` is the speed to change to, between -100 and 100.
      - ``time`` is the number of milliseconds to take to get to the specified
-       speed. If omitted, then the servo accelerates as quickly as possible.
+       speed.  If omitted, then the servo accelerates as quickly as possible.
 
 .. method:: Servo.pulse_width([value])
 
@@ -110,6 +75,6 @@ Methods
 
      - ``pulse_min`` is the minimum allowed pulse width.
      - ``pulse_max`` is the maximum allowed pulse width.
-     - ``pulse_centre`` is the pulse width corresponding to the center/zero position.
+     - ``pulse_centre`` is the pulse width corresponding to the centre/zero position.
      - ``pulse_angle_90`` is the pulse width corresponding to 90 degrees.
      - ``pulse_speed_100`` is the pulse width corresponding to a speed of 100.

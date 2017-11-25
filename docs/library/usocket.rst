@@ -124,11 +124,11 @@ Constants
    Socket options (an argument to `setsockopt()`). The exact
    inventory depends on a MicroPython port.
 
-Constants specific to WiPy:
+.. only:: port_wipy
 
-.. data:: IPPROTO_SEC
+   .. data:: IPPROTO_SEC
 
-    Special protocol value to create SSL-compatible socket.
+      Special protocol value to create SSL-compatible socket.
 
 class socket
 ============

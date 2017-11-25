@@ -109,6 +109,11 @@ Functions
       * sensor.GRAYSCALE: 8-bits per pixel.
       * sensor.RGB565: 16-bits per pixel.
 
+.. function:: sensor.sleep(enable)
+
+   Puts the camera into sleep mode. This saves about 40 mA. Automatically
+   cleared on reset.
+
 .. function:: sensor.set_framerate(rate)
 
    Sets the frame rate for the camera module.
@@ -119,13 +124,9 @@ Functions
 
    Sets the frame size for the camera module.
 
-      * sensor.QQQQCIF: 22x18
-      * sensor.QQQCIF: 44x36
       * sensor.QQCIF: 88x72
       * sensor.QCIF: 176x144
       * sensor.CIF: 352x288
-      * sensor.QQQQSIF: 22x15
-      * sensor.QQQSIF: 44x30
       * sensor.QQSIF: 88x60
       * sensor.QSIF: 176x120
       * sensor.SIF: 352x240
@@ -134,11 +135,9 @@ Functions
       * sensor.QQVGA: 160x120
       * sensor.QVGA: 320x240
       * sensor.VGA: 640x480
-      * sensor.HQQQQVGA: 40x20
       * sensor.HQQQVGA: 80x40
       * sensor.HQQVGA: 160x80
       * sensor.HQVGA: 240x160
-      * sensor.HVGA: 480x320
       * sensor.LCD: 128x160 (for use with the lcd shield)
       * sensor.QQVGA2: 128x160 (for use with the lcd shield)
       * sensor.B40x30: 160x120 (for use with ``image.find_displacement``)
@@ -306,14 +305,6 @@ Constants
 
    ``sensor.get_id()`` returns this for the OV7725 camera.
 
-.. data:: sensor.QQQQCIF
-
-   22x18 resolution for the camera sensor.
-
-.. data:: sensor.QQQCIF
-
-   44x36 resolution for the camera sensor.
-
 .. data:: sensor.QQCIF
 
    88x72 resolution for the camera sensor.
@@ -325,14 +316,6 @@ Constants
 .. data:: sensor.CIF
 
    352x288 resolution for the camera sensor.
-
-.. data:: sensor.QQQQSIF
-
-   22x15 resolution for the camera sensor.
-
-.. data:: sensor.QQQSIF
-
-   44x30 resolution for the camera sensor.
 
 .. data:: sensor.QQSIF
 
@@ -360,16 +343,12 @@ Constants
 
 .. data:: sensor.QVGA
 
-   320x120 resolution for the camera sensor.
+   320x240 resolution for the camera sensor.
 
 .. data:: sensor.VGA
 
    640x480 resolution for the camera sensor.
    Only works for the OV2640 camera or the OpenMV Cam M7.
-
-.. data:: sensor.HQQQQVGA
-
-   30x20 resolution for the camera sensor.
 
 .. data:: sensor.HQQQVGA
 
@@ -382,11 +361,6 @@ Constants
 .. data:: sensor.HQVGA
 
    240x160 resolution for the camera sensor.
-
-.. data:: sensor.HVGA
-
-   480x320 resolution for the camera sensor.
-   Only works for the OV2640 camera or the OpenMV Cam M7.
 
 .. data:: sensor.LCD
 

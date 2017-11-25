@@ -9,9 +9,6 @@
 The ``cmath`` module provides some basic mathematical functions for
 working with complex numbers.
 
-Availability: not available on WiPy and ESP8266. Floating point support
-required for this module.
-
 Functions
 ---------
 
@@ -25,11 +22,11 @@ Functions
 
 .. function:: log(z)
 
-   Return the natural logarithm of ``z``. The branch cut is along the negative real axis.
+   Return the natural logarithm of ``z``.  The branch cut is along the negative real axis.
 
 .. function:: log10(z)
 
-   Return the base-10 logarithm of ``z``. The branch cut is along the negative real axis.
+   Return the base-10 logarithm of ``z``.  The branch cut is along the negative real axis.
 
 .. function:: phase(z)
 
