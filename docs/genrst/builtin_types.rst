@@ -70,7 +70,7 @@ Exception in while loop condition may have unexpected line number
 Sample code::
 
     l = ["-foo", "-bar"]
-    
+
     i = 0
     while l[i][0] == "-":
         print("iter")
@@ -98,7 +98,7 @@ Sample code::
     class A(Exception):
         def __init__(self):
             Exception.__init__(self)
-    
+
     a = A()
 
 +-------------+-----------------------------------------------------------+
@@ -221,7 +221,7 @@ Sample code::
 
     class A(int):
         __add__ = lambda self, other: A(int(self) + other)
-    
+
     a = A(42)
     print(a+a)
 
@@ -421,7 +421,7 @@ str.ljust() and str.rjust() not implemented
 
 **Cause:** MicroPython is highly optimized for memory usage. Easy workarounds available.
 
-**Workaround:** Instead of `s.ljust(10)` use `"%-10s" % s`, instead of `s.rjust(10)` use `"% 10s" % s`. Alternatively, `"{:<10}".format(s)` or `"{:>10}".format(s)`.
+**Workaround:** Instead of ``s.ljust(10)`` use ``"%-10s" % s``, instead of ``s.rjust(10)`` use ``"% 10s" % s``. Alternatively, ``"{:<10}".format(s)`` or ``"{:>10}".format(s)``.
 
 Sample code::
 
@@ -465,7 +465,7 @@ Sample code::
 
     class S(str):
         pass
-    
+
     s = S('hello')
     print(s == 'hello')
 

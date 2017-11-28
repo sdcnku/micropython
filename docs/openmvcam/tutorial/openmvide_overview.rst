@@ -256,7 +256,7 @@ application.
         once it finishes booting up.
 
     *
-        The `Reset OpenMV Cam`` command resets and then disconnects from your
+        The ``Reset OpenMV Cam`` command resets and then disconnects from your
         OpenMV Cam. You'll want to use this option if you run a script that
         creates files on your OpenMV Cam as Windows/Mac/Linux won't show you
         any files on your OpenMV Cam created programmatically in a Python

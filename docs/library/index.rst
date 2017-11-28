@@ -250,6 +250,19 @@ the following libraries.
       :maxdepth: 2
 
       pyb.rst
+      pyb.ADC.rst
+      pyb.CAN.rst
+      pyb.DAC.rst
+      pyb.ExtInt.rst
+      pyb.I2C.rst
+      pyb.LED.rst
+      pyb.Pin.rst
+      pyb.RTC.rst
+      pyb.Servo.rst
+      pyb.SPI.rst
+      pyb.Timer.rst
+      pyb.UART.rst
+      pyb.USB_VCP.rst
       omv.time.rst
       omv.sensor.rst
       omv.image.rst
