@@ -60,7 +60,8 @@ These sections provide further code examples and hints on the use of the assembl
 References
 ----------
 
--  :ref:`Assembler Tutorial <pyboard_tutorial_assembler>`
+.. only:: port_pyboard
+   -  :ref:`Assembler Tutorial <pyboard_tutorial_assembler>`
 -  `Wiki hints and tips
    <http://wiki.micropython.org/platforms/boards/pyboard/assembler>`__
 -  `uPy Inline Assembler source-code,

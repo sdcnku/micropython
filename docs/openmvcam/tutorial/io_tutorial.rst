@@ -37,7 +37,4 @@ and UART classes along with being able to control the board's power consumption.
    :numbered:
 
    led_control.rst
-
-.. note::
-
-    The tutorial is not complete at all right now.
+   gpio_control.rst

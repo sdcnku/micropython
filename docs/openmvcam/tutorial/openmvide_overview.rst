@@ -42,12 +42,7 @@ yourself with the example scripts so you can use your OpenMV Cam effectively.
 Lastly, whenever you create a new file in OpenMV IDE or open an example script
 OpenMV IDE creates a memory only copy of the file that is not stored on disk
 like in the Arduino IDE. This let's you quickly test out ideas without having
-to create a file. If you want to save the file you need to use ``Save As``
-to save the file to disk. Then the regular file ``Save`` option will work.
-The QtCreator text editor backend only allows use of the ``Save`` command for
-files that exist on disk. Note that if you forget to ``Save As`` a new file or
-an edited example file OpenMV IDE will ask if you want to save the file(s) on
-close.
+to create a file.
 
 Text Editing
 ------------
@@ -60,6 +55,15 @@ matching with the ability to capture text during the find and use that captured
 text for the replace. Additionally, it also can preserve case while replacing.
 Finally, the find and replace features works not only on the current file, but,
 it can work on all files in a folder or all open files in OpenMV IDE.
+
+In addition to the nice text editing enviornment OpenMV IDE also provides
+auto-completion support hover tool-tips on keywords. So, after typing ``.`` for
+example in Python OpenMV IDE will detect that you're about to write a function
+or method name and it will show you an auto-completion text box. Once you've
+written the function/method name it will also walk you through the arguments.
+Finally, if you hover your mouse cursor over any keyword OpenMV IDE will
+display the documentation for that keyword in a tooltip. These two features
+make editing scripts a joy!
 
 Connecting to your OpenMV Cam
 -----------------------------
@@ -149,6 +153,16 @@ that later. For now, here's what you need to know about the frame buffer
 viewer:
 
     *
+        The ``Reocord`` button on the top right-hand corner of OpenMV IDE
+        records whatever is in the frame buffer. Use it to quickly make videos
+        of what your OpenMV Cam sees. Note that recording works by recording
+        whatever is in OpenMV IDE's frame buffer at 30 FPS. However, the frame
+        buffer may be updating faster or slower than this depending on the
+        application. Anyway, after the recording is complete OpenMV IDE will
+        use FFMPEG to transcode the recording to whatever file format you want
+        for sharing.
+
+    *
         The ``Zoom`` button on the top right-hand corner of OpenMV IDE controls
         the zoom-to-fit feature for the frame buffer viewer. Enable or disable
         the feature as your please.
@@ -159,11 +173,10 @@ viewer:
         Basically, your OpenMV Cam has to JPEG compress images constantly to
         stream them to OpenMV IDE. This reduces performance. So, if you want to
         see how fast your script will run after in the wild without your OpenMV
-        Cam being connected to your computer just click the ``Disable`` button
-        and then restart your script. While the frame buffer is disabled you
-        won't be able to see what your OpenMV Cam is looking at anymore but
-        you'll still see debug output from your OpenMV Cam in the Serial
-        Terminal.
+        Cam being connected to your computer just click the ``Disable`` button.
+        While the frame buffer is disabled you won't be able to see what your
+        OpenMV Cam is looking at anymore but you'll still see debug output from
+        your OpenMV Cam in the Serial Terminal.
 
 Finally, you can right click on whatever image you see in the frame buffer
 viewer to save that image to disk. Additionally, if you select an area in the
@@ -197,6 +210,9 @@ the histogram will only show the distribution of colors in that area. This
 features makes the histogram display super useful for determining the correct
 Grayscale and LAB color channel settings you need to use in your scripts for
 ``image.find_blobs`` and ``image.binary``.
+
+Finally, the image resolution and ROI (x, y, w, h) of the bounding box you
+select on the image are displayed above the histogram graphs.
 
 Serial Terminal
 ---------------
@@ -235,7 +251,7 @@ FPS OpenMV IDE is getting from your OpenMV Cam.
     OpenMV Cam. But, your OpenMV Cam can actually run faster than OpenMV IDE
     sometimes and OpenMV IDE is only sampling some of the frames from your
     OpenMV Cam and not all. Anyway, OpenMV IDE's FPS will never be faster than
-    your OpenMV Cam's FPS, but, if may be slower.
+    your OpenMV Cam's FPS, but, it may be slower.
 
 Tools
 -----
@@ -244,6 +260,11 @@ You'll find useful tools for your OpenMV Cam under the Tools Menu in OpenMV
 IDE. In particular, the ``Save open script to your OpenMV Cam`` and ``Reset
 OpenMV Cam`` tools are useful for using your OpenMV Cam when developing an
 application.
+
+    *
+        The ``Configure OpenMV Cam Settings file`` allows you to modify an
+        ``.ini`` file stored on your OpenMV Cam using OpenMV IDE which your
+        OpenMV Cam will read on bootup for particular hardware configurations.
 
     *
         The ``Save open script to your OpenMV Cam`` command saves whatever
@@ -289,16 +310,27 @@ OpenMV Cam. For example, the you can use the color threshold editor to get
 the best color tracking thresholds for ``image.find_blobs()``. We'll make
 new machine vision tools available regularly to make life easier for you.
 
+Video Tools
+-----------
+
+If you need to compress a ``.gif`` file produced by your OpenMV Cam or convert
+a ``.mjpeg`` or ImageWriter ``.bin`` video file to ``.mp4`` you can use the
+convert video file action to do this. Alternatively, if you'd just like to play
+these videos instead you can do that too using the play video file action.
+
+Note that you should copy video files from your OpenMV Cam's flash drive to
+your computer first before playing them since disk I/O over USB on your OpenMV
+Cam is slow.
+
+Finally, FFMPEG is used to provide conversion and video player support and may
+be used for any non-OpenMV Cam activites you like. FFMPEG can convert/play
+a large number of file formats.
+
 Options
 -------
 
 Under the Tools Menu (or About Menu for Mac) you can access OpenMV IDE's
 option dialog.
-
-.. note::
-
-    At the time of writing this OpenMV IDE is not complete yet. In particular,
-    the options menu has not been cleaned up.
 
 You can configure the editor font, size, zoom, tab behavior, automatic cleaning
 of white space, column margins for folks who like keeping lines to 80
