@@ -25,7 +25,7 @@ Anyway, once you've got a UART object then sending data is easy. Just do::
 And that's it.
 
 But, if you'd like to send binary data instead, use the `ustruct` module. The
-`ustruct` module will let you serialize data easily. Here's an example:
+`ustruct` module will let you serialize data easily. Here's an example::
 
     import ustruct
 
