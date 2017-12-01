@@ -38,3 +38,10 @@ and UART classes along with being able to control the board's power consumption.
 
    led_control.rst
    gpio_control.rst
+   analog_io.rst
+   uart_control.rst
+
+.. note::
+
+    The tutorial is not complete at right now. Please see the quick reference
+    and library for more documentation.
