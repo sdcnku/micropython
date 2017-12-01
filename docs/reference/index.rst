@@ -25,7 +25,7 @@ implementation and the best practices to use them.
    speed_python.rst
    constrained.rst
 
-.. only:: port_pyboard
+.. only:: port_pyboard or port_openmvcam
 
    .. toctree::
       :maxdepth: 1

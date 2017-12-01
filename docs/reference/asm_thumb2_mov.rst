@@ -10,7 +10,7 @@ value having a width of N bits. These instructions affect the condition flags.
 Register moves
 --------------
 
-When immediate values are used, these are zero-extended to 32 bits. Thus
+Where immediate values are used, these are zero-extended to 32 bits. Thus
 ``mov(R0, 0xff)`` will set R0 to 255.
 
 * mov(Rd, imm8) ``Rd = imm8``

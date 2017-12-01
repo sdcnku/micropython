@@ -46,7 +46,7 @@ Python standard libraries and micro-libraries
 ---------------------------------------------
 
 The following standard Python libraries have been "micro-ified" to fit in with
-the philosophy of MicroPython. They provide the core functionality of that
+the philosophy of MicroPython.  They provide the core functionality of that
 module and are intended to be a drop-in replacement for the standard Python
 library.  Some modules below use a standard Python name, but prefixed with "u",
 e.g. ``ujson`` instead of ``json``. This is to signify that such a module is
@@ -164,20 +164,26 @@ it will fallback to loading the built-in ``ujson`` module.
     .. toctree::
        :maxdepth: 1
 
+       builtins.rst
+       array.rst
        gc.rst
        math.rst
-       select.rst
        sys.rst
        ubinascii.rst
+       ucollections.rst
+       uerrno.rst
        uhashlib.rst
+       uheapq.rst
        uio.rst
        ujson.rst
        uos.rst
        ure.rst
+       uselect.rst
        usocket.rst
        ustruct.rst
        utime.rst
        uzlib.rst
+
 
 MicroPython-specific libraries
 ------------------------------
@@ -189,10 +195,10 @@ the following libraries.
    :maxdepth: 1
 
    btree.rst
-   framebuf.rst
    machine.rst
    micropython.rst
    network.rst
+
 
 .. only:: port_pyboard
 
@@ -204,8 +210,6 @@ the following libraries.
    .. toctree::
       :maxdepth: 2
 
-      machine.rst
-      uctypes.rst
       pyb.rst
       lcd160cr.rst
 
@@ -219,9 +223,8 @@ the following libraries.
    .. toctree::
       :maxdepth: 2
 
-      machine.rst
-      uctypes.rst
       wipy.rst
+
 
 .. only:: port_esp8266
 
@@ -233,9 +236,8 @@ the following libraries.
    .. toctree::
       :maxdepth: 2
 
-      machine.rst
-      uctypes.rst
       esp.rst
+
 
 .. only:: port_openmvcam
 
@@ -255,6 +257,7 @@ the following libraries.
       pyb.I2C.rst
       pyb.LED.rst
       pyb.Pin.rst
+      pyb.RTC.rst
       pyb.Servo.rst
       pyb.SPI.rst
       pyb.Timer.rst
@@ -268,5 +271,3 @@ the following libraries.
       omv.lcd.rst
       omv.fir.rst
       omv.cpufreq.rst
-      machine.rst
-      machine.I2C.rst

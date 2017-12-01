@@ -47,6 +47,7 @@ There is also a C API, so that drivers which require EXTI interrupt lines
 can also use this code. See extint.h for the available functions and
 usrsw.h for an example of using this.
 
+
 Constructors
 ------------
 
@@ -63,9 +64,10 @@ Constructors
        - ``pyb.Pin.PULL_NONE`` - no pull up or down resistors;
        - ``pyb.Pin.PULL_UP`` - enable the pull-up resistor;
        - ``pyb.Pin.PULL_DOWN`` - enable the pull-down resistor.
-     - ``callback`` is the function to call when the interrupt triggers. The
+     - ``callback`` is the function to call when the interrupt triggers.  The
        callback function must accept exactly 1 argument, which is the line that
        triggered the interrupt.
+
 
 Class methods
 -------------
@@ -73,6 +75,7 @@ Class methods
 .. classmethod:: ExtInt.regs()
 
    Dump the values of the EXTI registers.
+
 
 Methods
 -------
@@ -93,6 +96,7 @@ Methods
 .. method:: ExtInt.swint()
 
    Trigger the callback from software.
+
 
 Constants
 ---------

@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.abspath('.'))
 
 # Work out the port to generate the docs for
 from collections import OrderedDict
-micropy_port = os.getenv('MICROPY_PORT') or 'pyboard'
+micropy_port = os.getenv('MICROPY_PORT') or 'openmvcam'
 tags.add('port_' + micropy_port)
 ports = OrderedDict((
     ('unix', 'unix'),
@@ -91,7 +91,7 @@ source_suffix = '.rst'
 
 # General information about the project.
 project = 'MicroPython'
-copyright = '2014-2017, Damien P. George, Paul Sokolovsky, and contributors'
+copyright = '2014-2017, Damien P. George, Paul Sokolovsky, OpenMV LLC, and contributors'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -163,18 +163,18 @@ else:
     html_theme_path = ['.']
 
 # Theme options are theme-specific and customize the look and feel of a theme
-# further. For a list of options available for each theme, see the
+# further.  For a list of options available for each theme, see the
 # documentation.
 #html_theme_options = {}
 
 # Add any paths that contain custom themes here, relative to this directory.
 # html_theme_path = ['.']
 
-# The name for this set of Sphinx documents. If None, it defaults to
+# The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
 #html_title = None
 
-# A shorter title for the navigation bar. Default is the same as html_title.
+# A shorter title for the navigation bar.  Default is the same as html_title.
 #html_short_title = None
 
 # The name of an image file (relative to this directory) to place at the top
@@ -182,13 +182,9 @@ else:
 html_logo = '../../openmv-media/logos/openmv-logo-white/web-logo-sticky.png'
 
 # The name of an image file (within the static path) to use as favicon of the
-# docs. This file should be a Windows icon file (.ico) being 16x16 or 32x32
+# docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large.
-<<<<<<< HEAD
 html_favicon = '../../openmv-media/logos/openmv-logo/favicon.ico'
-=======
-html_favicon = 'favicon.ico'
->>>>>>> origin/master
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -234,7 +230,7 @@ html_additional_pages = {"index": "topindex.html"}
 #html_show_copyright = True
 
 # If true, an OpenSearch description file will be output, and all pages will
-# contain a <link> tag referring to it. The value of this option must be the
+# contain a <link> tag referring to it.  The value of this option must be the
 # base URL from which the finished HTML is served.
 #html_use_opensearch = ''
 
@@ -265,11 +261,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
   (master_doc, 'MicroPython.tex', 'MicroPython Documentation',
-<<<<<<< HEAD
-   'Damien P. George, OpenMV LLC, and contributors', 'manual'),
-=======
-   'Damien P. George, Paul Sokolovsky, and contributors', 'manual'),
->>>>>>> origin/master
+   'Damien P. George, Paul Sokolovsky, OpenMV LLC, and contributors', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -299,11 +291,7 @@ latex_documents = [
 # (source start file, name, description, authors, manual section).
 man_pages = [
     ('index', 'micropython', 'MicroPython Documentation',
-<<<<<<< HEAD
-     ['Damien P. George, OpenMV LLC, and contributors'], 1),
-=======
-     ['Damien P. George, Paul Sokolovsky, and contributors'], 1),
->>>>>>> origin/master
+     ['Damien P. George, Paul Sokolovsky, OpenMV LLC, and contributors'], 1),
 ]
 
 # If true, show URL addresses after external links.
@@ -317,11 +305,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
   (master_doc, 'MicroPython', 'MicroPython Documentation',
-<<<<<<< HEAD
-   'Damien P. George, OpenMV LLC, and contributors', 'MicroPython', 'One line description of project.',
-=======
-   'Damien P. George, Paul Sokolovsky, and contributors', 'MicroPython', 'One line description of project.',
->>>>>>> origin/master
+   'Damien P. George, Paul Sokolovsky, OpenMV LLC, and contributors', 'MicroPython', 'One line description of project.',
    'Miscellaneous'),
 ]
 
@@ -348,6 +332,7 @@ modules_port_specific = {
     'pyboard': ['pyb'],
     'wipy': ['wipy'],
     'esp8266': ['esp'],
+    'openmvcam': ['pyb', 'sensor', 'image', 'time', 'mjpeg', 'gif', 'fir', 'lcd', 'cpufreq']
 }
 
 modindex_exclude = []

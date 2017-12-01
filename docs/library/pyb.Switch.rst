@@ -18,12 +18,14 @@ Example::
 
      pyb.Switch().callback(lambda: pyb.LED(1).toggle())
 
+
 Constructors
 ------------
 
 .. class:: pyb.Switch()
 
    Create and return a switch object.
+
 
 Methods
 -------

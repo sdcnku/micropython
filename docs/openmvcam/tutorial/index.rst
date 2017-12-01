@@ -13,8 +13,8 @@ The OpenMV Cam tutorial covers how to use your OpenMV Cam and its accessories.
    hardware_setup.rst
    openmvide_overview.rst
 
+   script_structure.rst
    io_tutorial.rst
-   led_control.rst
 
    more_information.rst
 

@@ -25,7 +25,7 @@
 
   <table class="contentstable"><tr>
     <td width="40%" style="padding-left:2em;">
-      {% if port in ("pyboard", "wipy", "esp8266") %}
+      {% if port in ("pyboard", "wipy", "esp8266", "openmvcam") %}
         <p class="biglink">
           <a class="biglink" href="{{ pathto(port + "/quickref") }}">Quick reference for {{ port_name }}</a><br/>
           <span class="linkdescr">pinout for {{ port_name }} and snippets of useful code</span>
@@ -41,7 +41,7 @@
       {% endif %}
       <p class="biglink">
         <a class="biglink" href="{{ pathto("library/index") }}">Library Reference</a><br/>
-        {% if port == "pyboard" %}
+        {% if port in ("pyboard", "openmvcam") %}
           <span class="linkdescr">MicroPython libraries, including the <a href="{{ pathto("library/pyb") }}">pyb module</a></span>
         {% else %}
           <span class="linkdescr">MicroPython libraries, including the <a href="{{ pathto("library/machine") }}">machine module</a></span>
@@ -90,6 +90,24 @@
 
   <p><strong>External links:</strong></p>
 
+  <table class="contentstable"><tr>
+    <td width="40%" style="padding-left:2em;">
+      <p class="biglink">
+      <a class="biglink" href="https://openmv.io">OpenMV homepage</a><br/>
+        <span class="linkdescr">the official OpenMV site</span>
+      </p>
+      <p class="biglink">
+        <a class="biglink" href="http://forums.openmv.io">OpenMV forum</a><br/>
+        <span class="linkdescr">community discussion for all things related to OpenMV</span>
+      </p>
+    </td>
+    <td width="40%" style="padding-left:2em;">
+      <p class="biglink">
+        <a class="biglink" href="https://github.com/openmv">OpenMV on GitHub</a><br/>
+        <span class="linkdescr">contribute to the source code on GitHub</span>
+      </p>
+    </td>
+  </tr></table>
   <table class="contentstable"><tr>
     <td width="40%" style="padding-left:2em;">
       <p class="biglink">
