@@ -1915,7 +1915,7 @@ Methods
       ``roi``, ``bin_count``, and etc. are keyword arguments which must be
       explicitly invoked in the function call by writing ``roi=``, etc.
 
-.. method:: image.get_linear_regression(thresholds, [roi=Auto, x_stride=2, y_stride=1, invert=False, robust=False])
+.. method:: image.get_regression(thresholds, [roi=Auto, x_stride=2, y_stride=1, invert=False, robust=False])
 
    Computes a linear regression on all the thresholded pixels in the image. The
    linear regression is computed using least-squares normally which is fast but
