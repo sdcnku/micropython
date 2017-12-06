@@ -52,6 +52,10 @@ html_context = {
     'downloads':[
         ('PDF', url_pattern % (micropy_version, 'micropython-%s.pdf' % micropy_port)),
     ],
+    'all_languages':[
+        ('English', 'http://docs.openmv.io'),
+        (u'中文', 'http://doc.singtown.cc/openmv_zh')
+    ]
 }
 
 
