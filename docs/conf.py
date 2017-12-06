@@ -332,7 +332,7 @@ modules_port_specific = {
     'pyboard': ['pyb'],
     'wipy': ['wipy'],
     'esp8266': ['esp'],
-    'openmvcam': ['pyb', 'sensor', 'image', 'time', 'mjpeg', 'gif', 'fir', 'lcd', 'cpufreq']
+    'openmvcam': ['pyb']
 }
 
 modindex_exclude = []
@@ -340,6 +340,8 @@ modindex_exclude = []
 for p, l in modules_port_specific.items():
     if p != micropy_port:
         modindex_exclude += l
+for module in modules_port_specific[micropy_port]:
+    modindex_exclude.remove(module)
 
 # Exclude extra modules per port
 modindex_exclude += {
