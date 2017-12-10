@@ -293,15 +293,15 @@ Constants
 
    Deprecated... do not use.
 
-.. data:: sensor.OV9650:
+.. data:: sensor.OV9650
 
    ``sensor.get_id()`` returns this for the OV9650 camera.
 
-.. data:: sensor.OV2640:
+.. data:: sensor.OV2640
 
    ``sensor.get_id()`` returns this for the OV2640 camera.
 
-.. data:: sensor.OV7725:
+.. data:: sensor.OV7725
 
    ``sensor.get_id()`` returns this for the OV7725 camera.
 
