@@ -456,11 +456,15 @@ STATIC mp_obj_t machine_sleep(void) {
     // takes longer to wake but reduces stop current
     HAL_PWREx_EnableFlashPowerDown();
 
+    HAL_SuspendTick();
+
     # if defined(MCU_SERIES_F7)
     HAL_PWR_EnterSTOPMode((PWR_CR1_LPDS | PWR_CR1_LPUDS | PWR_CR1_FPDS | PWR_CR1_UDEN), PWR_STOPENTRY_WFI);
     # else
     HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
     #endif
+
+    HAL_ResumeTick();
 
     // reconfigure the system clock after waking up
 
