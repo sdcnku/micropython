@@ -77,6 +77,12 @@ void machine_init(void) {
         reset_cause = PYB_RESET_DEEPSLEEP;
         PWR->CR |= PWR_CR_CSBF;
     } else
+    #elif defined(MCU_SERIES_F7)
+    if (PWR->CSR1 & PWR_CSR1_SBF) {
+        // came out of standby
+        reset_cause = PYB_RESET_DEEPSLEEP;
+        PWR->CR1 |= PWR_CR1_CSBF;
+    } else
     #endif
     {
         // get reset cause from RCC flags
@@ -450,7 +456,11 @@ STATIC mp_obj_t machine_sleep(void) {
     // takes longer to wake but reduces stop current
     HAL_PWREx_EnableFlashPowerDown();
 
+    # if defined(MCU_SERIES_F7)
+    HAL_PWR_EnterSTOPMode((PWR_CR1_LPDS | PWR_CR1_LPUDS | PWR_CR1_FPDS | PWR_CR1_UDEN), PWR_STOPENTRY_WFI);
+    # else
     HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
+    #endif
 
     // reconfigure the system clock after waking up
 
@@ -478,7 +488,7 @@ MP_DEFINE_CONST_FUN_OBJ_0(machine_sleep_obj, machine_sleep);
 STATIC mp_obj_t machine_deepsleep(void) {
     rtc_init_finalise();
 
-#if defined(MCU_SERIES_F7) || defined(MCU_SERIES_L4)
+#if defined(MCU_SERIES_L4)
     printf("machine.deepsleep not supported yet\n");
 #else
     // We need to clear the PWR wake-up-flag before entering standby, since
@@ -500,8 +510,15 @@ STATIC mp_obj_t machine_deepsleep(void) {
     // clear RTC wake-up flags
     RTC->ISR &= ~(RTC_ISR_ALRAF | RTC_ISR_ALRBF | RTC_ISR_WUTF | RTC_ISR_TSF);
 
+    #if defined(MCU_SERIES_F7)
+    // disable wake-up flags
+    PWR->CSR2 &= ~(PWR_CSR2_EWUP6 | PWR_CSR2_EWUP5 | PWR_CSR2_EWUP4 | PWR_CSR2_EWUP3 | PWR_CSR2_EWUP2 | PWR_CSR2_EWUP1);
+    // clear global wake-up flag
+    PWR->CR2 |= PWR_CR2_CWUPF6 | PWR_CR2_CWUPF5 | PWR_CR2_CWUPF4 | PWR_CR2_CWUPF3 | PWR_CR2_CWUPF2 | PWR_CR2_CWUPF1;
+    #else
     // clear global wake-up flag
     PWR->CR |= PWR_CR_CWUF;
+    #endif
 
     // enable previously-enabled RTC interrupts
     RTC->CR |= save_irq_bits;
