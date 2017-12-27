@@ -34,6 +34,7 @@
 #include "usbd_conf.h"
 
 // need these headers just for MP_HAL_UNIQUE_ID_ADDRESS
+#include "py/mpconfig.h"
 #include "py/misc.h"
 #include "py/mphal.h"
 
