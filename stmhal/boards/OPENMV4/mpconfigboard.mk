@@ -1,4 +1,4 @@
-MCU_SERIES = f7
-CMSIS_MCU = STM32F765xx
-AF_FILE = boards/stm32f765_af.csv
-LD_FILE = boards/stm32f765.ld
+MCU_SERIES = h7
+CMSIS_MCU = STM32H743xx
+AF_FILE = boards/stm32h743_af.csv
+LD_FILE = boards/stm32h743.ld

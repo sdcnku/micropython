@@ -1,6 +1,6 @@
 #define MICROPY_HW_BOARD_NAME       "OPENMV4"
-#define MICROPY_HW_MCU_NAME         "STM32F765"
-#define MICROPY_PY_SYS_PLATFORM     "OpenMV4-M7"
+#define MICROPY_HW_MCU_NAME         "STM32H743"
+#define MICROPY_PY_SYS_PLATFORM     "OpenMV4-H7"
 
 #define MICROPY_HW_HAS_SWITCH       (0)
 #define MICROPY_HW_HAS_SDCARD       (1)
@@ -67,5 +67,5 @@
 #define MICROPY_HW_LED3             (pin_C2) // blue
 #define MICROPY_HW_LED4             (pin_E2) // IR
 #define MICROPY_HW_LED_OTYPE        (GPIO_MODE_OUTPUT_PP)
-#define MICROPY_HW_LED_ON(pin)      (pin->gpio->BSRR = (pin->pin_mask << 16))
-#define MICROPY_HW_LED_OFF(pin)     (pin->gpio->BSRR = pin->pin_mask)
+#define MICROPY_HW_LED_ON(pin)      (pin->gpio->BSRRH = pin->pin_mask)
+#define MICROPY_HW_LED_OFF(pin)     (pin->gpio->BSRRL = pin->pin_mask)
