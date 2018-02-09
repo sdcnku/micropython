@@ -39,6 +39,10 @@ scripts showing off how to use different features of the OpenMV Cam. As we
 implement more features more examples will show up. Make sure to familiarize
 yourself with the example scripts so you can use your OpenMV Cam effectively.
 
+For personal script storage, OpenMV IDE looks in your documents folder for an
+"OpenMV" directory. OpenMV IDE will display the contents of the "OpenMV" folder
+at File -> Documents Folder.
+
 Lastly, whenever you create a new file in OpenMV IDE or open an example script
 OpenMV IDE creates a memory only copy of the file that is not stored on disk
 like in the Arduino IDE. This let's you quickly test out ideas without having
@@ -116,9 +120,9 @@ OpenMV IDE will detect this too and disconnect from your OpenMV Cam.
     IDE from connecting to any OpenMV Cam. This issues exists as a won't fix
     bug in Windows that's been around since Windows XP. On Mac/Linux this same
     issue can occur but is much harder to run into. Basically what happens on
-    Windows at least is that when the USB virtual serial port driver crashes
+    Windows at-least is that when the USB virtual serial port driver crashes
     from an OpenMV Cam becoming unresponsive it never let's OpenMV IDE's serial
-    thread return from Kernel function call which makes OpenMV IDE's serial
+    thread return from a Kernel function call which makes OpenMV IDE's serial
     thread unkillable. Anyway, we've done a lot of work to make sure this
     doesn't happen but please note that it still can.
 
@@ -140,6 +144,16 @@ Anyway, if you want to stop the script just click on the stop button which will
 replace the run button while a script is running. Note that scripts can
 automatically stop by themselves either due to finishing or a compile error. In
 either case the run button will re-appear again.
+
+.. note::
+
+    OpenMV IDE automatically scans imports in your script when you click the run
+    button and copies any externally required scripts that are missing to your
+    OpenMV Cam. OpenMV IDE will also automatically update any out-of-date external
+    modules on your OpenMV Cam when you click the run button too. OpenMV IDE looks
+    for external modules in your personal "OpenMV" Documents Folder first and then
+    the example folder. OpenMV IDE is able to parse both single file modules and
+    directory modules.
 
 Frame Buffer Viewer
 -------------------
