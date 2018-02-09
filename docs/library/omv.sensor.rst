@@ -33,7 +33,7 @@ Functions
    method to display the last image your OpenMV Cam takes if it's not running
    a script with an infinite loop.
 
-.. function:: sensor.snapshot(line_filter=None)
+.. function:: sensor.snapshot([line_filter=None])
 
    Takes a picture using the camera and returns an ``image`` object.
 
@@ -99,8 +99,44 @@ Functions
 
    Returns the camera module ID.
 
-      * sensor.OV2640: Old sensor module.
-      * sensor.OV7725: New sensor module.
+      * sensor.OV7725: Rolling shutter sensor module.
+      * sensor.MT9V034: Global shutter sensor module.
+
+.. function:: sensor.alloc_extra_fb(width, height, pixformat)
+
+   Allocates another frame buffer for image storage from the frame buffer stack
+   and returns an ``image`` object of ``width``, ``height``, and ``pixformat``.
+
+   You may call this function as many times as you like as long as there's
+   memory available to allocate any number of extra frame buffers.
+
+   .. note::
+
+      Creating secondary images normally requires creating them on the heap which
+      has a limited amount of RAM... but, also gets fragmented making it hard to
+      grab a large contigous memory array to store an image in. With this method
+      you are able to allocate a very large memory array for an image instantly
+      by taking space away from our frame buffer stack memory which we use for
+      computer vision algorithms. That said, this also means you'll run out of
+      memory more easily if you try to execute more memory intensive machine
+      vision algorithms like ``find_apriltags``.
+
+.. function:: sensor.dealloc_extra_db()
+
+   Deallocates the last previously allocated extra frame buffer. Extra frame
+   buffers are stored in a stack like structure.
+
+   .. note::
+
+      Your OpenMV Cam has two memory areas. First, you have your classical
+      .data/.bss/heap/stack memory area. The .data/.bss/heap regions are
+      fixed by firmware. The stack then grows down until it hits the heap.
+      Next, frame buffers are stored in a secondary memory region. Memory is
+      liad out with the main frame buffer on the bottom and the frame buffer
+      stack on the top. When ``snapshot()`` is called it fills the frame bufer
+      from the bottom. The frame buffer stack is then able to use whatever is
+      left over. This memory allocation method is extremely efficent for computer
+      vision on microcontrollers.
 
 .. function:: sensor.set_pixformat(pixformat)
 
@@ -192,39 +228,59 @@ Functions
 
    Turns color bar mode on (True) or off (False). Defaults to off.
 
-.. function:: sensor.set_auto_gain(enable, value=-1)
+.. function:: sensor.set_auto_gain(enable, [gain_db=-1, gain_db_ceiling=-1])
 
-   ``enable`` Turns auto gain on (True) or off (False). Defaults to on.
-   ``value`` Forced gain value. See the camera datasheet for more details.
+   ``enable`` turns auto gain control on (True) or off (False).
+   The camera will startup with auto gain control on.
 
-   .. note:: You need to turn white balance off if you want to track colors.
+   If ``enable`` is False you may set a fixed gain in decibels with ``gain_db``.
 
-   .. note::
-
-      ``value`` is keyword arguments which must be explicitly invoked in the
-      function call by writing ``value=``.
-
-.. function:: sensor.set_auto_exposure(enable, value=-1)
-
-   ``enable`` Turns auto exposure on (True) or off (False). Defaults to on.
-   ``value`` Forced exposure value. See the camera datasheet for more details.
+   If ``enable`` is True you may set the maximum gain ceiling in decibels with
+   ``gain_db_ceiling`` for the automatic gain control algorithm.
 
    .. note::
 
-      ``value`` is keyword arguments which must be explicitly invoked in the
-      function call by writing ``value=``.
+      You need to turn off white balance too if you want to track colors.
 
-.. function:: sensor.set_auto_whitebal(enable, value=(-1,-1,-1))
+.. function:: sensor.get_gain_db()
 
-   ``enable`` Turns auto whitebal on (True) or off (False). Defaults to on.
-   ``value`` Forced whitebal value. See the camera datasheet for more details.
+   Returns the current camera gain value in decibels (float).
 
-   .. note:: You need to turn white balance off if you want to track colors.
+.. function:: sensor.set_auto_exposure(enable, [exposure_us=-1])
+
+   ``enable`` turns auto exposure control on (True) or off (False).
+   The camera will startup with auto exposure control on.
+
+   If ``enable`` is False you may set a fixed exposure time in microseconds
+   with ``exposure_us``.
 
    .. note::
 
-      ``value`` is keyword arguments which must be explicitly invoked in the
-      function call by writing ``value=``
+      Camera auto exposure algorithms are pretty conservative about how much
+      they adjust the exposure value by and will generally avoid changing the
+      exposure value by much. Instead, they change the gain value alot of deal
+      with changing lighting.
+
+.. function:: sensor.get_exposure_us()
+
+   Returns the current camera exposure value in microseconds (int).
+
+.. function:: sensor.set_auto_whitebal(enable, [rgb_gain_db=(-1,-1,-1)])
+
+   ``enable`` turns auto white balance on (True) or off (False).
+   The camera will startup with auto white balance on.
+
+   If ``enable`` is False you may set a fixed gain in decibels for the red, green,
+   and blue channels respectively with ``rgb_gain_db``.
+
+   .. note::
+
+      You need to turn off gain control too if you want to track colors.
+
+.. function:: sensor.get_rgb_gain_db()
+
+   Returns a tuple with the current camera red, green, and blue gain values in
+   decibels ((float, float, float)).
 
 .. function:: sensor.set_hmirror(enable)
 
@@ -305,6 +361,10 @@ Constants
 
    ``sensor.get_id()`` returns this for the OV7725 camera.
 
+.. data:: sensor.MT9V034
+
+   ``sensor.get_id()`` returns this for the MT9V034 camera.
+
 .. data:: sensor.QQCIF
 
    88x72 resolution for the camera sensor.
@@ -362,6 +422,30 @@ Constants
 
    240x160 resolution for the camera sensor.
 
+.. data:: sensor.B64X32
+
+   64x32 resolution for the camera sensor.
+
+   For use with ``image.find_displacement()`` and any other FFT based algorithm.
+
+.. data:: sensor.B64X64
+
+   64x64 resolution for the camera sensor.
+
+   For use with ``image.find_displacement()`` and any other FFT based algorithm.
+
+.. data:: sensor.B128X64
+
+   128x64 resolution for the camera sensor.
+
+   For use with ``image.find_displacement()`` and any other FFT based algorithm.
+
+.. data:: sensor.B128X128
+
+   128x128 resolution for the camera sensor.
+
+   For use with ``image.find_displacement()`` and any other FFT based algorithm.
+
 .. data:: sensor.LCD
 
    128x160 resolution for the camera sensor (for use with the lcd shield).
@@ -369,18 +453,6 @@ Constants
 .. data:: sensor.QQVGA2
 
    128x160 resolution for the camera sensor (for use with the lcd shield).
-
-.. data:: sensor.B40x30
-
-   40x30 resolution for the camera sensor (for use with ``image.find_displacement``).
-
-.. data:: sensor.B64x32
-
-   64x32 resolution for the camera sensor (for use with ``image.find_displacement``).
-
-.. data:: sensor.B64x64
-
-   64x64 resolution for the camera sensor (for use with ``image.find_displacement``).
 
 .. data:: sensor.SVGA
 
