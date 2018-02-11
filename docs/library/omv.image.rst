@@ -134,6 +134,51 @@ Constructors
       ``stages`` is a keyword argument which must be explicitly invoked in the
       function call by writing ``stages=``.
 
+class Similarity -- Similarity Object
+=====================================
+
+The similarity object is returned by ``image.get_similarity``.
+
+Methods
+-------
+
+.. method:: similarity.mean()
+
+   Returns the mean of similarity 8x8 pixel block differences [-1/+1] where
+   -1 is completely different and +1 is exactly the same.
+
+   You may also get this value doing ``[0]`` on the object.
+
+.. method:: similarity.stdev()
+
+   Returns the standard deviation of similarity 8x8 pixel block differences.
+
+   You may also get this value doing ``[1]`` on the object.
+
+.. method:: similarity.min()
+
+   Returns the min of similarity 8x8 pixel block differences [-1/+1] where
+   -1 is completely different and +1 is exactly the same.
+
+   You may also get this value doing ``[2]`` on the object.
+
+   .. note::
+
+      By just looking at this value you can quickly determine if any 8x8 block
+      of pixels between two images is different. I.e. this is much less than +1.
+
+.. method:: similarity.max()
+
+   Returns the max of similarity 8x8 pixel block differences [-1/+1] where
+   -1 is completely different and +1 is exactly the same.
+
+   You may also get this value doing ``[3]`` on the object.
+
+   .. note::
+
+      By just looking at this value you can quickly determine if any 8x8 block
+      of pixels between two images is the same. I.e. this is much greater than -1.
+
 class Histogram -- Histogram Object
 ===================================
 
@@ -182,6 +227,13 @@ Methods
    0.1) and max (with 0.9) of a color distribution without outlier effects
    ruining your results for adaptive color tracking.
 
+.. method:: histogram.get_threhsold()
+
+   Uses Otsu's Method to compute the optimal threshold values that split the
+   histogram into two halves for each channel of the histogram. This method
+   returns a ``threshold`` object. This method is particularly useful for
+   determining optimal ``binary()`` thresholds.
+
 .. method:: histogram.get_statistics()
 
    Computes the mean, median, mode, standard deviation, min, max, lower
@@ -226,6 +278,44 @@ Methods
 .. method:: percentile.b_value()
 
    Return the RGB565 LAB B channel percentile value (between -128 and 127).
+
+   You may also get this value doing ``[2]`` on the object.
+
+class Threhsold -- Threshold Object
+===================================
+
+The threshold object is returned by ``histogram.get_threshold``.
+
+Grayscale thresholds have one channel. Use the non ``l_*``, ``a_*``, and
+``b_*`` method.
+
+RGB565 thresholds have three channels. Use the ``l_*``, ``a_*``, and ``b_*``
+methods.
+
+Methods
+-------
+
+.. method:: threhsold.value()
+
+   Return the grayscale threhsold value (between 0 and 255).
+
+   You may also get this value doing ``[0]`` on the object.
+
+.. method:: threhsold.l_value()
+
+   Return the RGB565 LAB L channel threhsold value (between 0 and 100).
+
+   You may also get this value doing ``[0]`` on the object.
+
+.. method:: threhsold.a_value()
+
+   Return the RGB565 LAB A channel threhsold value (between -128 and 127).
+
+   You may also get this value doing ``[1]`` on the object.
+
+.. method:: threhsold.b_value()
+
+   Return the RGB565 LAB B channel threhsold value (between -128 and 127).
 
    You may also get this value doing ``[2]`` on the object.
 
@@ -1118,6 +1208,47 @@ Methods
 
    You may also get this value doing ``[7]`` on the object.
 
+class Displacement -- Displacement object
+=========================================
+
+The displacement object is returned by ``image.find_displacement``.
+
+Methods
+-------
+
+.. method:: displacement.x_translation()
+
+   Returns the x translation in pixels between two images. This is sub pixel
+   accurate so it's a float.
+
+   You may also get this value doing ``[0]`` on the object.
+
+.. method:: displacement.y_translation()
+
+   Returns the y translation in pixels between two images. This is sub pixel
+   accurate so it's a float.
+
+   You may also get this value doing ``[1]`` on the object.
+
+.. method:: displacement.rotation()
+
+   Returns the rotation in radians between two images.
+
+   You may also get this value doing ``[2]`` on the object.
+
+.. method:: displacement.scale()
+
+   Returns the scale change between two images.
+
+   You may also get this value doing ``[3]`` on the object.
+
+.. method:: displacement.response()
+
+   Returns the quality of the results of displacement matching between two images.
+   Between 0-1. A ``displacement`` object with a response less than 0.1 is likely noise.
+
+   You may also get this value doing ``[4]`` on the object.
+
 class kptmatch -- Keypoint Object
 =================================
 
@@ -1167,7 +1298,7 @@ Methods
 
    You may also get this value doing ``[5]`` on the object.
 
-.. method:: kptmatch.match()
+.. method:: kptmatch.count()
 
    Returns the number of keypoints matched (int).
 
@@ -1178,6 +1309,12 @@ Methods
    Returns the estimated angle of rotation for the keypoint (int).
 
    You may also get this value doing ``[7]`` on the object.
+
+.. method:: kptmatch.match()
+
+   Returns the list of (x,y) tuples of matching keypoints.
+
+   You may also get this value doing ``[8]`` on the object.
 
 class ImageWriter -- ImageWriter object
 =======================================
@@ -1440,6 +1577,7 @@ Methods
 
    For grayscale images: Returns the grayscale pixel value at location (x, y).
    For RGB images: Returns the rgb888 pixel tuple (r, g, b) at location (x, y).
+   For Bayer images: Returns the the pixel value at the location (x, y).
 
    Not supported on compressed images.
 
@@ -1734,6 +1872,52 @@ Methods
       ``alpha`` is a keyword argument which must be explicitly
       invoked in the function call by writing ``alpha=``.
 
+.. method:: image.max(image)
+
+   On a pixel-by-pixel level replace a pixel in this iamge with the maximum pixel
+   value between this image and another image.
+
+   ``image`` can either be an image object or a path to an uncompressed image
+   file (bmp/pgm/ppm).
+
+   Both images must be the same size and the same type (grayscale/rgb).
+
+   Not supported on compressed images.
+
+.. method:: image.min(image)
+
+   On a pixel-by-pixel level replace a pixel in this iamge with the minimum pixel
+   value between this image and another image.
+
+   ``image`` can either be an image object or a path to an uncompressed image
+   file (bmp/pgm/ppm).
+
+   Both images must be the same size and the same type (grayscale/rgb).
+
+   Not supported on compressed images.
+
+.. method:: image.remove_shadows([image])
+
+   Removes shadows from this image.
+
+   If no "shadow-free" version of the current image is passed this method will
+   attempt to remove shadows from the image without a source of truth. The
+   curent algorithm for this is suitable for removing shadows from flat uniform
+   backgrounds. Note that this method takes multiple seconds to run and is only
+   good for producing a shadow-free version of the image dynamically for real-time
+   shadow removal. Future versions of this algorithm will be suitable for more
+   environments but equally slow.
+
+   If a "shadow-free" version of the current image is paassed this method will
+   remove all shadow in the image using the "source-of-truth" background
+   shadow-free image to filter out shadows. Non-shadow pixels will not be filtered
+   out so you may add new objects to the scene that were not previously there and
+   any non-shadow pixels in those objects will show up.
+
+   This method is incredibly useful for frame differencing motion detection.
+
+   Only works on RGB565 images.
+
 .. method:: image.morph(size, kernel, mul=Auto, add=0)
 
    Convolves the image by a filter kernel.
@@ -1757,7 +1941,7 @@ Methods
       ``mul`` and ``add`` are keyword arguments which must be explicitly
       invoked in the function call by writing ``mul=`` or ``add=``.
 
-.. method:: image.midpoint(size, bias=0.5)
+.. method:: image.midpoint(size, [bias=0.5, threshold=False, offset=0, invert=False, mask])
 
    Runs the midpoint filter on the image.
 
@@ -1766,6 +1950,17 @@ Methods
    ``bias`` controls the min/max mixing. 0 for min filtering only, 1.0 for max
    filtering only. By using the ``bias`` you can min/max filter the image.
 
+   If you'd like to adaptive threshold the image on the output of the mean filter
+   you can pass ``threshold=True`` which will enable adaptive thresholding of the
+   image which sets pixels to 1 or zero based on a pixel's brightness in relation
+   to the brightness of the kernel of pixels around them. A negative ``offset``
+   value sets more pixels to 1 as you make it more negative while a positive
+   value only sets the sharpest contrast changes to 1. Set ``invert`` to invert
+   the binary image resulting output.
+
+   ``mask`` may be an optional binary image of the same size used to turn the
+   mode filter on/off on a pixel-by-pixel level based if a pixel is 1/0 respectively.
+
    Not supported on compressed images.
 
    .. note::
@@ -1773,15 +1968,26 @@ Methods
       ``bias`` is a keyword argument which must be explicitly
       invoked in the function call by writing ``bias=``.
 
-.. method:: image.mean(size)
+.. method:: image.mean(size, [threshold=False, offset=0, invert=False, mask])
 
    Standard mean blurring filter (faster than using morph for this).
 
    ``size`` is the kernel size. Use 1 (3x3 kernel), 2 (5x5 kernel), or higher.
 
+   If you'd like to adaptive threshold the image on the output of the mean filter
+   you can pass ``threshold=True`` which will enable adaptive thresholding of the
+   image which sets pixels to 1 or zero based on a pixel's brightness in relation
+   to the brightness of the kernel of pixels around them. A negative ``offset``
+   value sets more pixels to 1 as you make it more negative while a positive
+   value only sets the sharpest contrast changes to 1. Set ``invert`` to invert
+   the binary image resulting output.
+
+   ``mask`` may be an optional binary image of the same size used to turn the
+   mode filter on/off on a pixel-by-pixel level based if a pixel is 1/0 respectively.
+
    Not supported on compressed images.
 
-.. method:: median(size, percentile=0.5)
+.. method:: median(size, [percentile=0.5, threshold=False, offset=0, invert=False, mask])
 
    Runs the median filter on the image. The median filter is the best filter
    for smoothing surfaces while preserving edges but it is very slow.
@@ -1793,6 +1999,17 @@ Methods
    neighbours. You can set this to 0 for a min filter, 0.25 for a lower quartile
    filter, 0.75 for an upper quartile filter, and 1.0 for a max filter.
 
+   If you'd like to adaptive threshold the image on the output of the mean filter
+   you can pass ``threshold=True`` which will enable adaptive thresholding of the
+   image which sets pixels to 1 or zero based on a pixel's brightness in relation
+   to the brightness of the kernel of pixels around them. A negative ``offset``
+   value sets more pixels to 1 as you make it more negative while a positive
+   value only sets the sharpest contrast changes to 1. Set ``invert`` to invert
+   the binary image resulting output.
+
+   ``mask`` may be an optional binary image of the same size used to turn the
+   mode filter on/off on a pixel-by-pixel level based if a pixel is 1/0 respectively.
+
    Not supported on compressed images.
 
    .. note::
@@ -1800,12 +2017,23 @@ Methods
       ``percentile`` is a keyword argument which must be explicitly
       invoked in the function call by writing ``percentile=``.
 
-.. method:: image.mode(size)
+.. method:: image.mode(size, [threshold=False, offset=0, invert=False, mask])
 
    Runs the mode filter on the image by replacing each pixel with the mode of
    their neighbours. This method works great on grayscale images. However, on
    RGB images it creates a lot of artifacts on edges because of the non-linear
    nature of the operation.
+
+   If you'd like to adaptive threshold the image on the output of the mean filter
+   you can pass ``threshold=True`` which will enable adaptive thresholding of the
+   image which sets pixels to 1 or zero based on a pixel's brightness in relation
+   to the brightness of the kernel of pixels around them. A negative ``offset``
+   value sets more pixels to 1 as you make it more negative while a positive
+   value only sets the sharpest contrast changes to 1. Set ``invert`` to invert
+   the binary image resulting output.
+
+   ``mask`` may be an optional binary image of the same size used to turn the
+   mode filter on/off on a pixel-by-pixel level based if a pixel is 1/0 respectively.
 
    ``size`` is the kernel size. Use 1 (3x3 kernel) or 2 (5x5 kernel).
 
@@ -1817,6 +2045,39 @@ Methods
    for a 3x3 or 5x5 kernel.
 
    Not supported on compressed images.
+
+.. method:: image.linpolar([reverse=False])
+
+   Re-project's and image from cartessian coordinates to linear polar coordinates.
+
+   Set ``reverse=True`` to re-project in the opposite direction.
+
+   Linear polar re-projection turns rotation of an image into x-translation.
+
+   Not supported on compressed images.
+
+.. method:: image.logpolar([reverse=False])
+
+   Re-project's and image from cartessian coordinates to log polar coordinates.
+
+   Set ``reverse=True`` to re-project in the opposite direction.
+
+   Log polar re-projection turns rotation of an image into x-translation
+   and scaling/zooming into y-translation.
+
+   Not supported on compressed images.
+
+.. method:: image.chrominvar()
+
+   Removes the effect of lighting from the image.
+
+   RGB565 images only.
+
+.. method:: image.illuminvar()
+
+   Removes the effect of lighting from the image and shadows.
+
+   RGB565 images only.
 
 .. method:: image.histeq()
 
@@ -1855,6 +2116,18 @@ Methods
    after rotation. Because this translation is applied in 3D space the units aren't pixels...
 
    ``zoom`` is the amount to zoom in on the image by. 1.0 by default.
+
+.. method:: image.get_similarity(image)
+
+   Returns a ``similarity`` object describing how similar two images are using
+   the SSIM algorithm to compare 8x8 pixel patches between the two images.
+
+   ``image`` can either be an image object or a path to an uncompressed image
+   file (bmp/pgm/ppm).
+
+   Both images must be the same size and the same type (grayscale/rgb).
+
+   Not supported on compressed images.
 
 .. method:: image.get_histogram(roi=Auto, bins=Auto, l_bins=Auto, a_bins=Auto, b_bins=Auto)
 
@@ -1915,7 +2188,7 @@ Methods
       ``roi``, ``bin_count``, and etc. are keyword arguments which must be
       explicitly invoked in the function call by writing ``roi=``, etc.
 
-.. method:: image.get_regression(thresholds, [roi=Auto, x_stride=2, y_stride=1, invert=False, robust=False])
+.. method:: image.get_regression(thresholds, [roi, x_stride=2, y_stride=1, invert=False, area_threshold=10, pixels_threshold=10, robust=False])
 
    Computes a linear regression on all the thresholded pixels in the image. The
    linear regression is computed using least-squares normally which is fast but
@@ -1972,6 +2245,10 @@ Methods
    ``invert`` inverts the thresholding operation such that instead of matching
    pixels inside of some known color bounds pixels are matched that are outside
    of the known color bounds.
+
+   If the regression's bounding box area is less than ``area_threshold`` then None is returned.
+
+   If the regression's pixel count is less than ``pixel_threshold`` then None is returned.
 
    Not supported on compressed images.
 
@@ -2367,6 +2644,31 @@ Methods
       ``roi`` is a keyword argument which must be explicitly invoked in the
       function call by writing ``roi=``.
 
+.. method:: image.find_displacement(template, [roi, template_roi, logpolar=False])
+
+   Find the translation offset of the this image from the template. This
+   method can be used to do optical flow. This method returns a ``displacement``
+   object with the results of the displacement calculation using phase correlation.
+
+   ``roi`` is the region-of-interest rectangle (x, y, w, h) to work in.
+   If not specified, it is equal to the image rectangle.
+
+   ``template_roi`` is the region-of-interest rectangle (x, y, w, h) to work in.
+   If not specified, it is equal to the image rectangle.
+
+   ``roi`` and ``template`` roi must have the same w/h but may have any x/y
+   location in the image. You may slide smaller rois arround a larger image to
+   get an optical flow gradient image...
+
+   ``image.find_displacement`` normally computes the x/y translation between two
+   images. However, if you pass ``logpolar=True`` it will instead find rotation
+   and scale changes between the two images. The same ``displacement`` object
+   result encodes both possible repsonses.
+
+   .. note::
+
+      Please use this method on power-of-2 image sizes (e.g. ``sensor.B64X64``).
+
 .. method:: image.midpoint_pooled(x_div, y_div, bias=0.5)
 
    Finds the midpoint of ``x_div`` * ``y_div`` squares in the image and returns
@@ -2423,24 +2725,6 @@ Methods
       ``roi``, ``step``, and ``search`` are keyword arguments which must be
       explicitly invoked in the function call by writing ``roi=``, ``step=``,
       or ``search=``.
-
-.. method:: image.find_displacement(template)
-
-   Find the translation offset of the this image from the template. This
-   method can be used to do optical flow. This method returns a tuple with
-   three values (x_offset, y_offset, response). Where ``x_offset`` is a
-   floating point value of the translation in x pixels between each image.
-   ``y_offset`` is thus the floating point y translation between images.
-   ``response`` is a floating point confidence value that ranges between
-   0.0 and 1.0. As the confidence value falls you should trust ``x_offset``
-   and ``y_offset`` less. In general, as long as the ``response`` is above
-   0.2 or so it's okay. When the ``response`` starts to fall it falls rapidly.
-
-   Note that this algorithm requires a large amount of temporary scratch memory
-   to turn and thus won't work on images larger than 32x32 pixels or so on the
-   OpenMV Cam M4. You can work on larger images with the OpenMV Cam M7. You
-   should use the pooling functions to shrink both images before calling this
-   method to get the displacement.
 
 .. method:: image.find_features(cascade, roi=Auto, threshold=0.5, scale=1.5)
 
