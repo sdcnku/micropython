@@ -173,10 +173,19 @@ static int8_t CDC_Itf_Control(uint8_t cmd, uint8_t* pbuf, uint16_t length) {
             if (baudrate == IDE_BAUDRATE_SLOW || baudrate == IDE_BAUDRATE_FAST) {
                 debug_mode = 1;
                 dbg_xfer_length=0;
-                UserTxBufPtrIn = UserTxBufPtrOut = UserTxBufPtrOutShadow = 0;
+                last_packet = 0;
+                UserTxBufPtrIn = 0;
+                UserTxBufPtrOut = 0;
+                UserTxBufPtrOutShadow = 0;
+                UserTxBufPtrWaitCount = 0;
+                UserTxNeedEmptyPacket = 0;
             } else {
                 debug_mode = 0;
-                UserTxBufPtrIn = UserTxBufPtrOut = UserTxBufPtrOutShadow = 0;
+                UserTxBufPtrIn = 0;
+                UserTxBufPtrOut = 0;
+                UserTxBufPtrOutShadow = 0;
+                UserTxBufPtrWaitCount = 0;
+                UserTxNeedEmptyPacket = 0;
             }
             break;
         }
@@ -265,7 +274,8 @@ void HAL_PCD_SOFCallback(PCD_HandleTypeDef *hpcd) {
             // the host waits for all data to arrive (ie, waits for a packet < max packet size).
             // To flush a packet of exactly max packet size, we need to send a zero-size packet.
             // See eg http://www.cypress.com/?id=4&rID=92719
-            UserTxNeedEmptyPacket = (buffsize > 0 && buffsize % CDC_DATA_FS_MAX_PACKET_SIZE == 0 && UserTxBufPtrOutShadow == UserTxBufPtrIn);
+            UserTxNeedEmptyPacket = (buffsize > 0 && buffsize %
+                    CDC_DATA_FS_MAX_PACKET_SIZE == 0 && UserTxBufPtrOutShadow == UserTxBufPtrIn);
         }
     }
 }
@@ -398,8 +408,10 @@ int USBD_CDC_Tx(const uint8_t *buf, uint32_t len, uint32_t timeout) {
         }
 
         // Write data to device buffer
+        mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
         UserTxBuffer[UserTxBufPtrIn] = buf[i];
         UserTxBufPtrIn = (UserTxBufPtrIn + 1) & (APP_TX_DATA_SIZE - 1);
+        MICROPY_END_ATOMIC_SECTION(atomic_state);
     }
 
     // Success, return number of bytes read
