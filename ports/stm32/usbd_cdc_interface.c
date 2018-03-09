@@ -76,6 +76,7 @@ uint8_t *usbd_cdc_init(usbd_cdc_itf_t *cdc, usbd_cdc_msc_hid_state_t *usbd) {
     cdc->tx_buf_ptr_out_shadow = 0;
     cdc->tx_buf_ptr_wait_count = 0;
     cdc->tx_need_empty_packet = 0;
+    cdc->baudrate = 0;
     cdc->dev_is_connected = 0;
     cdc->dbg_mode_enabled = 0;
     cdc->dbg_xfer_length  = 0;
@@ -112,9 +113,9 @@ int8_t usbd_cdc_control(usbd_cdc_itf_t *cdc, uint8_t cmd, uint8_t* pbuf, uint16_
             break;
 
         case CDC_SET_LINE_CODING: {
-            baudrate = *((uint32_t*)pbuf);
-            // The slow baudrate can be used on OSs that don't support custom baudrates
-            if (baudrate == IDE_BAUDRATE_SLOW || baudrate == IDE_BAUDRATE_FAST) {
+            cdc->baudrate = *((uint32_t*)pbuf);
+            // The slow cdc->baudrate can be used on OSs that don't support custom baudrates
+            if (cdc->baudrate == IDE_BAUDRATE_SLOW || cdc->baudrate == IDE_BAUDRATE_FAST) {
                 cdc->dbg_mode_enabled = 1;
                 cdc->dbg_xfer_length = 0;
                 cdc->dbg_last_packet = 0;
@@ -136,10 +137,10 @@ int8_t usbd_cdc_control(usbd_cdc_itf_t *cdc, uint8_t cmd, uint8_t* pbuf, uint16_
 
         case CDC_GET_LINE_CODING:
             /* Add your code here */
-            pbuf[0] = (uint8_t)(baudrate);
-            pbuf[1] = (uint8_t)(baudrate >> 8);
-            pbuf[2] = (uint8_t)(baudrate >> 16);
-            pbuf[3] = (uint8_t)(baudrate >> 24);
+            pbuf[0] = (uint8_t)(cdc->baudrate);
+            pbuf[1] = (uint8_t)(cdc->baudrate >> 8);
+            pbuf[2] = (uint8_t)(cdc->baudrate >> 16);
+            pbuf[3] = (uint8_t)(cdc->baudrate >> 24);
             pbuf[4] = 0; // stop bits (1)
             pbuf[5] = 0; // parity (none)
             pbuf[6] = 8; // number of bits (8)
@@ -225,23 +226,23 @@ void HAL_PCD_SOFCallback(PCD_HandleTypeDef *hpcd) {
     }
 }
 
-uint32_t usbd_cdc_tx_buf_len() {
+uint32_t usbd_cdc_tx_buf_len(usbd_cdc_itf_t *cdc) {
     uint32_t buffsize;
     if (cdc->tx_buf_ptr_out_shadow > cdc->tx_buf_ptr_in) { // rollback
-        buffsize = APP_TX_DATA_SIZE - cdc->tx_buf_ptr_out_shadow;
+        buffsize = USBD_CDC_TX_DATA_SIZE - cdc->tx_buf_ptr_out_shadow;
     } else {
         buffsize = cdc->tx_buf_ptr_in - cdc->tx_buf_ptr_out_shadow;
     }
     return buffsize;
 }
 
-uint8_t *usbd_cdc_tx_buf(uint32_t bytes) {
-    uint8_t *tx_buf = cdc->tx_buffer + cdc->tx_buf_ptr_out_shadow;
-    cdc->tx_buf_ptr_out_shadow = (cdc->tx_buf_ptr_out_shadow + bytes) % APP_TX_DATA_SIZE;
+uint8_t *usbd_cdc_tx_buf(usbd_cdc_itf_t *cdc, uint32_t bytes) {
+    uint8_t *tx_buf = cdc->tx_buf + cdc->tx_buf_ptr_out_shadow;
+    cdc->tx_buf_ptr_out_shadow = (cdc->tx_buf_ptr_out_shadow + bytes) % USBD_CDC_TX_DATA_SIZE;
     return tx_buf;
 }
 
-static void send_packet(USBD_HandleTypeDef *pdev) {
+static void send_packet(usbd_cdc_itf_t *cdc) {
     int bytes = MIN(cdc->dbg_xfer_length, CDC_DATA_FS_MAX_PACKET_SIZE);
     cdc->dbg_last_packet = bytes;
     usbdbg_data_in(cdc->dbg_xfer_buffer, bytes);
@@ -252,7 +253,7 @@ static void send_packet(USBD_HandleTypeDef *pdev) {
 int8_t usbd_cdc_tx_sent(usbd_cdc_itf_t *cdc) {
     if (cdc->dbg_mode_enabled == 1) {
         if (cdc->dbg_xfer_length) {
-            send_packet(pdev);
+            send_packet(cdc);
         } else {
             if (cdc->tx_buf_ptr_out != cdc->tx_buf_ptr_out_shadow) {
                 cdc->tx_buf_ptr_out  = cdc->tx_buf_ptr_out_shadow;
@@ -272,15 +273,14 @@ int8_t usbd_cdc_tx_sent(usbd_cdc_itf_t *cdc) {
 int8_t usbd_cdc_receive(usbd_cdc_itf_t *cdc, size_t len) {
     if (cdc->dbg_mode_enabled == 1) {
         if (cdc->dbg_xfer_length) {
-            int bytes = *Len;
-            usbdbg_data_out(Buf, bytes);
-            cdc->dbg_xfer_length -= bytes;
-        } else if (Buf[0] == '\x30') { // command
-            uint8_t request = Buf[1];
-            cdc->dbg_xfer_length = *((uint32_t*)(Buf+2));
-            usbdbg_control(Buf+6, request, cdc->dbg_xfer_length);
+            usbdbg_data_out(cdc->rx_packet_buf, len);
+            cdc->dbg_xfer_length -= len;
+        } else if (cdc->rx_packet_buf[0] == '\x30') { // command
+            uint8_t request = cdc->rx_packet_buf[1];
+            cdc->dbg_xfer_length = *((uint32_t*)(cdc->rx_packet_buf+2));
+            usbdbg_control(cdc->rx_packet_buf+6, request, cdc->dbg_xfer_length);
             if (cdc->dbg_xfer_length && (request & 0x80)) { //request has a device-to-host data phase
-                send_packet(pdev); //prime tx buffer
+                send_packet(cdc); //prime tx buffer
             }
         }
     } else {
@@ -337,7 +337,7 @@ int usbd_cdc_tx(usbd_cdc_itf_t *cdc, const uint8_t *buf, uint32_t len, uint32_t 
 
         //mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
         //UserTxBuffer[UserTxBufPtrIn] = buf[i];
-        //UserTxBufPtrIn = (UserTxBufPtrIn + 1) & (APP_TX_DATA_SIZE - 1);
+        //UserTxBufPtrIn = (UserTxBufPtrIn + 1) & (USBD_CDC_TX_DATA_SIZE - 1);
         //MICROPY_END_ATOMIC_SECTION(atomic_state);
         cdc->tx_buf[cdc->tx_buf_ptr_in] = buf[i];
         cdc->tx_buf_ptr_in = (cdc->tx_buf_ptr_in + 1) & (USBD_CDC_TX_DATA_SIZE - 1);

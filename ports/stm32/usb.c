@@ -177,6 +177,17 @@ void usb_vcp_send_strn(const char *str, int len) {
 #endif
 }
 
+uint32_t usb_cdc_tx_buf_len()
+{
+    return usbd_cdc_tx_buf_len(&usb_device.usbd_cdc_itf);
+}
+
+uint8_t *usb_cdc_tx_buf(uint32_t bytes)
+{
+    return usbd_cdc_tx_buf(&usb_device.usbd_cdc_itf, bytes);
+}
+
+
 /******************************************************************************/
 // MicroPython bindings for USB
 

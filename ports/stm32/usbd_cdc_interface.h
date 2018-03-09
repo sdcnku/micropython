@@ -51,6 +51,7 @@ typedef struct _usbd_cdc_itf_t {
     uint8_t tx_buf_ptr_wait_count; // used to implement a timeout waiting for low-level USB driver
     uint8_t tx_need_empty_packet; // used to flush the USB IN endpoint if the last packet was exactly the endpoint packet size
 
+    uint32_t baudrate;
     volatile uint8_t dev_is_connected; // indicates if we are connected
     volatile uint8_t dbg_mode_enabled;
     volatile uint32_t dbg_last_packet;
@@ -68,5 +69,8 @@ void usbd_cdc_tx_always(usbd_cdc_itf_t *cdc, const uint8_t *buf, uint32_t len);
 
 int usbd_cdc_rx_num(usbd_cdc_itf_t *cdc);
 int usbd_cdc_rx(usbd_cdc_itf_t *cdc, uint8_t *buf, uint32_t len, uint32_t timeout);
+
+uint32_t usbd_cdc_tx_buf_len(usbd_cdc_itf_t *cdc);
+uint8_t *usbd_cdc_tx_buf(usbd_cdc_itf_t *cdc, uint32_t bytes);
 
 #endif // MICROPY_INCLUDED_STMHAL_USBD_CDC_INTERFACE_H

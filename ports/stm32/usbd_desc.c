@@ -53,6 +53,8 @@
 #define USBD_CONFIGURATION_FS_STRING  "VCP Config"
 #define USBD_INTERFACE_FS_STRING      "VCP Interface"
 
+__ALIGN_BEGIN static uint8_t USBD_StrDesc[USBD_MAX_STR_DESC_SIZ] __ALIGN_END;
+
 __ALIGN_BEGIN static const uint8_t USBD_LangIDDesc[USB_LEN_LANGID_STR_DESC] __ALIGN_END = {
     USB_LEN_LANGID_STR_DESC,
     USB_DESC_TYPE_STRING,
@@ -151,8 +153,8 @@ STATIC uint8_t *USBD_ManufacturerStrDescriptor(USBD_HandleTypeDef *pdev, uint16_
   * @param  length: Pointer to data length variable
   * @retval Pointer to descriptor buffer
   */
-STATIC uint8_t *USBD_SerialStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length) {
-    if(speed == USBD_SPEED_HIGH) {
+STATIC uint8_t *USBD_SerialStrDescriptor(USBD_HandleTypeDef *pdev, uint16_t *length) {
+    if(pdev->dev_speed == USBD_SPEED_HIGH) {
         USBD_GetString((uint8_t *)USBD_SERIALNUMBER_HS_STRING, USBD_StrDesc, length);
     } else {
         USBD_GetString((uint8_t *)USBD_SERIALNUMBER_FS_STRING, USBD_StrDesc, length);

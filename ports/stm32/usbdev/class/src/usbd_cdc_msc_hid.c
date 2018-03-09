@@ -664,9 +664,7 @@ static uint8_t USBD_CDC_MSC_HID_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx) {
                        USBD_EP_TYPE_BULK,
                        MSC_MAX_PACKET);
 
-        MSC_BOT_ClassData.bot_data = &_msc_buf;
-        // MSC uses the pClassData pointer because SCSI and BOT reference it
-        //pdev->pClassData = &MSC_BOT_ClassData;
+        usbd->MSC_BOT_ClassData.bot_data = &_msc_buf;
 
         // Init the BOT layer
         MSC_BOT_Init(pdev);
@@ -913,7 +911,7 @@ static uint8_t USBD_CDC_MSC_HID_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum) 
     usbd_cdc_msc_hid_state_t *usbd = pdev->pClassData;
     if ((usbd->usbd_mode & USBD_MODE_CDC) && (epnum == (CDC_IN_EP & 0x7f) || epnum == (CDC_CMD_EP & 0x7f))) {
         usbd->CDC_ClassData.TxState = 0;
-        usbd_cdc_tx_sent(pdev);
+        usbd_cdc_tx_sent(usbd->cdc);
         return USBD_OK;
     } else if ((usbd->usbd_mode & USBD_MODE_MSC) && epnum == (MSC_IN_EP & 0x7f)) {
         MSC_BOT_DataIn(pdev, epnum);
