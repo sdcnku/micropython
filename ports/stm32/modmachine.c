@@ -59,6 +59,24 @@
 #define RCC_CSR_PORRSTF RCC_CSR_BORRSTF
 #endif
 
+#if defined(STM32H7)
+#define RCC_SR          RSR
+#define RCC_SR_IWDGRSTF RCC_RSR_IWDG1RSTF
+#define RCC_SR_WWDGRSTF RCC_RSR_WWDG1RSTF
+#define RCC_SR_PORRSTF  RCC_RSR_PORRSTF
+#define RCC_SR_BORRSTF  RCC_RSR_BORRSTF
+#define RCC_SR_PINRSTF  RCC_RSR_PINRSTF
+#define RCC_SR_RMVF     RCC_RSR_RMVF
+#else
+#define RCC_SR          CSR
+#define RCC_SR_IWDGRSTF RCC_CSR_IWDGRSTF
+#define RCC_SR_WWDGRSTF RCC_CSR_WWDGRSTF
+#define RCC_SR_PORRSTF  RCC_CSR_PORRSTF
+#define RCC_SR_BORRSTF  RCC_CSR_BORRSTF
+#define RCC_SR_PINRSTF  RCC_CSR_PINRSTF
+#define RCC_SR_RMVF     RCC_CSR_RMVF
+#endif
+
 #define PYB_RESET_SOFT      (0)
 #define PYB_RESET_POWER_ON  (1)
 #define PYB_RESET_HARD      (2)
@@ -80,15 +98,21 @@ void machine_init(void) {
         reset_cause = PYB_RESET_DEEPSLEEP;
         PWR->CR1 |= PWR_CR1_CSBF;
     } else
+    #elif defined(STM32H7)
+    if (PWR->CPUCR & PWR_CPUCR_SBF || PWR->CPUCR & PWR_CPUCR_STOPF) {
+        // came out of standby or stop mode
+        reset_cause = PYB_RESET_DEEPSLEEP;
+        PWR->CPUCR |= PWR_CPUCR_CSSF;
+    } else
     #endif
     {
         // get reset cause from RCC flags
-        uint32_t state = RCC->CSR;
-        if (state & RCC_CSR_IWDGRSTF || state & RCC_CSR_WWDGRSTF) {
+        uint32_t state = RCC->RCC_SR;
+        if (state & RCC_SR_IWDGRSTF || state & RCC_SR_WWDGRSTF) {
             reset_cause = PYB_RESET_WDT;
-        } else if (state & RCC_CSR_PORRSTF || state & RCC_CSR_BORRSTF) {
+        } else if (state & RCC_SR_PORRSTF || state & RCC_SR_BORRSTF) {
             reset_cause = PYB_RESET_POWER_ON;
-        } else if (state & RCC_CSR_PINRSTF) {
+        } else if (state & RCC_SR_PINRSTF) {
             reset_cause = PYB_RESET_HARD;
         } else {
             // default is soft reset
@@ -96,7 +120,12 @@ void machine_init(void) {
         }
     }
     // clear RCC reset flags
-    RCC->CSR |= RCC_CSR_RMVF;
+    RCC->RCC_SR |= RCC_SR_RMVF;
+}
+
+void machine_deinit(void) {
+    // we are doing a soft-reset so change the reset_cause
+    reset_cause = PYB_RESET_SOFT;
 }
 
 // machine.info([dump_alloc_table])
@@ -199,7 +228,9 @@ MP_DEFINE_CONST_FUN_OBJ_0(machine_soft_reset_obj, machine_soft_reset);
 
 // Activate the bootloader without BOOT* pins.
 STATIC NORETURN mp_obj_t machine_bootloader(void) {
+    #if MICROPY_HW_ENABLE_USB
     pyb_usb_dev_deinit();
+    #endif
     storage_flush();
 
     HAL_RCC_DeInit();
@@ -210,7 +241,7 @@ STATIC NORETURN mp_obj_t machine_bootloader(void) {
     HAL_MPU_Disable();
     #endif
 
-#if defined(MCU_SERIES_F7)
+#if defined(MCU_SERIES_F7) || defined(STM32H7)
     // arm-none-eabi-gcc 4.9.0 does not correctly inline this
     // MSP function, so we write it out explicitly here.
     //__set_MSP(*((uint32_t*) 0x1FF00000));
@@ -218,7 +249,7 @@ STATIC NORETURN mp_obj_t machine_bootloader(void) {
 
     ((void (*)(void)) *((uint32_t*) 0x1FF00004))();
 #else
-    __HAL_REMAPMEMORY_SYSTEMFLASH();
+    __HAL_SYSCFG_REMAPMEMORY_SYSTEMFLASH();
 
     // arm-none-eabi-gcc 4.9.0 does not correctly inline this
     // MSP function, so we write it out explicitly here.
@@ -359,27 +390,44 @@ STATIC mp_obj_t machine_freq(size_t n_args, const mp_obj_t *args) {
 
         // set PLL as system clock source if wanted
         if (sysclk_source == RCC_SYSCLKSOURCE_PLLCLK) {
+            uint32_t flash_latency;
             #if defined(MCU_SERIES_F7)
             // if possible, scale down the internal voltage regulator to save power
+            // the flash_latency values assume a supply voltage between 2.7V and 3.6V
             uint32_t volt_scale;
-            if (wanted_sysclk <= 151000000) {
+            if (wanted_sysclk <= 90000000) {
                 volt_scale = PWR_REGULATOR_VOLTAGE_SCALE3;
+                flash_latency = FLASH_LATENCY_2;
+            } else if (wanted_sysclk <= 120000000) {
+                volt_scale = PWR_REGULATOR_VOLTAGE_SCALE3;
+                flash_latency = FLASH_LATENCY_3;
+            } else if (wanted_sysclk <= 144000000) {
+                volt_scale = PWR_REGULATOR_VOLTAGE_SCALE3;
+                flash_latency = FLASH_LATENCY_4;
             } else if (wanted_sysclk <= 180000000) {
                 volt_scale = PWR_REGULATOR_VOLTAGE_SCALE2;
+                flash_latency = FLASH_LATENCY_5;
+            } else if (wanted_sysclk <= 210000000) {
+                volt_scale = PWR_REGULATOR_VOLTAGE_SCALE1;
+                flash_latency = FLASH_LATENCY_6;
             } else {
                 volt_scale = PWR_REGULATOR_VOLTAGE_SCALE1;
+                flash_latency = FLASH_LATENCY_7;
             }
             if (HAL_PWREx_ControlVoltageScaling(volt_scale) != HAL_OK) {
                 goto fail;
             }
             #endif
 
+            #if !defined(MCU_SERIES_F7)
             #if !defined(MICROPY_HW_FLASH_LATENCY)
             #define MICROPY_HW_FLASH_LATENCY FLASH_LATENCY_5
             #endif
+            flash_latency = MICROPY_HW_FLASH_LATENCY;
+            #endif
             RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_SYSCLK;
             RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-            if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, MICROPY_HW_FLASH_LATENCY) != HAL_OK) {
+            if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, flash_latency) != HAL_OK) {
                 goto fail;
             }
         }
@@ -467,7 +515,11 @@ STATIC mp_obj_t machine_sleep(void) {
 
     // select PLL as system clock source
     MODIFY_REG(RCC->CFGR, RCC_CFGR_SW, RCC_SYSCLKSOURCE_PLLCLK);
+    #if defined(STM32H7)
+    while (__HAL_RCC_GET_SYSCLK_SOURCE() != RCC_CFGR_SWS_PLL1) {
+    #else
     while (__HAL_RCC_GET_SYSCLK_SOURCE() != RCC_CFGR_SWS_PLL) {
+    #endif
     }
 
     #endif
@@ -506,6 +558,8 @@ STATIC mp_obj_t machine_deepsleep(void) {
     PWR->CSR2 &= ~(PWR_CSR2_EWUP6 | PWR_CSR2_EWUP5 | PWR_CSR2_EWUP4 | PWR_CSR2_EWUP3 | PWR_CSR2_EWUP2 | PWR_CSR2_EWUP1);
     // clear global wake-up flag
     PWR->CR2 |= PWR_CR2_CWUPF6 | PWR_CR2_CWUPF5 | PWR_CR2_CWUPF4 | PWR_CR2_CWUPF3 | PWR_CR2_CWUPF2 | PWR_CR2_CWUPF1;
+    #elif defined(STM32H7)
+    // TODO
     #else
     // clear global wake-up flag
     PWR->CR |= PWR_CR_CWUF;
@@ -562,7 +616,9 @@ STATIC const mp_rom_map_elem_t machine_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_RTC),                 MP_ROM_PTR(&pyb_rtc_type) },
     { MP_ROM_QSTR(MP_QSTR_ADC),                 MP_ROM_PTR(&pyb_adc_type) },
 #endif
+#if MICROPY_PY_MACHINE_I2C
     { MP_ROM_QSTR(MP_QSTR_I2C),                 MP_ROM_PTR(&machine_i2c_type) },
+#endif
     { MP_ROM_QSTR(MP_QSTR_SPI),                 MP_ROM_PTR(&machine_hard_spi_type) },
     { MP_ROM_QSTR(MP_QSTR_UART),                MP_ROM_PTR(&pyb_uart_type) },
     { MP_ROM_QSTR(MP_QSTR_WDT),                 MP_ROM_PTR(&pyb_wdt_type) },

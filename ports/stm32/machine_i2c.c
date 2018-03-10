@@ -34,6 +34,8 @@
 #include "genhdr/pins.h"
 #include "i2c.h"
 
+#if MICROPY_HW_ENABLE_HW_I2C
+
 STATIC const mp_obj_type_t machine_hard_i2c_type;
 
 #if defined(MCU_SERIES_F4)
@@ -86,7 +88,7 @@ STATIC void machine_hard_i2c_print(const mp_print_t *print, mp_obj_t self_in, mp
     machine_hard_i2c_obj_t *self = MP_OBJ_TO_PTR(self_in);
     mp_printf(print, "I2C(%u, freq=%u, timeout=%u)",
         self - &machine_hard_i2c_obj[0] + 1,
-        i2c_get_baudrate(&self->pyb->i2c->Init),
+        i2c_get_baudrate(self->pyb->i2c),
         *self->timeout);
 }
 
@@ -548,3 +550,5 @@ STATIC const mp_obj_type_t machine_hard_i2c_type = {
     .protocol = &machine_hard_i2c_p,
     .locals_dict = (mp_obj_dict_t*)&mp_machine_soft_i2c_locals_dict,
 };
+
+#endif // MICROPY_HW_ENABLE_HW_I2C

@@ -12,7 +12,7 @@ This module provides access to the BSD socket interface.
 .. admonition:: Difference to CPython
    :class: attention
 
-   For efficiency and consistency, socket objects in MicroPython implement a stream
+   For efficiency and consistency, socket objects in MicroPython implement a `stream`
    (file-like) interface directly. In CPython, you need to convert a socket to
    a file-like object using `makefile()` method. This method is still supported
    by MicroPython (but is a no-op), so where compatibility with CPython matters,
@@ -99,7 +99,7 @@ Functions
       of error in this function. MicroPython doesn't have ``socket.gaierror``
       and raises OSError directly. Note that error numbers of `getaddrinfo()`
       form a separate namespace and may not match error numbers from
-      `uerrno` module. To distinguish `getaddrinfo()` errors, they are
+      the :mod:`uerrno` module. To distinguish `getaddrinfo()` errors, they are
       represented by negative numbers, whereas standard system errors are
       positive numbers (error numbers are accessible using ``e.args[0]`` property
       from an exception object). The use of negative values is a provisional
@@ -248,7 +248,7 @@ Methods
    Not every `MicroPython port` supports this method. A more portable and
    generic solution is to use `uselect.poll` object. This allows to wait on
    multiple objects at the same time (and not just on sockets, but on generic
-   stream objects which support polling). Example::
+   `stream` objects which support polling). Example::
 
         # Instead of:
         s.settimeout(1.0)  # time in seconds

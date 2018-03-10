@@ -33,9 +33,7 @@
 #include "usbd_desc.h"
 #include "usbd_conf.h"
 
-// need these headers just for MP_HAL_UNIQUE_ID_ADDRESS
-#include "py/mpconfig.h"
-#include "py/misc.h"
+// need this header just for MP_HAL_UNIQUE_ID_ADDRESS
 #include "py/mphal.h"
 
 // So we don't clash with existing ST boards, we use the unofficial FOSS VID.
@@ -52,8 +50,6 @@
 #define USBD_INTERFACE_HS_STRING      "VCP Interface"
 #define USBD_CONFIGURATION_FS_STRING  "VCP Config"
 #define USBD_INTERFACE_FS_STRING      "VCP Interface"
-
-__ALIGN_BEGIN static uint8_t USBD_StrDesc[USBD_MAX_STR_DESC_SIZ] __ALIGN_END;
 
 __ALIGN_BEGIN static const uint8_t USBD_LangIDDesc[USB_LEN_LANGID_STR_DESC] __ALIGN_END = {
     USB_LEN_LANGID_STR_DESC,
@@ -83,11 +79,11 @@ void USBD_SetVIDPIDRelease(usbd_cdc_msc_hid_state_t *usbd, uint16_t vid, uint16_
         dev_desc[5] = 0x02; // bDeviceSubClass: Common Class
         dev_desc[6] = 0x01; // bDeviceProtocol: Interface Association Descriptor
     }
-    dev_desc[7] = USB_MAX_EP0_SIZE; // bMaxPacketSize
-    dev_desc[8] = LOBYTE(vid); // idVendor
-    dev_desc[9] = HIBYTE(vid); // idVendor
-    dev_desc[10] = LOBYTE(pid); // idVendor
-    dev_desc[11] = HIBYTE(pid); // idVendor
+    dev_desc[7]  = USB_MAX_EP0_SIZE; // bMaxPacketSize
+    dev_desc[8]  = LOBYTE(USBD_VID); // idVendor
+    dev_desc[9]  = HIBYTE(USBD_VID); // idVendor
+    dev_desc[10] = LOBYTE(USBD_PID); // idVendor
+    dev_desc[11] = HIBYTE(USBD_PID); // idVendor
     dev_desc[12] = LOBYTE(device_release_num); // bcdDevice
     dev_desc[13] = HIBYTE(device_release_num); // bcdDevice
     dev_desc[14] = USBD_IDX_MFC_STR; // Index of manufacturer string
@@ -109,99 +105,69 @@ STATIC uint8_t *USBD_DeviceDescriptor(USBD_HandleTypeDef *pdev, uint16_t *length
 }
 
 /**
-  * @brief  Returns the LangID string descriptor.
-  * @param  speed: Current device speed
+  * @brief  Returns a string descriptor
+  * @param  idx: Index of the string descriptor to retrieve
   * @param  length: Pointer to data length variable
-  * @retval Pointer to descriptor buffer
+  * @retval Pointer to descriptor buffer, or NULL if idx is invalid
   */
-STATIC uint8_t *USBD_LangIDStrDescriptor(USBD_HandleTypeDef *pdev, uint16_t *length) {
-    *length = sizeof(USBD_LangIDDesc);
-    return (uint8_t*)USBD_LangIDDesc; // the data should only be read from this buf
-}
+STATIC uint8_t *USBD_StrDescriptor(USBD_HandleTypeDef *pdev, uint8_t idx, uint16_t *length) {
+    const char *str = NULL;
 
-/**
-  * @brief  Returns the product string descriptor.
-  * @param  speed: Current device speed
-  * @param  length: Pointer to data length variable
-  * @retval Pointer to descriptor buffer
-  */
-STATIC uint8_t *USBD_ProductStrDescriptor(USBD_HandleTypeDef *pdev, uint16_t *length) {
-    uint8_t *str_desc = ((usbd_cdc_msc_hid_state_t*)pdev->pClassData)->usbd_str_desc;
-    if (pdev->dev_speed == USBD_SPEED_HIGH) {
-        USBD_GetString((uint8_t *)USBD_PRODUCT_HS_STRING, str_desc, length);
-    } else {
-        USBD_GetString((uint8_t *)USBD_PRODUCT_FS_STRING, str_desc, length);
+    switch (idx) {
+        case USBD_IDX_LANGID_STR:
+            *length = sizeof(USBD_LangIDDesc);
+            return (uint8_t*)USBD_LangIDDesc; // the data should only be read from this buf
+
+        case USBD_IDX_MFC_STR:
+            str = USBD_MANUFACTURER_STRING;
+            break;
+
+        case USBD_IDX_PRODUCT_STR:
+            if (pdev->dev_speed == USBD_SPEED_HIGH) {
+                str = USBD_PRODUCT_HS_STRING;
+            } else {
+                str = USBD_PRODUCT_FS_STRING;
+            }
+            break;
+
+        case USBD_IDX_SERIAL_STR: {
+            if(pdev->dev_speed == USBD_SPEED_HIGH) {
+                str = USBD_SERIALNUMBER_HS_STRING;
+            } else {
+                str = USBD_SERIALNUMBER_FS_STRING;
+            }
+            break;
+        }
+
+        case USBD_IDX_CONFIG_STR:
+            if (pdev->dev_speed == USBD_SPEED_HIGH) {
+                str = USBD_CONFIGURATION_HS_STRING;
+            } else {
+                str = USBD_CONFIGURATION_FS_STRING;
+            }
+            break;
+
+        case USBD_IDX_INTERFACE_STR:
+            if (pdev->dev_speed == USBD_SPEED_HIGH) {
+                str = USBD_INTERFACE_HS_STRING;
+            } else {
+                str = USBD_INTERFACE_FS_STRING;
+            }
+            break;
+
+        default:
+            // invalid string index
+            return NULL;
     }
-    return str_desc;
-}
 
-/**
-  * @brief  Returns the manufacturer string descriptor.
-  * @param  speed: Current device speed
-  * @param  length: Pointer to data length variable
-  * @retval Pointer to descriptor buffer
-  */
-STATIC uint8_t *USBD_ManufacturerStrDescriptor(USBD_HandleTypeDef *pdev, uint16_t *length) {
     uint8_t *str_desc = ((usbd_cdc_msc_hid_state_t*)pdev->pClassData)->usbd_str_desc;
-    USBD_GetString((uint8_t *)USBD_MANUFACTURER_STRING, str_desc, length);
-    return str_desc;
-}
-
-/**
-  * @brief  Returns the serial number string descriptor.
-  * @param  speed: Current device speed
-  * @param  length: Pointer to data length variable
-  * @retval Pointer to descriptor buffer
-  */
-STATIC uint8_t *USBD_SerialStrDescriptor(USBD_HandleTypeDef *pdev, uint16_t *length) {
-    if(pdev->dev_speed == USBD_SPEED_HIGH) {
-        USBD_GetString((uint8_t *)USBD_SERIALNUMBER_HS_STRING, USBD_StrDesc, length);
-    } else {
-        USBD_GetString((uint8_t *)USBD_SERIALNUMBER_FS_STRING, USBD_StrDesc, length);
-    }
-    return USBD_StrDesc;
-}
-
-/**
-  * @brief  Returns the configuration string descriptor.
-  * @param  speed: Current device speed
-  * @param  length: Pointer to data length variable
-  * @retval Pointer to descriptor buffer
-  */
-STATIC uint8_t *USBD_ConfigStrDescriptor(USBD_HandleTypeDef *pdev, uint16_t *length) {
-    uint8_t *str_desc = ((usbd_cdc_msc_hid_state_t*)pdev->pClassData)->usbd_str_desc;
-    if (pdev->dev_speed == USBD_SPEED_HIGH) {
-        USBD_GetString((uint8_t *)USBD_CONFIGURATION_HS_STRING, str_desc, length);
-    } else {
-        USBD_GetString((uint8_t *)USBD_CONFIGURATION_FS_STRING, str_desc, length);
-    }
-    return str_desc;
-}
-
-/**
-  * @brief  Returns the interface string descriptor.
-  * @param  speed: Current device speed
-  * @param  length: Pointer to data length variable
-  * @retval Pointer to descriptor buffer
-  */
-STATIC uint8_t *USBD_InterfaceStrDescriptor(USBD_HandleTypeDef *pdev, uint16_t *length) {
-    uint8_t *str_desc = ((usbd_cdc_msc_hid_state_t*)pdev->pClassData)->usbd_str_desc;
-    if (pdev->dev_speed == USBD_SPEED_HIGH) {
-        USBD_GetString((uint8_t *)USBD_INTERFACE_HS_STRING, str_desc, length);
-    } else {
-        USBD_GetString((uint8_t *)USBD_INTERFACE_FS_STRING, str_desc, length);
-    }
+    USBD_GetString((uint8_t*)str, str_desc, length);
     return str_desc;
 }
 
 const USBD_DescriptorsTypeDef USBD_Descriptors = {
     USBD_DeviceDescriptor,
-    USBD_LangIDStrDescriptor,
-    USBD_ManufacturerStrDescriptor,
-    USBD_ProductStrDescriptor,
-    USBD_SerialStrDescriptor,
-    USBD_ConfigStrDescriptor,
-    USBD_InterfaceStrDescriptor,
+    USBD_StrDescriptor,
 };
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

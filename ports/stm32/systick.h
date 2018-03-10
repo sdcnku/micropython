@@ -23,8 +23,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#ifndef MICROPY_INCLUDED_STMHAL_SYSTICK_H
-#define MICROPY_INCLUDED_STMHAL_SYSTICK_H
+#ifndef MICROPY_INCLUDED_STM32_SYSTICK_H
+#define MICROPY_INCLUDED_STM32_SYSTICK_H
 
 void systick_sleep(uint32_t ms);
 uint32_t systick_current_millis();
@@ -32,4 +32,4 @@ void sys_tick_udelay(uint32_t usec);
 void sys_tick_wait_at_least(uint32_t stc, uint32_t delay_ms);
 bool sys_tick_has_passed(uint32_t stc, uint32_t delay_ms);
 
-#endif // MICROPY_INCLUDED_STMHAL_SYSTICK_H
+#endif // MICROPY_INCLUDED_STM32_SYSTICK_H

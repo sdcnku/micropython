@@ -6,16 +6,16 @@ ESP8266 is a popular WiFi-enabled System-on-Chip (SoC) by Espressif Systems.
 Multitude of boards
 -------------------
 
-There are a multitude of modules and boards from different sources which carry
+There is a multitude of modules and boards from different sources which carry
 the ESP8266 chip. MicroPython tries to provide a generic port which would run on
 as many boards/modules as possible, but there may be limitations. Adafruit
 Feather HUZZAH board is taken as a reference board for the port (for example,
 testing is performed on it). If you have another board, please make sure you
-have datasheet, schematics and other reference materials for your board
+have a datasheet, schematics and other reference materials for your board
 handy to look up various aspects of your board functioning.
 
 To make a generic ESP8266 port and support as many boards as possible,
-following design and implementation decision were made:
+the following design and implementation decision were made:
 
 * GPIO pin numbering is based on ESP8266 chip numbering, not some "logical"
   numbering of a particular board. Please have the manual/pin diagram of your board
@@ -185,3 +185,11 @@ limitation with usage of TLS on the low-memory devices:
    time, taking as a reference being able to access https://google.com .
    The smaller buffer hower means that some sites can't be accessed using
    it, and it's not possible to stream large amounts of data.
+
+There are also some not implemented features specifically in MicroPython's
+``ussl`` module based on axTLS:
+
+6. Certificates are not validated (this may make connections susceptible
+   to man-in-the-middle attacks).
+7. There is no support for client certificates (scheduled to be fixed in
+   1.9.4 release).

@@ -35,6 +35,8 @@
 #include "genhdr/pins.h"
 #include "timer.h"
 
+#if MICROPY_HW_ENABLE_ADC
+
 /// \moduleref pyb
 /// \class ADC - analog to digital conversion: read analog values on a pin
 ///
@@ -51,7 +53,7 @@
 
 /* ADC defintions */
 #define ADCx                    (ADC1)
-#define ADCx_CLK_ENABLE         __ADC1_CLK_ENABLE
+#define ADCx_CLK_ENABLE         __HAL_RCC_ADC1_CLK_ENABLE
 #define ADC_NUM_CHANNELS        (19)
 
 #if defined(MCU_SERIES_F4)
@@ -66,7 +68,13 @@
 
 #define ADC_FIRST_GPIO_CHANNEL  (5)
 #define ADC_LAST_GPIO_CHANNEL   (5)
+#if defined(STM32F722xx) || defined(STM32F723xx) || \
+    defined(STM32F732xx) || defined(STM32F733xx)
+#define ADC_CAL_ADDRESS         (0x1ff07a2a)
+#else
 #define ADC_CAL_ADDRESS         (0x1ff0f44a)
+#endif
+
 #define ADC_CAL1                ((uint16_t*)(ADC_CAL_ADDRESS + 2))
 #define ADC_CAL2                ((uint16_t*)(ADC_CAL_ADDRESS + 4))
 
@@ -91,8 +99,10 @@
 #define VBAT_DIV (2)
 #elif defined(STM32F427xx) || defined(STM32F429xx) || \
       defined(STM32F437xx) || defined(STM32F439xx) || \
-      defined(STM32F746xx) || defined(STM32F765xx) || \
-      defined(STM32F767xx) || defined(STM32F769xx)
+      defined(STM32F722xx) || defined(STM32F723xx) || \
+      defined(STM32F732xx) || defined(STM32F733xx) || \
+      defined(STM32F765xx) || defined(STM32F767xx) || \
+      defined(STM32F769xx) || defined(STM32F446xx)
 #define VBAT_DIV (4)
 #elif defined(STM32L475xx) || defined(STM32L476xx)
 #define VBAT_DIV (3)
@@ -264,7 +274,7 @@ STATIC uint32_t adc_read_channel(ADC_HandleTypeDef *adcHandle) {
 
     HAL_ADC_Start(adcHandle);
     if (HAL_ADC_PollForConversion(adcHandle, 10) == HAL_OK
-        && (HAL_ADC_GetState(adcHandle) & HAL_ADC_STATE_EOC_REG) == HAL_ADC_STATE_EOC_REG) {
+        && (HAL_ADC_GetState(adcHandle) & HAL_ADC_STATE_REG_EOC) == HAL_ADC_STATE_REG_EOC) {
         rawValue = HAL_ADC_GetValue(adcHandle);
     }
     HAL_ADC_Stop(adcHandle);
@@ -543,7 +553,7 @@ uint32_t adc_config_and_read_channel(ADC_HandleTypeDef *adcHandle, uint32_t chan
 }
 
 int adc_get_resolution(ADC_HandleTypeDef *adcHandle) {
-    uint32_t res_reg = __HAL_ADC_GET_RESOLUTION(adcHandle);
+    uint32_t res_reg = ADC_GET_RESOLUTION(adcHandle);
 
     switch (res_reg) {
         case ADC_RESOLUTION_6B:  return 6;
@@ -694,3 +704,5 @@ const mp_obj_type_t pyb_adc_all_type = {
     .make_new = adc_all_make_new,
     .locals_dict = (mp_obj_dict_t*)&adc_all_locals_dict,
 };
+
+#endif // MICROPY_HW_ENABLE_ADC
