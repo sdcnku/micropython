@@ -17,6 +17,7 @@
 #define MICROPY_HW_ENABLE_SPI3      (0)
 #define MICROPY_HW_ENABLE_SPI4      (0)
 #define MICROPY_HW_ENABLE_CAN       (1)
+#define MICROPY_HW_ENABLE_USB       (1)
 
 #define MICROPY_HW_CLK_PLLM (12)
 #define MICROPY_HW_CLK_PLLN (432)
@@ -53,7 +54,9 @@
 #define MICROPY_HW_SDCARD_DETECT_PRESENT    (GPIO_PIN_RESET)
 
 // USB config
-#define MICROPY_HW_USB_VBUS_DETECT_PIN (pin_A9)
+#define MICROPY_HW_USB_FS                   (1)
+#define MICROPY_HW_USB_VBUS_DETECT_PIN      (pin_A9)
+//#define MICROPY_HW_USB_OTG_ID_PIN         (pin_A10)
 
 // USRSW is pulled low. Pressing the button makes the input go high.
 //#define MICROPY_HW_USRSW_PIN        (pin_A5)
