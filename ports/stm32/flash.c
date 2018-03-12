@@ -275,6 +275,8 @@ void flash_write(uint32_t flash_dest, const uint32_t *src, uint32_t num_word32) 
     HAL_FLASH_Lock();
 }
 
+/*
+ use erase, then write
 void flash_erase_and_write(uint32_t flash_dest, const uint32_t *src, uint32_t num_word32) {
     // check there is something to write
     if (num_word32 == 0) {
@@ -315,3 +317,4 @@ void flash_erase_and_write(uint32_t flash_dest, const uint32_t *src, uint32_t nu
     // lock the flash
     HAL_FLASH_Lock();
 }
+*/
