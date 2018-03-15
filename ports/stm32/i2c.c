@@ -133,9 +133,9 @@ const pyb_i2c_obj_t pyb_i2c_obj[] = {
     #endif
 };
 
-#if defined(MCU_SERIES_F7) || defined(MCU_SERIES_L4)
+#if defined(MCU_SERIES_F7) || defined(MCU_SERIES_L4) || defined(MCU_SERIES_H7)
 
-// The STM32F0, F3, F7 and L4 use a TIMINGR register rather than ClockSpeed and
+// The STM32F0, F3, F7, H7 and L4 use a TIMINGR register rather than ClockSpeed and
 // DutyCycle.
 
 #if defined(STM32F746xx)
@@ -159,6 +159,17 @@ const pyb_i2c_obj_t pyb_i2c_obj[] = {
         {PYB_I2C_SPEED_STANDARD, 0xb0420f13}, \
         {PYB_I2C_SPEED_FULL, 0x70330309}, \
         {PYB_I2C_SPEED_FAST, 0x50100103}, \
+    }
+#define MICROPY_HW_I2C_BAUDRATE_DEFAULT (PYB_I2C_SPEED_FULL)
+#define MICROPY_HW_I2C_BAUDRATE_MAX (PYB_I2C_SPEED_FAST)
+
+#elif defined(STM32H743xx)
+
+// I2C TIMINGs obtained from the STHAL examples.
+#define MICROPY_HW_I2C_BAUDRATE_TIMING { \
+        {PYB_I2C_SPEED_STANDARD, 0x40604E73}, \
+        {PYB_I2C_SPEED_FULL, 0x00901954}, \
+        {PYB_I2C_SPEED_FAST, 0x10810915}, \
     }
 #define MICROPY_HW_I2C_BAUDRATE_DEFAULT (PYB_I2C_SPEED_FULL)
 #define MICROPY_HW_I2C_BAUDRATE_MAX (PYB_I2C_SPEED_FAST)
@@ -208,12 +219,8 @@ uint32_t i2c_get_baudrate(I2C_HandleTypeDef *i2c) {
 #define MICROPY_HW_I2C_BAUDRATE_MAX (PYB_I2C_SPEED_FULL)
 
 STATIC void i2c_set_baudrate(I2C_InitTypeDef *init, uint32_t baudrate) {
-    #if defined(STM32F765xx) ||  defined(STM32F769xx)
-    init->Timing = baudrate;
-    #else
     init->ClockSpeed = baudrate;
     init->DutyCycle = I2C_DUTYCYCLE_16_9;
-    #endif
 }
 
 uint32_t i2c_get_baudrate(I2C_HandleTypeDef *i2c) {
