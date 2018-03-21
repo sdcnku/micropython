@@ -32,8 +32,8 @@
 #define MSC_TEMPLATE_MSC_DESC_OFFSET (9)
 #define CDC_TEMPLATE_CONFIG_DESC_SIZE (67)
 #define CDC_MSC_TEMPLATE_CONFIG_DESC_SIZE (98)
-#define CDC_MSC_TEMPLATE_MSC_DESC_OFFSET (9)
-#define CDC_MSC_TEMPLATE_CDC_DESC_OFFSET (40)
+#define CDC_MSC_TEMPLATE_MSC_DESC_OFFSET (75)
+#define CDC_MSC_TEMPLATE_CDC_DESC_OFFSET (17)
 #define CDC_HID_TEMPLATE_CONFIG_DESC_SIZE (107)
 #define CDC_HID_TEMPLATE_HID_DESC_OFFSET (9)
 #define CDC_HID_TEMPLATE_CDC_DESC_OFFSET (49)
@@ -56,10 +56,10 @@
 #define HID_SUBDESC_LEN (9)
 
 #define CDC_IFACE_NUM_ALONE (0)
-#define CDC_IFACE_NUM_WITH_MSC (1)
-#define CDC_IFACE_NUM_WITH_HID (1)
-#define MSC_IFACE_NUM_WITH_CDC (0)
-#define HID_IFACE_NUM_WITH_CDC (0)
+#define CDC_IFACE_NUM_WITH_MSC (0)
+#define CDC_IFACE_NUM_WITH_HID (0)
+#define MSC_IFACE_NUM_WITH_CDC (2)
+#define HID_IFACE_NUM_WITH_CDC (2)
 #define HID_IFACE_NUM_WITH_MSC (1)
 #define HID_IN_EP_WITH_CDC (0x81)
 #define HID_OUT_EP_WITH_CDC (0x01)
@@ -159,39 +159,6 @@ static const uint8_t cdc_msc_template_config_desc[CDC_MSC_TEMPLATE_CONFIG_DESC_S
     0xfa,   // bMaxPower: in units of 2mA
 
     //==========================================================================
-    // MSC only has 1 interface so doesn't need an IAD
-
-    //--------------------------------------------------------------------------
-    // Interface Descriptor
-    0x09,   // bLength: Interface Descriptor size
-    USB_DESC_TYPE_INTERFACE, // bDescriptorType: interface descriptor
-    MSC_IFACE_NUM_WITH_CDC, // bInterfaceNumber: Number of Interface
-    0x00,   // bAlternateSetting: Alternate setting
-    0x02,   // bNumEndpoints
-    0x08,   // bInterfaceClass: MSC Class
-    0x06,   // bInterfaceSubClass : SCSI transparent
-    0x50,   // nInterfaceProtocol
-    0x00,   // iInterface:
-
-    // Endpoint IN descriptor
-    0x07,                           // bLength: Endpoint descriptor length
-    USB_DESC_TYPE_ENDPOINT,         // bDescriptorType: Endpoint descriptor type
-    MSC_IN_EP,                      // bEndpointAddress: IN, address 3
-    0x02,                           // bmAttributes: Bulk endpoint type
-    LOBYTE(MSC_FS_MAX_PACKET),      // wMaxPacketSize
-    HIBYTE(MSC_FS_MAX_PACKET),
-    0x00,                           // bInterval: ignore for Bulk transfer
-
-    // Endpoint OUT descriptor
-    0x07,                           // bLength: Endpoint descriptor length
-    USB_DESC_TYPE_ENDPOINT,         // bDescriptorType: Endpoint descriptor type
-    MSC_OUT_EP,                     // bEndpointAddress: OUT, address 3
-    0x02,                           // bmAttributes: Bulk endpoint type
-    LOBYTE(MSC_FS_MAX_PACKET),      // wMaxPacketSize
-    HIBYTE(MSC_FS_MAX_PACKET),
-    0x00,                           // bInterval: ignore for Bulk transfer
-
-    //==========================================================================
     // Interface Association for CDC VCP
     0x08,   // bLength: 8 bytes
     USB_DESC_TYPE_ASSOCIATION, // bDescriptorType: IAD
@@ -279,6 +246,39 @@ static const uint8_t cdc_msc_template_config_desc[CDC_MSC_TEMPLATE_CONFIG_DESC_S
     LOBYTE(CDC_DATA_FS_MAX_PACKET_SIZE),// wMaxPacketSize:
     HIBYTE(CDC_DATA_FS_MAX_PACKET_SIZE),
     0x00,                               // bInterval: ignore for Bulk transfer
+
+    //==========================================================================
+    // MSC only has 1 interface so doesn't need an IAD
+
+    //--------------------------------------------------------------------------
+    // Interface Descriptor
+    0x09,   // bLength: Interface Descriptor size
+    USB_DESC_TYPE_INTERFACE, // bDescriptorType: interface descriptor
+    MSC_IFACE_NUM_WITH_CDC, // bInterfaceNumber: Number of Interface
+    0x00,   // bAlternateSetting: Alternate setting
+    0x02,   // bNumEndpoints
+    0x08,   // bInterfaceClass: MSC Class
+    0x06,   // bInterfaceSubClass : SCSI transparent
+    0x50,   // nInterfaceProtocol
+    0x00,   // iInterface:
+
+    // Endpoint IN descriptor
+    0x07,                           // bLength: Endpoint descriptor length
+    USB_DESC_TYPE_ENDPOINT,         // bDescriptorType: Endpoint descriptor type
+    MSC_IN_EP,                      // bEndpointAddress: IN, address 3
+    0x02,                           // bmAttributes: Bulk endpoint type
+    LOBYTE(MSC_FS_MAX_PACKET),      // wMaxPacketSize
+    HIBYTE(MSC_FS_MAX_PACKET),
+    0x00,                           // bInterval: ignore for Bulk transfer
+
+    // Endpoint OUT descriptor
+    0x07,                           // bLength: Endpoint descriptor length
+    USB_DESC_TYPE_ENDPOINT,         // bDescriptorType: Endpoint descriptor type
+    MSC_OUT_EP,                     // bEndpointAddress: OUT, address 3
+    0x02,                           // bmAttributes: Bulk endpoint type
+    LOBYTE(MSC_FS_MAX_PACKET),      // wMaxPacketSize
+    HIBYTE(MSC_FS_MAX_PACKET),
+    0x00,                           // bInterval: ignore for Bulk transfer
 };
 
 // USB CDC HID device Configuration Descriptor
