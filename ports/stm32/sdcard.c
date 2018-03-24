@@ -116,6 +116,11 @@
 
 #endif
 
+// NOTE: H7 SD DMA can only access AXI SRAM.
+#define AXI_BUFFER(p)       ((uint32_t) p >= 0x24000000 && (uint32_t) p < 0x24080000)
+// NOTE: F4 CCM is not accessible by GP-DMA.
+#define CCM_BUFFER(p)       ((uint32_t) p >= 0x10000000 && (uint32_t) p < 0x10010000)
+
 // TODO: Since SDIO is fundamentally half-duplex, we really only need to
 //       tie up one DMA channel. However, the HAL DMA API doesn't
 // seem to provide a convenient way to change the direction. I believe that
@@ -329,7 +334,7 @@ mp_uint_t sdcard_read_blocks(uint8_t *dest, uint32_t block_num, uint32_t num_blo
         saved_word = *(uint32_t*)dest;
     }
 
-    if (query_irq() == IRQ_STATE_ENABLED) {
+    if (query_irq() == IRQ_STATE_ENABLED && AXI_BUFFER(dest) && !CCM_BUFFER(dest)) {
         // we must disable USB irqs to prevent MSC contention with SD card
         uint32_t basepri = raise_irq_pri(IRQ_PRI_OTG_FS);
 
@@ -354,7 +359,11 @@ mp_uint_t sdcard_read_blocks(uint8_t *dest, uint32_t block_num, uint32_t num_blo
 
         restore_irq_pri(basepri);
     } else {
+        // This transfer has to be done in an atomic section.
+        mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
         err = HAL_SD_ReadBlocks(&sd_handle, dest, block_num, num_blocks, 60000);
+        MICROPY_END_ATOMIC_SECTION(atomic_state);
+
         if (err == HAL_OK) {
             err = sdcard_wait_finished(&sd_handle, 60000);
         }
@@ -395,7 +404,7 @@ mp_uint_t sdcard_write_blocks(const uint8_t *src, uint32_t block_num, uint32_t n
         return err;
     }
 
-    if (query_irq() == IRQ_STATE_ENABLED) {
+    if (query_irq() == IRQ_STATE_ENABLED && AXI_BUFFER(src) && !CCM_BUFFER(src)) {
         // we must disable USB irqs to prevent MSC contention with SD card
         uint32_t basepri = raise_irq_pri(IRQ_PRI_OTG_FS);
 
@@ -419,7 +428,10 @@ mp_uint_t sdcard_write_blocks(const uint8_t *src, uint32_t block_num, uint32_t n
 
         restore_irq_pri(basepri);
     } else {
+        // This transfer has to be done in an atomic section.
+        mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
         err = HAL_SD_WriteBlocks(&sd_handle, (uint8_t*)src, block_num, num_blocks, 60000);
+        MICROPY_END_ATOMIC_SECTION(atomic_state);
         if (err == HAL_OK) {
             err = sdcard_wait_finished(&sd_handle, 60000);
         }
