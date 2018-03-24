@@ -11,19 +11,21 @@
 #define MICROPY_HW_ENABLE_RTC       (1)
 #define MICROPY_HW_ENABLE_TIMER     (1)
 #define MICROPY_HW_ENABLE_SERVO     (1)
-#define MICROPY_HW_ENABLE_DAC       (1)
+#define MICROPY_HW_ENABLE_DAC       (0)
+#define MICROPY_HW_ENABLE_ADC       (0)
 #define MICROPY_HW_ENABLE_SPI1      (0)
 #define MICROPY_HW_ENABLE_SPI2      (1)
 #define MICROPY_HW_ENABLE_SPI3      (0)
 #define MICROPY_HW_ENABLE_SPI4      (0)
-#define MICROPY_HW_ENABLE_CAN       (1)
+#define MICROPY_HW_ENABLE_CAN       (0)
 #define MICROPY_HW_ENABLE_USB       (1)
 
-#define MICROPY_HW_CLK_PLLM (12)
-#define MICROPY_HW_CLK_PLLN (432)
-#define MICROPY_HW_CLK_PLLQ (9)
-#define MICROPY_HW_CLK_PLLR (2)
-#define MICROPY_HW_CLK_PLLP (RCC_PLLP_DIV2)
+// Note these are not used in top system.c.
+#define MICROPY_HW_CLK_PLLM         (3)
+#define MICROPY_HW_CLK_PLLN         (200)
+#define MICROPY_HW_CLK_PLLP         (2)
+#define MICROPY_HW_CLK_PLLQ         (8)
+#define MICROPY_HW_CLK_PLLR         (2)
 
 // UART1 config
 #define MICROPY_HW_UART1_TX  (pin_B14)
@@ -46,7 +48,7 @@
 #define MICROPY_HW_SPI2_MOSI (pin_B15)
 
 // CAN busses
-#define MICROPY_HW_CAN2_NAME "CAN2" // CAN2 on RX,TX = Y5,Y6 = PB12,PB13
+//#define MICROPY_HW_CAN2_NAME "CAN2" // CAN2 on RX,TX = Y5,Y6 = PB12,PB13
 
 // SD card detect switch
 #define MICROPY_HW_SDCARD_DETECT_PIN        (pin_D0)
@@ -56,13 +58,6 @@
 // USB config
 #define MICROPY_HW_USB_FS                   (1)
 #define MICROPY_HW_USB_VBUS_DETECT_PIN      (pin_A9)
-//#define MICROPY_HW_USB_OTG_ID_PIN         (pin_A10)
-
-// USRSW is pulled low. Pressing the button makes the input go high.
-//#define MICROPY_HW_USRSW_PIN        (pin_A5)
-//#define MICROPY_HW_USRSW_PULL       (GPIO_NOPULL)
-//#define MICROPY_HW_USRSW_EXTI_MODE  (GPIO_MODE_IT_RISING)
-//#define MICROPY_HW_USRSW_PRESSED    (1)
 
 // LEDs
 #define MICROPY_HW_LED1             (pin_C0) // red
