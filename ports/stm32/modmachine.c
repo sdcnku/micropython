@@ -59,12 +59,6 @@
 #define RCC_CSR_PORRSTF RCC_CSR_BORRSTF
 #endif
 
-#if defined(MCU_SERIES_F4)
-// These are missing from old HALs.
-#define RCC_CSR_IWDGRSTF    (0x20000000)
-#define RCC_CSR_PINRSTF     (0x04000000)
-#endif
-
 #if defined(STM32H7)
 #define RCC_SR          RSR
 #define RCC_SR_IWDGRSTF RCC_RSR_IWDG1RSTF
