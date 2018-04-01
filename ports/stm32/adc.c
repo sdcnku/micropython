@@ -477,10 +477,8 @@ STATIC mp_obj_t adc_read_timed(mp_obj_t self_in, mp_obj_t buf_in, mp_obj_t freq_
             // for subsequent samples we can just set the "start sample" bit
 #if defined(STM32F4) || defined(STM32F7)
             ADCx->CR2 |= (uint32_t)ADC_CR2_SWSTART;
-#elif defined(STM32L4)
+#elif defined(STM32L4) || defined(STM32H7)
             SET_BIT(ADCx->CR, ADC_CR_ADSTART);
-#elif defined(STM32H7)
-            SET_BIT(self->handle.Instance->CR, ADC_CR_ADSTART);
 #else
             #error Unsupported processor
 #endif
@@ -598,12 +596,6 @@ int adc_get_resolution(ADC_HandleTypeDef *adcHandle) {
 
 int adc_read_core_temp(ADC_HandleTypeDef *adcHandle) {
     int32_t raw_value = adc_config_and_read_channel(adcHandle, ADC_CHANNEL_TEMPSENSOR);
-    #if defined(STM32H7)
-    ADC3_COMMON->CCR &= ~ADC_CCR_TSEN;
-    #else
-    ADC->CCR &= ~ADC_CCR_TSVREFE;
-    #endif
-
     // Note: constants assume 12-bit resolution, so we scale the raw value to
     //       be 12-bits.
     raw_value <<= (12 - adc_get_resolution(adcHandle));
@@ -627,12 +619,6 @@ float adc_read_core_temp_float(ADC_HandleTypeDef *adcHandle) {
 
 float adc_read_core_vbat(ADC_HandleTypeDef *adcHandle) {
     uint32_t raw_value = adc_config_and_read_channel(adcHandle, ADC_CHANNEL_VBAT);
-    #if defined(STM32H7)
-    ADC3_COMMON->CCR &= ~ADC_CCR_VBATEN;
-    #else
-    ADC->CCR &= ~ADC_CCR_VBATE;
-    #endif
-
     // Note: constants assume 12-bit resolution, so we scale the raw value to
     //       be 12-bits.
     raw_value <<= (12 - adc_get_resolution(adcHandle));
@@ -646,27 +632,25 @@ float adc_read_core_vbat(ADC_HandleTypeDef *adcHandle) {
     ADC->CCR &= ~ADC_CCR_VBATE;
     #endif
 
+    #if defined(STM32H7)
+    return raw_value * VBAT_DIV * ADC_SCALE;
+    #else
     return raw_value * VBAT_DIV * ADC_SCALE * adc_refcor;
+    #endif
 }
 
 float adc_read_core_vref(ADC_HandleTypeDef *adcHandle) {
     uint32_t raw_value = adc_config_and_read_channel(adcHandle, ADC_CHANNEL_VREFINT);
-    #if defined(STM32H7)
-    ADC3_COMMON->CCR &= ~ADC_CCR_VREFEN;
-    #else
-    ADC->CCR &= ~ADC_CCR_TSVREFE;
-    #endif
-
     // Note: constants assume 12-bit resolution, so we scale the raw value to
     //       be 12-bits.
     raw_value <<= (12 - adc_get_resolution(adcHandle));
 
-    #if defined(STM32H7)
-    return raw_value * ADC_SCALE;
-    #else
     // update the reference correction factor
     adc_refcor = ((float)(*VREFIN_CAL)) / ((float)raw_value);
 
+    #if defined(STM32H7)
+    return raw_value * ADC_SCALE;
+    #else
     return (*VREFIN_CAL) * ADC_SCALE;
     #endif
 }
