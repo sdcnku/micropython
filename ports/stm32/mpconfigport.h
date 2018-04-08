@@ -184,6 +184,7 @@ extern const struct _mp_obj_module_t mp_module_uos;
 extern const struct _mp_obj_module_t mp_module_utime;
 extern const struct _mp_obj_module_t mp_module_usocket;
 extern const struct _mp_obj_module_t mp_module_network;
+extern const struct _mp_obj_module_t omv_module;
 extern const struct _mp_obj_module_t time_module;
 extern const struct _mp_obj_module_t sensor_module;
 extern const struct _mp_obj_module_t image_module;
@@ -214,6 +215,7 @@ extern const struct _mp_obj_module_t mp_module_onewire;
     { MP_OBJ_NEW_QSTR(MP_QSTR_stm), (mp_obj_t)&stm_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_uos), (mp_obj_t)&mp_module_uos }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_utime), (mp_obj_t)&mp_module_utime }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_omv),     (mp_obj_t)&omv_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_time),    (mp_obj_t)&time_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_sensor),  (mp_obj_t)&sensor_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_image),   (mp_obj_t)&image_module }, \
