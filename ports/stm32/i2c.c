@@ -133,7 +133,7 @@ const pyb_i2c_obj_t pyb_i2c_obj[] = {
     #endif
 };
 
-#if defined(MCU_SERIES_F7) || defined(MCU_SERIES_L4) || defined(MCU_SERIES_H7)
+#if defined(STM32F7) || defined(STM32L4) || defined(STM32H7)
 
 // The STM32F0, F3, F7, H7 and L4 use a TIMINGR register rather than ClockSpeed and
 // DutyCycle.
@@ -163,7 +163,7 @@ const pyb_i2c_obj_t pyb_i2c_obj[] = {
 #define MICROPY_HW_I2C_BAUDRATE_DEFAULT (PYB_I2C_SPEED_FULL)
 #define MICROPY_HW_I2C_BAUDRATE_MAX (PYB_I2C_SPEED_FAST)
 
-#elif defined(STM32H743xx)
+#elif defined(STM32H7)
 
 // I2C TIMINGs obtained from the STHAL examples.
 #define MICROPY_HW_I2C_BAUDRATE_TIMING { \
@@ -174,7 +174,7 @@ const pyb_i2c_obj_t pyb_i2c_obj[] = {
 #define MICROPY_HW_I2C_BAUDRATE_DEFAULT (PYB_I2C_SPEED_FULL)
 #define MICROPY_HW_I2C_BAUDRATE_MAX (PYB_I2C_SPEED_FAST)
 
-#elif defined(MCU_SERIES_L4)
+#elif defined(STM32L4)
 
 // The value 0x90112626 was obtained from the DISCOVERY_I2C1_TIMING constant
 // defined in the STM32L4Cube file Drivers/BSP/STM32L476G-Discovery/stm32l476g_discovery.h
@@ -265,28 +265,28 @@ void i2c_init(I2C_HandleTypeDef *i2c) {
         i2c_unit = 1;
         scl_pin = &MICROPY_HW_I2C1_SCL;
         sda_pin = &MICROPY_HW_I2C1_SDA;
-        __I2C1_CLK_ENABLE();
+        __HAL_RCC_I2C1_CLK_ENABLE();
     #endif
     #if defined(MICROPY_HW_I2C2_SCL)
     } else if (i2c == &I2CHandle2) {
         i2c_unit = 2;
         scl_pin = &MICROPY_HW_I2C2_SCL;
         sda_pin = &MICROPY_HW_I2C2_SDA;
-        __I2C2_CLK_ENABLE();
+        __HAL_RCC_I2C2_CLK_ENABLE();
     #endif
     #if defined(MICROPY_HW_I2C3_SCL)
     } else if (i2c == &I2CHandle3) {
         i2c_unit = 3;
         scl_pin = &MICROPY_HW_I2C3_SCL;
         sda_pin = &MICROPY_HW_I2C3_SDA;
-        __I2C3_CLK_ENABLE();
+        __HAL_RCC_I2C3_CLK_ENABLE();
     #endif
     #if defined(MICROPY_HW_I2C4_SCL)
     } else if (i2c == &I2CHandle4) {
         i2c_unit = 4;
         scl_pin = &MICROPY_HW_I2C4_SCL;
         sda_pin = &MICROPY_HW_I2C4_SDA;
-        __I2C4_CLK_ENABLE();
+        __HAL_RCC_I2C4_CLK_ENABLE();
     #endif
     } else {
         // I2C does not exist for this board (shouldn't get here, should be checked by caller)
@@ -342,25 +342,25 @@ void i2c_deinit(I2C_HandleTypeDef *i2c) {
     if (0) {
     #if defined(MICROPY_HW_I2C1_SCL)
     } else if (i2c->Instance == I2C1) {
-        __I2C1_FORCE_RESET();
-        __I2C1_RELEASE_RESET();
-        __I2C1_CLK_DISABLE();
+        __HAL_RCC_I2C1_FORCE_RESET();
+        __HAL_RCC_I2C1_RELEASE_RESET();
+        __HAL_RCC_I2C1_CLK_DISABLE();
         HAL_NVIC_DisableIRQ(I2C1_EV_IRQn);
         HAL_NVIC_DisableIRQ(I2C1_ER_IRQn);
     #endif
     #if defined(MICROPY_HW_I2C2_SCL)
     } else if (i2c->Instance == I2C2) {
-        __I2C2_FORCE_RESET();
-        __I2C2_RELEASE_RESET();
-        __I2C2_CLK_DISABLE();
+        __HAL_RCC_I2C2_FORCE_RESET();
+        __HAL_RCC_I2C2_RELEASE_RESET();
+        __HAL_RCC_I2C2_CLK_DISABLE();
         HAL_NVIC_DisableIRQ(I2C2_EV_IRQn);
         HAL_NVIC_DisableIRQ(I2C2_ER_IRQn);
     #endif
     #if defined(MICROPY_HW_I2C3_SCL)
     } else if (i2c->Instance == I2C3) {
-        __I2C3_FORCE_RESET();
-        __I2C3_RELEASE_RESET();
-        __I2C3_CLK_DISABLE();
+        __HAL_RCC_I2C3_FORCE_RESET();
+        __HAL_RCC_I2C3_RELEASE_RESET();
+        __HAL_RCC_I2C3_CLK_DISABLE();
         HAL_NVIC_DisableIRQ(I2C3_EV_IRQn);
         HAL_NVIC_DisableIRQ(I2C3_ER_IRQn);
     #endif
@@ -437,7 +437,7 @@ void i2c_ev_irq_handler(mp_uint_t i2c_id) {
             return;
     }
 
-    #if defined(MCU_SERIES_F4)
+    #if defined(STM32F4)
 
     if (hi2c->Instance->SR1 & I2C_FLAG_BTF && hi2c->State == HAL_I2C_STATE_BUSY_TX) {
         if (hi2c->XferCount != 0U) {
@@ -489,7 +489,7 @@ void i2c_er_irq_handler(mp_uint_t i2c_id) {
             return;
     }
 
-    #if defined(MCU_SERIES_F4)
+    #if defined(STM32F4)
 
     uint32_t sr1 = hi2c->Instance->SR1;
 
@@ -653,6 +653,10 @@ STATIC mp_obj_t pyb_i2c_make_new(const mp_obj_type_t *type, size_t n_args, size_
         } else if (strcmp(port, MICROPY_HW_I2C3_NAME) == 0) {
             i2c_id = 3;
         #endif
+        #ifdef MICROPY_HW_I2C4_NAME
+        } else if (strcmp(port, MICROPY_HW_I2C4_NAME) == 0) {
+            i2c_id = 4;
+        #endif
         } else {
             nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_ValueError,
                 "I2C(%s) doesn't exist", port));
@@ -768,7 +772,6 @@ STATIC mp_obj_t pyb_i2c_send(size_t n_args, const mp_obj_t *pos_args, mp_map_t *
             && (!CCM_BUFFER(bufinfo.buf)) && (!UNALIGNED_BUFFER(bufinfo.buf)));
 
     DMA_HandleTypeDef tx_dma;
-
     if (use_dma) {
         dma_init(&tx_dma, self->tx_dma_descr, self->i2c);
         self->i2c->hdmatx = &tx_dma;

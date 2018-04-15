@@ -39,6 +39,9 @@
 #define MICROPY_HW_I2C2_SCL (pin_B10)
 #define MICROPY_HW_I2C2_SDA (pin_B11)
 
+#define MICROPY_HW_I2C4_SCL (pin_D12)
+#define MICROPY_HW_I2C4_SDA (pin_D13)
+
 // SPI buses
 #define MICROPY_HW_SPI2_NSS  (pin_B12)
 #define MICROPY_HW_SPI2_SCK  (pin_B13)
