@@ -297,8 +297,6 @@ parameter should be `id`.
 
        Dump the WIZnet5x00 registers.  Useful for debugging.
 
-.. _network.WLAN:
-
 .. only:: port_esp8266
 
     Functions
@@ -445,8 +443,6 @@ parameter should be `id`.
        password       Access password (string)
        dhcp_hostname  The DHCP hostname to use
        =============  ===========
-
-
 
 .. only:: port_wipy
 
@@ -602,12 +598,10 @@ parameter should be `id`.
 
        selects the antenna type
 
-
-
 .. only:: port_openmvcam
 
-    class WINC -- wifi shield driver
-    ================================
+   class WINC -- wifi shield driver
+   ================================
 
     The ``WINC`` class is used for controlling the wifi shield.
 
@@ -620,8 +614,8 @@ parameter should be `id`.
 
         wlan.ifconfig()
 
-    Constructors
-    ------------
+   Constructors
+   ------------
 
     .. class:: WINC([mode=MODE_STATION])
 
@@ -646,7 +640,7 @@ parameter should be `id`.
 
                  * Only one client can connect at a time.
                  * Only OPEN or WEP security are supported.
-                 * There's a bug in the FW, when the client disconnects any bound sockets are lost (they just stop working). As a workaround, set a timeout for the server socket to force it to raise an exception and then reopen it (See the example script).
+                 * There's a bug in the WiFi Module FW, when the client disconnects any bound sockets are lost (they just stop working). As a workaround, set a timeout for the server socket to force it to raise an exception and then reopen it (See the example script).
 
          * network.WINC.MODE_FIRMWARE:
 
@@ -656,8 +650,8 @@ parameter should be `id`.
 
               Do NOT use unless you know what you're doing, modules are shipped with the latest FW update there is no need to update the FW.
 
-    Methods
-    -------
+   Methods
+   -------
 
     .. method:: winc.connect(ssid, [key=None, [security=WPA_PSK]])
 
@@ -690,7 +684,7 @@ parameter should be `id`.
        Returns True if connected to an access point and an IP address has been
        obtained.
 
-   .. method:: winc.connected_sta()
+    .. method:: winc.connected_sta()
 
        This method returns a list containing the connected client's IP adress.
 
@@ -743,14 +737,16 @@ parameter should be `id`.
 
     .. method:: winc.fw_dump(path)
 
-       Dumps the wifi shield firmware to a binary file at ``path``.
+       Dumps the wifi shield firmware to a binary file at ``path``. You must
+       have put the module into firmware mode to use this.
 
     .. method:: winc.fw_update(path)
 
-       Programs the wifi shield with binary image found at ``path``.
+       Programs the wifi shield with binary image found at ``path``. You must
+       have put the module into firmware mode to use this.
 
-    Constants
-    ---------
+   Constants
+   ---------
 
     .. data:: winc.OPEN
 
@@ -775,3 +771,5 @@ parameter should be `id`.
     .. data:: winc.MODE_FIRMWARE
 
        Setup in firmware update mode.
+
+.. _network.WLAN:
