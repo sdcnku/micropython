@@ -29,7 +29,7 @@ Example usage::
 Functions
 ---------
 
-.. function:: fir.init(type=1, refresh=64, resolution=18)
+.. function:: fir.init([type=1, [refresh=64, [resolution=18]]])
 
    Initializes an attached thermopile shield using I/O pins P4 and P5.
 
@@ -50,12 +50,6 @@ Functions
       * 16-bits -> Max of ~750C.
       * 17-bits -> Max of ~600C.
       * 18-bits -> Max of ~450C.
-
-   .. note::
-
-      ``type``, ``refresh``, and ``resolution`` are keyword arguments which must
-      be explicitly invoked in the function call by writing ``type=``,
-      ``refresh=``, and ``resolution=``.
 
 .. function:: fir.deinit()
 
@@ -108,9 +102,9 @@ Functions
 
       ``ir`` is a (width * height) list of floats.
 
-.. function:: fir.draw_ta(image, ta, alpha=128, scale=[-17.7778, 37.7778])
+.. function:: fir.draw_ta(image, ta, [alpha=128, [scale]])
 
-   Draws the ambient temperature (``ta``) on the ``image`` using a rainbow
+   Draws the ambient temperature ``ta`` on the `image` using a rainbow
    table color conversion.
 
    ``alpha`` controls the transparency. 256 for an opaque overlay. 0 for none.
@@ -119,20 +113,15 @@ Functions
    the minimum temperature cutoff and the second number is the max. Values
    closer to the min are blue and values closer to the max are red.
 
-   The default ``scale`` of [-17.7778C, 37.7778C] corresponds to [0F, 100F].
+   The default ``scale`` is (-17.7778C, 37.7778C) corresponds to (0F, 100F).
 
    .. note::
 
       For best results look at really cold or hot objects.
 
-   .. note::
+.. function:: fir.draw_ta(image, ir, [alpha=128, [scale]])
 
-      ``alpha`` and ``scale`` are keyword arguments which must be explicitly
-      invoked in the function call by writing ``alpha=`` and ``scale=``.
-
-.. function:: fir.draw_ta(image, ir, alpha=128, scale=[auto, auto])
-
-   Draws the temperature list (``ir``) on the ``image`` using a rainbow
+   Draws the temperature list ``ir`` on the `image` using a rainbow
    table color conversion.
 
    ``alpha`` controls the transparency. 256 for an opaque overlay. 0 for none.
@@ -142,13 +131,8 @@ Functions
    closer to the min are blue and values closer to the max are red.
 
    The minimum and maximum values in the temperature list are used to scale
-   the output ``image`` automatically unless explicitly overridden.
+   the output `image` automatically unless explicitly overridden using scale.
 
    .. note::
 
       For best results look at really cold or hot objects.
-
-   .. note::
-
-      ``alpha`` and ``scale`` are keyword arguments which must be explicitly
-      invoked in the function call by writing ``alpha=`` and ``scale=``.

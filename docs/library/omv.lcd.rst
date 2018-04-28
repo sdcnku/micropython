@@ -13,7 +13,7 @@ Example usage::
     # Setup camera.
     sensor.reset()
     sensor.set_pixformat(sensor.RGB565)
-    sensor.set_framesize(sensor.QQVGA2) # special 128x160 lcd shield resolution.
+    sensor.set_framesize(sensor.LCD)
     sensor.skip_frames()
     lcd.init()
 
@@ -24,7 +24,7 @@ Example usage::
 Functions
 ---------
 
-.. function:: lcd.init(type=1)
+.. function:: lcd.init([type=1])
 
    Initializes an attached lcd shield using I/O pins P0, P2, P3, P6, P7, and P8.
 
@@ -32,11 +32,6 @@ Functions
 
       * 0: None
       * 1: lcd shield
-
-   .. note::
-
-      ``type`` is keyword arguments which must be explicitly invoked in the
-      function call by writing ``type=``.
 
 .. function:: lcd.deinit()
 
@@ -70,7 +65,7 @@ Functions
 
    The lcd shield backlight pin is pulled up (on) by default. P6 which controls
    the backlight is left floating by default. Calling this function puts P6
-   into opendrain mode to control the backlight (False=low - True=float).
+   into open drain mode to control the backlight (False=low - True=float).
 
    If you want to reuse P6 while the lcd shield is attached then cut the
    backlight jumper on the lcd shield (leaving the backlight permanently on).
@@ -79,11 +74,11 @@ Functions
 .. function:: lcd.get_backlight()
 
    Returns the backlight state (False for off - True for on) if
-   ``set_backlight`` had been called previously.
+   `lcd.set_backlight()` had been called previously.
 
-.. function:: lcd.display(image, roi=Auto)
+.. function:: lcd.display(image, [roi=Auto])
 
-   Displays an ``image`` (GRAYSCALE or RGB565) on the lcd screen.
+   Displays an `image` on the lcd screen.
 
    ``roi`` is a region-of-interest rectangle tuple (x, y, w, h). If not
    specified, it is equal to the image rectangle (0, 0, image.w, image.h).
@@ -103,11 +98,6 @@ Functions
    If the ``roi`` height is larger than the lcd height then the ``roi`` will be
    centered on screen and pixels that do not fit will not be shown (i.e. the
    lcd screen shows the center of the ``roi`` like a window).
-
-   .. note::
-
-      ``roi`` is keyword arguments which must be explicitly invoked in the
-      function call by writing ``roi=``.
 
 .. function:: lcd.clear()
 
