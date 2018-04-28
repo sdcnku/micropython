@@ -76,7 +76,7 @@ Functions
    Returns the backlight state (False for off - True for on) if
    `lcd.set_backlight()` had been called previously.
 
-.. function:: lcd.display(image, [roi=Auto])
+.. function:: lcd.display(image, [roi])
 
    Displays an `image` on the lcd screen.
 
