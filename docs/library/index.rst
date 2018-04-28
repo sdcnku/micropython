@@ -174,7 +174,6 @@ it will fallback to loading the built-in ``ujson`` module.
        math.rst
        sys.rst
        ubinascii.rst
-       ucollections.rst
        uerrno.rst
        uhashlib.rst
        uheapq.rst
@@ -187,6 +186,7 @@ it will fallback to loading the built-in ``ujson`` module.
        ustruct.rst
        utime.rst
        uzlib.rst
+       _thread.rst
 
 
 MicroPython-specific libraries
@@ -274,4 +274,4 @@ the following libraries.
       omv.mjpeg.rst
       omv.lcd.rst
       omv.fir.rst
-      omv.cpufreq.rst
+      omv.omv.rst
