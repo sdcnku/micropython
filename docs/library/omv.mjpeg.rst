@@ -11,7 +11,7 @@ class Mjpeg -- Mjpeg recorder
 
 You can use the mjpeg module to record large video clips. Note that mjpeg files save
 compressed image data. So, they are best for recording long video clips that
-you want to share. Use ``gif`` for short clips.
+you want to share. Use `gif` for short clips.
 
 Example usage::
 
@@ -38,7 +38,7 @@ Example usage::
 Constructors
 ------------
 
-.. class:: mjpeg.Mjpeg(filename, width=Auto, height=Auto)
+.. class:: mjpeg.Mjpeg(filename, [width, [height]])
 
    Create a Mjpeg object which you can add frames to. ``filename`` is the path to
    save the mjpeg recording to.
@@ -48,11 +48,6 @@ Constructors
 
    ``height`` is automatically set equal to the image sensor vertical resolution
    unless explicitly overridden.
-
-   .. note::
-
-      ``width`` and ``height`` are keyword arguments which must be explicitly
-      invoked in the function call by writing ``width=`` and ``height=``.
 
 Methods
 -------
@@ -69,19 +64,14 @@ Methods
 
    Returns the file size of the mjpeg so far. This value is updated after adding frames.
 
-.. method:: mjpeg.add_frame(image, quality=50)
+.. method:: mjpeg.add_frame(image, [quality=50])
 
    Add an image to the mjpeg recording. The image width, height, and color mode,
    must be equal to the same width, height, and color modes used in the constructor
    for the mjpeg.
 
    ``quality`` is the jpeg compression quality to use to compress the image if
-   it's not in JPEG format (either RGB565 or GRAYSCALE format).
-
-   .. note::
-
-      ``quality`` is keyword arguments which must be explicitly invoked in the
-      function call by writing ``quality=``.
+   it's not in JPEG format (either `sensor.RGB565` or `sensor.GRAYSCALE` format).
 
 .. method:: mjpeg.close(fps)
 
