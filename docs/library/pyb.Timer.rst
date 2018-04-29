@@ -250,7 +250,7 @@ Methods
                ch2 = timer.channel(2, pyb.Timer.PWM, pin=pyb.Pin.board.X2, pulse_width=8000)
                ch3 = timer.channel(3, pyb.Timer.PWM, pin=pyb.Pin.board.X3, pulse_width=16000)
 
-       .. only:: port_pyboard
+       .. only:: port_openmvcam
 
            PWM Example::
 
