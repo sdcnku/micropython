@@ -119,7 +119,7 @@ Functions
 
       For best results look at really cold or hot objects.
 
-.. function:: fir.draw_ta(image, ir, [alpha=128, [scale]])
+.. function:: fir.draw_ir(image, ir, [alpha=128, [scale]])
 
    Draws the temperature list ``ir`` on the `image` using a rainbow
    table color conversion.
