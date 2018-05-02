@@ -27,42 +27,34 @@ Functions
 
    Initializes the camera sensor.
 
+.. function:: sensor_sleep(enable)
+
+   Puts the camera to sleep if enable is True. Otherwise, wakes it back up.
+
 .. function:: sensor.flush()
 
    Copies whatever was in the frame buffer to the IDE. You should call this
    method to display the last image your OpenMV Cam takes if it's not running
-   a script with an infinite loop.
+   a script with an infinite loop. Note that you'll need to add a delay time
+   of about a second after your script finishes for the IDE to grab the image
+   from your camera. Otherwise, this method will have no effect.
 
-.. function:: sensor.snapshot([line_filter=None])
+.. function:: sensor.snapshot()
 
    Takes a picture using the camera and returns an ``image`` object.
 
-   ``line_filter`` may be a python function callback used to process each line
-   of pixels as they come in from the camera. For example::
+   The OpenMV Cam has two memory areas for images. The classical stack/heap
+   area used for normal MicroPython processing can store small images within
+   it's heap. However, the MicroPython heap is only about ~100 KB which is not
+   enough to store larger images. So, your OpenMV Cam has a secondary frame
+   buffer memory area that stores images taken by `sensor.snapshot()`. Images
+   are stored on the bottom of this memory area. Any memory that's left
+   over is then available for use by the frame buffer stack which your OpenMV
+   Cam's firmware uses to hold large temporary data structures for image
+   processing algorithms.
 
-      # This callback just copies the src to dst.
-      # Note source is YUYV destination is 1BPP Grayscale
-      def line_filter_call_back(src, dst):
-        for i in range(len(src)):
-          dst[i] = src[i>>1]
-      sensor.snapshot(line_filter=line_filter_call_back)
-
-      # This callback copies and thresholds src to dst.
-      # Note source is YUYV destination is 1BPP Grayscale
-      def line_filter_call_back_2(src, dst):
-        for i in range(len(src)):
-          dst[i] = if src[i>>1] > 128 then 0xFF or 0x00
-      sensor.snapshot(line_filter=line_filter_call_back_2)
-
-   .. note::
-
-      The OpenMV Cam M4 is not fast enough to execute the line filter function
-      on large images per line. Do not use.
-
-   .. note::
-
-      ``line_filter`` is keyword arguments which must be explicitly invoked in
-      the function call by writing ``line_filter=``.
+   If you need room to hold multiple frames you may "steal" frame buffer space
+   by calling `sensor.alloc_extra_fb()`.
 
 .. function:: sensor.skip_frames([n, time])
 
@@ -92,15 +84,17 @@ Functions
 .. function:: sensor.get_fb()
 
    (Get Frame Buffer) Returns the image object returned by a previous call of
-   ``sensor.snapshot()``. If ``sensor.snapshot()`` had not been called before
+   `sensor.snapshot()`. If `sensor.snapshot()` had not been called before
    then ``None`` is returned.
 
 .. function:: sensor.get_id()
 
    Returns the camera module ID.
 
-      * sensor.OV7725: Rolling shutter sensor module.
-      * sensor.MT9V034: Global shutter sensor module.
+      * `sensor.OV9650`: First gen OpenMV Cam sensor - never released.
+      * `sensor.OV2640`: Second gen OpenMV Cam sensor - never released.
+      * `sensor.OV7725`: Rolling shutter sensor module.
+      * `sensor.MT9V034`: Global shutter sensor module.
 
 .. function:: sensor.alloc_extra_fb(width, height, pixformat)
 
@@ -119,7 +113,7 @@ Functions
       by taking space away from our frame buffer stack memory which we use for
       computer vision algorithms. That said, this also means you'll run out of
       memory more easily if you try to execute more memory intensive machine
-      vision algorithms like ``find_apriltags``.
+      vision algorithms like `image.find_apriltags`.
 
 .. function:: sensor.dealloc_extra_db()
 
@@ -133,7 +127,7 @@ Functions
       fixed by firmware. The stack then grows down until it hits the heap.
       Next, frame buffers are stored in a secondary memory region. Memory is
       liad out with the main frame buffer on the bottom and the frame buffer
-      stack on the top. When ``snapshot()`` is called it fills the frame bufer
+      stack on the top. When `sensor.snapshot()` is called it fills the frame bufer
       from the bottom. The frame buffer stack is then able to use whatever is
       left over. This memory allocation method is extremely efficent for computer
       vision on microcontrollers.
@@ -142,93 +136,79 @@ Functions
 
    Sets the pixel format for the camera module.
 
-      * sensor.GRAYSCALE: 8-bits per pixel.
-      * sensor.RGB565: 16-bits per pixel.
-
-.. function:: sensor.sleep(enable)
-
-   Puts the camera into sleep mode. This saves about 40 mA. Automatically
-   cleared on reset.
-
-.. function:: sensor.set_framerate(rate)
-
-   Sets the frame rate for the camera module.
-
-   .. note:: Deprecated... do not use.
+      * `sensor.GRAYSCALE`: 8-bits per pixel.
+      * `sensor.RGB565`: 16-bits per pixel.
+      * `sensor.BAYER`: 8-bits per pixel bayer pattern.
 
 .. function:: sensor.set_framesize(framesize)
 
    Sets the frame size for the camera module.
 
-      * sensor.QQCIF: 88x72
-      * sensor.QCIF: 176x144
-      * sensor.CIF: 352x288
-      * sensor.QQSIF: 88x60
-      * sensor.QSIF: 176x120
-      * sensor.SIF: 352x240
-      * sensor.QQQQVGA: 40x30
-      * sensor.QQQVGA: 80x60
-      * sensor.QQVGA: 160x120
-      * sensor.QVGA: 320x240
-      * sensor.VGA: 640x480
-      * sensor.HQQQVGA: 80x40
-      * sensor.HQQVGA: 160x80
-      * sensor.HQVGA: 240x160
-      * sensor.LCD: 128x160 (for use with the lcd shield)
-      * sensor.QQVGA2: 128x160 (for use with the lcd shield)
-      * sensor.B40x30: 160x120 (for use with ``image.find_displacement``)
-      * sensor.B64x32: 160x120 (for use with ``image.find_displacement``)
-      * sensor.B64x64: 160x120 (for use with ``image.find_displacement``)
-      * sensor.SVGA: 800x600 (only in JPEG mode for the OV2640 sensor)
-      * sensor.SXGA: 1280x1024 (only in JPEG mode for the OV2640 sensor)
-      * sensor.UXGA: 1600x1200 (only in JPEG mode for the OV2640 sensor)
+      * `sensor.QQCIF`: 88x72
+      * `sensor.QCIF`: 176x144
+      * `sensor.CIF`: 352x288
+      * `sensor.QQSIF`: 88x60
+      * `sensor.QSIF`: 176x120
+      * `sensor.SIF`: 352x240
+      * `sensor.QQQQVGA`: 40x30
+      * `sensor.QQQVGA`: 80x60
+      * `sensor.QQVGA`: 160x120
+      * `sensor.QVGA`: 320x240
+      * `sensor.VGA`: 640x480
+      * `sensor.HQQQVGA`: 80x40
+      * `sensor.HQQVGA`: 160x80
+      * `sensor.HQVGA`: 240x160
+      * `sensor.B64X32`: 64x32 (for use with `image.find_displacement()`)
+      * `sensor.B64X64`: 64x64 (for use with `image.find_displacement()`)
+      * `sensor.B128X64`: 128x64 (for use with `image.find_displacement()`)
+      * `sensor.B128X128`: 128x128 (for use with `image.find_displacement()`)
+      * `sensor.LCD`: 128x160 (for use with the lcd shield)
+      * `sensor.QQVGA2`: 128x160 (for use with the lcd shield)
+      * `sensor.SVGA`: 800x600 (only in JPEG mode for the OV2640 sensor)
+      * `sensor.SXGA`: 1280x1024 (only in JPEG mode for the OV2640 sensor)
+      * `sensor.UXGA`: 1600x1200 (only in JPEG mode for the OV2640 sensor)
 
 .. function:: sensor.set_windowing(roi)
 
    Sets the resolution of the camera to a sub resolution inside of the current
-   resolution. For example, setting the resolution to sensor.VGA and then
-   the windowing to (120, 140, 200, 200) sets sensor.snapshot() to capture
+   resolution. For example, setting the resolution to `sensor.VGA` and then
+   the windowing to (120, 140, 200, 200) sets `sensor.snapshot()` to capture
    the 200x200 center pixels of the VGA resolution outputted by the camera
    sensor. You can use windowing to get custom resolutions. Also, when using
    windowing on a larger resolution you effectively are digital zooming.
 
-   ``roi`` is a rect tuple (x, y, w, h).
+   ``roi`` is a rect tuple (x, y, w, h). However, you may just pass (w, h) and
+   the ``roi`` will be centered on the frame.
 
 .. function:: sensor.set_gainceiling(gainceiling)
 
    Set the camera image gainceiling. 2, 4, 8, 16, 32, 64, or 128.
 
-   .. note:: You should never need to call this function. Don't use.
-
 .. function:: sensor.set_contrast(constrast)
 
    Set the camera image contrast. -3 to +3.
-
-   .. note:: You should never need to call this function. Don't use.
 
 .. function:: sensor.set_brightness(brightness)
 
    Set the camera image brightness. -3 to +3.
 
-   .. note:: You should never need to call this function. Don't use.
-
 .. function:: sensor.set_saturation(saturation)
 
    Set the camera image saturation. -3 to +3.
-
-   .. note:: You should never need to call this function. Don't use.
 
 .. function:: sensor.set_quality(quality)
 
    Set the camera image JPEG compression quality. 0 - 100.
 
-   .. note:: Only for the OV2640 camera.
+   .. note::
+
+      Only for the OV2640 camera.
 
 .. function:: sensor.set_colorbar(enable)
 
    Turns color bar mode on (True) or off (False). Defaults to off.
 
-.. function:: sensor.set_auto_gain(enable, [gain_db=-1, gain_db_ceiling=-1])
+.. function:: sensor.set_auto_gain(enable, [gain_db=-1, [gain_db_ceiling]])
 
    ``enable`` turns auto gain control on (True) or off (False).
    The camera will startup with auto gain control on.
@@ -246,7 +226,7 @@ Functions
 
    Returns the current camera gain value in decibels (float).
 
-.. function:: sensor.set_auto_exposure(enable, [exposure_us=-1])
+.. function:: sensor.set_auto_exposure(enable, [exposure_us])
 
    ``enable`` turns auto exposure control on (True) or off (False).
    The camera will startup with auto exposure control on.
@@ -265,7 +245,7 @@ Functions
 
    Returns the current camera exposure value in microseconds (int).
 
-.. function:: sensor.set_auto_whitebal(enable, [rgb_gain_db=(-1,-1,-1)])
+.. function:: sensor.set_auto_whitebal(enable, [rgb_gain_db])
 
    ``enable`` turns auto white balance on (True) or off (False).
    The camera will startup with auto white balance on.
@@ -290,15 +270,6 @@ Functions
 
    Turns vertical flip mode on (True) or off (False). Defaults to off.
 
-.. function:: sensor.set_special_effect(effect)
-
-   Sets a camera image special effect:
-
-      * sensor.NORMAL: Normal Image
-      * sensor.NEGATIVE: Negative Image
-
-   .. note:: Deprecated... do not use.
-
 .. function:: sensor.set_lens_correction(enable, radi, coef)
 
    ``enable`` True to enable and False to disable (bool).
@@ -307,7 +278,7 @@ Functions
 
 .. function:: sensor.set_vsync_output(pin_object)
 
-   ``pin_object`` created with ``pyb.Pin``. The VSYNC signal from the camera
+   ``pin_object`` created with `pyb.Pin()`. The VSYNC signal from the camera
    will be generated on this pin to power FSIN on another OpenMV Cam to sync
    both camera image streams for stereo vision applications...
 
@@ -325,6 +296,13 @@ Functions
 
 Constants
 ---------
+
+.. data:: sensor.BAYER
+
+   RAW BAYER image pixel format. If you try to make the frame size too big
+   to fit in the frame buffer your OpenMV Cam will set the pixel format
+   to BAYER so that you can capture images but no image processing methods
+   will be operational.
 
 .. data:: sensor.GRAYSCALE
 
@@ -345,25 +323,21 @@ Constants
 
    JPEG mode. Only works for the OV2640 camera.
 
-.. data:: sensor.YUV422
-
-   Deprecated... do not use.
-
 .. data:: sensor.OV9650
 
-   ``sensor.get_id()`` returns this for the OV9650 camera.
+   `sensor.get_id()` returns this for the OV9650 camera.
 
 .. data:: sensor.OV2640
 
-   ``sensor.get_id()`` returns this for the OV2640 camera.
+   `sensor.get_id()` returns this for the OV2640 camera.
 
 .. data:: sensor.OV7725
 
-   ``sensor.get_id()`` returns this for the OV7725 camera.
+   `sensor.get_id()` returns this for the OV7725 camera.
 
 .. data:: sensor.MT9V034
 
-   ``sensor.get_id()`` returns this for the MT9V034 camera.
+   `sensor.get_id()` returns this for the MT9V034 camera.
 
 .. data:: sensor.QQCIF
 
@@ -426,25 +400,25 @@ Constants
 
    64x32 resolution for the camera sensor.
 
-   For use with ``image.find_displacement()`` and any other FFT based algorithm.
+   For use with `image.find_displacement()` and any other FFT based algorithm.
 
 .. data:: sensor.B64X64
 
    64x64 resolution for the camera sensor.
 
-   For use with ``image.find_displacement()`` and any other FFT based algorithm.
+   For use with `image.find_displacement()` and any other FFT based algorithm.
 
 .. data:: sensor.B128X64
 
    128x64 resolution for the camera sensor.
 
-   For use with ``image.find_displacement()`` and any other FFT based algorithm.
+   For use with `image.find_displacement()` and any other FFT based algorithm.
 
 .. data:: sensor.B128X128
 
    128x128 resolution for the camera sensor.
 
-   For use with ``image.find_displacement()`` and any other FFT based algorithm.
+   For use with `image.find_displacement()` and any other FFT based algorithm.
 
 .. data:: sensor.LCD
 
@@ -465,11 +439,3 @@ Constants
 .. data:: sensor.UXGA
 
    1600x1200 resolution for the camera sensor. Only works for the OV2640 camera.
-
-.. data:: sensor.NORMAL
-
-   Set the special effect filter to normal.
-
-.. data:: sensor.NEGATIVE
-
-   Set the special effect filter to negative.
