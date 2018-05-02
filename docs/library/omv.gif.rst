@@ -11,7 +11,7 @@ class Gif -- Gif recorder
 
 You can use the gif module to record small video clips. Note that gif files save
 uncompressed image data. So, they are best for recording short video clips that
-you want to share. Use ``mjpeg`` for long clips.
+you want to share. Use `mjpeg` for long clips.
 
 Example usage::
 
@@ -36,7 +36,7 @@ Example usage::
 Constructors
 ------------
 
-.. class:: gif.Gif(filename, width=Auto, height=Auto, color=Auto, loop=True)
+.. class:: gif.Gif(filename, [width, [height, [color, [loop=True]]]])
 
    Create a Gif object which you can add frames to. ``filename`` is the path to
    save the gif recording to.
@@ -50,17 +50,10 @@ Constructors
    ``color`` is automatically set equal to the image sensor color mode
    unless explicitly overridden:
 
-     - False for color results in a grayscale 7-bit per pixel gif.
-     - True for color results in a rgb232 7-bit per pixel gif.
+     - False for color results in a `sensor.GRAYSCALE` 7-bit per pixel gif.
+     - True for color results in a `sensor.RGB565` 7-bit per pixel gif.
 
    ``loop`` when True results in the gif automatically looping on playback.
-   Defaults to True.
-
-   .. note::
-
-      ``width``, ``height``, ``color``, and ``loop`` are keyword arguments
-      which must be explicitly invoked in the function call by writing
-      ``width=``, ``height=``, ``color=``, and ``resolution=``.
 
 Methods
 -------
@@ -75,7 +68,7 @@ Methods
 
 .. method:: gif.format()
 
-   Returns ``sensor.RGB565`` if color or ``sensor.GRAYSCALE`` if not.
+   Returns `sensor.RGB565` if color is True or `sensor.GRAYSCALE` if not.
 
 .. method:: gif.size()
 
@@ -85,7 +78,7 @@ Methods
 
    Returns if the gif object had loop set in its constructor.
 
-.. method:: gif.add_frame(image, delay=10)
+.. method:: gif.add_frame(image, [delay=10])
 
    Add an image to the gif recording. The image width, height, and color mode,
    must be equal to the same width, height, and color modes used in the constructor
@@ -93,11 +86,6 @@ Methods
 
    ``delay`` is the number of centi-seconds to wait before displaying this frame
    after the previous frame (if not the first frame).
-
-   .. note::
-
-      ``delay`` is keyword arguments which must be explicitly invoked in the
-      function call by writing ``delay=``.
 
 .. method:: gif.close()
 

@@ -2,7 +2,7 @@
 
 Core Language
 =============
-Generated Tue 21 Nov 2017 21:31:50 UTC
+Generated Sat 28 Apr 2018 19:34:04 UTC
 
 Classes
 -------
@@ -250,6 +250,59 @@ Sample code::
 |     Exit    |             |
 +-------------+-------------+
 
+Runtime
+-------
+
+.. _cpydiff_core_locals:
+
+Local variables aren't included in locals() result
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Cause:** MicroPython doesn't maintain symbolic local environment, it is optimized to an array of slots. Thus, local variables can't be accessed by a name.
+
+Sample code::
+
+    def test():
+        val = 2
+        print(locals())
+    
+    test()
+
++----------------+------------------------------------------------------------------------------------------------+
+| CPy output:    | uPy output:                                                                                    |
++----------------+------------------------------------------------------------------------------------------------+
+| ::             | ::                                                                                             |
+|                |                                                                                                |
+|     {'val': 2} |     {'test': <function test at 0x7f014da2e560>, '__name__': '__main__', '__file__': '<stdin>'} |
++----------------+------------------------------------------------------------------------------------------------+
+
+.. _cpydiff_core_locals_eval:
+
+Code running in eval() function doesn't have access to local variables
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Cause:** MicroPython doesn't maintain symbolic local environment, it is optimized to an array of slots. Thus, local variables can't be accessed by a name. Effectively, ``eval(expr)`` in MicroPython is equivalent to ``eval(expr, globals(), globals())``.
+
+Sample code::
+
+    val = 1
+    
+    def test():
+        val = 2
+        print(val)
+        eval("print(val)")
+    
+    test()
+
++-------------+-------------+
+| CPy output: | uPy output: |
++-------------+-------------+
+| ::          | ::          |
+|             |             |
+|     2       |     2       |
+|     2       |     1       |
++-------------+-------------+
+
 import
 ------
 
@@ -268,13 +321,13 @@ Sample code::
     
     print(modules.__path__)
 
-+-----------------------------------------------------------------------------+-------------------------------+
-| CPy output:                                                                 | uPy output:                   |
-+-----------------------------------------------------------------------------+-------------------------------+
-| ::                                                                          | ::                            |
-|                                                                             |                               |
-|     ['/home/kwagyeman/GitHub/openmv-doc/micropython/tests/cpydiff/modules'] |     ../tests/cpydiff//modules |
-+-----------------------------------------------------------------------------+-------------------------------+
++---------------------------------------------------------------------------------------+-------------------------------+
+| CPy output:                                                                           | uPy output:                   |
++---------------------------------------------------------------------------------------+-------------------------------+
+| ::                                                                                    | ::                            |
+|                                                                                       |                               |
+|     ['/home/kwagyeman/Documents/GitHub/openmv/src/micropython/tests/cpydiff/modules'] |     ../tests/cpydiff//modules |
++---------------------------------------------------------------------------------------+-------------------------------+
 
 .. _cpydiff_core_import_prereg:
 

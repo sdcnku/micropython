@@ -2,7 +2,7 @@
 
 Modules
 =======
-Generated Tue 21 Nov 2017 21:31:50 UTC
+Generated Sat 28 Apr 2018 19:34:04 UTC
 
 array
 -----
@@ -70,6 +70,37 @@ Sample code::
 |                |     NotImplementedError: only slices with step=1 (aka None) are supported |
 +----------------+---------------------------------------------------------------------------+
 
+builtins
+--------
+
+.. _cpydiff_builtin_next_arg2:
+
+Second argument to next() is not implemented
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Cause:** MicroPython is optimised for code space.
+
+**Workaround:** Instead of ``val = next(it, deflt)`` use::
+
+    try:
+        val = next(it)
+    except StopIteration:
+        val = deflt
+
+Sample code::
+
+    print(next(iter(range(0)), 42))
+
++-------------+-----------------------------------------------------------------------+
+| CPy output: | uPy output:                                                           |
++-------------+-----------------------------------------------------------------------+
+| ::          | ::                                                                    |
+|             |                                                                       |
+|     42      |     Traceback (most recent call last):                                |
+|             |       File "<stdin>", line 12, in <module>                            |
+|             |     TypeError: function takes 1 positional arguments but 2 were given |
++-------------+-----------------------------------------------------------------------+
+
 deque
 -----
 
@@ -86,15 +117,15 @@ Sample code::
     D = collections.deque()
     print(D)
 
-+---------------+--------------------------------------------------------------+
-| CPy output:   | uPy output:                                                  |
-+---------------+--------------------------------------------------------------+
-| ::            | ::                                                           |
-|               |                                                              |
-|     deque([]) |     Traceback (most recent call last):                       |
-|               |       File "<stdin>", line 8, in <module>                    |
-|               |     AttributeError: 'module' object has no attribute 'deque' |
-+---------------+--------------------------------------------------------------+
++---------------+-----------------------------------------------------------------+
+| CPy output:   | uPy output:                                                     |
++---------------+-----------------------------------------------------------------+
+| ::            | ::                                                              |
+|               |                                                                 |
+|     deque([]) |     Traceback (most recent call last):                          |
+|               |       File "<stdin>", line 8, in <module>                       |
+|               |     TypeError: function missing 2 required positional arguments |
++---------------+-----------------------------------------------------------------+
 
 json
 ----

@@ -57,7 +57,7 @@ Functions
 
    ``path`` is the path to the descriptor file to save.
 
-.. function:: image.match_descriptor(descritor0, descriptor1, threshold=70, filter_outliers=False)
+.. function:: image.match_descriptor(descritor0, descriptor1, [threshold=70, [filter_outliers=False]])
 
    For LBP descriptors this function returns an integer representing the
    difference between the two descriptors. You may then threshold/compare this
@@ -73,29 +73,23 @@ Functions
    ``filter_outliers`` is used for ORB keypoints to filter out outlier
    keypoints allow you to raise the ``threshold``. Defaults to False.
 
-   .. note::
-
-      ``threshold`` and ``filter_outliers`` are keyword arguments which must be
-      explicitly invoked in the function call by writing ``threshold=`` and
-      ``filter_outliers=``.
-
 class HaarCascade -- Feature Descriptor
 =======================================
 
-The Haar Cascade feature descriptor is used for the ``image.find_features()``
+The Haar Cascade feature descriptor is used for the `image.find_features()`
 method. It doesn't have any methods itself for you to call.
 
 Constructors
 ------------
 
-.. class:: image.HaarCascade(path, stages=Auto)
+.. class:: image.HaarCascade(path, [stages=Auto])
 
     Loads a Haar Cascade into memory from a Haar Cascade binary file formatted
     for your OpenMV Cam. If you pass "frontalface" instead of a path then this
     constructor will load the built-in frontal face Haar Cascade into memory.
     Additionally, you can also pass "eye" to load a Haar Cascade for eyes into
     memory. Finally, this method returns the loaded Haar Cascade object for use
-    with ``image.find_features()``.
+    with `image.find_features()`.
 
     ``stages`` defaults to the number of stages in the Haar Cascade. However,
     you can specify a lower number of stages to speed up processing the feature
@@ -129,15 +123,17 @@ Constructors
     not cat like things labeled differently. The generator algorithm will then
     produce a Haar Cascade that detects cats.
 
-    .. note::
-
-      ``stages`` is a keyword argument which must be explicitly invoked in the
-      function call by writing ``stages=``.
-
 class Similarity -- Similarity Object
 =====================================
 
-The similarity object is returned by ``image.get_similarity``.
+The similarity object is returned by `image.get_similarity()`.
+
+Constructors
+------------
+
+.. class:: image.similarity()
+
+   Please call `image.get_similarity()` to create this object.
 
 Methods
 -------
@@ -182,13 +178,20 @@ Methods
 class Histogram -- Histogram Object
 ===================================
 
-The histogram object is returned by ``image.get_histogram``.
+The histogram object is returned by `image.get_histogram()`.
 
 Grayscale histograms have one channel with some number of bins. All bins are
 normalized so that all bins sum to 1.
 
 RGB565 histograms have three channels with some number of bins each. All bins
 are normalized so that all bins in a channel sum to 1.
+
+Constructors
+------------
+
+.. class:: image.histogram()
+
+   Please call `image.get_histogram()` to create this object.
 
 Methods
 -------
@@ -219,7 +222,7 @@ Methods
 
 .. method:: histogram.get_percentile(percentile)
 
-   Computes the CDF of the histogram channels and returns a ``percentile``
+   Computes the CDF of the histogram channels and returns a `image.percentile`
    object with the values of the histogram at the passed in ``percentile`` (0.0
    - 1.0) (float). So, if you pass in 0.1 this method will tell you (going from
    left-to-right in the histogram) what bin when summed into an accumulator
@@ -227,18 +230,18 @@ Methods
    0.1) and max (with 0.9) of a color distribution without outlier effects
    ruining your results for adaptive color tracking.
 
-.. method:: histogram.get_threhsold()
+.. method:: histogram.get_threshold()
 
    Uses Otsu's Method to compute the optimal threshold values that split the
    histogram into two halves for each channel of the histogram. This method
-   returns a ``threshold`` object. This method is particularly useful for
-   determining optimal ``binary()`` thresholds.
+   returns a `image.threshold` object. This method is particularly useful for
+   determining optimal `image.binary()` thresholds.
 
 .. method:: histogram.get_statistics()
 
    Computes the mean, median, mode, standard deviation, min, max, lower
    quartile, and upper quartile of each color channel in the histogram and
-   returns a ``statistics`` object.
+   returns a `statistics` object.
 
    You may also use ``histogram.statistics()`` and ``histogram.get_stats()``
    as aliases for this method.
@@ -246,13 +249,20 @@ Methods
 class Percentile -- Percentile Object
 =====================================
 
-The percentile object is returned by ``histogram.get_percentile``.
+The percentile object is returned by `histogram.get_percentile()`.
 
 Grayscale percentiles have one channel. Use the non ``l_*``, ``a_*``, and
 ``b_*`` method.
 
 RGB565 percentiles have three channels. Use the ``l_*``, ``a_*``, and ``b_*``
 methods.
+
+Constructors
+------------
+
+.. class:: image.percentile()
+
+   Please call `histogram.get_percentile()` to create this object.
 
 Methods
 -------
@@ -281,10 +291,10 @@ Methods
 
    You may also get this value doing ``[2]`` on the object.
 
-class Threhsold -- Threshold Object
+class Threshold -- Threshold Object
 ===================================
 
-The threshold object is returned by ``histogram.get_threshold``.
+The threshold object is returned by `histogram.get_threshold()`.
 
 Grayscale thresholds have one channel. Use the non ``l_*``, ``a_*``, and
 ``b_*`` method.
@@ -292,44 +302,58 @@ Grayscale thresholds have one channel. Use the non ``l_*``, ``a_*``, and
 RGB565 thresholds have three channels. Use the ``l_*``, ``a_*``, and ``b_*``
 methods.
 
+Constructors
+------------
+
+.. class:: image.threshold()
+
+   Please call `histogram.get_threshold()` to create this object.
+
 Methods
 -------
 
-.. method:: threhsold.value()
+.. method:: threshold.value()
 
-   Return the grayscale threhsold value (between 0 and 255).
-
-   You may also get this value doing ``[0]`` on the object.
-
-.. method:: threhsold.l_value()
-
-   Return the RGB565 LAB L channel threhsold value (between 0 and 100).
+   Return the grayscale threshold value (between 0 and 255).
 
    You may also get this value doing ``[0]`` on the object.
 
-.. method:: threhsold.a_value()
+.. method:: threshold.l_value()
 
-   Return the RGB565 LAB A channel threhsold value (between -128 and 127).
+   Return the RGB565 LAB L channel threshold value (between 0 and 100).
+
+   You may also get this value doing ``[0]`` on the object.
+
+.. method:: threshold.a_value()
+
+   Return the RGB565 LAB A channel threshold value (between -128 and 127).
 
    You may also get this value doing ``[1]`` on the object.
 
-.. method:: threhsold.b_value()
+.. method:: threshold.b_value()
 
-   Return the RGB565 LAB B channel threhsold value (between -128 and 127).
+   Return the RGB565 LAB B channel threshold value (between -128 and 127).
 
    You may also get this value doing ``[2]`` on the object.
 
 class Statistics -- Statistics Object
 =====================================
 
-The percentile object is returned by ``histogram.get_statistics`` or
-``image.get_statistics``.
+The percentile object is returned by `histogram.get_statistics()` or
+`image.get_statistics()`.
 
 Grayscale statistics have one channel. Use the non ``l_*``, ``a_*``, and
 ``b_*`` method.
 
 RGB565 statistics have three channels. Use the ``l_*``, ``a_*``, and ``b_*``
 methods.
+
+Constructors
+------------
+
+.. class:: image.statistics()
+
+   Please call `histogram.get_statistics()` or `image.get_statistics()` to create this object.
 
 Methods
 -------
@@ -529,15 +553,22 @@ Methods
 class Blob -- Blob object
 =========================
 
-The blob object is returned by ``image.find_blobs``.
+The blob object is returned by `image.find_blobs()`.
+
+Constructors
+------------
+
+.. class:: image.blob()
+
+   Please call `image.find_blobs()` to create this object.
 
 Methods
 -------
 
 .. method:: blob.rect()
 
-   Returns a rectangle tuple (x, y, w, h) for use with other ``image`` methods
-   like ``image.draw_rectangle`` of the blob's bounding box.
+   Returns a rectangle tuple (x, y, w, h) for use with other `image` methods
+   like `image.draw_rectangle()` of the blob's bounding box.
 
 .. method:: blob.x()
 
@@ -593,9 +624,9 @@ Methods
 .. method:: blob.code()
 
    Returns a 16-bit binary number with a bit set in it for each color threshold
-   that's part of this blob. For example, if you passed ``image.find_blobs``
+   that's part of this blob. For example, if you passed `image.find_blobs()`
    three color thresholds to look for then bits 0/1/2 may be set for this blob.
-   Note that only one bit will be set for each blob unless ``image.find_blobs``
+   Note that only one bit will be set for each blob unless `image.find_blobs()`
    was called with ``merge=True``. Then its possible for multiple blobs with
    different color thresholds to be merged together. You can use this method
    along with multiple thresholds to implement color code tracking.
@@ -605,7 +636,7 @@ Methods
 .. method:: blob.count()
 
    Returns the number of blobs merged into this blob. THis is 1 unless you
-   called ``image.find_blobs`` with ``merge=True``.
+   called `image.find_blobs()` with ``merge=True``.
 
    You may also get this value doing ``[9]`` on the object.
 
@@ -622,15 +653,22 @@ Methods
 class Line -- Line object
 =========================
 
-The line object is returned by ``image.find_lines``, ``image.find_line_segments``, or ``image.get_regression``.
+The line object is returned by `image.find_lines()`, `image.find_line_segments()`, or `image.get_regression()`.
+
+Constructors
+------------
+
+.. class:: image.line()
+
+   Please call `image.find_lines()`, `image.find_line_segments()`, or `image.get_regression()` to create this object.
 
 Methods
 -------
 
 .. method:: line.line()
 
-   Returns a line tuple (x1, y1, x2, y2) for use with other ``image`` methods
-   like ``image.draw_line``.
+   Returns a line tuple (x1, y1, x2, y2) for use with other `image` methods
+   like `image.draw_line()`.
 
 .. method:: line.x1()
 
@@ -658,7 +696,7 @@ Methods
 
 .. method:: line.length()
 
-   Returns the line's length - sqrt(((x2-x1)^2) + ((y2-y1)^2).
+   Returns the line's length: sqrt(((x2-x1)^2) + ((y2-y1)^2).
 
    You may also get this value doing ``[4]`` on the object.
 
@@ -683,7 +721,14 @@ Methods
 class Circle -- Circle object
 =============================
 
-The circle object is returned by ``image.find_circles``.
+The circle object is returned by `image.find_circles()`.
+
+Constructors
+------------
+
+.. class:: image.circle()
+
+   Please call `image.find_circles()` to create this object.
 
 Methods
 -------
@@ -715,7 +760,14 @@ Methods
 class Rect -- Rectangle Object
 ==============================
 
-The rect object is returned by ``image.find_rects``.
+The rect object is returned by `image.find_rects()`.
+
+Constructors
+------------
+
+.. class:: image.rect()
+
+   Please call `image.find_rects()` to create this object.
 
 Methods
 -------
@@ -727,8 +779,8 @@ Methods
 
 .. method:: rect.rect()
 
-   Returns a rectangle tuple (x, y, w, h) for use with other ``image`` methods
-   like ``image.draw_rectangle`` of the rect's bounding box.
+   Returns a rectangle tuple (x, y, w, h) for use with other `image` methods
+   like `image.draw_rectangle()` of the rect's bounding box.
 
 .. method:: rect.x()
 
@@ -763,7 +815,14 @@ Methods
 class QRCode -- QRCode object
 =============================
 
-The qrcode object is returned by ``image.find_qrcodes``.
+The qrcode object is returned by `image.find_qrcodes()`.
+
+Constructors
+------------
+
+.. class:: image.qrcode()
+
+   Please call `image.find_qrcodes()` to create this object.
 
 Methods
 -------
@@ -775,8 +834,8 @@ Methods
 
 .. method:: qrcode.rect()
 
-   Returns a rectangle tuple (x, y, w, h) for use with other ``image`` methods
-   like ``image.draw_rectangle`` of the qrcode's bounding box.
+   Returns a rectangle tuple (x, y, w, h) for use with other `image` methods
+   like `image.draw_rectangle()` of the qrcode's bounding box.
 
 .. method:: qrcode.x()
 
@@ -865,7 +924,14 @@ Methods
 class AprilTag -- AprilTag object
 =================================
 
-The apriltag object is returned by ``image.find_apriltags``.
+The apriltag object is returned by `image.find_apriltags()`.
+
+Constructors
+------------
+
+.. class:: image.apriltag()
+
+   Please call `image.find_apriltags()` to create this object.
 
 Methods
 -------
@@ -877,8 +943,8 @@ Methods
 
 .. method:: apriltag.rect()
 
-   Returns a rectangle tuple (x, y, w, h) for use with other ``image`` methods
-   like ``image.draw_rectangle`` of the apriltag's bounding box.
+   Returns a rectangle tuple (x, y, w, h) for use with other `image` methods
+   like `image.draw_rectangle()` of the apriltag's bounding box.
 
 .. method:: apriltag.x()
 
@@ -1040,14 +1106,21 @@ Methods
    Returns the rotation in radians of the apriltag in the Z plane. E.g.
    rotating the camera while looking directly at the tag.
 
-   Note that this is just a renamed version of ``apriltag.rotation()``.
+   Note that this is just a renamed version of `apriltag.rotation()`.
 
    You may also get this value doing ``[17]`` on the object.
 
 class DataMatrix -- DataMatrix object
 =====================================
 
-The datamatrix object is returned by ``image.find_datamatrices``.
+The datamatrix object is returned by `image.find_datamatrices()`.
+
+Constructors
+------------
+
+.. class:: image.datamatrix()
+
+   Please call `image.find_datamatrices()` to create this object.
 
 Methods
 -------
@@ -1059,8 +1132,8 @@ Methods
 
 .. method:: datamatrix.rect()
 
-   Returns a rectangle tuple (x, y, w, h) for use with other ``image`` methods
-   like ``image.draw_rectangle`` of the datamatrix's bounding box.
+   Returns a rectangle tuple (x, y, w, h) for use with other `image` methods
+   like `image.draw_rectangle()` of the datamatrix's bounding box.
 
 .. method:: datamatrix.x()
 
@@ -1125,7 +1198,14 @@ Methods
 class BarCode -- BarCode object
 ===============================
 
-The barcode object is returned by ``image.find_barcodes``.
+The barcode object is returned by `image.find_barcodes()`.
+
+Constructors
+------------
+
+.. class:: image.barcode()
+
+   Please call `image.find_barcodes()` to create this object.
 
 Methods
 -------
@@ -1137,8 +1217,8 @@ Methods
 
 .. method:: barcode.rect()
 
-   Returns a rectangle tuple (x, y, w, h) for use with other ``image`` methods
-   like ``image.draw_rectangle`` of the barcode's bounding box.
+   Returns a rectangle tuple (x, y, w, h) for use with other `image` methods
+   like `image.draw_rectangle()` of the barcode's bounding box.
 
 .. method:: barcode.x()
 
@@ -1211,7 +1291,14 @@ Methods
 class Displacement -- Displacement object
 =========================================
 
-The displacement object is returned by ``image.find_displacement``.
+The displacement object is returned by `image.find_displacement()`.
+
+Constructors
+------------
+
+.. class:: image.displacement()
+
+   Please call `image.find_displacement()` to create this object.
 
 Methods
 -------
@@ -1252,15 +1339,22 @@ Methods
 class kptmatch -- Keypoint Object
 =================================
 
-The kptmatch object is returned by ``image.match_descriptor`` for keypoint matches.
+The kptmatch object is returned by `image.match_descriptor()` for keypoint matches.
+
+Constructors
+------------
+
+.. class:: image.kptmatch()
+
+   Please call `image.match_descriptor()` to create this object.
 
 Methods
 -------
 
 .. method:: kptmatch.rect()
 
-   Returns a rectangle tuple (x, y, w, h) for use with other ``image`` methods
-   like ``image.draw_rectangle`` of the kptmatch's bounding box.
+   Returns a rectangle tuple (x, y, w, h) for use with other `image` methods
+   like `image.draw_rectangle()` of the kptmatch's bounding box.
 
 .. method:: kptmatch.cx()
 
@@ -1367,7 +1461,7 @@ Methods
 
    Returns the size of the file being read.
 
-.. method:: imagereader.next_frame([copy_to_fb=True, loop=True])
+.. method:: imagereader.next_frame([copy_to_fb=True, [loop=True]])
 
    Returns an image object from the file written by ImageWriter. If
    ``copy_to_fb`` is True then the image object will be directly loaded into
@@ -1377,9 +1471,9 @@ Methods
    image from the stream is read playback will start from the beginning again.
    Otherwise, this method will return None after all frames have been read.
 
-   Note that next_frame() tries to limit playback speed by pausing after
-   reading frames to match the speed frames were recorded at. Otherwise this
-   method would zoom through all images at 200+ FPS.
+   Note that `imagereader.next_frame()` tries to limit playback speed by pausing
+   after reading frames to match the speed frames were recorded at. Otherwise
+   this method would zoom through all images at 200+ FPS.
 
 .. method:: imagereader.close()
 
@@ -1395,7 +1489,7 @@ The image object is the basic object for machine vision operations.
 Constructors
 ------------
 
-.. class:: image.Image(path, copy_to_fb=False)
+.. class:: image.Image(path, [copy_to_fb=False])
 
    Creates a new image object from a file at ``path``.
 
@@ -1429,127 +1523,8 @@ Constructors
    particular, if you'd like to transmit an image you can just pass it to the
    UART/SPI/I2C write functions to be transmitted automatically.
 
-   .. note::
-
-      ``copy_to_fb`` is a keyword argument which must be explicitly invoked in
-      the function call by writing ``copy_to_fb=``.
-
 Methods
 -------
-
-.. method:: image.copy(roi=Auto)
-
-   Creates a copy of the image object.
-
-   ``roi`` is the region-of-interest rectangle (x, y, w, h) to copy from.
-   If not specified, it is equal to the image rectangle which copies the entire
-   image. This argument is not applicable for JPEG images.
-
-   Keep in mind that image copies are stored in the MicroPython heap and not
-   the frame buffer. As such, you need to keep image copies under 8KB for the
-   OpenMV Cam M4 and 16KB for the OpenMV Cam M7. If you attempt a copy
-   operation that uses up all the heap space this function will throw an
-   exception. Since images are large this is rather easy to trigger.
-
-   .. note::
-
-      ``roi`` is a keyword argument which must be explicitly invoked in
-      the function call by writing ``roi=``.
-
-.. method:: image.save(path, roi=Auto, quality=50)
-
-   Saves a copy of the image to the filesystem at ``path``.
-
-   Supports bmp/pgm/ppm/jpg/jpeg image files. Note that you cannot save jpeg
-   compressed images to an uncompressed format.
-
-   ``roi`` is the region-of-interest rectangle (x, y, w, h) to copy from.
-   If not specified, it is equal to the image rectangle which copies the entire
-   image. This argument is not applicable for JPEG images.
-
-   ``quality`` is the jpeg compression quality to use to save the image to jpeg
-   format if the image is not already compressed.
-
-   .. note::
-
-      ``roi`` and ``quality`` are keyword arguments which must be explicitly
-      invoked in the function call by writing ``roi=`` or ``quality=``.
-
-.. method:: image.compress(quality=50)
-
-   JPEG compresses the image in place. Use this method versus ``compressed``
-   to save heap space and to use a higher ``quality`` for compression at the
-   cost of destroying the original image.
-
-   ``quality`` is the compression quality (0-100) (int).
-
-   .. note::
-
-      ``quality`` is a keyword argument which must be explicitly
-      invoked in the function call by writing ``quality=``.
-
-   Only call this on Grayscale and RGB565 images.
-
-.. method:: image.compress_for_ide(quality=50)
-
-   JPEG compresses the image in place. Use this method versus ``compressed``
-   to save heap space and to use a higher ``quality`` for compression at the
-   cost of destroying the original image.
-
-   This method JPEG compresses the image and then formats the JPEG data for
-   transmission to OpenMV IDE to display by encoding every 6-bits as a byte
-   valued between 128-191. This is done to prevent JPEG data from being
-   misinterpreted as other text data in the byte stream.
-
-   You need to use this method to format image data for display to terminal
-   windows created via "Open Terminal" in OpenMV IDE.
-
-   ``quality`` is the compression quality (0-100) (int).
-
-   .. note::
-
-      ``quality`` is a keyword argument which must be explicitly
-      invoked in the function call by writing ``quality=``.
-
-   Only call this on Grayscale and RGB565 images.
-
-.. method:: image.compressed(quality=50)
-
-   Returns a JPEG compressed image - the original image is untouched. However,
-   this method requires a somewhat large allocation of heap space so the image
-   compression quality must be low and the image resolution must be low.
-
-   ``quality`` is the compression quality (0-100) (int).
-
-   .. note::
-
-      ``quality`` is a keyword argument which must be explicitly
-      invoked in the function call by writing ``quality=``.
-
-   Only call this on Grayscale and RGB565 images.
-
-.. method:: image.compressed_for_ide(quality=50)
-
-   Returns a JPEG compressed image - the original image is untouched. However,
-   this method requires a somewhat large allocation of heap space so the image
-   compression quality must be low and the image resolution must be low.
-
-   This method JPEG compresses the image and then formats the JPEG data for
-   transmission to OpenMV IDE to display by encoding every 6-bits as a byte
-   valued between 128-191. This is done to prevent JPEG data from being
-   misinterpreted as other text data in the byte stream.
-
-   You need to use this method to format image data for display to terminal
-   windows created via "Open Terminal" in OpenMV IDE.
-
-   ``quality`` is the compression quality (0-100) (int).
-
-   .. note::
-
-      ``quality`` is a keyword argument which must be explicitly
-      invoked in the function call by writing ``quality=``.
-
-   Only call this on Grayscale and RGB565 images.
 
 .. method:: image.width()
 
@@ -1561,226 +1536,577 @@ Methods
 
 .. method:: image.format()
 
-   Returns ``sensor.GRAYSCALE`` for grayscale images, ``sensor.RGB565`` for RGB
-   images and ``sensor.JPEG`` for JPEG images.
+   Returns `sensor.GRAYSCALE` for grayscale images, `sensor.RGB565` for RGB565
+   images, `sensor.BAYER` for bayer pattern images, and `sensor.JPEG` for JPEG
+   images.
 
 .. method:: image.size()
 
    Returns the image size in bytes.
 
-.. method:: image.clear()
-
-   Zeros all bytes in GRAYSCALE or RGB565 images. Do not call this method on
-   JPEG images.
-
-.. method:: image.get_pixel(x, y)
+.. method:: image.get_pixel(x, y, [rgbtuple])
 
    For grayscale images: Returns the grayscale pixel value at location (x, y).
-   For RGB images: Returns the rgb888 pixel tuple (r, g, b) at location (x, y).
-   For Bayer images: Returns the the pixel value at the location (x, y).
+   For RGB565 images: Returns the RGB888 pixel tuple (r, g, b) at location (x, y).
+   For bayer pattern images: Returns the the pixel value at the location (x, y).
+
+   Returns None if ``x`` or ``y`` is outside of the image.
+
+   ``x`` and ``y`` may either be passed independently or as a tuple.
+
+   ``rgbtuple`` if True causes this method to return an RGB888 tuple. Otherwise,
+   this method returns the integer value of the underlying pixel. I.e. for RGB565
+   images this method returns a byte-reversed RGB565 value. Defaults to True
+   for RGB565 images and False otherwise.
 
    Not supported on compressed images.
+
+   .. note::
+
+      `image.get_pixel()` and `image.set_pixel()` are the only methods that allow
+      you to manipulate bayer pattern images. Bayer pattern images are literal images
+      where pixels in the image are R/G/R/G/etc. for even rows and G/B/G/B/etc. for
+      odd rows. Each pixel is 8-bits.
 
 .. method:: image.set_pixel(x, y, pixel)
 
-   For grayscale images: Sets the pixel at location (x, y) to the grayscale
-   value ``pixel``.
-   For RGB images: Sets the pixel at location (x, y) to the rgb888 tuple
-   (r, g, b) ``pixel``.
+   For grayscale images: Sets the pixel at location (x, y) to the grayscale value ``pixel``.
+   For RGB565 images: Sets the pixel at location (x, y) to the RGB888 tuple (r, g, b) ``pixel``.
+   For bayer pattern images: Sets the pixel value at the location (x, y) to the value ``pixel``.
 
-   Not supported on compressed images.
+   Returns the image object so you can call another method using ``.`` notation.
 
-.. method:: image.draw_line(line_tuple, color=White)
+   ``x`` and ``y`` may either be passed independently or as a tuple.
 
-   Draws a line using the ``line_tuple`` (x0, y0, x1, y1) from (x0, y0) to
-   (x1, y1) on the image.
-
-   ``color`` is an int value (0-255) for grayscale images and a RGB888 tuple
-   (r, g, b) for RGB images. Defaults to white.
-
-   Not supported on compressed images.
-
-   .. note::
-
-      ``color`` is a keyword argument which must be explicitly
-      invoked in the function call by writing ``color=``.
-
-.. method:: image.draw_rectangle(rect_tuple, color=White)
-
-   Draws an unfilled rectangle using the ``rect_tuple`` (x, y, w, h) on the
-   image.
-
-   ``color`` is an int value (0-255) for grayscale images and a RGB888 tuple
-   (r, g, b) for RGB images. Defaults to white.
+   ``pixel`` may either be an RGB888 tuple (r, g, b) or the underlying pixel
+   value (i.e. a byte-reversed RGB565 value for RGB565 images or an 8-bit value
+   for grayscale images.
 
    Not supported on compressed images.
 
    .. note::
 
-      ``color`` is a keyword argument which must be explicitly
-      invoked in the function call by writing ``color=``.
+      `image.get_pixel()` and `image.set_pixel()` are the only methods that allow
+      you to manipulate bayer pattern images. Bayer pattern images are literal images
+      where pixels in the image are R/G/R/G/etc. for even rows and G/B/G/B/etc. for
+      odd rows. Each pixel is 8-bits.
 
-.. method:: image.draw_circle(x, y, radius, color=White)
+.. method:: image.mean_pool(x_div, y_div)
 
-   Draws an unfilled circle at (``x``, ``y``) with integer ``radius`` on the
-   image.
+   Finds the mean of ``x_div`` * ``y_div`` squares in the image and returns
+   the modified image composed of the mean of each square.
 
-   ``color`` is an int value (0-255) for grayscale images and a RGB888 tuple
-   (r, g, b) for RGB images. Defaults to white.
+   This method allows you to shrink an image down very quickly in-place.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.mean_pooled(x_div, y_div)
+
+   Finds the mean of ``x_div`` * ``y_div`` squares in the image and returns
+   a new image composed of the mean of each square.
+
+   This method allows you to create a shrunken down image copy.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.midpoint_pool(x_div, y_div, [bias=0.5])
+
+   Finds the midpoint of ``x_div`` * ``y_div`` squares in the image and returns
+   the modified image composed of the midpoint of each square.
+
+   A ``bias`` of 0.0 returns the min of each area while a ``bias`` of 1.0 returns
+   the max of each area.
+
+   This method allows you to shrink an image down very quickly in-place.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.midpoint_pooled(x_div, y_div, [bias=0.5])
+
+   Finds the midpoint of ``x_div`` * ``y_div`` squares in the image and returns
+   a new image composed of the midpoint of each square.
+
+   A ``bias`` of 0.0 returns the min of each area while a ``bias`` of 1.0 returns
+   the max of each area.
+
+   This method allows you to create a shrunken down image copy.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.to_grayscale([copy=False])
+
+   Converts an image to a grayscale image. This method modifies the underlying
+   image pixels changing the image size in bytes too so it can only be done
+   in place on a Grayscale or an RGB565 image. Otherwise ``copy`` must be True
+   to create a new modified image on the heap.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.to_rgb565([copy=False])
+
+   Converts an image to an RGB565 image. This method modifies the underlying
+   image pixels changing the image size in bytes too so it can only be done
+   in place on an RGB565 image. Otherwise ``copy`` must be True to
+   create a new modified image on the heap.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.to_rainbow([copy=False])
+
+   Converts an image to a rainbow image. This method modifies the underlying
+   image pixels changing the image size in bytes too so it can only be done
+   in place on a RGB565 image. Otherwise ``copy`` must be True to
+   create a new modified image on the heap.
+
+   A rainbow image is a color image with a unique color value for each 8-bitmask
+   grayscale lighting value in an image. For example, it provides heat-map color
+   to a thermal-image.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.compress([quality=50])
+
+   JPEG compresses the image in place. Use this method versus `image.compressed()`
+   to save heap space and to use a higher ``quality`` for compression at the
+   cost of destroying the original image.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   ``quality`` is the compression quality (0-100) (int).
+
+.. method:: image.compress_for_ide([quality=50])
+
+   JPEG compresses the image in place. Use this method versus `image.compressed()`
+   to save heap space and to use a higher ``quality`` for compression at the
+   cost of destroying the original image.
+
+   This method JPEG compresses the image and then formats the JPEG data for
+   transmission to OpenMV IDE to display by encoding every 6-bits as a byte
+   valued between 128-191. This is done to prevent JPEG data from being
+   misinterpreted as other text data in the byte stream.
+
+   You need to use this method to format image data for display to terminal
+   windows created via "Open Terminal" in OpenMV IDE.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   ``quality`` is the compression quality (0-100) (int).
+
+.. method:: image.compressed([quality=50])
+
+   Returns a JPEG compressed image - the original image is untouched. However,
+   this method requires a somewhat large allocation of heap space so the image
+   compression quality must be lower and the image resolution must be lower
+   than what you could do with `image.compress()`.
+
+   ``quality`` is the compression quality (0-100) (int).
+
+.. method:: image.compressed_for_ide([quality=50])
+
+   Returns a JPEG compressed image - the original image is untouched. However,
+   this method requires a somewhat large allocation of heap space so the image
+   compression quality must be lower and the image resolution must be lower
+   than what you could do with `image.compress()`.
+
+   This method JPEG compresses the image and then formats the JPEG data for
+   transmission to OpenMV IDE to display by encoding every 6-bits as a byte
+   valued between 128-191. This is done to prevent JPEG data from being
+   misinterpreted as other text data in the byte stream.
+
+   You need to use this method to format image data for display to terminal
+   windows created via "Open Terminal" in OpenMV IDE.
+
+   ``quality`` is the compression quality (0-100) (int).
+
+.. method:: image.copy([roi, [copy_to_fb=False]])
+
+   Creates a deep copy of the image object.
+
+   ``roi`` is the region-of-interest rectangle (x, y, w, h) to copy from.
+   If not specified, it is equal to the image rectangle which copies the entire
+   image. This argument is not applicable for JPEG images.
+
+   Keep in mind that image copies are stored in the MicroPython heap and not
+   the frame buffer. As such, you need to keep image copies under 8KB for the
+   OpenMV Cam M4 and 16KB for the OpenMV Cam M7. If you attempt a copy
+   operation that uses up all the heap space this function will throw an
+   exception. Since images are large this is rather easy to trigger.
+
+   If ``copy_to_fb`` is True then this method instead replaces the frame
+   buffer with the image. The frame buffer has a lot more space than the heap
+   and can hold large images.
+
+.. method:: image.save(path, [roi, [quality=50]])
+
+   Saves a copy of the image to the filesystem at ``path``.
+
+   Supports bmp/pgm/ppm/jpg/jpeg image files. Note that you cannot save jpeg
+   compressed images to an uncompressed format.
+
+   ``roi`` is the region-of-interest rectangle (x, y, w, h) to save from.
+   If not specified, it is equal to the image rectangle which copies the entire
+   image. This argument is not applicable for JPEG images.
+
+   ``quality`` is the jpeg compression quality to use to save the image to jpeg
+   format if the image is not already compressed (0-100) (int).
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+.. method:: image.clear()
+
+   Sets all pixels in the image to zero (very fast).
+
+   Returns the image object so you can call another method using ``.`` notation.
 
    Not supported on compressed images.
 
+.. method:: image.draw_line(x0, y0, x1, y1, [color, [thickness=1]])
+
+   Draws a line from (x0, y0) to (x1, y1) on the image. You may either
+   pass x0, y0, x1, y1 separately or as a tuple (x0, y0, x1, y1).
+
+   ``color`` is an RGB888 tuple for Grayscale or RGB565 images. Defaults to
+   white. However, you may also pass the underlying pixel value (0-255) for
+   grayscale images or a byte-reversed RGB565 value for RGB565 images.
+
+   ``thickness`` controls how thick the line is in pixels.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.draw_rectangle(x, y, w, h, [color, [thickness=1, [fill=False]]])
+
+   Draws a rectangle on the image. You may either pass x, y, w, h separately
+   or as a tuple (x, y, w, h).
+
+   ``color`` is an RGB888 tuple for Grayscale or RGB565 images. Defaults to
+   white. However, you may also pass the underlying pixel value (0-255) for
+   grayscale images or a byte-reversed RGB565 value for RGB565 images.
+
+   ``thickness`` controls how thick the lines are in pixels.
+
+   Pass ``fill`` set to True to fill the rectangle.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.draw_circle(x, y, radius, [color, [thickness=1, [fill=False]]])
+
+   Draws a circle on the image. You may either pass x, y, radius separately or
+   as a tuple (x, y, radius).
+
+   ``color`` is an RGB888 tuple for Grayscale or RGB565 images. Defaults to
+   white. However, you may also pass the underlying pixel value (0-255) for
+   grayscale images or a byte-reversed RGB565 value for RGB565 images.
+
+   ``thickness`` controls how thick the edges are in pixels.
+
+   Pass ``fill`` set to True to fill the circle.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.draw_string(x, y, text, [color, [scale=1, [x_spacing=0, [y_spacing=0, [mono_space=True]]]]])
+
+   Draws 8x10 text starting at location (x, y) in the image. You may either pass
+   x, y separately or as a tuple (x, y).
+
+   ``text`` is a string to write to the image. ``\n``, ``\r``, and ``\r\n``
+   line endings move the cursor to the next line.
+
+   ``color`` is an RGB888 tuple for Grayscale or RGB565 images. Defaults to
+   white. However, you may also pass the underlying pixel value (0-255) for
+   grayscale images or a byte-reversed RGB565 value for RGB565 images.
+
+   ``scale`` may be increased to increase the size of the text on the image.
+   Integer values only (e.g. 1/2/3/etc.).
+
+   ``x_spacing`` allows you to add (if positive) or subtract (if negative) x
+   pixels between cahracters.
+
+   ``y_spacing`` allows you to add (if positive) or subtract (if negative) y
+   pixels between cahracters (for multi-line text).
+
+   ``mono_space`` defaults to True which forces text to be fixed spaced. For
+   large text scales this looks terrible. Set the False to get non-fixed width
+   character spacing which looks A LOT better.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.draw_cross(x, y, [color, [size=5, [thickness=1]]])
+
+   Draws a cross at location x, y. You may either pass x, y separately or as a
+   tuple (x, y).
+
+   ``color`` is an RGB888 tuple for Grayscale or RGB565 images. Defaults to
+   white. However, you may also pass the underlying pixel value (0-255) for
+   grayscale images or a byte-reversed RGB565 value for RGB565 images.
+
+   ``size`` controls how long the lines of the cross extend.
+
+   ``thickness`` controls how thick the edges are in pixels.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.draw_arrow(x0, y0, x1, y1, [color, [thickness=1]])
+
+   Draws an arrow from (x0, y0) to (x1, y1) on the image. You may
+   either pass x0, y0, x1, y1 separately or as a tuple (x0, y0, x1, y1).
+
+   ``color`` is an RGB888 tuple for Grayscale or RGB565 images. Defaults to
+   white. However, you may also pass the underlying pixel value (0-255) for
+   grayscale images or a byte-reversed RGB565 value for RGB565 images.
+
+   ``thickness`` controls how thick the line is in pixels.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.draw_image(image, x, y, [x_scale=1.0, [y_scale=1.0, [mask=None]]])
+
+   Draws an ``image`` whose top-left corner starts at location x, y. You may either
+   pass x, y separately or as a tuple (x, y).
+
+   ``x_scale`` controls how much the image is scaled by in the x direction (float).
+
+   ``y_scale`` controls how much the image is scaled by in the y direction (float).
+
+   ``mask`` is another image to use as a pixel level mask for the drawing operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the ``image`` you are drawing if passed. You may use the mask
+   to do sprite style drawing operations.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.draw_keypoints(keypoints, [color, [size=10, [thickness=1, [fill=False]]]])
+
+   Draws the keypoints of a keypoints object on the image.
+
+   ``color`` is an RGB888 tuple for Grayscale or RGB565 images. Defaults to
+   white. However, you may also pass the underlying pixel value (0-255) for
+   grayscale images or a byte-reversed RGB565 value for RGB565 images.
+
+   ``size`` controls how large the keypoints are.
+
+   ``thickness`` controls how thick the line is in pixels.
+
+   Pass ``fill`` set to True to fill the keypoints.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.flood_fill(x, y, [seed_threshold=0.05, [floating_threshold=0.05, [color, [invert=False, [clear_background=False, [mask=None]]]]]])
+
+   Flood fills a region of the image starting from location x, y. You may either
+   pass x, y separately or as a tuple (x, y).
+
+   ``seed_threshold`` controls how different any pixel in the fill area may be
+   from the original starting pixel.
+
+   ``floating_threshold`` controls how different any pixel in the fill area may
+   be from any neighbor pixels.
+
+   ``color`` is an RGB888 tuple for Grayscale or RGB565 images. Defaults to
+   white. However, you may also pass the underlying pixel value (0-255) for
+   grayscale images or a byte-reversed RGB565 value for RGB565 images.
+
+   Pass ``invert`` as True to re-color everything outside of the flood-fill
+   connected area.
+
+   Pass ``clear_background`` as True to zero the rest of the pixels that
+   flood-fill did not re-color.
+
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   evaluated when flood filling.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.binary(thresholds, [invert=False, [zero=False, [mask=None]]])
+
+   Sets all pixels in the image to black or white depending on if the pixel
+   is inside of a threshold in the threshold list ``thresholds`` or not.
+
+   ``thresholds`` must be a list of tuples
+   ``[(lo, hi), (lo, hi), ..., (lo, hi)]`` defining the ranges of color you
+   want to track. For
+   grayscale images each tuple needs to contain two values - a min grayscale
+   value and a max grayscale value. Only pixel regions that fall between these
+   thresholds will be considered. For RGB565 images each tuple needs to have
+   six values (l_lo, l_hi, a_lo, a_hi, b_lo, b_hi) - which are minimums and
+   maximums for the LAB L, A, and B channels respectively. For easy usage this
+   function will automatically fix swapped min and max values. Additionally,
+   if a tuple is larger than six values the rest are ignored. Conversely, if the
+   tuple is too short the rest of the thresholds are assumed to be at maximum
+   range.
+
    .. note::
 
-      ``color`` is a keyword argument which must be explicitly
-      invoked in the function call by writing ``color=``.
+      To get the thresholds for the object you want to track just select (click
+      and drag) on the object you want to track in the IDE frame buffer. The
+      histogram will then update to just be in that area. Then just write down
+      where the color distribution starts and falls off in each histogram channel.
+      These will be your low and high values for ``thresholds``. It's best to
+      manually determine the thresholds versus using the upper and lower
+      quartile statistics because they are too tight.
 
-.. method:: image.draw_string(x, y, text, color=White)
+      You may also determine color thresholds by going into
+      ``Tools->Machine Vision->Threshold Editor`` in OpenMV IDE and selecting
+      thresholds from the GUI slider window.
 
-   Draws 8x10 text starting at (``x``, ``y``) using ``text`` on the image.
-   ``\n``, ``\r``, and ``\r\n`` line endings move the cursor to the next line.
+   ``invert`` inverts the thresholding operation such that instead of matching
+   pixels inside of some known color bounds pixels are matched that are outside
+   of the known color bounds.
 
-   ``color`` is an int value (0-255) for grayscale images and a RGB888 tuple
-   (r, g, b) for RGB images. Defaults to white.
+   Set ``zero`` to True to instead zero thresholded pixels and leave pixels
+   not in the threshold list untouched.
 
-   Not supported on compressed images.
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
 
-   .. note::
+   Returns the image object so you can call another method using ``.`` notation.
 
-      ``color`` is a keyword argument which must be explicitly
-      invoked in the function call by writing ``color=``.
-
-.. method:: image.draw_cross(x, y, size=5, color=White)
-
-   Draws a cross at (``x``, ``y``) whose sides are ``size`` (int) long on the
-   image.
-
-   ``color`` is an int value (0-255) for grayscale images and a RGB888 tuple
-   (r, g, b) for RGB images. Defaults to white.
-
-   Not supported on compressed images.
-
-   .. note::
-
-      ``size`` and ``color`` are keyword arguments which must be explicitly
-      invoked in the function call by writing ``size=`` or ``color=``.
-
-.. method:: image.draw_keypoints(keypoints, size=Auto, color=White)
-
-   Draws the keypoints of a keypoints object on the image. ``size`` controls
-   the size of the keypoints and is scaled to look good on the image unless
-   overridden.
-
-   ``color`` is an int value (0-255) for grayscale images and a RGB888 tuple
-   (r, g, b) for RGB images. Defaults to white.
-
-   Not supported on compressed images.
-
-   .. note::
-
-      ``size`` and ``color`` are keyword arguments which must be explicitly
-      invoked in the function call by writing ``size=`` or ``color=``.
-
-.. method:: image.binary(thresholds, invert=False)
-
-   For grayscale images ``thresholds`` is a list of (lower, upper) grayscale
-   pixel thresholds to segment the image by. Segmentation converts all pixels
-   within the thresholds to 1 (white) and all pixels outside to 0 (black).
-
-   For RGB images ``thresholds`` is a list of (l_lo, l_hi, a_lo, a_hi, b_lo,
-   b_hi) LAB pixel thresholds to segment the image by. Segmentation converts
-   all pixels within the thresholds to 1 (white) and all pixels outside to 0
-   (black).
-
-   Lo/Hi thresholds being swapped is automatically handled.
-
-   ``invert`` inverts the outcome of the segmentation operation.
-
-   Not supported on compressed images.
-
-   .. note::
-
-      ``invert`` is a keyword argument which must be explicitly
-      invoked in the function call by writing ``invert=``.
+   Not supported on compressed images or bayer images.
 
 .. method:: image.invert()
 
-   Inverts the binary image 0 (black) pixels go to 1 (white) and 1 (white)
-   pixels go to 0 (black).
+   Flips (binary inverts) all pixels values in a binary image very quickly.
 
-   Not supported on compressed images.
+   Returns the image object so you can call another method using ``.`` notation.
 
-.. method:: image.b_and(image)
+   Not supported on compressed images or bayer images.
+
+.. method:: image.b_and(image, [mask=None])
 
    Logically ANDs this image with another image.
 
-   ``image`` can either be an image object or a path to an uncompressed image
-   file (bmp/pgm/ppm).
+   ``image`` can either be an image object, a path to an uncompressed image
+   file (bmp/pgm/ppm), or a scalar value. If a scalar value the value can
+   either be an RGB888 tuple or the underlying pixel value (e.g. an 8-bit grayscale
+   for grayscale images or a byte-reversed RGB565 value for RGB images).
 
-   Both images must be the same size and the same type (grayscale/rgb).
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
 
-   Not supported on compressed images.
+   Returns the image object so you can call another method using ``.`` notation.
 
-.. method:: image.b_or(image)
+   Not supported on compressed images or bayer images.
+
+.. method:: image.b_nand(image, [mask=None])
+
+   Logically NANDs this image with another image.
+
+   ``image`` can either be an image object, a path to an uncompressed image
+   file (bmp/pgm/ppm), or a scalar value. If a scalar value the value can
+   either be an RGB888 tuple or the underlying pixel value (e.g. an 8-bit grayscale
+   for grayscale images or a byte-reversed RGB565 value for RGB images).
+
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.b_or(image, [mask=None])
 
    Logically ORs this image with another image.
 
-   ``image`` can either be an image object or a path to an uncompressed image
-   file (bmp/pgm/ppm).
+   ``image`` can either be an image object, a path to an uncompressed image
+   file (bmp/pgm/ppm), or a scalar value. If a scalar value the value can
+   either be an RGB888 tuple or the underlying pixel value (e.g. an 8-bit grayscale
+   for grayscale images or a byte-reversed RGB565 value for RGB images).
 
-   Both images must be the same size and the same type (grayscale/rgb).
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
 
-   Not supported on compressed images.
+   Returns the image object so you can call another method using ``.`` notation.
 
-.. method:: image.b_nand(image)
+   Not supported on compressed images or bayer images.
 
-   Logically NANDs this image with another image. You can also invoke this
-   method by using ``image.nand``.
+.. method:: image.b_nor(image, [mask=None])
 
-   ``image`` can either be an image object or a path to an uncompressed image
-   file (bmp/pgm/ppm).
+   Logically NORs this image with another image.
 
-   Both images must be the same size and the same type (grayscale/rgb).
+   ``image`` can either be an image object, a path to an uncompressed image
+   file (bmp/pgm/ppm), or a scalar value. If a scalar value the value can
+   either be an RGB888 tuple or the underlying pixel value (e.g. an 8-bit grayscale
+   for grayscale images or a byte-reversed RGB565 value for RGB images).
 
-   Not supported on compressed images.
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
 
-.. method:: image.b_nor(image)
+   Returns the image object so you can call another method using ``.`` notation.
 
-   Logically NORs this image with another image. You can also invoke this
-   method by using ``image.nor``.
+   Not supported on compressed images or bayer images.
 
-   ``image`` can either be an image object or a path to an uncompressed image
-   file (bmp/pgm/ppm).
+.. method:: image.b_xor(image, [mask=None])
 
-   Both images must be the same size and the same type (grayscale/rgb).
+   Logically XORs this image with another image.
 
-   Not supported on compressed images.
+   ``image`` can either be an image object, a path to an uncompressed image
+   file (bmp/pgm/ppm), or a scalar value. If a scalar value the value can
+   either be an RGB888 tuple or the underlying pixel value (e.g. an 8-bit grayscale
+   for grayscale images or a byte-reversed RGB565 value for RGB images).
 
-.. method:: image.b_xor(image)
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
 
-   Logically XORs this image with another image. You can also invoke this
-   method by using ``image.xor``.
+   Returns the image object so you can call another method using ``.`` notation.
 
-   ``image`` can either be an image object or a path to an uncompressed image
-   file (bmp/pgm/ppm).
+   Not supported on compressed images or bayer images.
 
-   Both images must be the same size and the same type (grayscale/rgb).
+.. method:: image.b_xnor(image, [mask=None])
 
-   Not supported on compressed images.
+   Logically XNORs this image with another image.
 
-.. method:: image.b_xnor(image)
+   ``image`` can either be an image object, a path to an uncompressed image
+   file (bmp/pgm/ppm), or a scalar value. If a scalar value the value can
+   either be an RGB888 tuple or the underlying pixel value (e.g. an 8-bit grayscale
+   for grayscale images or a byte-reversed RGB565 value for RGB images).
 
-   Logically XNORs this image with another image. You can also invoke this
-   method by using ``image.xnor``.
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
 
-   ``image`` can either be an image object or a path to an uncompressed image
-   file (bmp/pgm/ppm).
+   Returns the image object so you can call another method using ``.`` notation.
 
-   Both images must be the same size and the same type (grayscale/rgb).
+   Not supported on compressed images or bayer images.
 
-   Not supported on compressed images.
-
-.. method:: image.erode(size, threshold=Auto)
+.. method:: image.erode(size, [threshold, [mask=None]])
 
    Removes pixels from the edges of segmented areas.
 
@@ -1792,15 +2118,16 @@ Methods
    ``threshold`` is set then you can specify erode to only erode pixels that
    have, for example, less than 2 pixels set around them with a threshold of 2.
 
-   Not supported on compressed images. This method is designed to work on
-   binary images.
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
 
-   .. note::
+   Returns the image object so you can call another method using ``.`` notation.
 
-      ``threshold`` is a keyword argument which must be explicitly
-      invoked in the function call by writing ``threshold=``.
+   Not supported on compressed images or bayer images.
 
-.. method:: image.dilate(size, threshold=Auto)
+.. method:: image.dilate(size, [threshold, [mask=None]])
 
    Adds pixels to the edges of segmented areas.
 
@@ -1813,88 +2140,541 @@ Methods
    that have, for example, more than 2 pixels set around them with a threshold
    of 2.
 
-   Not supported on compressed images. This method is designed to work on
-   binary images.
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
 
-   .. note::
+   Returns the image object so you can call another method using ``.`` notation.
 
-      ``threshold`` is a keyword argument which must be explicitly
-      invoked in the function call by writing ``threshold=``.
+   Not supported on compressed images or bayer images.
+
+.. method:: image.open(size, [threshold, [mask=None]])
+
+   Performs erosion and dilation on an image in order. Please see `image.erode()`
+   and `image.dilate()` for more information.
+
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.close(size, [threshold, [mask=None]])
+
+   Performs dilation and erosion on an image in order. Please see `image.dilate()`
+   and `image.erode()` for more information.
+
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.top_hat(size, [threshold, [mask=None]])
+
+   Returns the image difference of the image and `image.open()`'ed image.
+
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.black_hat(size, [threshold, [mask=None]])
+
+   Returns the image difference of the image and `image.close()`'ed image.
+
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
+
+   Not supported on compressed images or bayer images.
 
 .. method:: image.negate()
 
-   Numerically inverts pixel values for each color channel. E.g. (255-pixel).
+   Flips (numerically inverts) all pixels values in an image very quickly.
 
-   Not supported on compressed images.
+   Returns the image object so you can call another method using ``.`` notation.
 
-.. method:: image.difference(image)
+   Not supported on compressed images or bayer images.
 
-   Subtracts another image from this image. E.g. for each color channel each
-   pixel is replaced with ABS(this.pixel-image.pixel).
+.. method:: image.replace(image, [hmirror=False, [vflip=False, [mask=None]]])
 
-   ``image`` can either be an image object or a path to an uncompressed image
-   file (bmp/pgm/ppm).
+   Replaces all pixels in the image with a new image.
 
-   Both images must be the same size and the same type (grayscale/rgb).
+   ``image`` can either be an image object, a path to an uncompressed image
+   file (bmp/pgm/ppm), or a scalar value. If a scalar value the value can
+   either be an RGB888 tuple or the underlying pixel value (e.g. an 8-bit grayscale
+   for grayscale images or a byte-reversed RGB565 value for RGB images).
 
-   Not supported on compressed images.
+   Set ``hmirror`` to True to horizontally mirror the replacing image.
 
-   .. note:: This function is used for frame differencing which you can then
-             use to do motion detection. You can then mask the resulting image
-             using NAND/NOR before running statistics functions on the image.
+   Set ``vflip`` to True to vertically flip the replacing image.
 
-.. method:: image.replace(image)
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
 
-   Replace this image with ``image`` (this is much faster than blend for this).
+   Returns the image object so you can call another method using ``.`` notation.
 
-   ``image`` can either be an image object or a path to an uncompressed image
-   file (bmp/pgm/ppm).
+   Not supported on compressed images or bayer images.
 
-   Both images must be the same size and the same type (grayscale/rgb).
+.. method:: image.add(image, [mask=None])
 
-   Not supported on compressed images.
+   Adds an image pixel-wise to this one.
 
-.. method:: image.blend(image, alpha=128)
+   ``image`` can either be an image object, a path to an uncompressed image
+   file (bmp/pgm/ppm), or a scalar value. If a scalar value the value can
+   either be an RGB888 tuple or the underlying pixel value (e.g. an 8-bit grayscale
+   for grayscale images or a byte-reversed RGB565 value for RGB images).
 
-   Blends another image ``image`` into this image.
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
 
-   ``image`` can either be an image object or a path to an uncompressed image
-   file (bmp/pgm/ppm).
+   Returns the image object so you can call another method using ``.`` notation.
 
-   ``alpha`` controls the transparency. 256 for an opaque overlay. 0 for none.
+   Not supported on compressed images or bayer images.
 
-   Both images must be the same size and the same type (grayscale/rgb).
+.. method:: image.sub(image, [reverse=False, [mask=None]])
 
-   Not supported on compressed images.
+   Subtracts an image pixel-wise to this one.
 
-   .. note::
+   ``image`` can either be an image object, a path to an uncompressed image
+   file (bmp/pgm/ppm), or a scalar value. If a scalar value the value can
+   either be an RGB888 tuple or the underlying pixel value (e.g. an 8-bit grayscale
+   for grayscale images or a byte-reversed RGB565 value for RGB images).
 
-      ``alpha`` is a keyword argument which must be explicitly
-      invoked in the function call by writing ``alpha=``.
+   Set ``reverse`` to True to reverse the subtraction operation from
+   ``this_image-image`` to ``image-this_image``.
 
-.. method:: image.max(image)
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
 
-   On a pixel-by-pixel level replace a pixel in this iamge with the maximum pixel
-   value between this image and another image.
+   Returns the image object so you can call another method using ``.`` notation.
 
-   ``image`` can either be an image object or a path to an uncompressed image
-   file (bmp/pgm/ppm).
+   Not supported on compressed images or bayer images.
 
-   Both images must be the same size and the same type (grayscale/rgb).
+.. method:: image.mul(image, [invert=False, [mask=None]])
 
-   Not supported on compressed images.
+   Multiplies two images pixel-wise with each other.
 
-.. method:: image.min(image)
+   ``image`` can either be an image object, a path to an uncompressed image
+   file (bmp/pgm/ppm), or a scalar value. If a scalar value the value can
+   either be an RGB888 tuple or the underlying pixel value (e.g. an 8-bit grayscale
+   for grayscale images or a byte-reversed RGB565 value for RGB images).
 
-   On a pixel-by-pixel level replace a pixel in this iamge with the minimum pixel
-   value between this image and another image.
+   Set ``invert`` to True to change the multiplication operation from ``a*b``
+   to ``1/((1/a)*(1/b))``. In particular, this lightens the image instead of
+   darkening it (e.g. multiply versus burn operations).
 
-   ``image`` can either be an image object or a path to an uncompressed image
-   file (bmp/pgm/ppm).
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
 
-   Both images must be the same size and the same type (grayscale/rgb).
+   Returns the image object so you can call another method using ``.`` notation.
 
-   Not supported on compressed images.
+   Not supported on compressed images or bayer images.
+
+.. method:: image.div(image, [invert=False, [mask=None]])
+
+   Divides this image by another one.
+
+   ``image`` can either be an image object, a path to an uncompressed image
+   file (bmp/pgm/ppm), or a scalar value. If a scalar value the value can
+   either be an RGB888 tuple or the underlying pixel value (e.g. an 8-bit grayscale
+   for grayscale images or a byte-reversed RGB565 value for RGB images).
+
+   Set ``invert`` to True to change the division direction from ``a/b`` to
+   ``b/a``.
+
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.min(image, [mask=None])
+
+   Returns the minimum image of two images pixel-wise.
+
+   ``image`` can either be an image object, a path to an uncompressed image
+   file (bmp/pgm/ppm), or a scalar value. If a scalar value the value can
+   either be an RGB888 tuple or the underlying pixel value (e.g. an 8-bit grayscale
+   for grayscale images or a byte-reversed RGB565 value for RGB images).
+
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.max(image, [mask=None])
+
+   Returns the minimum image of two images pixel-wise.
+
+   ``image`` can either be an image object, a path to an uncompressed image
+   file (bmp/pgm/ppm), or a scalar value. If a scalar value the value can
+   either be an RGB888 tuple or the underlying pixel value (e.g. an 8-bit grayscale
+   for grayscale images or a byte-reversed RGB565 value for RGB images).
+
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.difference(image, [mask=None])
+
+   Returns the absolute difference image between two images (e.g. ||a-b||).
+
+   ``image`` can either be an image object, a path to an uncompressed image
+   file (bmp/pgm/ppm), or a scalar value. If a scalar value the value can
+   either be an RGB888 tuple or the underlying pixel value (e.g. an 8-bit grayscale
+   for grayscale images or a byte-reversed RGB565 value for RGB images).
+
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.blend(image, [alpha=128, [mask=None]])
+
+   Alpha blends two images with each other.
+
+   ``image`` can either be an image object, a path to an uncompressed image
+   file (bmp/pgm/ppm), or a scalar value. If a scalar value the value can
+   either be an RGB888 tuple or the underlying pixel value (e.g. an 8-bit grayscale
+   for grayscale images or a byte-reversed RGB565 value for RGB images).
+
+   ``alpha`` controls how much of the other image to blend into this image.
+   ``alpha`` should be an integer value between 0 and 256. A value closer to
+   zero blends more of the other image into this image and a value closer to
+   256 does the opposite.
+
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.histeq([adaptive=False, [clip_limit=-1, [mask=None]]])
+
+   Runs the histogram equalization algorithm on the image. Histogram
+   equalization normalizes the contrast and brightness in the image.
+
+   If you pass ``adaptive`` as True then an adaptive histogram equalization
+   method will be run on the image instead which as generally better results
+   than non-adaptive histogram qualization but a longer run time.
+
+   ``clip_limit`` provides a way to limit the contrast of the adaptive histogram
+   qualization. Use a small value for this, like 10, to produce good histogram
+   equalized contrast limited images.
+
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.mean(size, [threshold=False, [offset=0, [invert=False, [mask=None]]]]])
+
+   Standard mean blurring filter using a box filter.
+
+   ``size`` is the kernel size. Use 1 (3x3 kernel), 2 (5x5 kernel), etc.
+
+   If you'd like to adaptive threshold the image on the output of the filter
+   you can pass ``threshold=True`` which will enable adaptive thresholding of the
+   image which sets pixels to one or zero based on a pixel's brightness in relation
+   to the brightness of the kernel of pixels around them. A negative ``offset``
+   value sets more pixels to 1 as you make it more negative while a positive
+   value only sets the sharpest contrast changes to 1. Set ``invert`` to invert
+   the binary image resulting output.
+
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: median(size, [percentile=0.5, [threshold=False, [offset=0, [invert=False, [mask=None]]]]])
+
+   Runs the median filter on the image. The median filter is the best filter
+   for smoothing surfaces while preserving edges but it is very slow.
+
+   ``size`` is the kernel size. Use 1 (3x3 kernel), 2 (5x5 kernel), etc.
+
+   ``percentile`` controls the percentile of the value used in the kernel. By
+   default each pixel is replaced with the 50th percentile (center) of its
+   neighbors. You can set this to 0 for a min filter, 0.25 for a lower quartile
+   filter, 0.75 for an upper quartile filter, and 1.0 for a max filter.
+
+   If you'd like to adaptive threshold the image on the output of the filter
+   you can pass ``threshold=True`` which will enable adaptive thresholding of the
+   image which sets pixels to one or zero based on a pixel's brightness in relation
+   to the brightness of the kernel of pixels around them. A negative ``offset``
+   value sets more pixels to 1 as you make it more negative while a positive
+   value only sets the sharpest contrast changes to 1. Set ``invert`` to invert
+   the binary image resulting output.
+
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.mode(size, [threshold=False, [offset=0, [invert=False, [mask=None]]]]])
+
+   Runs the mode filter on the image by replacing each pixel with the mode of
+   their neighbors. This method works great on grayscale images. However, on
+   RGB images it creates a lot of artifacts on edges because of the non-linear
+   nature of the operation.
+
+   ``size`` is the kernel size. Use 1 (3x3 kernel), 2 (5x5 kernel), etc.
+
+   If you'd like to adaptive threshold the image on the output of the filter
+   you can pass ``threshold=True`` which will enable adaptive thresholding of the
+   image which sets pixels to one or zero based on a pixel's brightness in relation
+   to the brightness of the kernel of pixels around them. A negative ``offset``
+   value sets more pixels to 1 as you make it more negative while a positive
+   value only sets the sharpest contrast changes to 1. Set ``invert`` to invert
+   the binary image resulting output.
+
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.midpoint(size, [bias=0.5, [threshold=False, [offset=0, [invert=False, [mask=None]]]]])
+
+   Runs the midpoint filter on the image. This filter finds the midpoint
+   ((max-min)/2) of each pixel neighborhood in the image.
+
+   ``size`` is the kernel size. Use 1 (3x3 kernel), 2 (5x5 kernel), etc.
+
+   ``bias`` controls the min/max mixing. 0 for min filtering only, 1.0 for max
+   filtering only. By using the ``bias`` you can min/max filter the image.
+
+   If you'd like to adaptive threshold the image on the output of the filter
+   you can pass ``threshold=True`` which will enable adaptive thresholding of the
+   image which sets pixels to one or zero based on a pixel's brightness in relation
+   to the brightness of the kernel of pixels around them. A negative ``offset``
+   value sets more pixels to 1 as you make it more negative while a positive
+   value only sets the sharpest contrast changes to 1. Set ``invert`` to invert
+   the binary image resulting output.
+
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.morph(size, kernel, [mul, [add=0, [threshold=False, [offset=0, [invert=False, [mask=None]]]]]])
+
+   Convolves the image by a filter kernel. This allows you to do general purpose
+   convolutions on an image.
+
+   ``size`` controls the size of the kernel which must be
+   ((size*2)+1)x((size*2)+1) elements big.
+
+   ``kernel`` is the kernel to convolve the image by. It can either be a tuple
+   or a list of integer values.
+
+   ``mul`` is number to multiply the convolution pixel results by. When not set
+   it defaults to a value that will prevent scaling in the convolution output.
+
+   ``add`` is a value to add to each convolution pixel result.
+
+   ``mul`` basically allows you to do a global contrast adjustment and ``add``
+   allows you to do a global brightness adjustment. Pixels that go outside of
+   the image mins and maxes for color channels will be clipped.
+
+   If you'd like to adaptive threshold the image on the output of the filter
+   you can pass ``threshold=True`` which will enable adaptive thresholding of the
+   image which sets pixels to one or zero based on a pixel's brightness in relation
+   to the brightness of the kernel of pixels around them. A negative ``offset``
+   value sets more pixels to 1 as you make it more negative while a positive
+   value only sets the sharpest contrast changes to 1. Set ``invert`` to invert
+   the binary image resulting output.
+
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.gaussian(size, [unsharp=False, [mul, [add=0, [threshold=False, [offset=0, [invert=False, [mask=None]]]]]]])
+
+   Convolves the image by a smoothing guassian kernel.
+
+   ``size`` is the kernel size. Use 1 (3x3 kernel), 2 (5x5 kernel), etc.
+
+   If ``unsharp`` is set to the True then instead of doing just a guassian
+   filtering operation this method will perform an unsharp mask operation which
+   improves image sharpness on edges.
+
+   ``mul`` is number to multiply the convolution pixel results by. When not set
+   it defaults to a value that will prevent scaling in the convolution output.
+
+   ``add`` is a value to add to each convolution pixel result.
+
+   ``mul`` basically allows you to do a global contrast adjustment and ``add``
+   allows you to do a global brightness adjustment. Pixels that go outside of
+   the image mins and maxes for color channels will be clipped.
+
+   If you'd like to adaptive threshold the image on the output of the filter
+   you can pass ``threshold=True`` which will enable adaptive thresholding of the
+   image which sets pixels to one or zero based on a pixel's brightness in relation
+   to the brightness of the kernel of pixels around them. A negative ``offset``
+   value sets more pixels to 1 as you make it more negative while a positive
+   value only sets the sharpest contrast changes to 1. Set ``invert`` to invert
+   the binary image resulting output.
+
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.laplacian(size, [sharpen=False, [mul, [add=0, [threshold=False, [offset=0, [invert=False, [mask=None]]]]]]])
+
+   Convolves the image by a edge detecting laplacian kernel.
+
+   ``size`` is the kernel size. Use 1 (3x3 kernel), 2 (5x5 kernel), etc.
+
+   If ``sharpen`` is set to the True then instead of just outputting an
+   unthresholded edge detection image this method will instead sharpen the
+   image. Increase the kernel size then to increase the image sharpness.
+
+   ``mul`` is number to multiply the convolution pixel results by. When not set
+   it defaults to a value that will prevent scaling in the convolution output.
+
+   ``add`` is a value to add to each convolution pixel result.
+
+   ``mul`` basically allows you to do a global contrast adjustment and ``add``
+   allows you to do a global brightness adjustment. Pixels that go outside of
+   the image mins and maxes for color channels will be clipped.
+
+   If you'd like to adaptive threshold the image on the output of the filter
+   you can pass ``threshold=True`` which will enable adaptive thresholding of the
+   image which sets pixels to one or zero based on a pixel's brightness in relation
+   to the brightness of the kernel of pixels around them. A negative ``offset``
+   value sets more pixels to 1 as you make it more negative while a positive
+   value only sets the sharpest contrast changes to 1. Set ``invert`` to invert
+   the binary image resulting output.
+
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.bilateral(size, [color_sigma=0.1, [space_sigma=1, [threshold=False, [offset=0, [invert=False, [mask=None]]]]]])
+
+   Convolves the image by a bilateral filter. The bilateral filter smooths the
+   image while keeping edges in the image.
+
+   ``size`` is the kernel size. Use 1 (3x3 kernel), 2 (5x5 kernel), etc.
+
+   ``color_sigma`` controls how closely colors are matched using the bilateral
+   filter. Increase this to increase color blurring.
+
+   ``space_sigma`` controls how closely pixels space-wise are blurred with
+   each other. Increase this to increase pixel blurring.
+
+   If you'd like to adaptive threshold the image on the output of the filter
+   you can pass ``threshold=True`` which will enable adaptive thresholding of the
+   image which sets pixels to one or zero based on a pixel's brightness in relation
+   to the brightness of the kernel of pixels around them. A negative ``offset``
+   value sets more pixels to 1 as you make it more negative while a positive
+   value only sets the sharpest contrast changes to 1. Set ``invert`` to invert
+   the binary image resulting output.
+
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: image.cartoon(size, [seed_threshold=0.05, [floating_threshold=0.05, [mask=None]]])
+
+   Walks across an image and flood-fills all pixels regions in the image. This
+   effectively removes texture from the image by flattening the color in all
+   regions of the image. For the best results, the image should have lots of
+   contrast such that regions do not bleed into each other too easily.
+
+   ``seed_threshold`` controls how different any pixel in the fill area may be
+   from the original starting pixel.
+
+   ``floating_threshold`` controls how different any pixel in the fill area may
+   be from any neighbor pixels.
+
+   ``mask`` is another image to use as a pixel level mask for the operation.
+   The mask should be an image with just black or white pixels and should be the
+   same size as the image being operated on. Only pixels set in the mask are
+   modified.
+
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
 
 .. method:: image.remove_shadows([image])
 
@@ -1916,135 +2696,27 @@ Methods
 
    This method is incredibly useful for frame differencing motion detection.
 
+   Returns the image object so you can call another method using ``.`` notation.
+
    Only works on RGB565 images.
 
-.. method:: image.morph(size, kernel, mul=Auto, add=0)
+.. method:: image.chrominvar()
 
-   Convolves the image by a filter kernel.
+   Removes illumination from the input image leaving only color graidients
+   behind. Faster than `image.illuminvar()` but affected by shadows.
 
-   ``size`` controls the size of the kernel which must be
-   ((size*2)+1)x((size*2)+1) pixels big.
+   Returns the image object so you can call another method using ``.`` notation.
 
-   ``kernel`` is the kernel to convolve the image by. It can either be a tuple
-   or a list of [-128:127] values.
+   Only works on RGB565 images.
 
-   ``mul`` is number to multiply the convolution pixel result by. When not set
-   it defaults to a value that will prevent scaling in the convolution output.
+.. method:: image.illuminvar()
 
-   ``add`` is a value to add to each convolution pixel result.
+   Removes illumination from the input image leaving only color graidients
+   behind. Slower than `image.chrominvar()` but unaffected by shadows.
 
-   ``mul`` basically allows you to do a global contrast adjustment and ``add``
-   allows you to do a global brightness adjustment.
+   Returns the image object so you can call another method using ``.`` notation.
 
-   .. note::
-
-      ``mul`` and ``add`` are keyword arguments which must be explicitly
-      invoked in the function call by writing ``mul=`` or ``add=``.
-
-.. method:: image.midpoint(size, [bias=0.5, threshold=False, offset=0, invert=False, mask])
-
-   Runs the midpoint filter on the image.
-
-   ``size`` is the kernel size. Use 1 (3x3 kernel), 2 (5x5 kernel), or higher.
-
-   ``bias`` controls the min/max mixing. 0 for min filtering only, 1.0 for max
-   filtering only. By using the ``bias`` you can min/max filter the image.
-
-   If you'd like to adaptive threshold the image on the output of the mean filter
-   you can pass ``threshold=True`` which will enable adaptive thresholding of the
-   image which sets pixels to 1 or zero based on a pixel's brightness in relation
-   to the brightness of the kernel of pixels around them. A negative ``offset``
-   value sets more pixels to 1 as you make it more negative while a positive
-   value only sets the sharpest contrast changes to 1. Set ``invert`` to invert
-   the binary image resulting output.
-
-   ``mask`` may be an optional binary image of the same size used to turn the
-   mode filter on/off on a pixel-by-pixel level based if a pixel is 1/0 respectively.
-
-   Not supported on compressed images.
-
-   .. note::
-
-      ``bias`` is a keyword argument which must be explicitly
-      invoked in the function call by writing ``bias=``.
-
-.. method:: image.mean(size, [threshold=False, offset=0, invert=False, mask])
-
-   Standard mean blurring filter (faster than using morph for this).
-
-   ``size`` is the kernel size. Use 1 (3x3 kernel), 2 (5x5 kernel), or higher.
-
-   If you'd like to adaptive threshold the image on the output of the mean filter
-   you can pass ``threshold=True`` which will enable adaptive thresholding of the
-   image which sets pixels to 1 or zero based on a pixel's brightness in relation
-   to the brightness of the kernel of pixels around them. A negative ``offset``
-   value sets more pixels to 1 as you make it more negative while a positive
-   value only sets the sharpest contrast changes to 1. Set ``invert`` to invert
-   the binary image resulting output.
-
-   ``mask`` may be an optional binary image of the same size used to turn the
-   mode filter on/off on a pixel-by-pixel level based if a pixel is 1/0 respectively.
-
-   Not supported on compressed images.
-
-.. method:: median(size, [percentile=0.5, threshold=False, offset=0, invert=False, mask])
-
-   Runs the median filter on the image. The median filter is the best filter
-   for smoothing surfaces while preserving edges but it is very slow.
-
-   ``size`` is the kernel size. Use 1 (3x3 kernel) or 2 (5x5 kernel).
-
-   ``percentile`` controls the percentile of the value used in the kernel. By
-   default each pixel is replace with the 50th percentile (center) of it's
-   neighbours. You can set this to 0 for a min filter, 0.25 for a lower quartile
-   filter, 0.75 for an upper quartile filter, and 1.0 for a max filter.
-
-   If you'd like to adaptive threshold the image on the output of the mean filter
-   you can pass ``threshold=True`` which will enable adaptive thresholding of the
-   image which sets pixels to 1 or zero based on a pixel's brightness in relation
-   to the brightness of the kernel of pixels around them. A negative ``offset``
-   value sets more pixels to 1 as you make it more negative while a positive
-   value only sets the sharpest contrast changes to 1. Set ``invert`` to invert
-   the binary image resulting output.
-
-   ``mask`` may be an optional binary image of the same size used to turn the
-   mode filter on/off on a pixel-by-pixel level based if a pixel is 1/0 respectively.
-
-   Not supported on compressed images.
-
-   .. note::
-
-      ``percentile`` is a keyword argument which must be explicitly
-      invoked in the function call by writing ``percentile=``.
-
-.. method:: image.mode(size, [threshold=False, offset=0, invert=False, mask])
-
-   Runs the mode filter on the image by replacing each pixel with the mode of
-   their neighbours. This method works great on grayscale images. However, on
-   RGB images it creates a lot of artifacts on edges because of the non-linear
-   nature of the operation.
-
-   If you'd like to adaptive threshold the image on the output of the mean filter
-   you can pass ``threshold=True`` which will enable adaptive thresholding of the
-   image which sets pixels to 1 or zero based on a pixel's brightness in relation
-   to the brightness of the kernel of pixels around them. A negative ``offset``
-   value sets more pixels to 1 as you make it more negative while a positive
-   value only sets the sharpest contrast changes to 1. Set ``invert`` to invert
-   the binary image resulting output.
-
-   ``mask`` may be an optional binary image of the same size used to turn the
-   mode filter on/off on a pixel-by-pixel level based if a pixel is 1/0 respectively.
-
-   ``size`` is the kernel size. Use 1 (3x3 kernel) or 2 (5x5 kernel).
-
-   Not supported on compressed images.
-
-.. method:: image.gaussian(size)
-
-   Smooths the image with the gaussian kernel. ``size`` may be either 3 or 5
-   for a 3x3 or 5x5 kernel.
-
-   Not supported on compressed images.
+   Only works on RGB565 images.
 
 .. method:: image.linpolar([reverse=False])
 
@@ -2054,7 +2726,7 @@ Methods
 
    Linear polar re-projection turns rotation of an image into x-translation.
 
-   Not supported on compressed images.
+   Not supported on compressed images or bayer images.
 
 .. method:: image.logpolar([reverse=False])
 
@@ -2065,30 +2737,11 @@ Methods
    Log polar re-projection turns rotation of an image into x-translation
    and scaling/zooming into y-translation.
 
-   Not supported on compressed images.
+   Not supported on compressed images or bayer images.
 
-.. method:: image.chrominvar()
+.. method:: image.lens_corr([strength=1.8, [zoom=1.0]])
 
-   Removes the effect of lighting from the image.
-
-   RGB565 images only.
-
-.. method:: image.illuminvar()
-
-   Removes the effect of lighting from the image and shadows.
-
-   RGB565 images only.
-
-.. method:: image.histeq()
-
-   Runs the histogram equalization algorithm on the image. Histogram
-   equalization normalizes the contrast and brightness in the image.
-
-   Not supported on compressed images.
-
-.. method:: image.lens_corr(strength=1.8, zoom=1.0)
-
-   Performs lens correction to un-fisheye the image due to the lens.
+   Performs lens correction to un-fisheye the image due to the lens distortion.
 
    ``strength`` is a float defining how much to un-fisheye the image. Try 1.8
    out by default and then increase or decrease from there until the image
@@ -2096,7 +2749,11 @@ Methods
 
    ``zoom`` is the amount to zoom in on the image by. 1.0 by default.
 
-.. method:: img.rotation_corr(x_rotation=0.0, y_rotation=0.0, z_rotation=0.0, x_translation=0.0, y_translation=0.0, zoom=1.0)
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
+.. method:: img.rotation_corr([x_rotation=0.0, [y_rotation=0.0, [z_rotation=0.0, [x_translation=0.0, [y_translation=0.0, [zoom=1.0]]]]]])
 
    Corrects perspective issues in the image by doing a 3D rotation of the frame buffer.
 
@@ -2117,53 +2774,118 @@ Methods
 
    ``zoom`` is the amount to zoom in on the image by. 1.0 by default.
 
+   Returns the image object so you can call another method using ``.`` notation.
+
+   Not supported on compressed images or bayer images.
+
 .. method:: image.get_similarity(image)
 
-   Returns a ``similarity`` object describing how similar two images are using
+   Returns a `image.similarity` object describing how similar two images are using
    the SSIM algorithm to compare 8x8 pixel patches between the two images.
 
-   ``image`` can either be an image object or a path to an uncompressed image
-   file (bmp/pgm/ppm).
+   ``image`` can either be an image object, a path to an uncompressed image
+   file (bmp/pgm/ppm), or a scalar value. If a scalar value the value can
+   either be an RGB888 tuple or the underlying pixel value (e.g. an 8-bit grayscale
+   for grayscale images or a byte-reversed RGB565 value for RGB images).
 
-   Both images must be the same size and the same type (grayscale/rgb).
+   Not supported on compressed images or bayer images.
 
-   Not supported on compressed images.
-
-.. method:: image.get_histogram(roi=Auto, bins=Auto, l_bins=Auto, a_bins=Auto, b_bins=Auto)
+.. method:: image.get_histogram([thresholds, [invert=False, [roi, [bins, [l_bins, [a_bins, [b_bins]]]]]]])
 
    Computes the normalized histogram on all color channels for an ``roi`` and
-   returns a ``histogram`` object. Please see the ``histogram`` object for more
-   information. You can also invoke this method by using ``image.get_hist`` or
-   ``image.histogram``.
+   returns a `image.histogram` object. Please see the `image.histogram` object for more
+   information. You can also invoke this method by using ``image.get_hist()`` or
+   ``image.histogram()``. If you pass a list of ``thresholds`` then the histogram
+   information will only be computed from pixels within the threshold list.
+
+   ``thresholds`` must be a list of tuples
+   ``[(lo, hi), (lo, hi), ..., (lo, hi)]`` defining the ranges of color you
+   want to track. For
+   grayscale images each tuple needs to contain two values - a min grayscale
+   value and a max grayscale value. Only pixel regions that fall between these
+   thresholds will be considered. For RGB565 images each tuple needs to have
+   six values (l_lo, l_hi, a_lo, a_hi, b_lo, b_hi) - which are minimums and
+   maximums for the LAB L, A, and B channels respectively. For easy usage this
+   function will automatically fix swapped min and max values. Additionally,
+   if a tuple is larger than six values the rest are ignored. Conversely, if the
+   tuple is too short the rest of the thresholds are assumed to be at maximum
+   range.
+
+   .. note::
+
+      To get the thresholds for the object you want to track just select (click
+      and drag) on the object you want to track in the IDE frame buffer. The
+      histogram will then update to just be in that area. Then just write down
+      where the color distribution starts and falls off in each histogram channel.
+      These will be your low and high values for ``thresholds``. It's best to
+      manually determine the thresholds versus using the upper and lower
+      quartile statistics because they are too tight.
+
+      You may also determine color thresholds by going into
+      ``Tools->Machine Vision->Threshold Editor`` in OpenMV IDE and selecting
+      thresholds from the GUI slider window.
+
+   ``invert`` inverts the thresholding operation such that instead of matching
+   pixels inside of some known color bounds pixels are matched that are outside
+   of the known color bounds.
 
    Unless you need to do something advanced with color statistics just use the
-   ``image.get_statistics`` method instead of this method for looking at pixel
+   `image.get_statistics()` method instead of this method for looking at pixel
    areas in an image.
 
    ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
    specified, it is equal to the image rectangle. Only pixels within the
    ``roi`` are operated on.
 
-   ``bin_count`` and others are the number of bins to use for the histogram
-   channels. For grayscale images use ``bin_count`` and for RGB565 images use
+   ``bins`` and others are the number of bins to use for the histogram
+   channels. For grayscale images use ``bins`` and for RGB565 images use
    the others for each channel. The bin counts must be greater than 2 for each
    channel. Additionally, it makes no sense to set the bin count larger than
-   the number of unique pixel values for each channel.
+   the number of unique pixel values for each channel. By default, the historgram
+   will have the maximum number of bins per channel.
 
-   Not supported on compressed images.
+   Not supported on compressed images or bayer images.
 
-   .. note::
-
-      ``roi``, ``bin_count``, and etc. are keyword arguments which must be
-      explicitly invoked in the function call by writing ``roi=``, etc.
-
-.. method:: image.get_statistics(roi=Auto, bins=Auto, l_bins=Auto, a_bins=Auto, b_bins=Auto)
+.. method:: image.get_statistics([thresholds, [invert=False, [roi, [bins, [l_bins, [a_bins, [b_bins]]]]]]])
 
    Computes the mean, median, mode, standard deviation, min, max, lower
    quartile, and upper quartile for all color channels for an ``roi`` and
-   returns a ``statistics`` object. Please see the ``statistics`` object for
-   more information. You can also invoke this method by using
-   ``image.get_stats`` or ``image.statistics``.
+   returns a `image.statistics` object. Please see the `image.statistics`
+   object for more information. You can also invoke this method by using
+   ``image.get_stats`` or ``image.statistics``. If you pass a list of
+   ``thresholds`` then the histogram information will only be computed from
+   pixels within the threshold list.
+
+   ``thresholds`` must be a list of tuples
+   ``[(lo, hi), (lo, hi), ..., (lo, hi)]`` defining the ranges of color you
+   want to track. For
+   grayscale images each tuple needs to contain two values - a min grayscale
+   value and a max grayscale value. Only pixel regions that fall between these
+   thresholds will be considered. For RGB565 images each tuple needs to have
+   six values (l_lo, l_hi, a_lo, a_hi, b_lo, b_hi) - which are minimums and
+   maximums for the LAB L, A, and B channels respectively. For easy usage this
+   function will automatically fix swapped min and max values. Additionally,
+   if a tuple is larger than six values the rest are ignored. Conversely, if the
+   tuple is too short the rest of the thresholds are assumed to be at maximum
+   range.
+
+   .. note::
+
+      To get the thresholds for the object you want to track just select (click
+      and drag) on the object you want to track in the IDE frame buffer. The
+      histogram will then update to just be in that area. Then just write down
+      where the color distribution starts and falls off in each histogram channel.
+      These will be your low and high values for ``thresholds``. It's best to
+      manually determine the thresholds versus using the upper and lower
+      quartile statistics because they are too tight.
+
+      You may also determine color thresholds by going into
+      ``Tools->Machine Vision->Threshold Editor`` in OpenMV IDE and selecting
+      thresholds from the GUI slider window.
+
+   ``invert`` inverts the thresholding operation such that instead of matching
+   pixels inside of some known color bounds pixels are matched that are outside
+   of the known color bounds.
 
    You'll want to use this method any time you need to get information about
    the values of an area of pixels in an image. For example, after if you're
@@ -2175,20 +2897,16 @@ Methods
    specified, it is equal to the image rectangle. Only pixels within the
    ``roi`` are operated on.
 
-   ``bin_count`` and others are the number of bins to use for the histogram
-   channels. For grayscale images use ``bin_count`` and for RGB565 images use
+   ``bins`` and others are the number of bins to use for the histogram
+   channels. For grayscale images use ``bins`` and for RGB565 images use
    the others for each channel. The bin counts must be greater than 2 for each
    channel. Additionally, it makes no sense to set the bin count larger than
-   the number of unique pixel values for each channel.
+   the number of unique pixel values for each channel. By default, the historgram
+   will have the maximum number of bins per channel.
 
-   Not supported on compressed images.
+   Not supported on compressed images or bayer images.
 
-   .. note::
-
-      ``roi``, ``bin_count``, and etc. are keyword arguments which must be
-      explicitly invoked in the function call by writing ``roi=``, etc.
-
-.. method:: image.get_regression(thresholds, [roi, x_stride=2, y_stride=1, invert=False, area_threshold=10, pixels_threshold=10, robust=False])
+.. method:: image.get_regression(thresholds, [invert=False, [roi, [x_stride=2, [y_stride=1, [area_threshold=10, [pixels_threshold=10, [robust=False]]]]]]])
 
    Computes a linear regression on all the thresholded pixels in the image. The
    linear regression is computed using least-squares normally which is fast but
@@ -2200,21 +2918,21 @@ Methods
    thresholding remains low the linear regression will be valid even in the case
    of up to 30% of the thresholded pixels being outliers (e.g. it's robust).
 
-   This method returns a ``line`` object. See this blog post on how to use the
+   This method returns a `image.line` object. See this blog post on how to use the
    line object easily: https://openmv.io/blogs/news/linear-regression-line-following
 
    ``thresholds`` must be a list of tuples
    ``[(lo, hi), (lo, hi), ..., (lo, hi)]`` defining the ranges of color you
-   want to track. You may pass up to 16 threshold tuples in one
-   ``image.find_blobs`` call. For grayscale images each tuple needs to contain
-   two values - a min grayscale value and a max grayscale value. Only pixel
-   regions that fall between these thresholds will be considered. For RGB565
-   images each tuple needs to have six values (l_lo, l_hi, a_lo, a_hi, b_lo,
-   b_hi) - which are minimums and maximums for the LAB L, A, and B channels
-   respectively. For easy usage this function will automatically fix swapped
-   min and max values. Additionally, if a tuple is larger than six values the
-   rest are ignored. Conversely, if the tuple is too short the rest of the
-   thresholds are assumed to be zero.
+   want to track. For
+   grayscale images each tuple needs to contain two values - a min grayscale
+   value and a max grayscale value. Only pixel regions that fall between these
+   thresholds will be considered. For RGB565 images each tuple needs to have
+   six values (l_lo, l_hi, a_lo, a_hi, b_lo, b_hi) - which are minimums and
+   maximums for the LAB L, A, and B channels respectively. For easy usage this
+   function will automatically fix swapped min and max values. Additionally,
+   if a tuple is larger than six values the rest are ignored. Conversely, if the
+   tuple is too short the rest of the thresholds are assumed to be at maximum
+   range.
 
    .. note::
 
@@ -2226,55 +2944,46 @@ Methods
       manually determine the thresholds versus using the upper and lower
       quartile statistics because they are too tight.
 
-      The latest version of OpenMV IDE features a threshold editor to help make
-      picking thresholds easer. It lets you control the threshold with sliders
-      so you can see what the thresholds are segmenting.
+      You may also determine color thresholds by going into
+      ``Tools->Machine Vision->Threshold Editor`` in OpenMV IDE and selecting
+      thresholds from the GUI slider window.
+
+   ``invert`` inverts the thresholding operation such that instead of matching
+   pixels inside of some known color bounds pixels are matched that are outside
+   of the known color bounds.
 
    ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
    specified, it is equal to the image rectangle. Only pixels within the
    ``roi`` are operated on.
 
-   ``x_stride`` is the number of x pixels to skip when searching for a blob.
-   Once a blob is found the line fill algorithm will be pixel accurate.
-   Increase ``x_stride`` to speed up finding blobs if blobs are know to be large.
+   ``x_stride`` is the number of x pixels to skip over when evaluating the image.
 
-   ``y_stride`` is the number of y pixels to skip when searching for a blob.
-   Once a blob is found the line fill algorithm will be pixel accurate.
-   Increase ``y_stride`` to speed up finding blobs if blobs are know to be large.
-
-   ``invert`` inverts the thresholding operation such that instead of matching
-   pixels inside of some known color bounds pixels are matched that are outside
-   of the known color bounds.
+   ``y_stride`` is the number of y pixels to skip over when evaluating the image.
 
    If the regression's bounding box area is less than ``area_threshold`` then None is returned.
 
    If the regression's pixel count is less than ``pixel_threshold`` then None is returned.
 
-   Not supported on compressed images.
+   Not supported on compressed images or bayer images.
 
-   .. note::
-
-      All the arguments except ``thresholds`` are keyword arguments and must
-      be explicitly invoked with their name and an equal sign.
-
-.. method:: image.find_blobs(thresholds, [roi=Auto, x_stride=2, y_stride=1, invert=False, area_threshold=10, pixels_threshold=10, merge=False, margin=0, threshold_cb=None, merge_cb=None])
+.. method:: image.find_blobs(thresholds, [invert=False, [roi, [x_stride=2, [y_stride=1, [area_threshold=10, [pixels_threshold=10, [merge=False, [margin=0, [threshold_cb=None, [merge_cb=None]]]]]]]]]])
 
    Finds all blobs (connected pixel regions that pass a threshold test) in the
-   image and returns a list of ``blob`` objects which describe each blob.
-   Please see the ``blob`` object more more information.
+   image and returns a list of `image.blob` objects which describe each blob.
+   Please see the `image.blob` object more more information.
 
    ``thresholds`` must be a list of tuples
    ``[(lo, hi), (lo, hi), ..., (lo, hi)]`` defining the ranges of color you
-   want to track. You may pass up to 16 threshold tuples in one
-   ``image.find_blobs`` call. For grayscale images each tuple needs to contain
-   two values - a min grayscale value and a max grayscale value. Only pixel
-   regions that fall between these thresholds will be considered. For RGB565
-   images each tuple needs to have six values (l_lo, l_hi, a_lo, a_hi, b_lo,
-   b_hi) - which are minimums and maximums for the LAB L, A, and B channels
-   respectively. For easy usage this function will automatically fix swapped
-   min and max values. Additionally, if a tuple is larger than six values the
-   rest are ignored. Conversely, if the tuple is too short the rest of the
-   thresholds are assumed to be zero.
+   want to track. You may pass up to 16 threshold tuples in one call. For
+   grayscale images each tuple needs to contain two values - a min grayscale
+   value and a max grayscale value. Only pixel regions that fall between these
+   thresholds will be considered. For RGB565 images each tuple needs to have
+   six values (l_lo, l_hi, a_lo, a_hi, b_lo, b_hi) - which are minimums and
+   maximums for the LAB L, A, and B channels respectively. For easy usage this
+   function will automatically fix swapped min and max values. Additionally,
+   if a tuple is larger than six values the rest are ignored. Conversely, if the
+   tuple is too short the rest of the thresholds are assumed to be at maximum
+   range.
 
    .. note::
 
@@ -2286,9 +2995,13 @@ Methods
       manually determine the thresholds versus using the upper and lower
       quartile statistics because they are too tight.
 
-      The latest version of OpenMV IDE features a threshold editor to help make
-      picking thresholds easer. It lets you control the threshold with sliders
-      so you can see what the thresholds are segmenting.
+      You may also determine color thresholds by going into
+      ``Tools->Machine Vision->Threshold Editor`` in OpenMV IDE and selecting
+      thresholds from the GUI slider window.
+
+   ``invert`` inverts the thresholding operation such that instead of matching
+   pixels inside of some known color bounds pixels are matched that are outside
+   of the known color bounds.
 
    ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
    specified, it is equal to the image rectangle. Only pixels within the
@@ -2296,30 +3009,26 @@ Methods
 
    ``x_stride`` is the number of x pixels to skip when searching for a blob.
    Once a blob is found the line fill algorithm will be pixel accurate.
-   Increase ``x_stride`` to speed up finding blobs if blobs are know to be large.
+   Increase ``x_stride`` to speed up finding blobs if blobs are known to be large.
 
    ``y_stride`` is the number of y pixels to skip when searching for a blob.
    Once a blob is found the line fill algorithm will be pixel accurate.
-   Increase ``y_stride`` to speed up finding blobs if blobs are know to be large.
-
-   ``invert`` inverts the thresholding operation such that instead of matching
-   pixels inside of some known color bounds pixels are matched that are outside
-   of the known color bounds.
+   Increase ``y_stride`` to speed up finding blobs if blobs are known to be large.
 
    If a blob's bounding box area is less than ``area_threshold`` it is filtered
    out.
 
    If a blob's pixel count is less than ``pixel_threshold`` it is filtered out.
 
-   ``merge`` if True merges all not filtered out blobs who's bounding
+   ``merge`` if True merges all not filtered out blobs whos bounding
    rectangles intersect each other. ``margin`` can be used to increase or
    decrease the size of the bounding rectangles for blobs during the
-   intersection test. For example, with a margin of 1 blobs who's bounding
+   intersection test. For example, with a margin of 1 blobs whos bounding
    rectangles are 1 pixel away from each other will be merged.
 
    Merging blobs allows you to implement color code tracking. Each blob object
    has a ``code`` value which is a bit vector made up of 1s for each color
-   threshold. For example, if you pass ``image.find_blobs`` two color
+   threshold. For example, if you pass `image.find_blobs` two color
    thresholds then the first threshold has a code of 1 and the second 2 (a
    third threshold would be 4 and a fourth would be 8 and so on). Merged blobs
    logically OR all their codes together so that you know what colors produced
@@ -2330,7 +3039,7 @@ Methods
    do not fully track all the pixels of an object you are trying to follow.
 
    Finally, if you want to merge blobs, but, don't want two color thresholds to
-   be merged then just call ``image.find_blobs`` twice with separate thresholds
+   be merged then just call `image.find_blobs` twice with separate thresholds
    so that blobs aren't merged.
 
    ``threshold_cb`` may be set to the function to call on every blob after its
@@ -2343,79 +3052,66 @@ Methods
    two arguments - the two blob objects to be merged. The call back then must
    return True to merge the blobs or False to prevent merging the blobs.
 
-   Not supported on compressed images.
+   Not supported on compressed images or bayer images.
 
-   .. note::
+.. method:: image.find_lines([roi, [x_stride=2, [y_stride=1, [threshold=1000, [theta_margin=25, [rho_margin=25]]]]]])
 
-      All the arguments except ``thresholds`` are keyword arguments and must
-      be explicitly invoked with their name and an equal sign.
+   Finds all infinite lines in the image using the hough transform. Returns a list
+   of `image.line` objects.
 
-.. method:: image.find_lines(roi=Auto, x_stride=2, y_stride=1, threshold=1000, theta_margin=25, rho_margin=25)
+   ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+   specified, it is equal to the image rectangle. Only pixels within the
+   ``roi`` are operated on.
 
-    Finds all infinite lines in the image using the hough transform. Returns a list
-    of ``line`` objects (see above).
+   ``x_stride`` is the number of x pixels to skip when doing the hough transform.
+   Only increase this if lines you are searching for are large and bulky.
 
-    ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
-    specified, it is equal to the image rectangle. Only pixels within the
-    ``roi`` are operated on.
+   ``y_stride`` is the number of y pixels to skip when doing the hough transform.
+   Only increase this if lines you are searching for are large and bulky.
 
-    ``x_stride`` is the number of x pixels to skip when doing the hough transform.
-    Only increase this if lines you are searching for are large and bulky.
+   ``threshold`` controls what lines are detected from the hough transform. Only
+   lines with a magnitude greater than or equal to ``threshold`` are returned. The
+   right value of ``threshold`` for your application is image dependent. Note that
+   the magnitude of a line is the sum of all sobel filter magnitudes of pixels
+   that make up that line.
 
-    ``y_stride`` is the number of y pixels to skip when doing the hough transform.
-    Only increase this if lines you are searching for are large and bulky.
+   ``theta_margin`` controls the merging of detected lines. Lines which are
+   ``theta_margin`` degrees apart and ``rho_margin`` rho apart are merged.
 
-    ``threshold`` controls what lines are detected from the hough transform. Only
-    lines with a magnitude greater than or equal to ``threshold`` are returned. The
-    right value of ``threshold`` for your application is image dependent. Note that
-    the magnitude of a line is the sum of all sobel filter magnitudes of pixels
-    that make up that line.
+   ``rho_margin`` controls the merging of detected lines. Lines which are
+   ``theta_margin`` degrees apart and ``rho_margin`` rho apart are merged.
 
-    ``theta_margin`` controls the merging of detected lines. Lines which are
-    ``theta_margin`` degrees apart and ``rho_margin`` rho apart are merged.
+   This method working by running the sobel filter over the image and taking
+   the magnitude and gradient responses from the sobel filter to feed a hough
+   transform. It does not require any preprocessing on the image first. However,
+   my cleaning up the image using filtering you may get more stable results.
 
-    ``rho_margin`` controls the merging of detected lines. Lines which are
-    ``theta_margin`` degrees apart and ``rho_margin`` rho apart are merged.
+   Not supported on compressed images or bayer images.
 
-    This method working by running the sobel filter over the image and taking
-    the magnitude and gradient responses from the sobel filter to feed a hough
-    transform. It does not require any preprocessing on the image first. However,
-    my cleaning up the image filter you may get more stable results.
+.. method:: image.find_line_segments([roi, [merge_distance=0, [max_theta_difference=15]]])
 
-    .. note::
+   Finds line segments in the image using the hough transform. Returns a list
+   of `image.line` objects .
 
-      All the arguments are keyword arguments and must be explicitly invoked
-      with their name and an equal sign.
+   ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+   specified, it is equal to the image rectangle. Only pixels within the
+   ``roi`` are operated on.
 
-.. method:: image.find_line_segments(roi=Auto, merge_distance=0, max_theta_difference=15)
+   ``merge_distance`` specifies the maximum number of pixels two line segements
+   can be seperated by each other (at any point on one line) to be merged.
 
-    Finds line segments in the image using the hough transform. Returns a list
-    of ``line`` objects (see above).
+   ``max_theta_difference`` is the maximum theta difference in degrees two line
+   segements that are ``merge_distance`` apart to be merged.
 
-    ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
-    specified, it is equal to the image rectangle. Only pixels within the
-    ``roi`` are operated on.
+   This method uses the LSD library (also used by OpenCV) to find line segements
+   in the image. It's somewhat slow but very accurate and lines don't jump around.
 
-    ``merge_distance`` specifies the maximum number of pixels two line segements
-    can be seperated by each other (at any point on one line) to be merged.
+   Not supported on compressed images or bayer images.
 
-    ``max_theta_difference`` is the maximum theta difference in degrees two line
-    segements that are ``merge_distance`` above to be merged.
-
-    This method uses the LSD library (also used by OpenCV) to find line segements
-    in the image. It's somewhat slow but very accurate and lines don't jump around.
-
-    Only supported on the OpenMV Cam M7 or better (not enough RAM on the M4).
-
-    .. note::
-
-      All the arguments are keyword arguments and must be explicitly invoked
-      with their name and an equal sign.
-
-.. method:: image.find_circles([roi=Auto, x_stride=2, y_stride=1, threshold=1600, x_margin=10, y_margin=10, r_margin=10])
+.. method:: image.find_circles([roi, [x_stride=2, [y_stride=1, [threshold=2000, [x_margin=10, [y_margin=10, [r_margin=10]]]]]]])
 
    Finds circles in the image using the hough transform. Returns a list of
-   ``circle`` objects (see above).
+   `image.circle` objects.
 
    ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
    specified, it is equal to the image rectangle. Only pixels within the
@@ -2442,22 +3138,14 @@ Methods
    ``r_margin`` controls the merging of detected circles. Circles which are
    ``x_margin``, ``y_margin``, and ``r_margin`` pixels apart are merged.
 
-   .. note::
+   Not supported on compressed images or bayer images.
 
-      All the arguments are keyword arguments and must be explicitly invoked
-      with their name and an equal sign.
+.. method:: image.find_rects([roi=Auto, [threshold=10000]])
 
-   .. note::
-
-      This method is only for the OpenMV Cam M7.
-
-.. method:: image.find_rects([roi=Auto, threshold=10000])
-
-   Find rectangles in the image using the quad detection algorithm used to find
-   apriltags. Works best of rectangles that have good contrast against their
-   background. The apriltag quad detection algorithm can handle
-   any scale/rotation/shear on rectangles. Returns a list of ``rect`` objects
-   (see above).
+   Find rectangles in the image using the same quad detection algorithm used to
+   find apriltags. Works best of rectangles that have good contrast against the
+   background. The apriltag quad detection algorithm can handle any
+   scale/rotation/shear on rectangles. Returns a list of `image.rect` objects.
 
    ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
    specified, it is equal to the image rectangle. Only pixels within the
@@ -2465,56 +3153,42 @@ Methods
 
    Rectangles which have an edge magnitude (which is computed by sliding the
    sobel operator across all pixels on the edges of the rectangle and summing
-   the value) less than ``threshold`` are filtered out of the returned list.
+   their values) less than ``threshold`` are filtered out of the returned list.
    The correct value of ``threshold`` is depended on your application/scene.
 
-   .. note::
+   Not supported on compressed images or bayer images.
 
-      All the arguments are keyword arguments and must be explicitly invoked
-      with their name and an equal sign.
+.. method:: image.find_qrcodes([roi])
 
-   .. note::
-
-      This method is only for the OpenMV Cam M7.
-
-.. method:: image.find_qrcodes(roi=Auto)
-
-   Finds all qrcodes within the ``roi`` and returns a list of ``qrcode``
-   objects. Please see the ``qrcode`` object for more information.
+   Finds all qrcodes within the ``roi`` and returns a list of `image.qrcode`
+   objects. Please see the `image.qrcode` object for more information.
 
    QR Codes need to be relatively flat in the image for this method to work.
    You can achieve a flatter image that is not effected by lens distortion by
-   either using the ``sensor.set_windowing`` function to zoom in the on the
-   center of the lens, ``image.lens_corr`` to undo lens barrel distortion, or
+   either using the `sensor.set_windowing()` function to zoom in the on the
+   center of the lens, `image.lens_corr()` to undo lens barrel distortion, or
    by just changing out the lens for something with a narrower fields of view.
    There are machine vision lenses available which do not cause barrel
    distortion but they are much more expensive to than the standard lenses
-   supplied by OpenMV so we don't stock them (since they wouldn't sell).
+   supplied by OpenMV.
 
    ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
    specified, it is equal to the image rectangle. Only pixels within the
    ``roi`` are operated on.
 
-   Only supported on the OpenMV Cam M7 or better (not enough RAM on the M4).
+   Not supported on compressed images or bayer images.
 
-   Not supported on compressed images.
+.. method:: image.find_apriltags([roi, [families=image.TAG36H11, [fx, [fy, [cx, [cy]]]]]])
 
-   .. note::
-
-      ``roi`` is a keyword argument which must be explicitly invoked in the
-      function call by writing ``roi=``.
-
-.. method:: image.find_apriltags(roi=Auto, families=image.TAG36H11, fx=Auto, fy=Auto, cx=Auto, cy=Auto)
-
-   Finds all apriltags within the ``roi`` and returns a list of ``apriltag``
-   objects. Please see the ``apriltag`` object for more information.
+   Finds all apriltags within the ``roi`` and returns a list of `image.apriltag`
+   objects. Please see the `image.apriltag` object for more information.
 
    Unlike QR Codes, AprilTags can be detected at much farther distances, worse
    lighting, in warped images, etc. AprilTags are robust too all kinds of
    image distortion issues that QR Codes are not to. That said, AprilTags
    can only encode a numeric ID as their payload.
 
-   AprilTags can also be used for localization purposes. Each ``apriltag``
+   AprilTags can also be used for localization purposes. Each `image.apriltag`
    object returns its translation and rotation from the camera. The units
    of the translation are determined by ``fx``, ``fy``, ``cx``, and ``cy``
    which are the focal lengths and center points of the image in the X and
@@ -2531,15 +3205,15 @@ Methods
 
    ``families`` is bitmask of tag families to decode. It is the logical OR of:
 
-     * image.TAG16H5
-     * image.TAG25H7
-     * image.TAG25H9
-     * image.TAG36H10
-     * image.TAG36H11
-     * image.ARTOOLKIT
+     * `image.TAG16H5`
+     * `image.TAG25H7`
+     * `image.TAG25H9`
+     * `image.TAG36H10`
+     * `image.TAG36H11`
+     * `image.ARTOOLKIT`
 
-   By default it is just ``image.TAG36H11`` which is the best tag family to
-   use. Note that ``find_apriltags`` slows down a bit per enabled tag family.
+   By default it is just `image.TAG36H11` which is the best tag family to
+   use. Note that `image.find_apriltags()` slows down per enabled tag family.
 
    ``fx`` is the camera X focal length in pixels. For the standard OpenMV Cam
    this is (2.8 / 3.984) * 656. Which is the lens focal length in mm, divided
@@ -2557,29 +3231,21 @@ Methods
    ``cy`` is the image center which is just ``image.height()/2``. This is not
    ``roi.h()/2``.
 
-   Not supported on compressed images.
+   Not supported on compressed images or bayer images.
 
-   Only supported on the OpenMV Cam M7 or better (not enough RAM on the M4).
+.. method:: image.find_datamatrices([roi, [effort=200]])
 
-   .. note::
-
-      ``roi``, ``families``, ``fx``, ``fy``, ``cx``, and ``cy`` are keyword
-      arguments which must be explicitly invoked in the function call by
-      writing ``roi=``, ``families=``, ``fx=``, ``fy=``, ``cx=``, and ``cy=``.
-
-.. method:: image.find_datamatrices(roi=Auto, effort=200)
-
-   Finds all datamatrices within the ``roi`` and returns a list of ``datamatrix``
-   objects. Please see the ``datamatrix`` object for more information.
+   Finds all datamatrices within the ``roi`` and returns a list of `image.datamatrix`
+   objects. Please see the `image.datamatrix` object for more information.
 
    Data Matrices need to be relatively flat in the image for this method to work.
    You can achieve a flatter image that is not effected by lens distortion by
-   either using the ``sensor.set_windowing`` function to zoom in the on the
-   center of the lens, ``image.lens_corr`` to undo lens barrel distortion, or
+   either using the `sensor.set_windowing()` function to zoom in the on the
+   center of the lens, `image.lens_corr()` to undo lens barrel distortion, or
    by just changing out the lens for something with a narrower fields of view.
    There are machine vision lenses available which do not cause barrel
    distortion but they are much more expensive to than the standard lenses
-   supplied by OpenMV so we don't stock them (since they wouldn't sell).
+   supplied by OpenMV.
 
    ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
    specified, it is equal to the image rectangle. Only pixels within the
@@ -2594,17 +3260,12 @@ Methods
    as you like. But, any values above 240 or so do not result in much increase
    in the detection rate.
 
-   Not supported on compressed images.
+   Not supported on compressed images or bayer images.
 
-   .. note::
+.. method:: image.find_barcodes([roi])
 
-      ``roi`` and ``effort`` are keyword arguments which must be explicitly
-      invoked in the function call by writing ``roi=`` and/or ``effort=``.
-
-.. method:: image.find_barcodes(roi=Auto)
-
-   Finds all 1D barcodes within the ``roi`` and returns a list of ``barcode``
-   objects. Please see the ``barcode`` object for more information.
+   Finds all 1D barcodes within the ``roi`` and returns a list of `image.barcode`
+   objects. Please see the `image.barcode` object for more information.
 
    For best results use a 640 by 40/80/160 window. The lower the vertical res
    the faster everything will run. Since bar codes are linear 1D images you
@@ -2616,38 +3277,33 @@ Methods
 
    This function supports all these 1D barcodes (basically all barcodes):
 
-     * image.EAN2
-     * image.EAN5
-     * image.EAN8
-     * image.UPCE
-     * image.ISBN10
-     * image.UPCA
-     * image.EAN13
-     * image.ISBN13
-     * image.I25
-     * image.DATABAR (RSS-14)
-     * image.DATABAR_EXP (RSS-Expanded)
-     * image.CODABAR
-     * image.CODE39
-     * image.PDF417
-     * image.CODE93
-     * image.CODE128
+     * `image.EAN2`
+     * `image.EAN5`
+     * `image.EAN8`
+     * `image.UPCE`
+     * `image.ISBN10`
+     * `image.UPCA`
+     * `image.EAN13`
+     * `image.ISBN13`
+     * `image.I25`
+     * `image.DATABAR` (RSS-14)
+     * `image.DATABAR_EXP` (RSS-Expanded)
+     * `image.CODABAR`
+     * `image.CODE39`
+     * `image.PDF417`
+     * `image.CODE93`
+     * `image.CODE128`
 
    ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
    specified, it is equal to the image rectangle. Only pixels within the
    ``roi`` are operated on.
 
-   Not supported on compressed images.
+   Not supported on compressed images or bayer images.
 
-   .. note::
-
-      ``roi`` is a keyword argument which must be explicitly invoked in the
-      function call by writing ``roi=``.
-
-.. method:: image.find_displacement(template, [roi, template_roi, logpolar=False])
+.. method:: image.find_displacement(template, [roi, [template_roi, [logpolar=False]]])
 
    Find the translation offset of the this image from the template. This
-   method can be used to do optical flow. This method returns a ``displacement``
+   method can be used to do optical flow. This method returns a `image.displacement`
    object with the results of the displacement calculation using phase correlation.
 
    ``roi`` is the region-of-interest rectangle (x, y, w, h) to work in.
@@ -2660,42 +3316,55 @@ Methods
    location in the image. You may slide smaller rois arround a larger image to
    get an optical flow gradient image...
 
-   ``image.find_displacement`` normally computes the x/y translation between two
+   `image.find_displacement()` normally computes the x/y translation between two
    images. However, if you pass ``logpolar=True`` it will instead find rotation
-   and scale changes between the two images. The same ``displacement`` object
+   and scale changes between the two images. The same `image.displacement` object
    result encodes both possible repsonses.
 
-   .. note::
-
-      Please use this method on power-of-2 image sizes (e.g. ``sensor.B64X64``).
-
-.. method:: image.midpoint_pooled(x_div, y_div, bias=0.5)
-
-   Finds the midpoint of ``x_div`` * ``y_div`` squares in the image and returns
-   a new image composed of the midpoint of each square.
-
-   A ``bias`` of 0 returns the min of each area while a ``bias`` of 1.0 returns
-   the max of each area.
-
-   This methods is useful for preparing images for phase_correlation.
-
-   Not supported on compressed images.
+   Not supported on compressed images or bayer images.
 
    .. note::
 
-      ``bias`` is a keyword argument which must be explicitly
-      invoked in the function call by writing ``bias=``.
+      Please use this method on power-of-2 image sizes (e.g. `sensor.B64X64`).
 
-.. method:: image.mean_pooled(x_div, y_div, bias=0.5)
+   Not supported on compressed images or bayer images.
 
-   Finds the mean of ``x_div`` * ``y_div`` squares in the image and returns
-   a new image composed of the mean of each square.
+.. method:: image.find_number(roi)
 
-   This methods is useful for preparing images for phase_correlation.
+   Runs a LENET-6 CNN trained with on the MINST data set to detect numers in
+   a 28x28 ROI located anywhere on the image. Returns a tuple containing a
+   integer and a float representing the number detected (0-9) and the
+   confidence of the detection (0-1).
 
-   Not supported on compressed images.
+   ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+   specified, it is equal to the image rectangle. Only pixels within the
+   ``roi`` are operated on.
 
-.. method:: image.find_template(template, threshold, roi=Auto, step=2, search=image.SEARCH_EX)
+   Only works on grayscale images.
+
+   .. note::
+
+      This method is experimental and likely to be removed in the future once
+      running any CNN trained on the PC using Caffe is available.
+
+.. method:: image.classify_object(roi)
+
+   Runs a CIFAR-10 CNN on an ROI in the image to detect airplanes, automobiles,
+   birds, cats, deers, dogs, frogs, horses, ships, and trucks. This method
+   automatically scales the image image to 32x32 internally to feed to the CNN.
+
+   ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+   specified, it is equal to the image rectangle. Only pixels within the
+   ``roi`` are operated on.
+
+   Only works on RGB565 images.
+
+   .. note::
+
+      This method is experimental and likely to be removed in the future once
+      running any CNN trained on the PC using Caffe is available.
+
+.. method:: image.find_template(template, threshold, [roi, [step=2, [search=image.SEARCH_EX]]])
 
    Tries to find the first location in the image where template matches using
    Normalized Cross Correlation. Returns a bounding box tuple (x, y, w, h) for
@@ -2708,7 +3377,9 @@ Methods
    prevents false positives while lowering the detection rate while a lower
    threshold does the opposite.
 
-   ``roi`` is the region-of-interest rectangle (x, y, w, h) to search in.
+   ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+   specified, it is equal to the image rectangle. Only pixels within the
+   ``roi`` are operated on.
 
    ``step`` is the number of pixels to skip past while looking for the
    template. Skipping pixels considerably speeds the algorithm up. This only
@@ -2720,23 +3391,16 @@ Methods
    edges of the image. ``image.SEARCH_EX`` does an exhaustive search for the
    image but can be much slower than ``image.SEARCH_DS``.
 
-   .. note::
+   Only works on grayscale images.
 
-      ``roi``, ``step``, and ``search`` are keyword arguments which must be
-      explicitly invoked in the function call by writing ``roi=``, ``step=``,
-      or ``search=``.
-
-.. method:: image.find_features(cascade, roi=Auto, threshold=0.5, scale=1.5)
+.. method:: image.find_features(cascade, [threshold=0.5, [scale=1.5, [roi]]])
 
    This method searches the image for all areas that match the passed in Haar
    Cascade and returns a list of bounding box rectangles tuples (x, y, w, h)
    around those features. Returns an empty list if no features are found.
 
-   ``cascade`` is a Haar Cascade object. See ``image.HaarCascade()`` for more
+   ``cascade`` is a Haar Cascade object. See `image.HaarCascade()` for more
    details.
-
-   ``roi`` is the region-of-interest rectangle (x, y, w, h) to work in.
-   If not specified, it is equal to the image rectangle.
 
    ``threshold`` is a threshold (0.0-1.0) where a smaller value increase the
    detection rate while raising the false positive rate. Conversely, a higher
@@ -2746,13 +3410,11 @@ Methods
    factor will run faster but will have much poorer image matches. A good
    value is between 1.35 and 1.5.
 
-   Not supported on compressed images.
+   ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+   specified, it is equal to the image rectangle. Only pixels within the
+   ``roi`` are operated on.
 
-   .. note::
-
-      ``roi``, ``threshold`` and ``scale`` are keyword arguments which must be
-      explicitly invoked in the function call by writing ``roi``,
-      ``threshold=`` or ``scale=``.
+   Only works on grayscale images.
 
 .. method:: image.find_eye(roi)
 
@@ -2760,28 +3422,40 @@ Methods
    eye. Returns a tuple with the (x, y) location of the pupil in the image.
    Returns (0,0) if no pupils are found.
 
-   To use this function first use ``image.find_features`` with the
+   To use this function first use `image.find_features()` with the
    ``frontalface`` HaarCascade to find someone's face. Then use
-   ``image.find_features`` with the ``eye`` HaarCascade to find the eyes on the
-   face. Finally, call this method on each eye roi returned by
-   ``image.find_features`` to get the pupil coordinates.
+   `image.find_features()` with the ``eye`` HaarCascade to find the eyes on the
+   face. Finally, call this method on the eye ROI returned by
+   `image.find_features()` to get the pupil coordinates.
 
-   Only for grayscale images.
+   ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+   specified, it is equal to the image rectangle. Only pixels within the
+   ``roi`` are operated on.
+
+   Only works on grayscale images.
 
 .. method:: image.find_lbp(roi)
 
    Extracts LBP (local-binary-patterns) keypoints from the region-of-interest
-   (x, y, w, h) tuple. You can then use then use the ``image.match_descriptor``
+   (x, y, w, h) tuple. You can then use then use the `image.match_descriptor()`
    function to compare two sets of keypoints to get the matching distance.
 
-   Only for grayscale images.
+   ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+   specified, it is equal to the image rectangle. Only pixels within the
+   ``roi`` are operated on.
 
-.. method:: image.find_keypoints(roi=Auto, threshold=20, normalized=False, scale_factor=1.5, max_keypoints=100, corner_detector=CORNER_AGAST)
+   Only works on grayscale images.
+
+.. method:: image.find_keypoints([roi, [threshold=20, [normalized=False, [scale_factor=1.5, [max_keypoints=100, [corner_detector=image.CORNER_AGAST]]]]]])
 
    Extracts ORB keypoints from the region-of-interest (x, y, w, h) tuple. You
-   can then use then use the ``image.match_descriptor`` function to compare
+   can then use then use the `image.match_descriptor()` function to compare
    two sets of keypoints to get the matching areas. Returns None if no
    keypoints were found.
+
+   ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+   specified, it is equal to the image rectangle. Only pixels within the
+   ``roi`` are operated on.
 
    ``threshold`` is a number (between 0 - 255) which controls the number of
    extracted corners. For the default AGAST corner detector this should be
@@ -2801,63 +3475,37 @@ Methods
    decrease this value.
 
    ``corner_detector`` is the corner detector algorithm to use which extracts
-   keypoints from the image. It can be either ``image.FAST`` or
-   ``image.AGAST``. The FAST corner detector is faster but much less accurate.
+   keypoints from the image. It can be either `image.CORNER_FAST` or
+   `image.CORNER_AGAST`. The FAST corner detector is faster but much less accurate.
 
-   Only for grayscale images.
+   Only works on grayscale images.
 
-   .. note::
+.. method:: image.find_edges(edge_type, [threshold])
 
-      ``roi``, ``threshold``, ``normalized``m ``scale_factor``, ``max_keypoints``,
-      and ``corner_detector`` are keyword argument which must be explicitly
-      invoked in the function call by writing ``roi=``, ``threshold=``, etc.
-
-.. method:: image.find_lines(roi=Auto, threshold=50)
-
-   For grayscale images only. Finds the lines in a edge detected image using
-   the Hough Transform. Returns a list of line tuples (x0, y0, x1, y1).
-
-   ``roi`` is the region-of-interest rectangle (x, y, w, h) to work in.
-   If not specified, it is equal to the image rectangle.
-
-   ``threshold`` may be between 0-255. The lower the threshold the more lines
-   are pulled out of the image.
-
-   Only for grayscale images.
-
-   .. note::
-
-      ``roi`` and ``threshold`` are keyword argument which must be explicitly
-      invoked in the function call by writing ``roi=`` and ``threshold=``.
-
-.. method:: image.find_edges(edge_type, threshold=[100,200])
-
-   For grayscale images only. Does edge detection on the image and replaces the
-   image with an image that only has edges. ``edge_type`` can either be:
+   Turns the image to black and white leaving only the edges as white pixels.
 
       * image.EDGE_SIMPLE - Simple thresholded high pass filter algorithm.
       * image.EDGE_CANNY - Canny edge detection algorithm.
 
    ``threshold`` is a two valued tuple containing a low threshold and high
    threshold. You can control the quality of edges by adjusting these values.
+   It defaults to (100, 200).
 
-   Only for grayscale images.
+   Only works on grayscale images.
 
-   .. note::
+.. method:: find_hog([roi, [size=8]])
 
-      ``threshold`` is keyword argument which must be explicitly invoked in the
-      function call by writing ``threshold=``.
+   Replaces the pixels in the ROI with HOG (histogram of orientated graidients)
+   lines.
+
+   ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+   specified, it is equal to the image rectangle. Only pixels within the
+   ``roi`` are operated on.
+
+   Only works on grayscale images.
 
 Constants
 ---------
-
-.. data:: image.LBP
-
-   Switch for descriptor functions for LBP.
-
-.. data:: image.ORB
-
-   Switch for descriptor functions for ORB.
 
 .. data:: image.SEARCH_EX
 

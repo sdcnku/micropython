@@ -2,7 +2,7 @@
 
 Builtin Types
 =============
-Generated Tue 21 Nov 2017 21:31:50 UTC
+Generated Sat 28 Apr 2018 19:34:04 UTC
 
 Exception
 ---------
@@ -70,7 +70,7 @@ Exception in while loop condition may have unexpected line number
 Sample code::
 
     l = ["-foo", "-bar"]
-
+    
     i = 0
     while l[i][0] == "-":
         print("iter")
@@ -90,27 +90,35 @@ Sample code::
 
 .. _cpydiff_types_exception_subclassinit:
 
-Exception.__init__ raises TypeError if overridden and called by subclass
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Exception.__init__ method does not exist.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Cause:** Subclassing native classes is not fully supported in MicroPython.
+
+**Workaround:** Call using ``super()`` instead::
+
+class A(Exception):
+    def __init__(self):
+        super().__init__()
 
 Sample code::
 
     class A(Exception):
         def __init__(self):
             Exception.__init__(self)
-
+    
     a = A()
 
-+-------------+-----------------------------------------------------------+
-| CPy output: | uPy output:                                               |
-+-------------+-----------------------------------------------------------+
-|             | ::                                                        |
-|             |                                                           |
-|             |     Traceback (most recent call last):                    |
-|             |       File "<stdin>", line 11, in <module>                |
-|             |       File "<stdin>", line 9, in __init__                 |
-|             |     TypeError: argument should be a 'Exception' not a 'A' |
-+-------------+-----------------------------------------------------------+
++-------------+-------------------------------------------------------------------------+
+| CPy output: | uPy output:                                                             |
++-------------+-------------------------------------------------------------------------+
+|             | ::                                                                      |
+|             |                                                                         |
+|             |     Traceback (most recent call last):                                  |
+|             |       File "<stdin>", line 15, in <module>                              |
+|             |       File "<stdin>", line 13, in __init__                              |
+|             |     AttributeError: type object 'Exception' has no attribute '__init__' |
++-------------+-------------------------------------------------------------------------+
 
 bytearray
 ---------
@@ -221,7 +229,7 @@ Sample code::
 
     class A(int):
         __add__ = lambda self, other: A(int(self) + other)
-
+    
     a = A(42)
     print(a+a)
 
@@ -346,14 +354,15 @@ Sample code::
     except UnicodeDecodeError:
         print('UnicodeDecodeError')
 
-+------------------------+-------------------------+
-| CPy output:            | uPy output:             |
-+------------------------+-------------------------+
-| ::                     | ::                      |
-|                        |                         |
-|     UnicodeDecodeError |     '\u0840'            |
-|                        |     Should not get here |
-+------------------------+-------------------------+
++------------------------+---------------------------------------------------------+
+| CPy output:            | uPy output:                                             |
++------------------------+---------------------------------------------------------+
+| ::                     | ::                                                      |
+|                        |                                                         |
+|     UnicodeDecodeError |     Traceback (most recent call last):                  |
+|                        |       File "<stdin>", line 9, in <module>               |
+|                        |     NameError: name 'UnicodeDecodeError' is not defined |
++------------------------+---------------------------------------------------------+
 
 .. _cpydiff_types_str_endswith:
 
@@ -465,7 +474,7 @@ Sample code::
 
     class S(str):
         pass
-
+    
     s = S('hello')
     print(s == 'hello')
 
