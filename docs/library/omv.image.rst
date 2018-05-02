@@ -76,20 +76,20 @@ Functions
 class HaarCascade -- Feature Descriptor
 =======================================
 
-The Haar Cascade feature descriptor is used for the ``image.find_features()``
+The Haar Cascade feature descriptor is used for the `image.find_features()`
 method. It doesn't have any methods itself for you to call.
 
 Constructors
 ------------
 
-.. class:: image.HaarCascade(path, stages=Auto)
+.. class:: image.HaarCascade(path, [stages=Auto])
 
     Loads a Haar Cascade into memory from a Haar Cascade binary file formatted
     for your OpenMV Cam. If you pass "frontalface" instead of a path then this
     constructor will load the built-in frontal face Haar Cascade into memory.
     Additionally, you can also pass "eye" to load a Haar Cascade for eyes into
     memory. Finally, this method returns the loaded Haar Cascade object for use
-    with ``image.find_features()``.
+    with `image.find_features()`.
 
     ``stages`` defaults to the number of stages in the Haar Cascade. However,
     you can specify a lower number of stages to speed up processing the feature
@@ -122,11 +122,6 @@ Constructors
     have been labeled as images with cats and against hundreds of images with
     not cat like things labeled differently. The generator algorithm will then
     produce a Haar Cascade that detects cats.
-
-    .. note::
-
-      ``stages`` is a keyword argument which must be explicitly invoked in the
-      function call by writing ``stages=``.
 
 class Similarity -- Similarity Object
 =====================================
@@ -1476,9 +1471,9 @@ Methods
    image from the stream is read playback will start from the beginning again.
    Otherwise, this method will return None after all frames have been read.
 
-   Note that next_frame() tries to limit playback speed by pausing after
-   reading frames to match the speed frames were recorded at. Otherwise this
-   method would zoom through all images at 200+ FPS.
+   Note that `imagereader.next_frame()` tries to limit playback speed by pausing
+   after reading frames to match the speed frames were recorded at. Otherwise
+   this method would zoom through all images at 200+ FPS.
 
 .. method:: imagereader.close()
 
@@ -1494,7 +1489,7 @@ The image object is the basic object for machine vision operations.
 Constructors
 ------------
 
-.. class:: image.Image(path, copy_to_fb=False)
+.. class:: image.Image(path, [copy_to_fb=False])
 
    Creates a new image object from a file at ``path``.
 
@@ -1527,11 +1522,6 @@ Constructors
    of MicroPython functions like as if the image were a byte-array object. In
    particular, if you'd like to transmit an image you can just pass it to the
    UART/SPI/I2C write functions to be transmitted automatically.
-
-   .. note::
-
-      ``copy_to_fb`` is a keyword argument which must be explicitly invoked in
-      the function call by writing ``copy_to_fb=``.
 
 Methods
 -------
@@ -3331,13 +3321,50 @@ Methods
    and scale changes between the two images. The same `image.displacement` object
    result encodes both possible repsonses.
 
+   Not supported on compressed images or bayer images.
+
    .. note::
 
       Please use this method on power-of-2 image sizes (e.g. `sensor.B64X64`).
 
    Not supported on compressed images or bayer images.
 
-.. method:: image.find_template(template, threshold, roi=Auto, step=2, search=image.SEARCH_EX)
+.. method:: image.find_number(roi)
+
+   Runs a LENET-6 CNN trained with on the MINST data set to detect numers in
+   a 28x28 ROI located anywhere on the image. Returns a tuple containing a
+   integer and a float representing the number detected (0-9) and the
+   confidence of the detection (0-1).
+
+   ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+   specified, it is equal to the image rectangle. Only pixels within the
+   ``roi`` are operated on.
+
+   Only works on grayscale images.
+
+   .. note::
+
+      This method is experimental and likely to be removed in the future once
+      running any CNN trained on the PC using Caffe is available.
+
+.. method:: image.classify_object(roi)
+
+   Runs a CIFAR-10 CNN on an ROI in the image to detect airplanes, automobiles,
+   birds, cats, deers, dogs, frogs, horses, ships, and trucks. This method
+   automatically scales the image image to 32x32 internally to feed to the CNN.
+
+   ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+   specified, it is equal to the image rectangle. Only pixels within the
+   ``roi`` are operated on.
+
+   Only works on RGB565 images.
+
+   .. note::
+
+      This method is experimental and likely to be removed in the future once
+      running any CNN trained on the PC using Caffe is available.
+
+.. method:: image.find_template(template, threshold, [roi, [step=2, [search=image.SEARCH_EX]]])
 
    Tries to find the first location in the image where template matches using
    Normalized Cross Correlation. Returns a bounding box tuple (x, y, w, h) for
@@ -3350,7 +3377,9 @@ Methods
    prevents false positives while lowering the detection rate while a lower
    threshold does the opposite.
 
-   ``roi`` is the region-of-interest rectangle (x, y, w, h) to search in.
+   ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+   specified, it is equal to the image rectangle. Only pixels within the
+   ``roi`` are operated on.
 
    ``step`` is the number of pixels to skip past while looking for the
    template. Skipping pixels considerably speeds the algorithm up. This only
@@ -3362,23 +3391,16 @@ Methods
    edges of the image. ``image.SEARCH_EX`` does an exhaustive search for the
    image but can be much slower than ``image.SEARCH_DS``.
 
-   .. note::
+   Only works on grayscale images.
 
-      ``roi``, ``step``, and ``search`` are keyword arguments which must be
-      explicitly invoked in the function call by writing ``roi=``, ``step=``,
-      or ``search=``.
-
-.. method:: image.find_features(cascade, roi=Auto, threshold=0.5, scale=1.5)
+.. method:: image.find_features(cascade, [threshold=0.5, [scale=1.5, [roi]]])
 
    This method searches the image for all areas that match the passed in Haar
    Cascade and returns a list of bounding box rectangles tuples (x, y, w, h)
    around those features. Returns an empty list if no features are found.
 
-   ``cascade`` is a Haar Cascade object. See ``image.HaarCascade()`` for more
+   ``cascade`` is a Haar Cascade object. See `image.HaarCascade()` for more
    details.
-
-   ``roi`` is the region-of-interest rectangle (x, y, w, h) to work in.
-   If not specified, it is equal to the image rectangle.
 
    ``threshold`` is a threshold (0.0-1.0) where a smaller value increase the
    detection rate while raising the false positive rate. Conversely, a higher
@@ -3388,13 +3410,11 @@ Methods
    factor will run faster but will have much poorer image matches. A good
    value is between 1.35 and 1.5.
 
-   Not supported on compressed images.
+   ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+   specified, it is equal to the image rectangle. Only pixels within the
+   ``roi`` are operated on.
 
-   .. note::
-
-      ``roi``, ``threshold`` and ``scale`` are keyword arguments which must be
-      explicitly invoked in the function call by writing ``roi``,
-      ``threshold=`` or ``scale=``.
+   Only works on grayscale images.
 
 .. method:: image.find_eye(roi)
 
@@ -3402,28 +3422,40 @@ Methods
    eye. Returns a tuple with the (x, y) location of the pupil in the image.
    Returns (0,0) if no pupils are found.
 
-   To use this function first use ``image.find_features`` with the
+   To use this function first use `image.find_features()` with the
    ``frontalface`` HaarCascade to find someone's face. Then use
-   ``image.find_features`` with the ``eye`` HaarCascade to find the eyes on the
-   face. Finally, call this method on each eye roi returned by
-   ``image.find_features`` to get the pupil coordinates.
+   `image.find_features()` with the ``eye`` HaarCascade to find the eyes on the
+   face. Finally, call this method on the eye ROI returned by
+   `image.find_features()` to get the pupil coordinates.
 
-   Only for grayscale images.
+   ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+   specified, it is equal to the image rectangle. Only pixels within the
+   ``roi`` are operated on.
+
+   Only works on grayscale images.
 
 .. method:: image.find_lbp(roi)
 
    Extracts LBP (local-binary-patterns) keypoints from the region-of-interest
-   (x, y, w, h) tuple. You can then use then use the ``image.match_descriptor``
+   (x, y, w, h) tuple. You can then use then use the `image.match_descriptor()`
    function to compare two sets of keypoints to get the matching distance.
 
-   Only for grayscale images.
+   ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+   specified, it is equal to the image rectangle. Only pixels within the
+   ``roi`` are operated on.
 
-.. method:: image.find_keypoints(roi=Auto, threshold=20, normalized=False, scale_factor=1.5, max_keypoints=100, corner_detector=CORNER_AGAST)
+   Only works on grayscale images.
+
+.. method:: image.find_keypoints([roi, [threshold=20, [normalized=False, [scale_factor=1.5, [max_keypoints=100, [corner_detector=image.CORNER_AGAST]]]]]])
 
    Extracts ORB keypoints from the region-of-interest (x, y, w, h) tuple. You
-   can then use then use the ``image.match_descriptor`` function to compare
+   can then use then use the `image.match_descriptor()` function to compare
    two sets of keypoints to get the matching areas. Returns None if no
    keypoints were found.
+
+   ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+   specified, it is equal to the image rectangle. Only pixels within the
+   ``roi`` are operated on.
 
    ``threshold`` is a number (between 0 - 255) which controls the number of
    extracted corners. For the default AGAST corner detector this should be
@@ -3443,52 +3475,34 @@ Methods
    decrease this value.
 
    ``corner_detector`` is the corner detector algorithm to use which extracts
-   keypoints from the image. It can be either ``image.FAST`` or
-   ``image.AGAST``. The FAST corner detector is faster but much less accurate.
+   keypoints from the image. It can be either `image.CORNER_FAST` or
+   `image.CORNER_AGAST`. The FAST corner detector is faster but much less accurate.
 
-   Only for grayscale images.
+   Only works on grayscale images.
 
-   .. note::
+.. method:: image.find_edges(edge_type, [threshold])
 
-      ``roi``, ``threshold``, ``normalized``m ``scale_factor``, ``max_keypoints``,
-      and ``corner_detector`` are keyword argument which must be explicitly
-      invoked in the function call by writing ``roi=``, ``threshold=``, etc.
-
-.. method:: image.find_lines(roi=Auto, threshold=50)
-
-   For grayscale images only. Finds the lines in a edge detected image using
-   the Hough Transform. Returns a list of line tuples (x0, y0, x1, y1).
-
-   ``roi`` is the region-of-interest rectangle (x, y, w, h) to work in.
-   If not specified, it is equal to the image rectangle.
-
-   ``threshold`` may be between 0-255. The lower the threshold the more lines
-   are pulled out of the image.
-
-   Only for grayscale images.
-
-   .. note::
-
-      ``roi`` and ``threshold`` are keyword argument which must be explicitly
-      invoked in the function call by writing ``roi=`` and ``threshold=``.
-
-.. method:: image.find_edges(edge_type, threshold=[100,200])
-
-   For grayscale images only. Does edge detection on the image and replaces the
-   image with an image that only has edges. ``edge_type`` can either be:
+   Turns the image to black and white leaving only the edges as white pixels.
 
       * image.EDGE_SIMPLE - Simple thresholded high pass filter algorithm.
       * image.EDGE_CANNY - Canny edge detection algorithm.
 
    ``threshold`` is a two valued tuple containing a low threshold and high
    threshold. You can control the quality of edges by adjusting these values.
+   It defaults to (100, 200).
 
-   Only for grayscale images.
+   Only works on grayscale images.
 
-   .. note::
+.. method:: find_hog([roi, [size=8]])
 
-      ``threshold`` is keyword argument which must be explicitly invoked in the
-      function call by writing ``threshold=``.
+   Replaces the pixels in the ROI with HOG (histogram of orientated graidients)
+   lines.
+
+   ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+   specified, it is equal to the image rectangle. Only pixels within the
+   ``roi`` are operated on.
+
+   Only works on grayscale images.
 
 Constants
 ---------
