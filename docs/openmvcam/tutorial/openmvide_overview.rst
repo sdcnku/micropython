@@ -162,7 +162,7 @@ What makes OpenMV IDE special is the integrated frame buffer viewer. This let's
 you easily see what your OpenMV Cam is looking at while working on your code.
 
 The frame buffer viewer displays whatever was in your OpenMV Cam's frame buffer
-previously when ``sensor.snapshot()`` is called. Anyway, we'll talk more about
+previously when `sensor.snapshot()` is called. Anyway, we'll talk more about
 that later. For now, here's what you need to know about the frame buffer
 viewer:
 
@@ -223,7 +223,7 @@ if you select an area of the frame buffer by clicking and dragging on it then
 the histogram will only show the distribution of colors in that area. This
 features makes the histogram display super useful for determining the correct
 Grayscale and LAB color channel settings you need to use in your scripts for
-``image.find_blobs`` and ``image.binary``.
+`image.find_blobs()` and `image.binary()`.
 
 Finally, the image resolution and ROI (x, y, w, h) of the bounding box you
 select on the image are displayed above the histogram graphs.

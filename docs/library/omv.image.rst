@@ -1942,6 +1942,8 @@ Methods
 
    Not supported on compressed images or bayer images.
 
+   This method is not avaiable on the OpenMV Cam M4.
+
 .. method:: image.binary(thresholds, [invert=False, [zero=False, [mask=None]]])
 
    Sets all pixels in the image to black or white depending on if the pixel
@@ -2462,6 +2464,8 @@ Methods
 
    Not supported on compressed images or bayer images.
 
+   This method is not avaiable on the OpenMV Cam M4.
+
 .. method:: image.mode(size, [threshold=False, [offset=0, [invert=False, [mask=None]]]]])
 
    Runs the mode filter on the image by replacing each pixel with the mode of
@@ -2487,6 +2491,8 @@ Methods
    Returns the image object so you can call another method using ``.`` notation.
 
    Not supported on compressed images or bayer images.
+
+   This method is not avaiable on the OpenMV Cam M4.
 
 .. method:: image.midpoint(size, [bias=0.5, [threshold=False, [offset=0, [invert=False, [mask=None]]]]])
 
@@ -2514,6 +2520,8 @@ Methods
    Returns the image object so you can call another method using ``.`` notation.
 
    Not supported on compressed images or bayer images.
+
+   This method is not avaiable on the OpenMV Cam M4.
 
 .. method:: image.morph(size, kernel, [mul, [add=0, [threshold=False, [offset=0, [invert=False, [mask=None]]]]]])
 
@@ -2588,6 +2596,8 @@ Methods
 
    Not supported on compressed images or bayer images.
 
+   This method is not avaiable on the OpenMV Cam M4.
+
 .. method:: image.laplacian(size, [sharpen=False, [mul, [add=0, [threshold=False, [offset=0, [invert=False, [mask=None]]]]]]])
 
    Convolves the image by a edge detecting laplacian kernel.
@@ -2624,6 +2634,8 @@ Methods
 
    Not supported on compressed images or bayer images.
 
+   This method is not avaiable on the OpenMV Cam M4.
+
 .. method:: image.bilateral(size, [color_sigma=0.1, [space_sigma=1, [threshold=False, [offset=0, [invert=False, [mask=None]]]]]])
 
    Convolves the image by a bilateral filter. The bilateral filter smooths the
@@ -2654,6 +2666,8 @@ Methods
 
    Not supported on compressed images or bayer images.
 
+   This method is not avaiable on the OpenMV Cam M4.
+
 .. method:: image.cartoon(size, [seed_threshold=0.05, [floating_threshold=0.05, [mask=None]]])
 
    Walks across an image and flood-fills all pixels regions in the image. This
@@ -2675,6 +2689,8 @@ Methods
    Returns the image object so you can call another method using ``.`` notation.
 
    Not supported on compressed images or bayer images.
+
+   This method is not avaiable on the OpenMV Cam M4.
 
 .. method:: image.remove_shadows([image])
 
@@ -2700,6 +2716,8 @@ Methods
 
    Only works on RGB565 images.
 
+   This method is not avaiable on the OpenMV Cam M4.
+
 .. method:: image.chrominvar()
 
    Removes illumination from the input image leaving only color graidients
@@ -2709,6 +2727,8 @@ Methods
 
    Only works on RGB565 images.
 
+   This method is not avaiable on the OpenMV Cam M4.
+
 .. method:: image.illuminvar()
 
    Removes illumination from the input image leaving only color graidients
@@ -2717,6 +2737,8 @@ Methods
    Returns the image object so you can call another method using ``.`` notation.
 
    Only works on RGB565 images.
+
+   This method is not avaiable on the OpenMV Cam M4.
 
 .. method:: image.linpolar([reverse=False])
 
@@ -2728,6 +2750,8 @@ Methods
 
    Not supported on compressed images or bayer images.
 
+   This method is not avaiable on the OpenMV Cam M4.
+
 .. method:: image.logpolar([reverse=False])
 
    Re-project's and image from cartessian coordinates to log polar coordinates.
@@ -2738,6 +2762,8 @@ Methods
    and scaling/zooming into y-translation.
 
    Not supported on compressed images or bayer images.
+
+   This method is not avaiable on the OpenMV Cam M4.
 
 .. method:: image.lens_corr([strength=1.8, [zoom=1.0]])
 
@@ -2778,6 +2804,8 @@ Methods
 
    Not supported on compressed images or bayer images.
 
+   This method is not avaiable on the OpenMV Cam M4.
+
 .. method:: image.get_similarity(image)
 
    Returns a `image.similarity` object describing how similar two images are using
@@ -2789,6 +2817,8 @@ Methods
    for grayscale images or a byte-reversed RGB565 value for RGB images).
 
    Not supported on compressed images or bayer images.
+
+   This method is not avaiable on the OpenMV Cam M4.
 
 .. method:: image.get_histogram([thresholds, [invert=False, [roi, [bins, [l_bins, [a_bins, [b_bins]]]]]]])
 
@@ -3088,6 +3118,8 @@ Methods
 
    Not supported on compressed images or bayer images.
 
+   This method is not avaiable on the OpenMV Cam M4.
+
 .. method:: image.find_line_segments([roi, [merge_distance=0, [max_theta_difference=15]]])
 
    Finds line segments in the image using the hough transform. Returns a list
@@ -3107,6 +3139,8 @@ Methods
    in the image. It's somewhat slow but very accurate and lines don't jump around.
 
    Not supported on compressed images or bayer images.
+
+   This method is not avaiable on the OpenMV Cam M4.
 
 .. method:: image.find_circles([roi, [x_stride=2, [y_stride=1, [threshold=2000, [x_margin=10, [y_margin=10, [r_margin=10]]]]]]])
 
@@ -3140,6 +3174,8 @@ Methods
 
    Not supported on compressed images or bayer images.
 
+   This method is not avaiable on the OpenMV Cam M4.
+
 .. method:: image.find_rects([roi=Auto, [threshold=10000]])
 
    Find rectangles in the image using the same quad detection algorithm used to
@@ -3157,6 +3193,8 @@ Methods
    The correct value of ``threshold`` is depended on your application/scene.
 
    Not supported on compressed images or bayer images.
+
+   This method is not avaiable on the OpenMV Cam M4.
 
 .. method:: image.find_qrcodes([roi])
 
@@ -3177,6 +3215,8 @@ Methods
    ``roi`` are operated on.
 
    Not supported on compressed images or bayer images.
+
+   This method is not avaiable on the OpenMV Cam M4.
 
 .. method:: image.find_apriltags([roi, [families=image.TAG36H11, [fx, [fy, [cx, [cy]]]]]])
 
@@ -3233,6 +3273,8 @@ Methods
 
    Not supported on compressed images or bayer images.
 
+   This method is not avaiable on the OpenMV Cam M4.
+
 .. method:: image.find_datamatrices([roi, [effort=200]])
 
    Finds all datamatrices within the ``roi`` and returns a list of `image.datamatrix`
@@ -3261,6 +3303,8 @@ Methods
    in the detection rate.
 
    Not supported on compressed images or bayer images.
+
+   This method is not avaiable on the OpenMV Cam M4.
 
 .. method:: image.find_barcodes([roi])
 
@@ -3300,6 +3344,8 @@ Methods
 
    Not supported on compressed images or bayer images.
 
+   This method is not avaiable on the OpenMV Cam M4.
+
 .. method:: image.find_displacement(template, [roi, [template_roi, [logpolar=False]]])
 
    Find the translation offset of the this image from the template. This
@@ -3329,6 +3375,8 @@ Methods
 
    Not supported on compressed images or bayer images.
 
+   This method is not avaiable on the OpenMV Cam M4.
+
 .. method:: image.find_number(roi)
 
    Runs a LENET-6 CNN trained with on the MINST data set to detect numers in
@@ -3347,6 +3395,8 @@ Methods
       This method is experimental and likely to be removed in the future once
       running any CNN trained on the PC using Caffe is available.
 
+   This method is not avaiable on the OpenMV Cam M4.
+
 .. method:: image.classify_object(roi)
 
    Runs a CIFAR-10 CNN on an ROI in the image to detect airplanes, automobiles,
@@ -3363,6 +3413,8 @@ Methods
 
       This method is experimental and likely to be removed in the future once
       running any CNN trained on the PC using Caffe is available.
+
+   This method is not avaiable on the OpenMV Cam M4.
 
 .. method:: image.find_template(template, threshold, [roi, [step=2, [search=image.SEARCH_EX]]])
 
@@ -3503,6 +3555,8 @@ Methods
    ``roi`` are operated on.
 
    Only works on grayscale images.
+
+   This method is not avaiable on the OpenMV Cam M4.
 
 Constants
 ---------
