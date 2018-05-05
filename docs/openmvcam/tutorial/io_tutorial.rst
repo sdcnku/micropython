@@ -27,7 +27,7 @@ P7-P8 (or P7-P9) are your OpenMV Cam's Auxiliary I/O pins.
 The PYB Module
 --------------
 
-All microcontroller I/O functionality is available from the ``pyb`` (Python
+All microcontroller I/O functionality is available from the `pyb` (Python
 Board) module. You just need to ``import pyb`` in your script to get access to
 it. Once imported you'll have access to the ADC, CAN, DAC, I2C, Pin, Servo, SPI,
 and UART classes along with being able to control the board's power consumption.

@@ -14,7 +14,7 @@ an LED class object for the particular LED you want to control::
     ir_leds = pyb.LED(4)
 
 The `pyb.LED()` call creates an LED object which you can use to control a
-particular LED. Pass ``pyb.LED`` "1" to control the red RGB LED segment, "2" to
+particular LED. Pass `pyb.LED` "1" to control the red RGB LED segment, "2" to
 control the green RGB LED segment, "3" to control the blue RGB LED segment, and
 "4" to control the two IR LEDs.
 
@@ -25,7 +25,7 @@ Anyway, there are three methods you can call for each LED, `pyb.LED.off()`,
 `pyb.LED.on()`, and `pyb.LED.toggle()` which do exactly that.
 
 Unlike other MicroPython Boards the OpenMV Cam doesn't support the
-``intensity()`` method to allow for PWM dimming of the LEDs. We re-purposed the
+`intensity()` method to allow for PWM dimming of the LEDs. We re-purposed the
 timer that was used for LED dimming for generating a clock source to power the
 camera chip.
 
