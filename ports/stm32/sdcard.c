@@ -331,10 +331,10 @@ mp_uint_t sdcard_read_blocks(uint8_t *dest, uint32_t block_num, uint32_t num_blo
         saved_word = *(uint32_t*)dest;
     }
 
-    if (query_irq() == IRQ_STATE_ENABLED && AXI_BUFFER(dest) && !CCM_BUFFER(dest)) {
-        // we must disable USB irqs to prevent MSC contention with SD card
-        uint32_t basepri = raise_irq_pri(IRQ_PRI_OTG_FS);
+    // we must disable USB irqs to prevent MSC contention with SD card
+    uint32_t basepri = raise_irq_pri(IRQ_PRI_OTG_FS);
 
+    if (query_irq() == IRQ_STATE_ENABLED && AXI_BUFFER(dest) && !CCM_BUFFER(dest)) {
         #if defined(SDIO_USE_GPDMA)
         dma_init(&sd_rx_dma, &SDMMC_RX_DMA, &sd_handle);
         sd_handle.hdmarx = &sd_rx_dma;
@@ -353,8 +353,6 @@ mp_uint_t sdcard_read_blocks(uint8_t *dest, uint32_t block_num, uint32_t num_blo
         dma_deinit(&SDMMC_RX_DMA);
         sd_handle.hdmarx = NULL;
         #endif
-
-        restore_irq_pri(basepri);
     } else {
         // This transfer has to be done in an atomic section.
         mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
@@ -365,6 +363,8 @@ mp_uint_t sdcard_read_blocks(uint8_t *dest, uint32_t block_num, uint32_t num_blo
             err = sdcard_wait_finished(&sd_handle, 60000);
         }
     }
+
+    restore_irq_pri(basepri);
 
     if (orig_dest != NULL) {
         // move the read data to the non-aligned position, and restore the initial bytes
@@ -401,9 +401,10 @@ mp_uint_t sdcard_write_blocks(const uint8_t *src, uint32_t block_num, uint32_t n
         return err;
     }
 
+    // we must disable USB irqs to prevent MSC contention with SD card
+    uint32_t basepri = raise_irq_pri(IRQ_PRI_OTG_FS);
+
     if (query_irq() == IRQ_STATE_ENABLED && AXI_BUFFER(src) && !CCM_BUFFER(src)) {
-        // we must disable USB irqs to prevent MSC contention with SD card
-        uint32_t basepri = raise_irq_pri(IRQ_PRI_OTG_FS);
 
         #if defined(SDIO_USE_GPDMA)
         dma_init(&sd_tx_dma, &SDMMC_TX_DMA, &sd_handle);
@@ -422,8 +423,6 @@ mp_uint_t sdcard_write_blocks(const uint8_t *src, uint32_t block_num, uint32_t n
         dma_deinit(&SDMMC_TX_DMA);
         sd_handle.hdmatx = NULL;
         #endif
-
-        restore_irq_pri(basepri);
     } else {
         // This transfer has to be done in an atomic section.
         mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
@@ -434,6 +433,7 @@ mp_uint_t sdcard_write_blocks(const uint8_t *src, uint32_t block_num, uint32_t n
         }
     }
 
+    restore_irq_pri(basepri);
     return err;
 }
 
