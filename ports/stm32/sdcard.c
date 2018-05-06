@@ -116,10 +116,18 @@
 
 #endif
 
+#define ALIGNED_BUFFER(p)     (((uint32_t)p & 3) == 0)
+
+#if defined(STM32H7)
 // NOTE: H7 SD DMA can only access AXI SRAM.
-#define AXI_BUFFER(p)       ((uint32_t) p >= 0x24000000 && (uint32_t) p < 0x24080000)
+#define DMA_BUFFER(p)       ((uint32_t) p >= 0x24000000 && (uint32_t) p < 0x24080000)
+#elif defined(STM32F4)
 // NOTE: F4 CCM is not accessible by GP-DMA.
-#define CCM_BUFFER(p)       ((uint32_t) p >= 0x10000000 && (uint32_t) p < 0x10010000)
+#define DMA_BUFFER(p)       ((uint32_t) p > 0x10010000)
+#else
+// Assume it's DMA'able
+#define DMA_BUFFER(p)       (true)
+#endif
 
 // TODO: Since SDIO is fundamentally half-duplex, we really only need to
 //       tie up one DMA channel. However, the HAL DMA API doesn't
@@ -224,7 +232,7 @@ bool sdcard_power_on(void) {
     // configure the SD bus width for wide operation
     #if defined(STM32F7)
     // use maximum SDMMC clock speed on F7 MCUs
-    sd_handle.Init.ClockBypass = SDMMC_CLOCK_BYPASS_ENABLE;
+    sd_handle.Init.ClockBypass = SDIO_CLOCK_BYPASS_ENABLE;
     #endif
     if (HAL_SD_ConfigWideBusOperation(&sd_handle, SDIO_BUS_WIDE_4B) != HAL_OK) {
         HAL_SD_DeInit(&sd_handle);
@@ -281,7 +289,6 @@ STATIC HAL_StatusTypeDef sdcard_wait_finished(SD_HandleTypeDef *sd, uint32_t tim
             enable_irq(irq_state);
             break;
         }
-        __WFI();
         enable_irq(irq_state);
         if (HAL_GetTick() - start >= timeout) {
             return HAL_TIMEOUT;
@@ -300,7 +307,6 @@ STATIC HAL_StatusTypeDef sdcard_wait_finished(SD_HandleTypeDef *sd, uint32_t tim
         if (HAL_GetTick() - start >= timeout) {
             return HAL_TIMEOUT;
         }
-        __WFI();
     }
     return HAL_OK;
 }
@@ -313,28 +319,10 @@ mp_uint_t sdcard_read_blocks(uint8_t *dest, uint32_t block_num, uint32_t num_blo
 
     HAL_StatusTypeDef err = HAL_OK;
 
-    // check that dest pointer is aligned on a 4-byte boundary
-    uint8_t *orig_dest = NULL;
-    uint32_t saved_word;
-    if (((uint32_t)dest & 3) != 0) {
-        // Pointer is not aligned so it needs fixing.
-        // We could allocate a temporary block of RAM (as sdcard_write_blocks
-        // does) but instead we are going to use the dest buffer inplace.  We
-        // are going to align the pointer, save the initial word at the aligned
-        // location, read into the aligned memory, move the memory back to the
-        // unaligned location, then restore the initial bytes at the aligned
-        // location.  We should have no trouble doing this as those initial
-        // bytes at the aligned location should be able to be changed for the
-        // duration of this function call.
-        orig_dest = dest;
-        dest = (uint8_t*)((uint32_t)dest & ~3);
-        saved_word = *(uint32_t*)dest;
-    }
-
     // we must disable USB irqs to prevent MSC contention with SD card
     uint32_t basepri = raise_irq_pri(IRQ_PRI_OTG_FS);
 
-    if (query_irq() == IRQ_STATE_ENABLED && AXI_BUFFER(dest) && !CCM_BUFFER(dest)) {
+    if (query_irq() == IRQ_STATE_ENABLED && DMA_BUFFER(dest) && ALIGNED_BUFFER(dest)) {
         #if defined(SDIO_USE_GPDMA)
         dma_init(&sd_rx_dma, &SDMMC_RX_DMA, &sd_handle);
         sd_handle.hdmarx = &sd_rx_dma;
@@ -365,13 +353,6 @@ mp_uint_t sdcard_read_blocks(uint8_t *dest, uint32_t block_num, uint32_t num_blo
     }
 
     restore_irq_pri(basepri);
-
-    if (orig_dest != NULL) {
-        // move the read data to the non-aligned position, and restore the initial bytes
-        memmove(orig_dest, dest, num_blocks * SDCARD_BLOCK_SIZE);
-        memcpy(dest, &saved_word, orig_dest - dest);
-    }
-
     return err;
 }
 
@@ -383,29 +364,10 @@ mp_uint_t sdcard_write_blocks(const uint8_t *src, uint32_t block_num, uint32_t n
 
     HAL_StatusTypeDef err = HAL_OK;
 
-    // check that src pointer is aligned on a 4-byte boundary
-    if (((uint32_t)src & 3) != 0) {
-        // pointer is not aligned, so allocate a temporary block to do the write
-        uint8_t *src_aligned = m_new_maybe(uint8_t, SDCARD_BLOCK_SIZE);
-        if (src_aligned == NULL) {
-            return HAL_ERROR;
-        }
-        for (size_t i = 0; i < num_blocks; ++i) {
-            memcpy(src_aligned, src + i * SDCARD_BLOCK_SIZE, SDCARD_BLOCK_SIZE);
-            err = sdcard_write_blocks(src_aligned, block_num + i, 1);
-            if (err != HAL_OK) {
-                break;
-            }
-        }
-        m_del(uint8_t, src_aligned, SDCARD_BLOCK_SIZE);
-        return err;
-    }
-
     // we must disable USB irqs to prevent MSC contention with SD card
     uint32_t basepri = raise_irq_pri(IRQ_PRI_OTG_FS);
 
-    if (query_irq() == IRQ_STATE_ENABLED && AXI_BUFFER(src) && !CCM_BUFFER(src)) {
-
+    if (query_irq() == IRQ_STATE_ENABLED && DMA_BUFFER(src) && ALIGNED_BUFFER(src)) {
         #if defined(SDIO_USE_GPDMA)
         dma_init(&sd_tx_dma, &SDMMC_TX_DMA, &sd_handle);
         sd_handle.hdmatx = &sd_tx_dma;
