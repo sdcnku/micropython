@@ -1942,7 +1942,7 @@ Methods
 
    Not supported on compressed images or bayer images.
 
-   This method is not avaiable on the OpenMV Cam M4.
+   This method is not available on the OpenMV Cam M4.
 
 .. method:: image.binary(thresholds, [invert=False, [zero=False, [mask=None]]])
 
@@ -2464,7 +2464,7 @@ Methods
 
    Not supported on compressed images or bayer images.
 
-   This method is not avaiable on the OpenMV Cam M4.
+   This method is not available on the OpenMV Cam M4.
 
 .. method:: image.mode(size, [threshold=False, [offset=0, [invert=False, [mask=None]]]]])
 
@@ -2492,7 +2492,7 @@ Methods
 
    Not supported on compressed images or bayer images.
 
-   This method is not avaiable on the OpenMV Cam M4.
+   This method is not available on the OpenMV Cam M4.
 
 .. method:: image.midpoint(size, [bias=0.5, [threshold=False, [offset=0, [invert=False, [mask=None]]]]])
 
@@ -2521,7 +2521,7 @@ Methods
 
    Not supported on compressed images or bayer images.
 
-   This method is not avaiable on the OpenMV Cam M4.
+   This method is not available on the OpenMV Cam M4.
 
 .. method:: image.morph(size, kernel, [mul, [add=0, [threshold=False, [offset=0, [invert=False, [mask=None]]]]]])
 
@@ -2596,7 +2596,7 @@ Methods
 
    Not supported on compressed images or bayer images.
 
-   This method is not avaiable on the OpenMV Cam M4.
+   This method is not available on the OpenMV Cam M4.
 
 .. method:: image.laplacian(size, [sharpen=False, [mul, [add=0, [threshold=False, [offset=0, [invert=False, [mask=None]]]]]]])
 
@@ -2634,7 +2634,7 @@ Methods
 
    Not supported on compressed images or bayer images.
 
-   This method is not avaiable on the OpenMV Cam M4.
+   This method is not available on the OpenMV Cam M4.
 
 .. method:: image.bilateral(size, [color_sigma=0.1, [space_sigma=1, [threshold=False, [offset=0, [invert=False, [mask=None]]]]]])
 
@@ -2666,7 +2666,7 @@ Methods
 
    Not supported on compressed images or bayer images.
 
-   This method is not avaiable on the OpenMV Cam M4.
+   This method is not available on the OpenMV Cam M4.
 
 .. method:: image.cartoon(size, [seed_threshold=0.05, [floating_threshold=0.05, [mask=None]]])
 
@@ -2690,7 +2690,7 @@ Methods
 
    Not supported on compressed images or bayer images.
 
-   This method is not avaiable on the OpenMV Cam M4.
+   This method is not available on the OpenMV Cam M4.
 
 .. method:: image.remove_shadows([image])
 
@@ -2716,7 +2716,7 @@ Methods
 
    Only works on RGB565 images.
 
-   This method is not avaiable on the OpenMV Cam M4.
+   This method is not available on the OpenMV Cam M4.
 
 .. method:: image.chrominvar()
 
@@ -2727,7 +2727,7 @@ Methods
 
    Only works on RGB565 images.
 
-   This method is not avaiable on the OpenMV Cam M4.
+   This method is not available on the OpenMV Cam M4.
 
 .. method:: image.illuminvar()
 
@@ -2738,7 +2738,7 @@ Methods
 
    Only works on RGB565 images.
 
-   This method is not avaiable on the OpenMV Cam M4.
+   This method is not available on the OpenMV Cam M4.
 
 .. method:: image.linpolar([reverse=False])
 
@@ -2750,7 +2750,7 @@ Methods
 
    Not supported on compressed images or bayer images.
 
-   This method is not avaiable on the OpenMV Cam M4.
+   This method is not available on the OpenMV Cam M4.
 
 .. method:: image.logpolar([reverse=False])
 
@@ -2763,7 +2763,7 @@ Methods
 
    Not supported on compressed images or bayer images.
 
-   This method is not avaiable on the OpenMV Cam M4.
+   This method is not available on the OpenMV Cam M4.
 
 .. method:: image.lens_corr([strength=1.8, [zoom=1.0]])
 
@@ -2804,7 +2804,7 @@ Methods
 
    Not supported on compressed images or bayer images.
 
-   This method is not avaiable on the OpenMV Cam M4.
+   This method is not available on the OpenMV Cam M4.
 
 .. method:: image.get_similarity(image)
 
@@ -2818,7 +2818,7 @@ Methods
 
    Not supported on compressed images or bayer images.
 
-   This method is not avaiable on the OpenMV Cam M4.
+   This method is not available on the OpenMV Cam M4.
 
 .. method:: image.get_histogram([thresholds, [invert=False, [roi, [bins, [l_bins, [a_bins, [b_bins]]]]]]])
 
@@ -3118,7 +3118,7 @@ Methods
 
    Not supported on compressed images or bayer images.
 
-   This method is not avaiable on the OpenMV Cam M4.
+   This method is not available on the OpenMV Cam M4.
 
 .. method:: image.find_line_segments([roi, [merge_distance=0, [max_theta_difference=15]]])
 
@@ -3140,7 +3140,7 @@ Methods
 
    Not supported on compressed images or bayer images.
 
-   This method is not avaiable on the OpenMV Cam M4.
+   This method is not available on the OpenMV Cam M4.
 
 .. method:: image.find_circles([roi, [x_stride=2, [y_stride=1, [threshold=2000, [x_margin=10, [y_margin=10, [r_margin=10]]]]]]])
 
@@ -3174,7 +3174,7 @@ Methods
 
    Not supported on compressed images or bayer images.
 
-   This method is not avaiable on the OpenMV Cam M4.
+   This method is not available on the OpenMV Cam M4.
 
 .. method:: image.find_rects([roi=Auto, [threshold=10000]])
 
@@ -3194,7 +3194,7 @@ Methods
 
    Not supported on compressed images or bayer images.
 
-   This method is not avaiable on the OpenMV Cam M4.
+   This method is not available on the OpenMV Cam M4.
 
 .. method:: image.find_qrcodes([roi])
 
@@ -3216,7 +3216,7 @@ Methods
 
    Not supported on compressed images or bayer images.
 
-   This method is not avaiable on the OpenMV Cam M4.
+   This method is not available on the OpenMV Cam M4.
 
 .. method:: image.find_apriltags([roi, [families=image.TAG36H11, [fx, [fy, [cx, [cy]]]]]])
 
@@ -3273,7 +3273,7 @@ Methods
 
    Not supported on compressed images or bayer images.
 
-   This method is not avaiable on the OpenMV Cam M4.
+   This method is not available on the OpenMV Cam M4.
 
 .. method:: image.find_datamatrices([roi, [effort=200]])
 
@@ -3304,7 +3304,7 @@ Methods
 
    Not supported on compressed images or bayer images.
 
-   This method is not avaiable on the OpenMV Cam M4.
+   This method is not available on the OpenMV Cam M4.
 
 .. method:: image.find_barcodes([roi])
 
@@ -3344,7 +3344,7 @@ Methods
 
    Not supported on compressed images or bayer images.
 
-   This method is not avaiable on the OpenMV Cam M4.
+   This method is not available on the OpenMV Cam M4.
 
 .. method:: image.find_displacement(template, [roi, [template_roi, [logpolar=False]]])
 
@@ -3375,7 +3375,7 @@ Methods
 
    Not supported on compressed images or bayer images.
 
-   This method is not avaiable on the OpenMV Cam M4.
+   This method is not available on the OpenMV Cam M4.
 
 .. method:: image.find_number(roi)
 
@@ -3395,7 +3395,7 @@ Methods
       This method is experimental and likely to be removed in the future once
       running any CNN trained on the PC using Caffe is available.
 
-   This method is not avaiable on the OpenMV Cam M4.
+   This method is not available on the OpenMV Cam M4.
 
 .. method:: image.classify_object(roi)
 
@@ -3414,7 +3414,7 @@ Methods
       This method is experimental and likely to be removed in the future once
       running any CNN trained on the PC using Caffe is available.
 
-   This method is not avaiable on the OpenMV Cam M4.
+   This method is not available on the OpenMV Cam M4.
 
 .. method:: image.find_template(template, threshold, [roi, [step=2, [search=image.SEARCH_EX]]])
 
@@ -3556,7 +3556,7 @@ Methods
 
    Only works on grayscale images.
 
-   This method is not avaiable on the OpenMV Cam M4.
+   This method is not available on the OpenMV Cam M4.
 
 Constants
 ---------
