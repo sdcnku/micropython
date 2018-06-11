@@ -10,7 +10,6 @@
 #define MICROPY_HW_ENABLE_DAC       (1)
 #define MICROPY_HW_ENABLE_ADC       (1)
 #define MICROPY_HW_ENABLE_SPI2      (1)
-#define MICROPY_HW_ENABLE_CAN       (0)
 #define MICROPY_HW_ENABLE_USB       (1)
 
 // Note these are not used in top system.c.

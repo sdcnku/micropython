@@ -29,7 +29,6 @@
 #include "py/runtime.h"
 #include "py/mphal.h"
 #include "pin.h"
-#include "genhdr/pins.h"
 #include "timer.h"
 #include "servo.h"
 
@@ -76,9 +75,9 @@ void servo_init(void) {
         pyb_servo_obj[i].time_left = 0;
     }
 
-    pyb_servo_obj[0].pin = &pin_D12;
-    pyb_servo_obj[1].pin = &pin_D13;
-    pyb_servo_obj[2].pin = &pin_D14;
+    pyb_servo_obj[0].pin = pin_D12;
+    pyb_servo_obj[1].pin = pin_D13;
+    pyb_servo_obj[2].pin = pin_D14;
 }
 
 void servo_timer_irq_callback(void) {
@@ -164,7 +163,7 @@ MP_DEFINE_CONST_FUN_OBJ_2(pyb_pwm_set_obj, pyb_pwm_set);
 
 STATIC void pyb_servo_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
     pyb_servo_obj_t *self = self_in;
-    mp_printf(print, "<Servo %lu at %luus>", self - &pyb_servo_obj[0] + 1, 10 * self->pulse_cur);
+    mp_printf(print, "<Servo %u at %uus>", self - &pyb_servo_obj[0] + 1, 10 * self->pulse_cur);
 }
 
 /// \classmethod \constructor(id)

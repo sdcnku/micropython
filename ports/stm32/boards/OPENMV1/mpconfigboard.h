@@ -15,7 +15,6 @@
 #define MICROPY_HW_ENABLE_SPI1      (0)
 #define MICROPY_HW_ENABLE_SPI2      (0)
 #define MICROPY_HW_ENABLE_SPI3      (1)
-#define MICROPY_HW_ENABLE_CAN       (0)
 
 #define MICROPY_HW_CLK_PLLM (12)
 #define MICROPY_HW_CLK_PLLN (336)

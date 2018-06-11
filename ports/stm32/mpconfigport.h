@@ -196,6 +196,12 @@ extern const struct _mp_obj_module_t mjpeg_module;
 extern const struct _mp_obj_module_t cpufreq_module;
 extern const struct _mp_obj_module_t nn_module;
 
+#if MICROPY_PY_STM
+#define STM_BUILTIN_MODULE               { MP_ROM_QSTR(MP_QSTR_stm), MP_ROM_PTR(&stm_module) },
+#else
+#define STM_BUILTIN_MODULE
+#endif
+
 #if MICROPY_PY_USOCKET
 #define SOCKET_BUILTIN_MODULE               { MP_ROM_QSTR(MP_QSTR_usocket), MP_ROM_PTR(&mp_module_usocket) },
 #define SOCKET_BUILTIN_MODULE_WEAK_LINKS    { MP_ROM_QSTR(MP_QSTR_socket), MP_ROM_PTR(&mp_module_usocket) },
@@ -213,7 +219,7 @@ extern const struct _mp_obj_module_t nn_module;
 #define MICROPY_PORT_BUILTIN_MODULES \
     { MP_OBJ_NEW_QSTR(MP_QSTR_umachine), (mp_obj_t)&machine_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_pyb), (mp_obj_t)&pyb_module }, \
-    { MP_OBJ_NEW_QSTR(MP_QSTR_stm), (mp_obj_t)&stm_module }, \
+    STM_BUILTIN_MODULE \
     { MP_OBJ_NEW_QSTR(MP_QSTR_uos), (mp_obj_t)&mp_module_uos }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_utime), (mp_obj_t)&mp_module_utime }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_omv),     (mp_obj_t)&omv_module }, \
@@ -249,10 +255,10 @@ extern const struct _mp_obj_module_t nn_module;
 
 // extra constants
 #define MICROPY_PORT_CONSTANTS \
-    { MP_OBJ_NEW_QSTR(MP_QSTR_umachine), (mp_obj_t)&machine_module }, \
-    { MP_OBJ_NEW_QSTR(MP_QSTR_machine), (mp_obj_t)&machine_module }, \
-    { MP_OBJ_NEW_QSTR(MP_QSTR_pyb), (mp_obj_t)&pyb_module }, \
-    { MP_OBJ_NEW_QSTR(MP_QSTR_stm), (mp_obj_t)&stm_module }, \
+    { MP_ROM_QSTR(MP_QSTR_umachine), MP_ROM_PTR(&machine_module) }, \
+    { MP_ROM_QSTR(MP_QSTR_machine), MP_ROM_PTR(&machine_module) }, \
+    { MP_ROM_QSTR(MP_QSTR_pyb), MP_ROM_PTR(&pyb_module) }, \
+    STM_BUILTIN_MODULE \
 
 #define MP_STATE_PORT MP_STATE_VM
 

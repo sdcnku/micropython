@@ -167,8 +167,8 @@ void timer_tim4_init(void) {
     __HAL_RCC_TIM4_CLK_ENABLE();
 
     // set up and enable interrupt
-    HAL_NVIC_SetPriority(TIM4_IRQn, IRQ_PRI_TIM4, IRQ_SUBPRI_TIM4);
-    HAL_NVIC_EnableIRQ(TIM4_IRQn);
+    NVIC_SetPriority(TIM5_IRQn, IRQ_PRI_TIM5);
+    HAL_NVIC_EnableIRQ(TIM5_IRQn);
 
     // PWM clock configuration
     TIM4_Handle.Instance = TIM4;
@@ -607,12 +607,12 @@ STATIC mp_obj_t pyb_timer_init_helper(pyb_timer_obj_t *self, size_t n_args, cons
 
     // set IRQ priority (if not a special timer)
     if (self->tim_id != 5) {
-        HAL_NVIC_SetPriority(self->irqn, IRQ_PRI_TIMX, IRQ_SUBPRI_TIMX);
+        NVIC_SetPriority(IRQn_NONNEG(self->irqn), IRQ_PRI_TIMX);
         if (self->tim_id == 1) {
-            HAL_NVIC_SetPriority(TIM1_CC_IRQn, IRQ_PRI_TIMX, IRQ_SUBPRI_TIMX);
+            NVIC_SetPriority(TIM1_CC_IRQn, IRQ_PRI_TIMX);
         #if defined(TIM8)
         } else if (self->tim_id == 8) {
-            HAL_NVIC_SetPriority(TIM8_CC_IRQn, IRQ_PRI_TIMX, IRQ_SUBPRI_TIMX);
+            NVIC_SetPriority(TIM8_CC_IRQn, IRQ_PRI_TIMX);
         #endif
         }
     }
@@ -647,9 +647,9 @@ STATIC mp_obj_t pyb_timer_init_helper(pyb_timer_obj_t *self, size_t n_args, cons
 // It assumes that timer instance pointer has the lower 8 bits cleared.
 #define TIM_ENTRY(id, irq) [id - 1] = (uint32_t)TIM##id | irq
 STATIC const uint32_t tim_instance_table[MICROPY_HW_MAX_TIMER] = {
-    #if defined(MCU_SERIES_F4) || defined(MCU_SERIES_F7)
+    #if defined(STM32F4) || defined(STM32F7)
     TIM_ENTRY(1, TIM1_UP_TIM10_IRQn),
-    #elif defined(MCU_SERIES_L4)
+    #elif defined(STM32L4)
     TIM_ENTRY(1, TIM1_UP_TIM16_IRQn),
     #endif
     TIM_ENTRY(2, TIM2_IRQn),
@@ -667,9 +667,9 @@ STATIC const uint32_t tim_instance_table[MICROPY_HW_MAX_TIMER] = {
     TIM_ENTRY(7, TIM7_IRQn),
     #endif
     #if defined(TIM8)
-    #if defined(MCU_SERIES_F4) || defined(MCU_SERIES_F7)
+    #if defined(STM32F4) || defined(STM32F7)
     TIM_ENTRY(8, TIM8_UP_TIM13_IRQn),
-    #elif defined(MCU_SERIES_L4)
+    #elif defined(STM32L4)
     TIM_ENTRY(8, TIM8_UP_IRQn),
     #endif
     #endif
@@ -1455,7 +1455,7 @@ void timer_irq_handler(uint tim_id) {
         if (unhandled != 0) {
             __HAL_TIM_DISABLE_IT(&tim->tim, unhandled);
             __HAL_TIM_CLEAR_IT(&tim->tim, unhandled);
-            printf("Unhandled interrupt SR=0x%02lx (now disabled)\n", unhandled);
+            printf("Unhandled interrupt SR=0x%02x (now disabled)\n", (unsigned int)unhandled);
         }
     }
 }

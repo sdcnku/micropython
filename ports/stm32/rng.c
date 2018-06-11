@@ -69,7 +69,13 @@ MP_DEFINE_CONST_FUN_OBJ_2(pyb_rng_randint_obj, pyb_rng_randint);
 uint32_t rng_get(void) {
     // Enable the RNG peripheral if it's not already enabled
     if (!(RNG->CR & RNG_CR_RNGEN)) {
-        rng_init();
+        #if defined(STM32H7)
+        // Set RNG Clock source
+        __HAL_RCC_PLLCLKOUT_ENABLE(RCC_PLL1_DIVQ);
+        __HAL_RCC_RNG_CONFIG(RCC_RNGCLKSOURCE_PLL);
+        #endif
+        __HAL_RCC_RNG_CLK_ENABLE();
+        RNG->CR |= RNG_CR_RNGEN;
     }
 
     // Wait for a new random number to be ready, takes on the order of 10us
