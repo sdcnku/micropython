@@ -6,6 +6,8 @@ class I2C -- a two-wire serial protocol
 
 I2C is a two-wire protocol for communicating between devices.  At the physical
 level it consists of 2 wires: SCL and SDA, the clock and data lines respectively.
+OpenMV Cam does not provide Pullups on the SDA or SCL lines and external pullups
+are required on both SDA and SCL lines for the I2C bus to be functional.
 
 I2C objects are created attached to a specific bus.  They can be initialised
 when created, or initialised later on.
