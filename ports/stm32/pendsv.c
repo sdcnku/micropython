@@ -118,6 +118,8 @@ void pendsv_isr_handler(void) {
         "ldr r0, [r1]\n"
         "cmp r0, 0\n"
         "beq .no_obj\n"
+        "mov r2, #0x01000000 \n"        // Modify stacked XPSR to make sure
+        "str r2, [sp, #28] \n"          // possible LDM/STM progress is cleared.
         "str r0, [sp, #0]\n"            // store to r0 on stack
         "mov r0, #0\n"
         "str r0, [r1]\n"                // clear pendsv_object
