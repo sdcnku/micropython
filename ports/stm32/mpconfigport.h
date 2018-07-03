@@ -116,7 +116,7 @@
 #endif
 
 // extended modules
-#define MICROPY_PY_UCTYPES          (0)
+#define MICROPY_PY_UCTYPES          (1)
 #define MICROPY_PY_UZLIB            (1)
 #define MICROPY_PY_UJSON            (1)
 #define MICROPY_PY_URE              (1)
