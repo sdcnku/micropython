@@ -48,7 +48,9 @@
 #define MICROPY_HW_SPI2_MOSI (pin_B15)
 
 // CAN busses
-#define MICROPY_HW_CAN2_NAME "CAN2" // CAN2 on RX,TX = Y5,Y6 = PB12,PB13
+#define MICROPY_HW_CAN2_NAME "CAN2" // CAN2 on RX,TX = P3,P2 = PB12,PB13
+#define MICROPY_HW_CAN2_TX          (pin_B13)
+#define MICROPY_HW_CAN2_RX          (pin_B12)
 
 // SD card detect switch
 #define MICROPY_HW_SDCARD_DETECT_PIN        (pin_A15)
