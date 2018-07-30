@@ -34,6 +34,7 @@
 #include "servo.h"
 #include "pin.h"
 #include "irq.h"
+#include "wifidbg.h"
 
 /// \moduleref pyb
 /// \class Timer - periodically call a function
@@ -243,6 +244,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
         servo_timer_irq_callback();
     }
     #endif
+
+    if (htim == &TIM5_Handle) {
+        wifidbg_dispatch();
+    }
 }
 
 // Get the frequency (in Hz) of the source clock for the given timer.
