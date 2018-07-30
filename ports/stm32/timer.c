@@ -167,13 +167,13 @@ void timer_tim4_init(void) {
     __HAL_RCC_TIM4_CLK_ENABLE();
 
     // set up and enable interrupt
-    NVIC_SetPriority(TIM5_IRQn, IRQ_PRI_TIM5);
-    HAL_NVIC_EnableIRQ(TIM5_IRQn);
+    NVIC_SetPriority(TIM4_IRQn, IRQ_PRI_TIM4);
+    HAL_NVIC_EnableIRQ(TIM4_IRQn);
 
     // PWM clock configuration
     TIM4_Handle.Instance = TIM4;
     TIM4_Handle.Init.Period = 2000 - 1; // timer cycles at 50Hz
-    TIM4_Handle.Init.Prescaler = (timer_get_source_freq(5) / 100000) - 1; // timer runs at 100kHz
+    TIM4_Handle.Init.Prescaler = (timer_get_source_freq(4) / 100000) - 1; // timer runs at 100kHz
     TIM4_Handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     TIM4_Handle.Init.CounterMode = TIM_COUNTERMODE_UP;
 
