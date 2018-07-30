@@ -88,6 +88,7 @@ extern DCMI_HandleTypeDef DCMIHandle;
 extern void DCMI_VsyncExtiCallback();
 extern PCD_HandleTypeDef pcd_fs_handle;
 extern PCD_HandleTypeDef pcd_hs_handle;
+extern TIM_HandleTypeDef TIM5_Handle;
 
 /******************************************************************************/
 /*            Cortex-M4 Processor Exceptions Handlers                         */
@@ -630,7 +631,7 @@ void TIM4_IRQHandler(void) {
 
 void TIM5_IRQHandler(void) {
     IRQ_ENTER(TIM5_IRQn);
-    timer_irq_handler(5);
+    HAL_TIM_IRQHandler(&TIM5_Handle);
     IRQ_EXIT(TIM5_IRQn);
 }
 

@@ -135,6 +135,7 @@ typedef struct _pyb_timer_obj_t {
 #define TIMER_CHANNEL(self)     ((((self)->channel) - 1) << 2)
 
 TIM_HandleTypeDef TIM4_Handle;
+TIM_HandleTypeDef TIM5_Handle;
 TIM_HandleTypeDef TIM6_Handle;
 
 #define PYB_TIMER_OBJ_ALL_NUM MP_ARRAY_SIZE(MP_STATE_PORT(pyb_timer_obj_all))
@@ -178,6 +179,32 @@ void timer_tim4_init(void) {
     TIM4_Handle.Init.CounterMode = TIM_COUNTERMODE_UP;
 
     HAL_TIM_PWM_Init(&TIM4_Handle);
+}
+
+void timer_tim5_init() {
+    // TIM5 clock enable
+    __TIM5_CLK_ENABLE();
+    __HAL_RCC_TIM5_CLK_ENABLE();
+
+    // set up and enable interrupt
+    NVIC_SetPriority(TIM5_IRQn, IRQ_PRI_WIFITIM);
+    HAL_NVIC_EnableIRQ(TIM5_IRQn);
+
+    /* Initialize TIMx peripheral as follows:
+       + Period = freq - 1
+       + Prescaler = ((SystemCoreClock / 2)/frq) - 1
+       + ClockDivision = 0
+       + Counter direction = Up
+     */
+    TIM5_Handle.Instance = TIM5;
+    TIM5_Handle.Init.Period = 0xFFFF;
+    TIM5_Handle.Init.Prescaler = 16;
+    TIM5_Handle.Init.ClockDivision     = 0;
+    TIM5_Handle.Init.CounterMode       = TIM_COUNTERMODE_UP;
+    TIM5_Handle.Init.RepetitionCounter = 0;
+    TIM5_Handle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+    HAL_TIM_Base_Init(&TIM5_Handle);
+    HAL_TIM_Base_Start_IT(&TIM5_Handle);
 }
 
 #if defined(TIM6)
