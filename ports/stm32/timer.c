@@ -203,7 +203,6 @@ void timer_tim5_init() {
     TIM5_Handle.Init.ClockDivision     = 0;
     TIM5_Handle.Init.CounterMode       = TIM_COUNTERMODE_UP;
     TIM5_Handle.Init.RepetitionCounter = 0;
-    TIM5_Handle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
     HAL_TIM_Base_Init(&TIM5_Handle);
     HAL_TIM_Base_Start_IT(&TIM5_Handle);
 }
