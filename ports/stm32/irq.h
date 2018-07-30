@@ -147,9 +147,11 @@ MP_DECLARE_CONST_FUN_OBJ_0(pyb_irq_stats_obj);
 #define IRQ_PRI_CAN             NVIC_EncodePriority(NVIC_PRIORITYGROUP_4, 8, 0)
 
 // Interrupt priority for non-special timers.
-#define IRQ_PRI_TIMX            NVIC_EncodePriority(NVIC_PRIORITYGROUP_4, 13, 0)
+#define IRQ_PRI_TIMX            NVIC_EncodePriority(NVIC_PRIORITYGROUP_4, 12, 0)
 
-#define IRQ_PRI_EXTINT          NVIC_EncodePriority(NVIC_PRIORITYGROUP_4, 14, 0)
+#define IRQ_PRI_EXTINT          NVIC_EncodePriority(NVIC_PRIORITYGROUP_4, 13, 0)
+
+#define IRQ_PRI_WIFITIM         NVIC_EncodePriority(NVIC_PRIORITYGROUP_4, 14, 0)
 
 // PENDSV should be at the lowst priority so that other interrupts complete
 // before exception is raised.
