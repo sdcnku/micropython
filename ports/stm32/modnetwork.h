@@ -35,6 +35,7 @@
 #define MOD_NETWORK_SOCK_DGRAM (2)
 #define MOD_NETWORK_SOCK_RAW (3)
 
+#include "winc.h"
 struct _mod_network_socket_obj_t;
 
 typedef struct _mod_network_nic_type_t {
@@ -75,6 +76,7 @@ typedef struct _mod_network_socket_obj_t {
         } u_param;
         mp_uint_t u_state;
     };
+    winc_socket_buf_t sockbuf;
 } mod_network_socket_obj_t;
 
 extern const mod_network_nic_type_t mod_network_nic_type_wiznet5k;
