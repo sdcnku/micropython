@@ -182,7 +182,7 @@ void timer_tim4_init(void) {
     HAL_TIM_PWM_Init(&TIM4_Handle);
 }
 
-void timer_tim5_init() {
+void timer_tim5_init(uint freq) {
     // TIM5 clock enable
     __TIM5_CLK_ENABLE();
     __HAL_RCC_TIM5_CLK_ENABLE();
@@ -191,15 +191,16 @@ void timer_tim5_init() {
     NVIC_SetPriority(TIM5_IRQn, IRQ_PRI_WIFITIM);
     HAL_NVIC_EnableIRQ(TIM5_IRQn);
 
-    /* Initialize TIMx peripheral as follows:
-       + Period = freq - 1
-       + Prescaler = ((SystemCoreClock / 2)/frq) - 1
-       + ClockDivision = 0
-       + Counter direction = Up
-     */
+    uint32_t period = MAX(1, timer_get_source_freq(5) / freq);
+    uint32_t prescaler = 1;
+    while (period > 0xffff) {
+        period >>= 1;
+        prescaler <<= 1;
+    }
+
     TIM5_Handle.Instance = TIM5;
-    TIM5_Handle.Init.Period = 0xFFFF;
-    TIM5_Handle.Init.Prescaler = 16;
+    TIM6_Handle.Init.Period = period - 1;
+    TIM6_Handle.Init.Prescaler = prescaler - 1;
     TIM5_Handle.Init.ClockDivision     = 0;
     TIM5_Handle.Init.CounterMode       = TIM_COUNTERMODE_UP;
     TIM5_Handle.Init.RepetitionCounter = 0;
