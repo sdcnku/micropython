@@ -199,8 +199,8 @@ void timer_tim5_init(uint freq) {
     }
 
     TIM5_Handle.Instance = TIM5;
-    TIM6_Handle.Init.Period = period - 1;
-    TIM6_Handle.Init.Prescaler = prescaler - 1;
+    TIM5_Handle.Init.Period = period - 1;
+    TIM5_Handle.Init.Prescaler = prescaler - 1;
     TIM5_Handle.Init.ClockDivision     = 0;
     TIM5_Handle.Init.CounterMode       = TIM_COUNTERMODE_UP;
     TIM5_Handle.Init.RepetitionCounter = 0;
