@@ -51,6 +51,8 @@ STATIC mp_obj_t socket_make_new(const mp_obj_type_t *type, size_t n_args, size_t
     s->base.type = (mp_obj_t)&socket_type;
     s->nic = MP_OBJ_NULL;
     s->nic_type = NULL;
+    s->sockbuf.idx = 0;
+    s->sockbuf.size = 0;
     s->u_param.domain = MOD_NETWORK_AF_INET;
     s->u_param.type = MOD_NETWORK_SOCK_STREAM;
     s->u_param.fileno = -1;
