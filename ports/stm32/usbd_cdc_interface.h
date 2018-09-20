@@ -63,6 +63,10 @@ static inline int usbd_cdc_is_connected(usbd_cdc_itf_t *cdc) {
     return cdc->dev_is_connected;
 }
 
+static inline int usbd_cdc_debug_mode_enabled(usbd_cdc_itf_t *cdc) {
+    return cdc->dbg_mode_enabled;
+}
+
 int usbd_cdc_tx_half_empty(usbd_cdc_itf_t *cdc);
 int usbd_cdc_tx(usbd_cdc_itf_t *cdc, const uint8_t *buf, uint32_t len, uint32_t timeout);
 void usbd_cdc_tx_always(usbd_cdc_itf_t *cdc, const uint8_t *buf, uint32_t len);

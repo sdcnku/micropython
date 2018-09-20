@@ -398,6 +398,12 @@ STATIC mp_obj_t pyb_usb_vcp_isconnected(mp_obj_t self_in) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(pyb_usb_vcp_isconnected_obj, pyb_usb_vcp_isconnected);
 
+STATIC mp_obj_t pyb_usb_vcp_debug_mode_enabled(mp_obj_t self_in) {
+    pyb_usb_vcp_obj_t *self = MP_OBJ_TO_PTR(self_in);
+    return mp_obj_new_bool(usbd_cdc_debug_mode_enabled(&self->usb_dev->usbd_cdc_itf));
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(pyb_usb_vcp_debug_mode_enabled_obj, pyb_usb_vcp_debug_mode_enabled);
+
 // deprecated in favour of USB_VCP.isconnected
 STATIC mp_obj_t pyb_have_cdc(void) {
     return pyb_usb_vcp_isconnected(MP_OBJ_FROM_PTR(&pyb_usb_vcp_obj));
@@ -488,6 +494,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(pyb_usb_vcp___exit___obj, 4, 4, pyb_u
 STATIC const mp_rom_map_elem_t pyb_usb_vcp_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_setinterrupt), MP_ROM_PTR(&pyb_usb_vcp_setinterrupt_obj) },
     { MP_ROM_QSTR(MP_QSTR_isconnected), MP_ROM_PTR(&pyb_usb_vcp_isconnected_obj) },
+    { MP_ROM_QSTR(MP_QSTR_debug_mode_enabled), MP_ROM_PTR(&pyb_usb_vcp_debug_mode_enabled_obj) },
     { MP_ROM_QSTR(MP_QSTR_any), MP_ROM_PTR(&pyb_usb_vcp_any_obj) },
     { MP_ROM_QSTR(MP_QSTR_send), MP_ROM_PTR(&pyb_usb_vcp_send_obj) },
     { MP_ROM_QSTR(MP_QSTR_recv), MP_ROM_PTR(&pyb_usb_vcp_recv_obj) },
