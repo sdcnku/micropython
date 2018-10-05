@@ -35,8 +35,18 @@
 #include "bufhelper.h"
 #include "spi.h"
 
-#define UNALIGNED_BUFFER(p)     ((uint32_t)p & 3)
-#define CCM_BUFFER(p)           (!(((uint32_t) p) & (1u<<29)))
+#if defined(STM32F7)
+#define DMA_BUFFER(p)       ((uint32_t)p & 3)
+#elif defined(STM32H7)
+// NOTE: H7 SD DMA can only access AXI SRAM.
+#define DMA_BUFFER(p)       (((uint32_t)p & 3) && ((uint32_t) p >= 0x24000000) && ((uint32_t) p < 0x24080000))
+#elif defined(STM32F4)
+// NOTE: F4 CCM is not accessible by GP-DMA.
+#define DMA_BUFFER(p)       (((uint32_t)p & 3) == 0 && ((uint32_t) p > 0x10010000))
+#else
+// Assume it's DMA'able
+#define DMA_BUFFER(p)       (true)
+#endif
 
 /// \moduleref pyb
 /// \class SPI - a master-driven serial protocol
@@ -206,6 +216,15 @@ STATIC void spi_set_params(const spi_t *spi_obj, uint32_t prescale, int32_t baud
         if (prescale == 0xffffffff) {
             // prescaler not given, so select one that yields at most the requested baudrate
             mp_uint_t spi_clock;
+            #if defined(STM32H7)
+            if (spi->Instance == SPI1 || spi->Instance == SPI2 || spi->Instance == SPI3) {
+                spi_clock = HAL_RCCEx_GetPeriphCLKFreq(RCC_PERIPHCLK_SPI123);
+            } else if (spi->Instance == SPI4 || spi->Instance == SPI5) {
+                spi_clock = HAL_RCCEx_GetPeriphCLKFreq(RCC_PERIPHCLK_SPI45);
+            } else {
+                spi_clock = HAL_RCCEx_GetPeriphCLKFreq(RCC_PERIPHCLK_SPI6);
+            }
+            #else
             if (spi->Instance == SPI2 || spi->Instance == SPI3) {
                 // SPI2 and SPI3 are on APB1
                 spi_clock = HAL_RCC_GetPCLK1Freq();
@@ -213,6 +232,7 @@ STATIC void spi_set_params(const spi_t *spi_obj, uint32_t prescale, int32_t baud
                 // SPI1, SPI4, SPI5 and SPI6 are on APB2
                 spi_clock = HAL_RCC_GetPCLK2Freq();
             }
+            #endif
             prescale = spi_clock / baudrate;
         }
         if (prescale <= 2) { init->BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2; }
@@ -434,7 +454,7 @@ STATIC void spi_transfer(const spi_t *self, size_t len, const uint8_t *src, uint
 
     if (dest == NULL) {
         // send only
-        if (len == 1 || query_irq() == IRQ_STATE_DISABLED || CCM_BUFFER(src) || UNALIGNED_BUFFER(src)) {
+        if (len == 1 || query_irq() == IRQ_STATE_DISABLED || !DMA_BUFFER(src)) {
             mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
             status = HAL_SPI_Transmit(self->spi, (uint8_t*)src, len, timeout);
             MICROPY_END_ATOMIC_SECTION(atomic_state);
@@ -462,7 +482,7 @@ STATIC void spi_transfer(const spi_t *self, size_t len, const uint8_t *src, uint
         }
     } else if (src == NULL) {
         // receive only
-        if (len == 1 || query_irq() == IRQ_STATE_DISABLED || CCM_BUFFER(dest) || UNALIGNED_BUFFER(dest)) {
+        if (len == 1 || query_irq() == IRQ_STATE_DISABLED || !DMA_BUFFER(dest)) {
             mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
             status = HAL_SPI_Receive(self->spi, dest, len, timeout);
             MICROPY_END_ATOMIC_SECTION(atomic_state);
@@ -499,8 +519,7 @@ STATIC void spi_transfer(const spi_t *self, size_t len, const uint8_t *src, uint
         }
     } else {
         // send and receive
-        if (len == 1 || query_irq() == IRQ_STATE_DISABLED || CCM_BUFFER(src)
-                || UNALIGNED_BUFFER(src) || CCM_BUFFER(dest) || UNALIGNED_BUFFER(dest)) {
+        if (len == 1 || query_irq() == IRQ_STATE_DISABLED || !DMA_BUFFER(src) || !DMA_BUFFER(dest)) {
             mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
             status = HAL_SPI_TransmitReceive(self->spi, (uint8_t*)src, dest, len, timeout);
             MICROPY_END_ATOMIC_SECTION(atomic_state);
@@ -560,6 +579,15 @@ STATIC void spi_print(const mp_print_t *print, const spi_t *spi_obj, bool legacy
         if (spi->Init.Mode == SPI_MODE_MASTER) {
             // compute baudrate
             uint spi_clock;
+            #if defined(STM32H7)
+            if (spi->Instance == SPI1 || spi->Instance == SPI2 || spi->Instance == SPI3) {
+                spi_clock = HAL_RCCEx_GetPeriphCLKFreq(RCC_PERIPHCLK_SPI123);
+            } else if (spi->Instance == SPI4 || spi->Instance == SPI5) {
+                spi_clock = HAL_RCCEx_GetPeriphCLKFreq(RCC_PERIPHCLK_SPI45);
+            } else {
+                spi_clock = HAL_RCCEx_GetPeriphCLKFreq(RCC_PERIPHCLK_SPI6);
+            }
+            #else
             if (spi->Instance == SPI2 || spi->Instance == SPI3) {
                 // SPI2 and SPI3 are on APB1
                 spi_clock = HAL_RCC_GetPCLK1Freq();
@@ -567,6 +595,7 @@ STATIC void spi_print(const mp_print_t *print, const spi_t *spi_obj, bool legacy
                 // SPI1, SPI4, SPI5 and SPI6 are on APB2
                 spi_clock = HAL_RCC_GetPCLK2Freq();
             }
+            #endif
             uint log_prescaler = (spi->Init.BaudRatePrescaler >> 3) + 1;
             uint baudrate = spi_clock >> log_prescaler;
             if (legacy) {
