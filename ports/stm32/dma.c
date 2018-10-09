@@ -326,7 +326,7 @@ static const uint8_t dma_irqn[NSTREAM] = {
 // around each transfer.
 
 // DMA1 streams
-const dma_descr_t dma_I2C_1_RX = { DMA1_Stream0, DMA_REQUEST_I2C1_RX, DMA_PERIPH_TO_MEMORY, dma_id_0,   &dma_init_struct_spi_i2c };
+//const dma_descr_t dma_I2C_1_RX = { DMA1_Stream0, DMA_REQUEST_I2C1_RX, DMA_PERIPH_TO_MEMORY, dma_id_0,   &dma_init_struct_spi_i2c };
 const dma_descr_t dma_SPI_3_RX = { DMA1_Stream2, DMA_REQUEST_SPI3_RX, DMA_PERIPH_TO_MEMORY, dma_id_2,   &dma_init_struct_spi_i2c };
 const dma_descr_t dma_I2C_4_RX = { DMA1_Stream2, BDMA_REQUEST_I2C4_RX, DMA_PERIPH_TO_MEMORY, dma_id_2,   &dma_init_struct_spi_i2c };
 const dma_descr_t dma_I2C_3_RX = { DMA1_Stream2, DMA_REQUEST_I2C3_RX, DMA_PERIPH_TO_MEMORY, dma_id_2,   &dma_init_struct_spi_i2c };
@@ -386,7 +386,8 @@ volatile dma_idle_count_t dma_idle;
 
 #if defined(STM32F4) || defined(STM32F7) || defined(STM32H7)
 
-void DMA1_Stream0_IRQHandler(void) { IRQ_ENTER(DMA1_Stream0_IRQn); if (dma_handle[dma_id_0] != NULL) { HAL_DMA_IRQHandler(dma_handle[dma_id_0]); } IRQ_EXIT(DMA1_Stream0_IRQn); }
+// Used by SPI4 for FLIR/LEPTON.
+//void DMA1_Stream0_IRQHandler(void) { IRQ_ENTER(DMA1_Stream0_IRQn); if (dma_handle[dma_id_0] != NULL) { HAL_DMA_IRQHandler(dma_handle[dma_id_0]); } IRQ_EXIT(DMA1_Stream0_IRQn); }
 void DMA1_Stream1_IRQHandler(void) { IRQ_ENTER(DMA1_Stream1_IRQn); if (dma_handle[dma_id_1] != NULL) { HAL_DMA_IRQHandler(dma_handle[dma_id_1]); } IRQ_EXIT(DMA1_Stream1_IRQn); }
 void DMA1_Stream2_IRQHandler(void) { IRQ_ENTER(DMA1_Stream2_IRQn); if (dma_handle[dma_id_2] != NULL) { HAL_DMA_IRQHandler(dma_handle[dma_id_2]); } IRQ_EXIT(DMA1_Stream2_IRQn); }
 void DMA1_Stream3_IRQHandler(void) { IRQ_ENTER(DMA1_Stream3_IRQn); if (dma_handle[dma_id_3] != NULL) { HAL_DMA_IRQHandler(dma_handle[dma_id_3]); } IRQ_EXIT(DMA1_Stream3_IRQn); }
