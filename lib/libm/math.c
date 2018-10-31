@@ -51,11 +51,6 @@ double __attribute__((pcs("aapcs"))) __aeabi_i2d(int32_t x) {
     return (float)x;
 }
 
-// TODO
-long long __attribute__((pcs("aapcs"))) __aeabi_f2lz(float x) {
-    return (long)x;
-}
-
 double __attribute__((pcs("aapcs"))) __aeabi_f2d(float x) {
     float_s_t fx={0};
     double_s_t dx={0};
@@ -79,11 +74,44 @@ float __attribute__((pcs("aapcs"))) __aeabi_d2f(double x) {
     return fx.f;
 }
 
-double __aeabi_dmul(double x , double y) {
-    return 0.0;
+typedef struct {
+  uint64_t quot;
+  uint64_t rem;
+} ulldiv_t;
 
+// Source: https://dox.ipxe.org/____udivmoddi4_8c_source.html
+ulldiv_t  __attribute__((pcs("aapcs")))
+    __aeabi_uldivmod(uint64_t num, uint64_t den)
+{
+    ulldiv_t ret;
+    uint64_t quot = 0, qbit = 1;
+
+    if ( den == 0 ) {
+        ret.quot = 1/((unsigned)den); /* Intentional divide by zero, without
+                                         triggering a compiler warning which
+                                         would abort the build */
+        return ret;
+    }
+
+    /* Left-justify denominator and count shift */
+    while ((int64_t) den >= 0) {
+        den <<= 1;
+        qbit <<= 1;
+    }
+
+    while (qbit) {
+        if (den <= num) {
+            num -= den;
+            quot += qbit;
+        }
+        den >>= 1;
+        qbit >>= 1;
+    }
+
+    ret.rem = num;
+    ret.quot = quot;
+    return ret;
 }
-
 #endif // defined(__thumb__)
 
 #if defined(__thumb2__)
