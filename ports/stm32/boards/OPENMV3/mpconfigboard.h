@@ -17,6 +17,7 @@
 #define MICROPY_HW_ENABLE_SPI3      (0)
 #define MICROPY_HW_ENABLE_SPI4      (0)
 #define MICROPY_HW_ENABLE_USB       (1)
+#define MICROPY_FATFS_EXFAT         (1)
 
 #define MICROPY_HW_CLK_PLLM (12)
 #define MICROPY_HW_CLK_PLLN (432)

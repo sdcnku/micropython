@@ -11,6 +11,7 @@
 #define MICROPY_HW_ENABLE_ADC       (1)
 #define MICROPY_HW_ENABLE_SPI2      (1)
 #define MICROPY_HW_ENABLE_USB       (1)
+#define MICROPY_FATFS_EXFAT         (1)
 
 // Note these are not used in top system.c.
 #define MICROPY_HW_CLK_PLLM         (3)
