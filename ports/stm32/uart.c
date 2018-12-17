@@ -529,6 +529,8 @@ void uart_irq_handler(mp_uint_t uart_id) {
                 __HAL_UART_DISABLE_IT(&self->uart, UART_IT_RXNE);
             }
         }
+    } else if (__HAL_UART_GET_FLAG(&self->uart, UART_FLAG_ORE) != RESET) {
+        __HAL_UART_CLEAR_IT(&self->uart, UART_CLEAR_OREF);
     }
 }
 
