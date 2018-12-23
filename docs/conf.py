@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.abspath('.'))
 
 # Work out the port to generate the docs for
 from collections import OrderedDict
-micropy_port = os.getenv('MICROPY_PORT') or 'pyboard'
+micropy_port = os.getenv('MICROPY_PORT') or 'openmvcam'
 tags.add('port_' + micropy_port)
 ports = OrderedDict((
     ('unix', 'unix'),
