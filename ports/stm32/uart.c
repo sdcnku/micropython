@@ -530,7 +530,11 @@ void uart_irq_handler(mp_uint_t uart_id) {
             }
         }
     } else if (__HAL_UART_GET_FLAG(&self->uart, UART_FLAG_ORE) != RESET) {
+        #if defined(STM32F7) || defined(STM32H7)
         __HAL_UART_CLEAR_IT(&self->uart, UART_CLEAR_OREF);
+        #else
+        __HAL_UART_CLEAR_FLAG(&self->uart, UART_FLAG_ORE);
+        #endif
     }
 }
 
