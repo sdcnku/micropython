@@ -51,13 +51,8 @@
 ///     val = adc.read_core_vref()      # read MCU VREF
 
 /* ADC defintions */
-#if defined(STM32H7)
-#define ADCx                    (ADC3)
-#else
 #define ADCx                    (ADC1)
-#endif
 #define ADCx_CLK_ENABLE         __HAL_RCC_ADC1_CLK_ENABLE
-#define ADC_NUM_CHANNELS        (19)
 
 #if defined(STM32F4)
 
@@ -174,12 +169,12 @@ STATIC bool is_adcx_channel(int channel) {
 #endif
 }
 
-STATIC void adc_wait_for_eoc_or_timeout(int32_t timeout) {
+STATIC void adc_wait_for_eoc_or_timeout(ADC_HandleTypeDef *adcHandle, int32_t timeout) {
     uint32_t tickstart = HAL_GetTick();
 #if defined(STM32F4) || defined(STM32F7)
-    while ((ADCx->SR & ADC_FLAG_EOC) != ADC_FLAG_EOC) {
+    while ((adcHandle->Instance->SR & ADC_FLAG_EOC) != ADC_FLAG_EOC) {
 #elif defined(STM32H7) || defined(STM32L4)
-    while (READ_BIT(ADCx->ISR, ADC_FLAG_EOC) != ADC_FLAG_EOC) {
+    while (READ_BIT(adcHandle->Instance->ISR, ADC_FLAG_EOC) != ADC_FLAG_EOC) {
 #else
     #error Unsupported processor
 #endif
@@ -335,8 +330,8 @@ STATIC void adc_config_channel(ADC_HandleTypeDef *adc_handle, uint32_t channel) 
 
 STATIC uint32_t adc_read_channel(ADC_HandleTypeDef *adcHandle) {
     HAL_ADC_Start(adcHandle);
-    adc_wait_for_eoc_or_timeout(EOC_TIMEOUT);
-    uint32_t value = ADCx->DR;
+    adc_wait_for_eoc_or_timeout(adcHandle, EOC_TIMEOUT);
+    uint32_t value = adcHandle->Instance->DR;
     HAL_ADC_Stop(adcHandle);
     return value;
 }
@@ -485,19 +480,19 @@ STATIC mp_obj_t adc_read_timed(mp_obj_t self_in, mp_obj_t buf_in, mp_obj_t freq_
         } else {
             // for subsequent samples we can just set the "start sample" bit
 #if defined(STM32F4) || defined(STM32F7)
-            ADCx->CR2 |= (uint32_t)ADC_CR2_SWSTART;
+            self->handle.Instance->CR2 |= (uint32_t)ADC_CR2_SWSTART;
 #elif defined(STM32H7) || defined(STM32L4)
-            SET_BIT(ADCx->CR, ADC_CR_ADSTART);
+            SET_BIT(self->handle.Instance->CR, ADC_CR_ADSTART);
 #else
             #error Unsupported processor
 #endif
         }
 
         // wait for sample to complete
-        adc_wait_for_eoc_or_timeout(EOC_TIMEOUT);
+        adc_wait_for_eoc_or_timeout(&self->handle, EOC_TIMEOUT);
 
         // read value
-        uint value = ADCx->DR;
+        uint value = self->handle.Instance->DR;
 
         // store value in buffer
         if (typesize == 1) {
@@ -564,9 +559,9 @@ STATIC mp_obj_t adc_read_timed_multi(mp_obj_t adc_array_in, mp_obj_t buf_array_i
     adc_config_channel(&adc0->handle, adc0->channel);
     HAL_ADC_Start(&adc0->handle);
     // Wait for sample to complete and discard
-    adc_wait_for_eoc_or_timeout(EOC_TIMEOUT);
+    adc_wait_for_eoc_or_timeout(&adc0->handle, EOC_TIMEOUT);
     // Read (and discard) value
-    uint value = ADCx->DR;
+    uint value = adc0->handle.Instance->DR;
 
     // Ensure first sample is on a timer tick
     __HAL_TIM_CLEAR_FLAG(tim, TIM_FLAG_UPDATE);
@@ -595,17 +590,17 @@ STATIC mp_obj_t adc_read_timed_multi(mp_obj_t adc_array_in, mp_obj_t buf_array_i
             // for the first sample we need to turn the ADC on
             // ADC is started: set the "start sample" bit
             #if defined(STM32F4) || defined(STM32F7)
-            ADCx->CR2 |= (uint32_t)ADC_CR2_SWSTART;
+            adc->handle.Instance->CR2 |= (uint32_t)ADC_CR2_SWSTART;
             #elif defined(STM32H7) || defined(STM32L4)
-            SET_BIT(ADCx->CR, ADC_CR_ADSTART);
+            SET_BIT(adc->handle.Instance->CR, ADC_CR_ADSTART);
             #else
             #error Unsupported processor
             #endif
             // wait for sample to complete
-            adc_wait_for_eoc_or_timeout(EOC_TIMEOUT);
+            adc_wait_for_eoc_or_timeout(&adc->handle, EOC_TIMEOUT);
 
             // read value
-            value = ADCx->DR;
+            value = adc->handle.Instance->DR;
 
             // store values in buffer
             if (typesize == 1) {
