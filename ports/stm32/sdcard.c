@@ -115,19 +115,6 @@
 
 #endif
 
-#define ALIGNED_BUFFER(p)     (((uint32_t)p & 3) == 0)
-
-#if defined(STM32H7)
-// NOTE: H7 SD DMA can only access AXI SRAM.
-#define DMA_BUFFER(p)       ((uint32_t) p >= 0x24000000 && (uint32_t) p < 0x24080000)
-#elif defined(STM32F4)
-// NOTE: F4 CCM is not accessible by GP-DMA.
-#define DMA_BUFFER(p)       ((uint32_t) p > 0x10010000)
-#else
-// Assume it's DMA'able
-#define DMA_BUFFER(p)       (true)
-#endif
-
 // TODO: Since SDIO is fundamentally half-duplex, we really only need to
 //       tie up one DMA channel. However, the HAL DMA API doesn't
 // seem to provide a convenient way to change the direction. I believe that
@@ -321,7 +308,7 @@ mp_uint_t sdcard_read_blocks(uint8_t *dest, uint32_t block_num, uint32_t num_blo
     // we must disable USB irqs to prevent MSC contention with SD card
     uint32_t basepri = raise_irq_pri(IRQ_PRI_OTG_FS);
 
-    if (query_irq() == IRQ_STATE_ENABLED && DMA_BUFFER(dest) && ALIGNED_BUFFER(dest)) {
+    if (query_irq() == IRQ_STATE_ENABLED && DMA_BUFFER(dest)) {
         #if SDIO_USE_GPDMA
         dma_init(&sd_rx_dma, &SDMMC_RX_DMA, &sd_handle);
         sd_handle.hdmarx = &sd_rx_dma;
@@ -366,7 +353,7 @@ mp_uint_t sdcard_write_blocks(const uint8_t *src, uint32_t block_num, uint32_t n
     // we must disable USB irqs to prevent MSC contention with SD card
     uint32_t basepri = raise_irq_pri(IRQ_PRI_OTG_FS);
 
-    if (query_irq() == IRQ_STATE_ENABLED && DMA_BUFFER(src) && ALIGNED_BUFFER(src)) {
+    if (query_irq() == IRQ_STATE_ENABLED && DMA_BUFFER(src)) {
         #if SDIO_USE_GPDMA
         dma_init(&sd_tx_dma, &SDMMC_TX_DMA, &sd_handle);
         sd_handle.hdmatx = &sd_tx_dma;

@@ -93,6 +93,18 @@ extern volatile dma_idle_count_t dma_idle;
 #define DMA_IDLE_TICK_MAX           (8)     // 128 msec
 #define DMA_IDLE_TICK(tick)         (((tick) & DMA_SYSTICK_MASK) == 0)
 
+#if defined(STM32F7)
+// NOTE: F7 CCM memory is accessible by GP-DMA.
+#define DMA_BUFFER(p)       (((uint32_t)p & 3) == 0)
+#elif defined(STM32F4)
+// NOTE: F4 CCM memory is not accessible by GP-DMA.
+#define DMA_BUFFER(p)       ((((uint32_t)p & 3) == 0) && ((uint32_t) p > 0x10010000))
+#elif defined(STM32H7)
+// NOTE: H7 SD DMA can only access AXI SRAM memory.
+#define DMA_BUFFER(p)       ((((uint32_t)p & 3) == 0) && ((uint32_t) p >= 0x24000000) && ((uint32_t) p < 0x24080000))
+#else
+#error Unsupported processor
+#endif
 
 void dma_init(DMA_HandleTypeDef *dma, const dma_descr_t *dma_descr, void *data);
 void dma_init_handle(DMA_HandleTypeDef *dma, const dma_descr_t *dma_descr, void *data);

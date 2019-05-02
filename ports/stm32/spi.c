@@ -35,19 +35,6 @@
 #include "bufhelper.h"
 #include "spi.h"
 
-#if defined(STM32F7)
-#define DMA_BUFFER(p)       ((uint32_t)p & 3)
-#elif defined(STM32H7)
-// NOTE: H7 SD DMA can only access AXI SRAM.
-#define DMA_BUFFER(p)       (((uint32_t)p & 3) && ((uint32_t) p >= 0x24000000) && ((uint32_t) p < 0x24080000))
-#elif defined(STM32F4)
-// NOTE: F4 CCM is not accessible by GP-DMA.
-#define DMA_BUFFER(p)       (((uint32_t)p & 3) == 0 && ((uint32_t) p > 0x10010000))
-#else
-// Assume it's DMA'able
-#define DMA_BUFFER(p)       (true)
-#endif
-
 /// \moduleref pyb
 /// \class SPI - a master-driven serial protocol
 ///

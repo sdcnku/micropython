@@ -37,19 +37,6 @@
 
 #if MICROPY_HW_ENABLE_HW_I2C
 
-#if defined(STM32H7)
-// NOTE: H7 SD DMA can only access AXI SRAM.
-#define DMA_BUFFER(p)       ((uint32_t) p >= 0x24000000 && (uint32_t) p < 0x24080000)
-#elif defined(STM32F4)
-// NOTE: F4 CCM is not accessible by GP-DMA.
-#define DMA_BUFFER(p)       ((uint32_t) p > 0x10010000)
-#else
-// Assume it's DMA'able
-#define DMA_BUFFER(p)       (true)
-#endif
-#define ALIGNED_BUFFER(p)     (((uint32_t)p & 3) == 0)
-
-
 /// \moduleref pyb
 /// \class I2C - a two-wire serial protocol
 ///
@@ -778,8 +765,7 @@ STATIC mp_obj_t pyb_i2c_send(size_t n_args, const mp_obj_t *pos_args, mp_map_t *
     pyb_buf_get_for_send(args[0].u_obj, &bufinfo, data);
 
     // if option is set and IRQs are enabled then we can use DMA
-    bool use_dma = (*self->use_dma && query_irq() == IRQ_STATE_ENABLED
-                && DMA_BUFFER(bufinfo.buf) && ALIGNED_BUFFER(bufinfo.buf));
+    bool use_dma = (*self->use_dma && query_irq() == IRQ_STATE_ENABLED && DMA_BUFFER(bufinfo.buf));
 
     DMA_HandleTypeDef tx_dma;
     if (use_dma) {
@@ -955,8 +941,7 @@ STATIC mp_obj_t pyb_i2c_mem_read(size_t n_args, const mp_obj_t *pos_args, mp_map
     }
 
     // if option is set and IRQs are enabled then we can use DMA
-    bool use_dma = (*self->use_dma && query_irq() == IRQ_STATE_ENABLED
-            && DMA_BUFFER(vstr.buf) && ALIGNED_BUFFER(vstr.buf));
+    bool use_dma = (*self->use_dma && query_irq() == IRQ_STATE_ENABLED && DMA_BUFFER(vstr.buf));
 
     HAL_StatusTypeDef status;
     if (!use_dma) {
