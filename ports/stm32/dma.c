@@ -499,7 +499,7 @@ void dma_init(DMA_HandleTypeDef *dma, const dma_descr_t *dma_descr, void *data){
 
         dma_enable_clock(dma_id);
 
-        #if defined(STM32L4)
+        #if defined(STM32L4) || defined(STM32H7)
         // Always reset and configure the L4 DMA peripheral
         // (dma->State is set to HAL_DMA_STATE_RESET by memset above)
         // TODO: understand how L4 DMA works so this is not needed
