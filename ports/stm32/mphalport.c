@@ -157,3 +157,8 @@ void mp_hal_pin_config_speed(mp_hal_pin_obj_t pin_obj, uint32_t speed) {
     uint32_t pin = pin_obj->pin;
     gpio->OSPEEDR = (gpio->OSPEEDR & ~(3 << (2 * pin))) | (speed << (2 * pin));
 }
+
+extern int mp_stream_errno;
+int *__errno() {
+    return &mp_stream_errno;
+}

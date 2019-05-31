@@ -41,7 +41,7 @@ STARTUP_FILE ?= boards/startup_stm32$(MCU_SERIES).o
 
 CROSS_COMPILE = arm-none-eabi-
 
-INC  = -I.
+INC += -I.
 INC += -I..
 INC += -I$(BUILD)
 INC += -I$(USBDEV_DIR)/core/inc -I$(USBDEV_DIR)/class/inc
@@ -237,6 +237,7 @@ SRC_C = \
 	servo.c \
 	dac.c \
 	adc.c \
+	posix_helpers.c \
 	$(wildcard boards/$(BOARD)/*.c)
 
 SRC_O = \
