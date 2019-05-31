@@ -369,3 +369,4 @@ static inline mp_uint_t disable_irq(void) {
 
 // We need to provide a declaration/definition of alloca()
 #include <alloca.h>
+#include <sys/types.h>
