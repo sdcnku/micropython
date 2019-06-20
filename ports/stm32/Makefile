@@ -231,6 +231,7 @@ SRC_C = \
 	spibdev.c \
 	storage.c \
 	sdcard.c \
+	sdram.c \
 	fatfs_port.c \
 	lcd.c \
 	accel.c \
