@@ -41,7 +41,9 @@
 // assumed to be on PA0, PA1, PA2, PA3 but not necessarily in that order (the
 // pins PA0-PA3 are used directly if the X pins are not defined).
 
+#ifndef PYB_SERVO_NUM
 #define PYB_SERVO_NUM (3)
+#endif
 
 typedef struct _pyb_servo_obj_t {
     mp_obj_base_t base;
@@ -77,7 +79,9 @@ void servo_init(void) {
 
     pyb_servo_obj[0].pin = pin_D12;
     pyb_servo_obj[1].pin = pin_D13;
+#if PYB_SERVO_NUM == 3
     pyb_servo_obj[2].pin = pin_D14;
+#endif
 }
 
 void servo_timer_irq_callback(void) {
