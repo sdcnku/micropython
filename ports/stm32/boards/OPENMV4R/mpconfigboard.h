@@ -49,7 +49,7 @@
 //#define MICROPY_HW_CAN2_RX          (pin_B12)
 
 // SD card detect switch
-#define MICROPY_HW_SDCARD_DETECT_PIN        (pin_D0)
+#define MICROPY_HW_SDCARD_DETECT_PIN        (pin_G7)
 #define MICROPY_HW_SDCARD_DETECT_PULL       (GPIO_PULLUP)
 #define MICROPY_HW_SDCARD_DETECT_PRESENT    (GPIO_PIN_RESET)
 
@@ -65,6 +65,9 @@
 #define MICROPY_HW_LED_OTYPE        (GPIO_MODE_OUTPUT_PP)
 #define MICROPY_HW_LED_ON(pin)      (pin->gpio->BSRRH = pin->pin_mask)
 #define MICROPY_HW_LED_OFF(pin)     (pin->gpio->BSRRL = pin->pin_mask)
+
+// Servos
+#define PYB_SERVO_NUM (2)
 
 // SDRAM
 #define MICROPY_HW_SDRAM_SIZE  (256 / 16 * 1024 * 1024)  // 16 M byte
