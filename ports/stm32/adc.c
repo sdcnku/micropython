@@ -102,7 +102,6 @@
 #define ADC_CAL1                ((uint16_t*)(0x1FF1E820))
 #define ADC_CAL2                ((uint16_t*)(0x1FF1E840))
 #define ADC_CAL_BITS            (16)
-#define ADC_CHANNEL_VBAT        ADC_CHANNEL_VBAT_DIV4
 
 #elif defined(STM32L4)
 
@@ -158,8 +157,10 @@
 #define ADC_SCALE (ADC_SCALE_V / ((1 << ADC_CAL_BITS) - 1))
 #define VREFIN_CAL ((uint16_t *)ADC_CAL_ADDRESS)
 
-#define ADC_IS_INTERNAL_CHANNEL(channel)\
+#ifndef __HAL_ADC_IS_CHANNEL_INTERNAL
+#define __HAL_ADC_IS_CHANNEL_INTERNAL(channel)\
     (channel == ADC_CHANNEL_VBAT || channel == ADC_CHANNEL_VREFINT ||  channel == ADC_CHANNEL_TEMPSENSOR)
+#endif
 
 typedef struct _pyb_obj_adc_t {
     mp_obj_base_t base;
@@ -184,8 +185,11 @@ STATIC bool is_adcx_channel(int channel) {
 #if defined(STM32F411xE)
     // The HAL has an incorrect IS_ADC_CHANNEL macro for the F411 so we check for temp
     return IS_ADC_CHANNEL(channel) || channel == ADC_CHANNEL_TEMPSENSOR;
-#elif defined(STM32F0) || defined(STM32F4) || defined(STM32F7) || defined(STM32H7)
+#elif defined(STM32F0) || defined(STM32F4) || defined(STM32F7)
     return IS_ADC_CHANNEL(channel);
+#elif defined(STM32H7)
+    return __HAL_ADC_IS_CHANNEL_INTERNAL(channel)
+        || IS_ADC_CHANNEL(__HAL_ADC_DECIMAL_NB_TO_CHANNEL(channel));
 #elif defined(STM32L4)
     ADC_HandleTypeDef handle;
     handle.Instance = ADCx;
@@ -248,7 +252,6 @@ STATIC void adcx_init_handle(ADC_HandleTypeDef *adch, ADC_TypeDef *adcInstance, 
     adch->Init.DMAContinuousRequests = DISABLE;
     #elif defined(STM32H7)
     adch->Init.ClockPrescaler        = ADC_CLOCK_SYNC_PCLK_DIV4;
-    adch->Init.BoostMode             = ENABLE;
     adch->Init.ScanConvMode          = DISABLE;
     adch->Init.LowPowerAutoWait      = DISABLE;
     adch->Init.Overrun               = ADC_OVR_DATA_OVERWRITTEN;
@@ -283,11 +286,6 @@ STATIC void adcx_init_handle(ADC_HandleTypeDef *adch, ADC_TypeDef *adcInstance, 
 
 STATIC void adc_init_single(pyb_obj_adc_t *adc_obj) {
 
-    uint32_t channel = adc_obj->channel;
-    if (!is_adcx_channel(channel)) {
-        return;
-    }
-
     if (ADC_FIRST_GPIO_CHANNEL <= adc_obj->channel && adc_obj->channel <= ADC_LAST_GPIO_CHANNEL) {
         // Channels 0-16 correspond to real pins. Configure the GPIO pin in ADC mode.
         const pin_obj_t *pin = pin_adc_table[adc_obj->channel];
@@ -313,8 +311,15 @@ STATIC void adc_init_single(pyb_obj_adc_t *adc_obj) {
 STATIC void adc_config_channel(ADC_HandleTypeDef *adc_handle, uint32_t channel) {
     ADC_ChannelConfTypeDef sConfig;
 
-    sConfig.Channel = channel;
+#if defined (STM32H7)
+    sConfig.Rank = ADC_REGULAR_RANK_1;
+    if (__HAL_ADC_IS_CHANNEL_INTERNAL(channel) == 0) {
+        channel = __HAL_ADC_DECIMAL_NB_TO_CHANNEL(channel);
+    }
+#else
     sConfig.Rank = 1;
+#endif
+    sConfig.Channel = channel;
 #if defined(STM32F0)
     sConfig.SamplingTime = ADC_SAMPLETIME_71CYCLES_5;
 #elif defined(STM32F4) || defined(STM32F7)
@@ -352,7 +357,7 @@ STATIC void adc_config_channel(ADC_HandleTypeDef *adc_handle, uint32_t channel) 
     adc_handle->Instance->CHSELR = 0;
     #endif
 
-    if (ADC_IS_INTERNAL_CHANNEL(channel)) {
+    if (__HAL_ADC_IS_CHANNEL_INTERNAL(channel)) {
 #if defined(STM32H7)
         sConfig.SamplingTime = ADC_SAMPLETIME_810CYCLES_5;
 #else
@@ -425,7 +430,6 @@ STATIC mp_obj_t adc_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_
     if (!is_adcx_channel(channel)) {
         nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_ValueError, "not a valid ADC Channel: %d", channel));
     }
-
 
     if (ADC_FIRST_GPIO_CHANNEL <= channel && channel <= ADC_LAST_GPIO_CHANNEL) {
         // these channels correspond to physical GPIO ports so make sure they exist
@@ -779,11 +783,7 @@ float adc_read_core_vbat(ADC_HandleTypeDef *adcHandle) {
     ADC->CCR &= ~ADC_CCR_VBATE;
     #endif
 
-    #if defined(STM32H7)
-    return raw_value * VBAT_DIV * ADC_SCALE;
-    #else
     return raw_value * VBAT_DIV * ADC_SCALE * adc_refcor;
-    #endif
 }
 
 float adc_read_core_vref(ADC_HandleTypeDef *adcHandle) {
@@ -792,11 +792,7 @@ float adc_read_core_vref(ADC_HandleTypeDef *adcHandle) {
     // update the reference correction factor
     adc_refcor = ((float)(*VREFIN_CAL)) / ((float)raw_value);
 
-    #if defined(STM32H7)
-    return raw_value * ADC_SCALE;
-    #else
     return (*VREFIN_CAL) * ADC_SCALE;
-    #endif
 }
 #endif
 

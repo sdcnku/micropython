@@ -1119,6 +1119,9 @@ uint8_t USBD_HID_SetNAK(usbd_hid_state_t *hid) {
     // get USBx object from pdev (needed for USBx_OUTEP macro below)
     PCD_HandleTypeDef *hpcd = hid->usbd->pdev->pData;
     USB_OTG_GlobalTypeDef *USBx = hpcd->Instance;
+    #if defined(STM32H7)
+    uint32_t USBx_BASE = (uint32_t)USBx;
+    #endif
     // set NAK on HID OUT endpoint
     USBx_OUTEP(HID_OUT_EP_WITH_CDC)->DOEPCTL |= USB_OTG_DOEPCTL_SNAK;
     return USBD_OK;
@@ -1128,6 +1131,9 @@ uint8_t USBD_HID_ClearNAK(usbd_hid_state_t *hid) {
     // get USBx object from pdev (needed for USBx_OUTEP macro below)
     PCD_HandleTypeDef *hpcd = hid->usbd->pdev->pData;
     USB_OTG_GlobalTypeDef *USBx = hpcd->Instance;
+    #if defined(STM32H7)
+    uint32_t USBx_BASE = (uint32_t)USBx;
+    #endif
     // clear NAK on HID OUT endpoint
     USBx_OUTEP(HID_OUT_EP_WITH_CDC)->DOEPCTL |= USB_OTG_DOEPCTL_CNAK;
     return USBD_OK;

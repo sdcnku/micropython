@@ -63,8 +63,9 @@
 #define MICROPY_HW_LED3             (pin_C2) // blue
 #define MICROPY_HW_LED4             (pin_E2) // IR
 #define MICROPY_HW_LED_OTYPE        (GPIO_MODE_OUTPUT_PP)
-#define MICROPY_HW_LED_ON(pin)      (pin->gpio->BSRRH = pin->pin_mask)
-#define MICROPY_HW_LED_OFF(pin)     (pin->gpio->BSRRL = pin->pin_mask)
+// NOTE: LEDs are active low.
+#define MICROPY_HW_LED_ON(pin)      (pin->gpio->BSRR = (pin->pin_mask << 16))
+#define MICROPY_HW_LED_OFF(pin)     (pin->gpio->BSRR = pin->pin_mask)
 
 // Servos
 #define PYB_SERVO_NUM (4)
