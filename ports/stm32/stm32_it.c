@@ -626,6 +626,7 @@ void TIM3_IRQHandler(void) {
 void TIM4_IRQHandler(void) {
     IRQ_ENTER(TIM4_IRQn);
     timer_irq_handler(4);
+    HAL_TIM_IRQHandler(&TIM4_Handle);
     IRQ_EXIT(TIM4_IRQn);
 }
 
