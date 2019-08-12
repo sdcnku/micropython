@@ -531,8 +531,8 @@ MP_DEFINE_CONST_FUN_OBJ_0(machine_sleep_obj, machine_sleep);
 STATIC mp_obj_t machine_deepsleep(void) {
     rtc_init_finalise();
 
-#if defined(STM32L4)
-    printf("machine.deepsleep not supported yet\n");
+#if defined(STM32L4) || defined(STM32H7)
+    printf("machine.deepsleep is not supported yet\n");
 #else
     // We need to clear the PWR wake-up-flag before entering standby, since
     // the flag may have been set by a previous wake-up event.  Furthermore,
