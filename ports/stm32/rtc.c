@@ -120,6 +120,8 @@ void rtc_init_start(bool force_init) {
     RTCHandle.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_HIGH;
     RTCHandle.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
 
+    HAL_RTCEx_DeactivateWakeUpTimer(&RTCHandle);
+
     rtc_need_init_finalise = false;
 
     if (!force_init) {
@@ -609,7 +611,7 @@ mp_obj_t pyb_rtc_wakeup(size_t n_args, const mp_obj_t *args) {
     }
 
     // set the callback
-    MP_STATE_PORT(pyb_extint_callback)[22] = callback;
+    MP_STATE_PORT(pyb_extint_callback)[19] = callback;
 
     // disable register write protection
     RTC->WPR = 0xca;
@@ -639,8 +641,8 @@ mp_obj_t pyb_rtc_wakeup(size_t n_args, const mp_obj_t *args) {
         EXTI->IMR1 |= 1 << 22;
         EXTI->RTSR1 |= 1 << 22;
         #elif defined(STM32H7)
-        EXTI_D1->IMR1 |= 1 << 22;
-        EXTI->RTSR1   |= 1 << 22;
+        EXTI_D1->IMR1 |= 1 << 19;
+        EXTI->RTSR1   |= 1 << 19;
         #else
         EXTI->IMR |= 1 << 22;
         EXTI->RTSR |= 1 << 22;
@@ -651,7 +653,7 @@ mp_obj_t pyb_rtc_wakeup(size_t n_args, const mp_obj_t *args) {
         #if defined(STM32L4)
         EXTI->PR1 = 1 << 22;
         #elif defined(STM32H7)
-        EXTI_D1->PR1 = 1 << 22;
+        EXTI_D1->PR1 = 1 << 19;
         #else
         EXTI->PR = 1 << 22;
         #endif
@@ -671,7 +673,7 @@ mp_obj_t pyb_rtc_wakeup(size_t n_args, const mp_obj_t *args) {
         #if defined(STM32L4)
         EXTI->IMR1 &= ~(1 << 22);
         #elif defined(STM32H7)
-        EXTI_D1->IMR1 |= 1 << 22;
+        EXTI_D1->IMR1 |= 1 << 19;
         #else
         EXTI->IMR &= ~(1 << 22);
         #endif
