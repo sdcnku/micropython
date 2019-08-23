@@ -191,4 +191,10 @@
 #define MP_HAL_CLEAN_DCACHE(addr, size)
 #endif
 
+// If disabled then try normal (non-bypass) LSE first, with fallback to LSI.
+// If enabled first try LSE in bypass mode.  If that fails to start, try non-bypass mode, with fallback to LSI.
+#ifndef MICROPY_HW_RTC_USE_BYPASS
+#define MICROPY_HW_RTC_USE_BYPASS (0)
+#endif
+
 #define MICROPY_HW_USES_BOOTLOADER (MICROPY_HW_VTOR != 0x08000000)
