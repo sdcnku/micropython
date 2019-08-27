@@ -530,8 +530,7 @@ MP_DEFINE_CONST_FUN_OBJ_0(machine_sleep_obj, machine_sleep);
 
 STATIC mp_obj_t machine_deepsleep(void) {
     rtc_init_finalise();
-
-#if defined(STM32L4) || defined(STM32H7)
+#if defined(STM32L4)
     printf("machine.deepsleep is not supported yet\n");
 #else
     // We need to clear the PWR wake-up-flag before entering standby, since
@@ -547,6 +546,10 @@ STATIC mp_obj_t machine_deepsleep(void) {
     // save RTC interrupts
     uint32_t save_irq_bits = RTC->CR & irq_bits;
 
+    // disable register write protection
+    RTC->WPR = 0xca;
+    RTC->WPR = 0x53;
+
     // disable RTC interrupts
     RTC->CR &= ~irq_bits;
 
@@ -559,7 +562,8 @@ STATIC mp_obj_t machine_deepsleep(void) {
     // clear global wake-up flag
     PWR->CR2 |= PWR_CR2_CWUPF6 | PWR_CR2_CWUPF5 | PWR_CR2_CWUPF4 | PWR_CR2_CWUPF3 | PWR_CR2_CWUPF2 | PWR_CR2_CWUPF1;
     #elif defined(STM32H7)
-    // TODO
+    EXTI_D1->PR1 = 0x3fffff;
+    PWR->WKUPCR |= PWR_WAKEUP_FLAG1 | PWR_WAKEUP_FLAG2 | PWR_WAKEUP_FLAG3 | PWR_WAKEUP_FLAG4 | PWR_WAKEUP_FLAG5 | PWR_WAKEUP_FLAG6;
     #else
     // clear global wake-up flag
     PWR->CR |= PWR_CR_CWUF;
@@ -567,6 +571,9 @@ STATIC mp_obj_t machine_deepsleep(void) {
 
     // enable previously-enabled RTC interrupts
     RTC->CR |= save_irq_bits;
+
+    // enable register write protection
+    RTC->WPR = 0xff;
 
     // enter standby mode
     HAL_PWR_EnterSTANDBYMode();
