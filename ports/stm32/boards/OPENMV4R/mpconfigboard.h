@@ -70,30 +70,45 @@
 #define PYB_SERVO_NUM (2)
 
 // SDRAM
-#define MICROPY_HW_SDRAM_SIZE  (256 / 16 * 1024 * 1024)  // 16 M byte
-#define MICROPY_HW_SDRAM_STARTUP_TEST             (1)
+#define MICROPY_HW_SDRAM_SIZE               (32 * 1024 * 1024)
+#define MICROPY_HW_SDRAM_STARTUP_TEST       (1)
 
-// Timing configuration for 143 Mhz (7ns)
+// Timing configuration for 240MHz/3=80MHz (12.5ns)
+#define MICROPY_HW_SDRAM_CLOCK_PERIOD       3
+#define MICROPY_HW_SDRAM_CAS_LATENCY        2
+#define MICROPY_HW_SDRAM_FREQUENCY          (80000) // 80 MHz
 #define MICROPY_HW_SDRAM_TIMING_TMRD        (2)
-#define MICROPY_HW_SDRAM_TIMING_TXSR        (7)
-#define MICROPY_HW_SDRAM_TIMING_TRAS        (4)
-#define MICROPY_HW_SDRAM_TIMING_TRC         (7)
-#define MICROPY_HW_SDRAM_TIMING_TWR         (2)
+#define MICROPY_HW_SDRAM_TIMING_TXSR        (6)
+#define MICROPY_HW_SDRAM_TIMING_TRAS        (6)
+#define MICROPY_HW_SDRAM_TIMING_TRC         (8)
+#define MICROPY_HW_SDRAM_TIMING_TWR         (4)
 #define MICROPY_HW_SDRAM_TIMING_TRP         (2)
 #define MICROPY_HW_SDRAM_TIMING_TRCD        (2)
-#define MICROPY_HW_SDRAM_REFRESH_RATE       (64) // ms
 
-#define MICROPY_HW_SDRAM_BURST_LENGTH       1
-#define MICROPY_HW_SDRAM_CAS_LATENCY        2
-#define MICROPY_HW_SDRAM_COLUMN_BITS_NUM    8
-#define MICROPY_HW_SDRAM_ROW_BITS_NUM       12
+// Timing configuration for 240MHz/2=120MHz (8.33ns)
+//#define MICROPY_HW_SDRAM_CLOCK_PERIOD       2
+//#define MICROPY_HW_SDRAM_CAS_LATENCY        2
+//#define MICROPY_HW_SDRAM_FREQUENCY          (120000) // 120 MHz
+//#define MICROPY_HW_SDRAM_TIMING_TMRD        (2)
+//#define MICROPY_HW_SDRAM_TIMING_TXSR        (9)
+//#define MICROPY_HW_SDRAM_TIMING_TRAS        (6)
+//#define MICROPY_HW_SDRAM_TIMING_TRC         (8)
+//#define MICROPY_HW_SDRAM_TIMING_TWR         (4)
+//#define MICROPY_HW_SDRAM_TIMING_TRP         (2)
+//#define MICROPY_HW_SDRAM_TIMING_TRCD        (2)
+
+#define MICROPY_HW_SDRAM_COLUMN_BITS_NUM    9
+#define MICROPY_HW_SDRAM_ROW_BITS_NUM       13
 #define MICROPY_HW_SDRAM_MEM_BUS_WIDTH      16
 #define MICROPY_HW_SDRAM_INTERN_BANKS_NUM   4
-#define MICROPY_HW_SDRAM_CLOCK_PERIOD       2
 #define MICROPY_HW_SDRAM_RPIPE_DELAY        0
 #define MICROPY_HW_SDRAM_RBURST             (1)
 #define MICROPY_HW_SDRAM_WRITE_PROTECTION   (0)
+
 #define MICROPY_HW_SDRAM_AUTOREFRESH_NUM    (8)
+#define MICROPY_HW_SDRAM_BURST_LENGTH       1
+
+#define MICROPY_HW_SDRAM_REFRESH_RATE       (64) // ms
 
 #define MICROPY_HW_FMC_SDCKE0   (pin_C5)
 #define MICROPY_HW_FMC_SDNE0    (pin_C4)
@@ -117,6 +132,7 @@
 #define MICROPY_HW_FMC_A9       (pin_F15)
 #define MICROPY_HW_FMC_A10      (pin_G0)
 #define MICROPY_HW_FMC_A11      (pin_G1)
+#define MICROPY_HW_FMC_A12      (pin_G2)
 #define MICROPY_HW_FMC_D0       (pin_D14)
 #define MICROPY_HW_FMC_D1       (pin_D15)
 #define MICROPY_HW_FMC_D2       (pin_D0)
