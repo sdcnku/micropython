@@ -51,6 +51,7 @@ enum {
   AF_FN_I2S,
   AF_FN_SDMMC,
   AF_FN_CAN,
+  AF_FN_FDCAN,
 };
 
 enum {
@@ -98,6 +99,9 @@ enum {
 
   AF_PIN_TYPE_CAN_TX = 0,
   AF_PIN_TYPE_CAN_RX,
+
+  AF_PIN_TYPE_FDCAN_TX = 0,
+  AF_PIN_TYPE_FDCAN_RX,
 };
 
 // The HAL uses a slightly different naming than we chose, so we provide
@@ -113,6 +117,14 @@ enum {
 
 #define I2S2  SPI2
 #define I2S3  SPI3
+
+#if defined(STM32H7)
+// Make H7 FDCAN more like CAN
+#define CAN1 FDCAN1
+#define CAN2 FDCAN2
+#define GPIO_AF9_CAN1 GPIO_AF9_FDCAN1
+#define GPIO_AF9_CAN2 GPIO_AF9_FDCAN2
+#endif
 
 enum {
   PIN_ADC1  = (1 << 0),
