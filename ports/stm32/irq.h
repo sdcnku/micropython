@@ -39,7 +39,12 @@
 #define IRQ_ENABLE_STATS (0)
 
 #if IRQ_ENABLE_STATS
-extern uint32_t irq_stats[FPU_IRQn + 1];
+#if defined(STM32H7)
+#define IRQ_STATS_MAX   (256)
+#else
+#define IRQ_STATS_MAX   (128)
+#endif
+extern uint32_t irq_stats[IRQ_STATS_MAX];
 #define IRQ_ENTER(irq) ++irq_stats[irq]
 #define IRQ_EXIT(irq)
 #else
@@ -108,7 +113,25 @@ MP_DECLARE_CONST_FUN_OBJ_0(pyb_irq_stats_obj);
 // The following interrupts are arranged from highest priority to lowest
 // priority to make it a bit easier to figure out.
 
-#define IRQ_PRI_SYSTICK         NVIC_EncodePriority(NVIC_PRIORITYGROUP_4, 0, 0)
+#if __CORTEX_M == 0
+
+//#def  IRQ_PRI_SYSTICK         0
+#define IRQ_PRI_UART            1
+#define IRQ_PRI_SDIO            1
+#define IRQ_PRI_DMA             1
+#define IRQ_PRI_FLASH           2
+#define IRQ_PRI_OTG_FS          2
+#define IRQ_PRI_OTG_HS          2
+#define IRQ_PRI_TIM5            2
+#define IRQ_PRI_CAN             2
+#define IRQ_PRI_TIMX            2
+#define IRQ_PRI_EXTINT          2
+#define IRQ_PRI_PENDSV          3
+#define IRQ_PRI_RTC_WKUP        3
+
+#else
+
+#define  IRQ_PRI_SYSTICK         NVIC_EncodePriority(NVIC_PRIORITYGROUP_4, 0, 0)
 
 // The UARTs have no FIFOs, so if they don't get serviced quickly then characters
 // get dropped. The handling for each character only consumes about 0.5 usec
@@ -159,5 +182,7 @@ MP_DECLARE_CONST_FUN_OBJ_0(pyb_irq_stats_obj);
 // before exception is raised.
 #define IRQ_PRI_PENDSV          NVIC_EncodePriority(NVIC_PRIORITYGROUP_4, 15, 0)
 #define IRQ_PRI_RTC_WKUP        NVIC_EncodePriority(NVIC_PRIORITYGROUP_4, 15, 0)
+
+#endif
 
 #endif // MICROPY_INCLUDED_STM32_IRQ_H

@@ -2,11 +2,11 @@
  * This file is part of the MicroPython project, http://micropython.org/
  *
  * Original file from:
- * FatFs - FAT file system module configuration file R0.12a (C)ChaN, 2016
+ * FatFs - FAT file system module configuration file R0.13c (C)ChaN, 2018
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2013-2017 Damien P. George
+ * Copyright (c) 2013-2019 Damien P. George
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -87,9 +87,9 @@
 
 
 #ifdef MICROPY_FATFS_USE_LABEL
-#define FF_USE_LABEL      (MICROPY_FATFS_USE_LABEL)
+#define FF_USE_LABEL    (MICROPY_FATFS_USE_LABEL)
 #else
-#define FF_USE_LABEL      0
+#define FF_USE_LABEL    0
 #endif
 
 /* This option switches volume label functions, f_getlabel() and f_setlabel().
@@ -109,13 +109,12 @@
 #define EXPAND_M(x) EXPAND x
 #define FF_CODE_PAGE  EXPAND_M(MICROPY_FATFS_LFN_CODE_PAGE)
 #else
-#define FF_CODE_PAGE  1
+#define FF_CODE_PAGE  437
 #endif
 
 /* This option specifies the OEM code page to be used on the target system.
 /  Incorrect code page setting can cause a file open failure.
 /
-/   1   - ASCII (No extended character. Non-LFN cfg. only)
 /   437 - U.S.
 /   720 - Arabic
 /   737 - Greek
@@ -142,14 +141,14 @@
 
 
 #ifdef MICROPY_FATFS_ENABLE_LFN
-#define FF_USE_LFN    (MICROPY_FATFS_ENABLE_LFN)
+#define FF_USE_LFN  (MICROPY_FATFS_ENABLE_LFN)
 #else
-#define FF_USE_LFN    0
+#define FF_USE_LFN  0
 #endif
 #ifdef MICROPY_FATFS_MAX_LFN
-#define FF_MAX_LFN    (MICROPY_FATFS_MAX_LFN)
+#define FF_MAX_LFN  (MICROPY_FATFS_MAX_LFN)
 #else
-#define FF_MAX_LFN    255
+#define FF_MAX_LFN  255
 #endif
 /* The FF_USE_LFN switches the support for LFN (long file name).
 /
@@ -166,7 +165,7 @@
 /  specification.
 /  When use stack for the working buffer, take care on stack overflow. When use heap
 /  memory for the working buffer, memory management functions, ff_memalloc() and
-/  ff_memfree() need to be added to the project. */
+/  ff_memfree() in ffsystem.c, need to be added to the project. */
 
 
 #define FF_LFN_UNICODE  0
@@ -203,9 +202,9 @@
 
 
 #ifdef MICROPY_FATFS_RPATH
-#define FF_FS_RPATH   (MICROPY_FATFS_RPATH)
+#define FF_FS_RPATH (MICROPY_FATFS_RPATH)
 #else
-#define FF_FS_RPATH   0
+#define FF_FS_RPATH 0
 #endif
 /* This option configures support for relative path.
 /
@@ -238,9 +237,9 @@
 
 
 #ifdef MICROPY_FATFS_MULTI_PARTITION
-#define FF_MULTI_PARTITION    (MICROPY_FATFS_MULTI_PARTITION)
+#define FF_MULTI_PARTITION  (MICROPY_FATFS_MULTI_PARTITION)
 #else
-#define FF_MULTI_PARTITION    0
+#define FF_MULTI_PARTITION  0
 #endif
 /* This option switches support for multiple volumes on the physical drive.
 /  By default (0), each logical drive number is bound to the same physical drive
@@ -250,11 +249,11 @@
 /  funciton will be available. */
 
 
-#define FF_MIN_SS     512
+#define FF_MIN_SS   512
 #ifdef MICROPY_FATFS_MAX_SS
-#define FF_MAX_SS     (MICROPY_FATFS_MAX_SS)
+#define FF_MAX_SS   (MICROPY_FATFS_MAX_SS)
 #else
-#define FF_MAX_SS     512
+#define FF_MAX_SS   512
 #endif
 /* This set of options configures the range of sector size to be supported. (512,
 /  1024, 2048 or 4096) Always set both 512 for most systems, generic memory card and
@@ -295,9 +294,9 @@
 
 
 #ifdef MICROPY_FATFS_EXFAT
-#define FF_FS_EXFAT   (MICROPY_FATFS_EXFAT)
+#define FF_FS_EXFAT (MICROPY_FATFS_EXFAT)
 #else
-#define FF_FS_EXFAT   0
+#define FF_FS_EXFAT 0
 #endif
 /* This option switches support for exFAT filesystem. (0:Disable or 1:Enable)
 /  To enable exFAT, also LFN needs to be enabled. (FF_USE_LFN >= 1)
@@ -305,9 +304,9 @@
 
 
 #ifdef MICROPY_FATFS_NORTC
-#define FF_FS_NORTC   (MICROPY_FATFS_NORTC)
+#define FF_FS_NORTC (MICROPY_FATFS_NORTC)
 #else
-#define FF_FS_NORTC   0
+#define FF_FS_NORTC 0
 #endif
 #define FF_NORTC_MON    1
 #define FF_NORTC_MDAY   1
@@ -335,22 +334,22 @@
 
 
 #ifdef MICROPY_FATFS_REENTRANT
-#define FF_FS_REENTRANT   (MICROPY_FATFS_REENTRANT)
+#define FF_FS_REENTRANT (MICROPY_FATFS_REENTRANT)
 #else
-#define FF_FS_REENTRANT   0
+#define FF_FS_REENTRANT 0
 #endif
 
 // milliseconds
 #ifdef MICROPY_FATFS_TIMEOUT
-#define FF_FS_TIMEOUT     (MICROPY_FATFS_TIMEOUT)
+#define FF_FS_TIMEOUT   (MICROPY_FATFS_TIMEOUT)
 #else
-#define FF_FS_TIMEOUT     1000
+#define FF_FS_TIMEOUT   1000
 #endif
 
 #ifdef MICROPY_FATFS_SYNC_T
-#define FF_SYNC_t         MICROPY_FATFS_SYNC_T
+#define FF_SYNC_t       MICROPY_FATFS_SYNC_T
 #else
-#define FF_SYNC_t         HANDLE
+#define FF_SYNC_t       HANDLE
 #endif
 /* The option FF_FS_REENTRANT switches the re-entrancy (thread safe) of the FatFs
 /  module itself. Note that regardless of this option, file access to different

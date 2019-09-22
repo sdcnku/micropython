@@ -19,6 +19,7 @@
 / and any warranties related to this software are DISCLAIMED.
 / The copyright owner or contributors be NOT LIABLE for any damages caused
 / by use of this software.
+/
 /----------------------------------------------------------------------------*/
 
 
@@ -29,11 +30,7 @@
 extern "C" {
 #endif
 
-#ifdef FFCONF_H
-#include FFCONF_H          /* FatFs configuration options */
-#else
-#include "ffconf.h"
-#endif
+#include "ffconf.h"       /* FatFs configuration options */
 
 #if FF_DEFINED != FFCONF_DEF
 #error Wrong configuration file (ffconf.h).
@@ -66,14 +63,6 @@ typedef unsigned long   DWORD;  /* 32-bit unsigned integer */
 
 
 /* Definitions of volume management */
-
-#if FF_MULTI_PARTITION      /* Multiple partition configuration */
-typedef struct {
-    BYTE pd;    /* Physical drive number */
-    BYTE pt;    /* Partition: 0:Auto detect, 1-4:Forced partition) */
-} PARTITION;
-extern PARTITION VolToPart[];   /* Volume - Partition resolution table */
-#endif
 
 #if FF_STR_VOLUME_ID
 #ifndef FF_VOLUME_STRS
@@ -224,7 +213,7 @@ typedef struct {
 
 
 
-/* Directory object structure (DIR) */
+/* Directory object structure (FF_DIR) */
 
 typedef struct {
     FFOBJID obj;            /* Object identifier */
@@ -315,15 +304,11 @@ FRESULT f_getlabel (FATFS *fs, TCHAR* label, DWORD* vsn);           /* Get volum
 FRESULT f_setlabel (FATFS *fs, const TCHAR* label);                 /* Set volume label */
 FRESULT f_forward (FIL* fp, UINT(*func)(const BYTE*,UINT), UINT btf, UINT* bf); /* Forward data to the stream */
 FRESULT f_expand (FIL* fp, FSIZE_t szf, BYTE opt);                  /* Allocate a contiguous block to the file */
-FRESULT f_mount (FATFS* fs);           /* Mount/Unmount a logical drive */
-FRESULT f_umount (FATFS* fs);
+FRESULT f_mount (FATFS* fs);                                        /* Mount/Unmount a logical drive */
+FRESULT f_umount (FATFS* fs);                                       /* Unmount a logical drive */
 FRESULT f_mkfs (FATFS *fs, BYTE opt, DWORD au, void* work, UINT len); /* Create a FAT volume */
 FRESULT f_fdisk (void *pdrv, const DWORD* szt, void* work);         /* Divide a physical drive into some partitions */
 FRESULT f_setcp (WORD cp);                                          /* Set current code page */
-int f_putc (TCHAR c, FIL* fp);                                      /* Put a character to the file */
-int f_puts (const TCHAR* str, FIL* cp);                             /* Put a string to the file */
-int f_printf (FIL* fp, const TCHAR* str, ...);                      /* Put a formatted string to the file */
-TCHAR* f_gets (TCHAR* buff, int len, FIL* fp);                      /* Get a string from the file */
 
 #define f_eof(fp) ((int)((fp)->fptr == (fp)->obj.objsize))
 #define f_error(fp) ((fp)->err)
@@ -331,6 +316,8 @@ TCHAR* f_gets (TCHAR* buff, int len, FIL* fp);                      /* Get a str
 #define f_size(fp) ((fp)->obj.objsize)
 #define f_rewind(fp) f_lseek((fp), 0)
 #define f_rewinddir(dp) f_readdir((dp), 0)
+#define f_rmdir(path) f_unlink(path)
+#define f_unmount(path) f_mount(0, path, 0)
 
 #ifndef EOF
 #define EOF (-1)
@@ -360,7 +347,7 @@ void ff_memfree (void* mblock);         /* Free memory block */
 
 /* Sync functions */
 #if FF_FS_REENTRANT
-int ff_cre_syncobj (BYTE vol, FF_SYNC_t* sobj); /* Create a sync object */
+int ff_cre_syncobj (FATFS *fatfs, FF_SYNC_t* sobj); /* Create a sync object */
 int ff_req_grant (FF_SYNC_t sobj);      /* Lock sync object */
 void ff_rel_grant (FF_SYNC_t sobj);     /* Unlock sync object */
 int ff_del_syncobj (FF_SYNC_t sobj);    /* Delete a sync object */

@@ -48,7 +48,7 @@
 #if !defined(MICROPY_HW_USB_MAIN_DEV)
 #if defined(MICROPY_HW_USB_FS)
 #define MICROPY_HW_USB_MAIN_DEV (USB_PHY_FS_ID)
-#elif defined(MICROPY_HW_USB_HS) && defined(MICROPY_HW_USB_HS_IN_FS)
+#elif defined(MICROPY_HW_USB_HS)
 #define MICROPY_HW_USB_MAIN_DEV (USB_PHY_HS_ID)
 #else
 #error Unable to determine proper MICROPY_HW_USB_MAIN_DEV to use
@@ -63,10 +63,13 @@ typedef struct _usb_device_t {
     USBD_HandleTypeDef hUSBDDevice;
     usbd_cdc_msc_hid_state_t usbd_cdc_msc_hid_state;
     usbd_cdc_itf_t usbd_cdc_itf;
+    #if MICROPY_HW_USB_ENABLE_CDC2
+    usbd_cdc_itf_t usbd_cdc2_itf;
+    #endif
     usbd_hid_itf_t usbd_hid_itf;
 } usb_device_t;
 
-usb_device_t usb_device;
+usb_device_t usb_device = {0};
 pyb_usb_storage_medium_t pyb_usb_storage_medium = PYB_USB_STORAGE_MEDIUM_NONE;
 
 // predefined hid mouse data
@@ -76,15 +79,15 @@ STATIC const mp_obj_str_t pyb_usb_hid_mouse_desc_obj = {
     USBD_HID_MOUSE_REPORT_DESC_SIZE,
     USBD_HID_MOUSE_ReportDesc,
 };
-const mp_obj_tuple_t pyb_usb_hid_mouse_obj = {
+const mp_rom_obj_tuple_t pyb_usb_hid_mouse_obj = {
     {&mp_type_tuple},
     5,
     {
-        MP_OBJ_NEW_SMALL_INT(1), // subclass: boot
-        MP_OBJ_NEW_SMALL_INT(2), // protocol: mouse
-        MP_OBJ_NEW_SMALL_INT(USBD_HID_MOUSE_MAX_PACKET),
-        MP_OBJ_NEW_SMALL_INT(8), // polling interval: 8ms
-        (mp_obj_t)&pyb_usb_hid_mouse_desc_obj,
+        MP_ROM_INT(1), // subclass: boot
+        MP_ROM_INT(2), // protocol: mouse
+        MP_ROM_INT(USBD_HID_MOUSE_MAX_PACKET),
+        MP_ROM_INT(8), // polling interval: 8ms
+        MP_ROM_PTR(&pyb_usb_hid_mouse_desc_obj),
     },
 };
 
@@ -95,20 +98,23 @@ STATIC const mp_obj_str_t pyb_usb_hid_keyboard_desc_obj = {
     USBD_HID_KEYBOARD_REPORT_DESC_SIZE,
     USBD_HID_KEYBOARD_ReportDesc,
 };
-const mp_obj_tuple_t pyb_usb_hid_keyboard_obj = {
+const mp_rom_obj_tuple_t pyb_usb_hid_keyboard_obj = {
     {&mp_type_tuple},
     5,
     {
-        MP_OBJ_NEW_SMALL_INT(1), // subclass: boot
-        MP_OBJ_NEW_SMALL_INT(1), // protocol: keyboard
-        MP_OBJ_NEW_SMALL_INT(USBD_HID_KEYBOARD_MAX_PACKET),
-        MP_OBJ_NEW_SMALL_INT(8), // polling interval: 8ms
-        (mp_obj_t)&pyb_usb_hid_keyboard_desc_obj,
+        MP_ROM_INT(1), // subclass: boot
+        MP_ROM_INT(1), // protocol: keyboard
+        MP_ROM_INT(USBD_HID_KEYBOARD_MAX_PACKET),
+        MP_ROM_INT(8), // polling interval: 8ms
+        MP_ROM_PTR(&pyb_usb_hid_keyboard_desc_obj),
     },
 };
 
 void pyb_usb_init0(void) {
-    mp_hal_set_interrupt_char(-1);
+    usb_device.usbd_cdc_itf.attached_to_repl = false;
+    #if MICROPY_HW_USB_ENABLE_CDC2
+    usb_device.usbd_cdc2_itf.attached_to_repl = false;
+    #endif
     MP_STATE_PORT(pyb_hid_report_desc) = MP_OBJ_NULL;
 }
 
@@ -119,12 +125,6 @@ bool pyb_usb_dev_init(uint16_t vid, uint16_t pid, usb_device_mode_t mode, USBD_H
     if (!usb_dev->enabled) {
         // only init USB once in the device's power-lifetime
 
-        // configure the VID, PID and the USBD mode (interfaces it will expose)
-        USBD_SetVIDPIDRelease(&usb_dev->usbd_cdc_msc_hid_state, vid, pid, 0x0200, mode == USBD_MODE_CDC);
-        if (USBD_SelectMode(&usb_dev->usbd_cdc_msc_hid_state, mode, hid_info) != 0) {
-            return false;
-        }
-
         // set up the USBD state
         USBD_HandleTypeDef *usbd = &usb_dev->hUSBDDevice;
         usbd->id = MICROPY_HW_USB_MAIN_DEV;
@@ -132,16 +132,25 @@ bool pyb_usb_dev_init(uint16_t vid, uint16_t pid, usb_device_mode_t mode, USBD_H
         usbd->pDesc = (USBD_DescriptorsTypeDef*)&USBD_Descriptors;
         usbd->pClass = &USBD_CDC_MSC_HID;
         usb_dev->usbd_cdc_msc_hid_state.pdev = usbd;
-        usb_dev->usbd_cdc_msc_hid_state.cdc = &usb_dev->usbd_cdc_itf;
-        usb_dev->usbd_cdc_msc_hid_state.hid = &usb_dev->usbd_hid_itf;
+        usb_dev->usbd_cdc_msc_hid_state.cdc = &usb_dev->usbd_cdc_itf.base;
+        #if MICROPY_HW_USB_ENABLE_CDC2
+        usb_dev->usbd_cdc_msc_hid_state.cdc2 = &usb_dev->usbd_cdc2_itf.base;
+        #endif
+        usb_dev->usbd_cdc_msc_hid_state.hid = &usb_dev->usbd_hid_itf.base;
         usbd->pClassData = &usb_dev->usbd_cdc_msc_hid_state;
 
+        // configure the VID, PID and the USBD mode (interfaces it will expose)
+        USBD_SetVIDPIDRelease(&usb_dev->usbd_cdc_msc_hid_state, vid, pid, 0x0200, mode == USBD_MODE_CDC);
+        if (USBD_SelectMode(&usb_dev->usbd_cdc_msc_hid_state, mode, hid_info) != 0) {
+            return false;
+        }
+
         switch (pyb_usb_storage_medium) {
-#if MICROPY_HW_HAS_SDCARD
+            #if MICROPY_HW_ENABLE_SDCARD
             case PYB_USB_STORAGE_MEDIUM_SDCARD:
                 USBD_MSC_RegisterStorage(&usb_dev->usbd_cdc_msc_hid_state, (USBD_StorageTypeDef*)&USBD_SDCARD_STORAGE_fops);
                 break;
-#endif
+            #endif
             default:
                 USBD_MSC_RegisterStorage(&usb_dev->usbd_cdc_msc_hid_state, (USBD_StorageTypeDef*)&USBD_FLASH_STORAGE_fops);
                 break;
@@ -160,6 +169,7 @@ void pyb_usb_dev_deinit(void) {
     usb_device_t *usb_dev = &usb_device;
     if (usb_dev->enabled) {
         USBD_Stop(&usb_dev->hUSBDDevice);
+        USBD_DeInit(&usb_dev->hUSBDDevice);
         usb_dev->enabled = false;
     }
 }
@@ -188,6 +198,14 @@ uint8_t *usb_cdc_tx_buf(uint32_t bytes)
     return usbd_cdc_tx_buf(&usb_device.usbd_cdc_itf, bytes);
 }
 
+usbd_cdc_itf_t *usb_vcp_get(int idx) {
+    #if MICROPY_HW_USB_ENABLE_CDC2
+    if (idx == 1) {
+        return &usb_device.usbd_cdc2_itf;
+    }
+    #endif
+    return &usb_device.usbd_cdc_itf;
+}
 
 /******************************************************************************/
 // MicroPython bindings for USB
@@ -220,10 +238,10 @@ uint8_t *usb_cdc_tx_buf(uint32_t bytes)
 
 STATIC mp_obj_t pyb_usb_mode(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     static const mp_arg_t allowed_args[] = {
-        { MP_QSTR_mode, MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = mp_const_none} },
+        { MP_QSTR_mode, MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_rom_obj = MP_ROM_PTR(&mp_const_none_obj)} },
         { MP_QSTR_vid, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = USBD_VID} },
         { MP_QSTR_pid, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = -1} },
-        { MP_QSTR_hid, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = (mp_obj_t)&pyb_usb_hid_mouse_obj} },
+        { MP_QSTR_hid, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_rom_obj = MP_ROM_PTR(&pyb_usb_hid_mouse_obj)} },
         #if USBD_SUPPORT_HS_MODE
         { MP_QSTR_high_speed, MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = false} },
         #endif
@@ -296,6 +314,18 @@ STATIC mp_obj_t pyb_usb_mode(size_t n_args, const mp_obj_t *pos_args, mp_map_t *
             pid = USBD_PID_CDC_MSC;
         }
         mode = USBD_MODE_CDC_MSC;
+    #if MICROPY_HW_USB_ENABLE_CDC2
+    } else if (strcmp(mode_str, "VCP+VCP") == 0) {
+        if (args[2].u_int == -1) {
+            pid = USBD_PID_CDC2;
+        }
+        mode = USBD_MODE_CDC2;
+    } else if (strcmp(mode_str, "VCP+VCP+MSC") == 0) {
+        if (args[2].u_int == -1) {
+            pid = USBD_PID_CDC2_MSC;
+        }
+        mode = USBD_MODE_CDC2_MSC;
+    #endif
     } else if (strcmp(mode_str, "CDC+HID") == 0 || strcmp(mode_str, "VCP+HID") == 0) {
         if (args[2].u_int == -1) {
             pid = USBD_PID_CDC_HID;
@@ -365,26 +395,63 @@ MP_DEFINE_CONST_FUN_OBJ_KW(pyb_usb_mode_obj, 0, pyb_usb_mode);
 
 typedef struct _pyb_usb_vcp_obj_t {
     mp_obj_base_t base;
-    usb_device_t *usb_dev;
+    usbd_cdc_itf_t *cdc_itf;
 } pyb_usb_vcp_obj_t;
 
-STATIC const pyb_usb_vcp_obj_t pyb_usb_vcp_obj = {{&pyb_usb_vcp_type}, &usb_device};
+const pyb_usb_vcp_obj_t pyb_usb_vcp_obj = {{&pyb_usb_vcp_type}, &usb_device.usbd_cdc_itf};
+#if MICROPY_HW_USB_ENABLE_CDC2
+STATIC const pyb_usb_vcp_obj_t pyb_usb_vcp2_obj = {{&pyb_usb_vcp_type}, &usb_device.usbd_cdc2_itf};
+#endif
 
 STATIC void pyb_usb_vcp_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
-    mp_print_str(print, "USB_VCP()");
+    int id = ((pyb_usb_vcp_obj_t*)MP_OBJ_TO_PTR(self_in))->cdc_itf - &usb_device.usbd_cdc_itf;
+    mp_printf(print, "USB_VCP(%u)", id);
+}
+
+void usb_vcp_attach_to_repl(const pyb_usb_vcp_obj_t *self, bool attached) {
+    self->cdc_itf->attached_to_repl = attached;
 }
 
 /// \classmethod \constructor()
 /// Create a new USB_VCP object.
 STATIC mp_obj_t pyb_usb_vcp_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *args) {
     // check arguments
-    mp_arg_check_num(n_args, n_kw, 0, 0, false);
+    mp_arg_check_num(n_args, n_kw, 0, 1, false);
 
     // TODO raise exception if USB is not configured for VCP
 
-    // return the USB VCP object
-    return (mp_obj_t)&pyb_usb_vcp_obj;
+    int id = (n_args == 0) ? 0 : mp_obj_get_int(args[0]);
+    if (id == 0) {
+        return MP_OBJ_FROM_PTR(&pyb_usb_vcp_obj);
+    #if MICROPY_HW_USB_ENABLE_CDC2
+    } else if (id == 1) {
+        return MP_OBJ_FROM_PTR(&pyb_usb_vcp2_obj);
+    #endif
+    } else {
+        mp_raise_ValueError(NULL);
+    }
 }
+
+// init(*, flow=-1)
+STATIC mp_obj_t pyb_usb_vcp_init(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+    enum { ARG_flow };
+    static const mp_arg_t allowed_args[] = {
+        { MP_QSTR_flow, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = -1} },
+    };
+
+    // parse args
+    mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
+    pyb_usb_vcp_obj_t *self = MP_OBJ_TO_PTR(pos_args[0]);
+    mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
+
+    // flow control
+    if (args[ARG_flow].u_int != -1) {
+        self->cdc_itf->flow = args[ARG_flow].u_int;
+    }
+
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_KW(pyb_usb_vcp_init_obj, 1, pyb_usb_vcp_init);
 
 STATIC mp_obj_t pyb_usb_vcp_setinterrupt(mp_obj_t self_in, mp_obj_t int_chr_in) {
     mp_hal_set_interrupt_char(mp_obj_get_int(int_chr_in));
@@ -394,13 +461,13 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_2(pyb_usb_vcp_setinterrupt_obj, pyb_usb_vcp_setin
 
 STATIC mp_obj_t pyb_usb_vcp_isconnected(mp_obj_t self_in) {
     pyb_usb_vcp_obj_t *self = MP_OBJ_TO_PTR(self_in);
-    return mp_obj_new_bool(usbd_cdc_is_connected(&self->usb_dev->usbd_cdc_itf));
+    return mp_obj_new_bool(usbd_cdc_is_connected(self->cdc_itf));
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(pyb_usb_vcp_isconnected_obj, pyb_usb_vcp_isconnected);
 
 STATIC mp_obj_t pyb_usb_vcp_debug_mode_enabled(mp_obj_t self_in) {
     pyb_usb_vcp_obj_t *self = MP_OBJ_TO_PTR(self_in);
-    return mp_obj_new_bool(usbd_cdc_debug_mode_enabled(&self->usb_dev->usbd_cdc_itf));
+    return mp_obj_new_bool(usbd_cdc_debug_mode_enabled(self->cdc_itf));
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(pyb_usb_vcp_debug_mode_enabled_obj, pyb_usb_vcp_debug_mode_enabled);
 
@@ -414,7 +481,7 @@ MP_DEFINE_CONST_FUN_OBJ_0(pyb_have_cdc_obj, pyb_have_cdc);
 /// Return `True` if any characters waiting, else `False`.
 STATIC mp_obj_t pyb_usb_vcp_any(mp_obj_t self_in) {
     pyb_usb_vcp_obj_t *self = MP_OBJ_TO_PTR(self_in);
-    if (usbd_cdc_rx_num(&self->usb_dev->usbd_cdc_itf) > 0) {
+    if (usbd_cdc_rx_num(self->cdc_itf) > 0) {
         return mp_const_true;
     } else {
         return mp_const_false;
@@ -447,7 +514,7 @@ STATIC mp_obj_t pyb_usb_vcp_send(size_t n_args, const mp_obj_t *args, mp_map_t *
     pyb_buf_get_for_send(vals[0].u_obj, &bufinfo, data);
 
     // send the data
-    int ret = usbd_cdc_tx(&self->usb_dev->usbd_cdc_itf, bufinfo.buf, bufinfo.len, vals[1].u_int);
+    int ret = usbd_cdc_tx(self->cdc_itf, bufinfo.buf, bufinfo.len, vals[1].u_int);
 
     return mp_obj_new_int(ret);
 }
@@ -474,7 +541,7 @@ STATIC mp_obj_t pyb_usb_vcp_recv(size_t n_args, const mp_obj_t *args, mp_map_t *
     mp_obj_t o_ret = pyb_buf_get_for_recv(vals[0].u_obj, &vstr);
 
     // receive the data
-    int ret = usbd_cdc_rx(&self->usb_dev->usbd_cdc_itf, (uint8_t*)vstr.buf, vstr.len, vals[1].u_int);
+    int ret = usbd_cdc_rx(self->cdc_itf, (uint8_t*)vstr.buf, vstr.len, vals[1].u_int);
 
     // return the received data
     if (o_ret != MP_OBJ_NULL) {
@@ -492,6 +559,7 @@ mp_obj_t pyb_usb_vcp___exit__(size_t n_args, const mp_obj_t *args) {
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(pyb_usb_vcp___exit___obj, 4, 4, pyb_usb_vcp___exit__);
 
 STATIC const mp_rom_map_elem_t pyb_usb_vcp_locals_dict_table[] = {
+    { MP_ROM_QSTR(MP_QSTR_init), MP_ROM_PTR(&pyb_usb_vcp_init_obj) },
     { MP_ROM_QSTR(MP_QSTR_setinterrupt), MP_ROM_PTR(&pyb_usb_vcp_setinterrupt_obj) },
     { MP_ROM_QSTR(MP_QSTR_isconnected), MP_ROM_PTR(&pyb_usb_vcp_isconnected_obj) },
     { MP_ROM_QSTR(MP_QSTR_debug_mode_enabled), MP_ROM_PTR(&pyb_usb_vcp_debug_mode_enabled_obj) },
@@ -507,13 +575,16 @@ STATIC const mp_rom_map_elem_t pyb_usb_vcp_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR___del__), MP_ROM_PTR(&mp_identity_obj) },
     { MP_ROM_QSTR(MP_QSTR___enter__), MP_ROM_PTR(&mp_identity_obj) },
     { MP_ROM_QSTR(MP_QSTR___exit__), MP_ROM_PTR(&pyb_usb_vcp___exit___obj) },
+
+    // class constants
+    { MP_ROM_QSTR(MP_QSTR_RTS), MP_ROM_INT(USBD_CDC_FLOWCONTROL_RTS) },
 };
 
 STATIC MP_DEFINE_CONST_DICT(pyb_usb_vcp_locals_dict, pyb_usb_vcp_locals_dict_table);
 
 STATIC mp_uint_t pyb_usb_vcp_read(mp_obj_t self_in, void *buf, mp_uint_t size, int *errcode) {
     pyb_usb_vcp_obj_t *self = MP_OBJ_TO_PTR(self_in);
-    int ret = usbd_cdc_rx(&self->usb_dev->usbd_cdc_itf, (byte*)buf, size, 0);
+    int ret = usbd_cdc_rx(self->cdc_itf, (byte*)buf, size, 0);
     if (ret == 0) {
         // return EAGAIN error to indicate non-blocking
         *errcode = MP_EAGAIN;
@@ -524,25 +595,30 @@ STATIC mp_uint_t pyb_usb_vcp_read(mp_obj_t self_in, void *buf, mp_uint_t size, i
 
 STATIC mp_uint_t pyb_usb_vcp_write(mp_obj_t self_in, const void *buf, mp_uint_t size, int *errcode) {
     pyb_usb_vcp_obj_t *self = MP_OBJ_TO_PTR(self_in);
-    int ret = usbd_cdc_tx(&self->usb_dev->usbd_cdc_itf, (const byte*)buf, size, 0);
-    if (ret == 0) {
-        // return EAGAIN error to indicate non-blocking
-        *errcode = MP_EAGAIN;
-        return MP_STREAM_ERROR;
+    if (self->cdc_itf->attached_to_repl) {
+        usbd_cdc_tx_always(self->cdc_itf, (const byte*)buf, size);
+        return size;
+    } else {
+        int ret = usbd_cdc_tx(self->cdc_itf, (const byte*)buf, size, 0);
+        if (ret == 0) {
+            // return EAGAIN error to indicate non-blocking
+            *errcode = MP_EAGAIN;
+            return MP_STREAM_ERROR;
+        }
+        return ret;
     }
-    return ret;
 }
 
-STATIC mp_uint_t pyb_usb_vcp_ioctl(mp_obj_t self_in, mp_uint_t request, mp_uint_t arg, int *errcode) {
+STATIC mp_uint_t pyb_usb_vcp_ioctl(mp_obj_t self_in, mp_uint_t request, uintptr_t arg, int *errcode) {
     mp_uint_t ret;
     pyb_usb_vcp_obj_t *self = MP_OBJ_TO_PTR(self_in);
     if (request == MP_STREAM_POLL) {
-        mp_uint_t flags = arg;
+        uintptr_t flags = arg;
         ret = 0;
-        if ((flags & MP_STREAM_POLL_RD) && usbd_cdc_rx_num(&self->usb_dev->usbd_cdc_itf) > 0) {
+        if ((flags & MP_STREAM_POLL_RD) && usbd_cdc_rx_num(self->cdc_itf) > 0) {
             ret |= MP_STREAM_POLL_RD;
         }
-        if ((flags & MP_STREAM_POLL_WR) && usbd_cdc_tx_half_empty(&self->usb_dev->usbd_cdc_itf)) {
+        if ((flags & MP_STREAM_POLL_WR) && usbd_cdc_tx_half_empty(self->cdc_itf)) {
             ret |= MP_STREAM_POLL_WR;
         }
     } else {
@@ -586,7 +662,7 @@ STATIC mp_obj_t pyb_usb_hid_make_new(const mp_obj_type_t *type, size_t n_args, s
     // TODO raise exception if USB is not configured for HID
 
     // return the USB HID object
-    return (mp_obj_t)&pyb_usb_hid_obj;
+    return MP_OBJ_FROM_PTR(&pyb_usb_hid_obj);
 }
 
 /// \method recv(data, *, timeout=5000)
@@ -646,7 +722,7 @@ STATIC mp_obj_t pyb_usb_hid_send(mp_obj_t self_in, mp_obj_t report_in) {
     }
 
     // send the data
-    if (USBD_OK == USBD_HID_SendReport(&self->usb_dev->usbd_cdc_msc_hid_state, bufinfo.buf, bufinfo.len)) {
+    if (USBD_OK == USBD_HID_SendReport(&self->usb_dev->usbd_hid_itf.base, bufinfo.buf, bufinfo.len)) {
         return mp_obj_new_int(bufinfo.len);
     } else {
         return mp_obj_new_int(0);
@@ -669,16 +745,16 @@ STATIC const mp_rom_map_elem_t pyb_usb_hid_locals_dict_table[] = {
 
 STATIC MP_DEFINE_CONST_DICT(pyb_usb_hid_locals_dict, pyb_usb_hid_locals_dict_table);
 
-STATIC mp_uint_t pyb_usb_hid_ioctl(mp_obj_t self_in, mp_uint_t request, mp_uint_t arg, int *errcode) {
+STATIC mp_uint_t pyb_usb_hid_ioctl(mp_obj_t self_in, mp_uint_t request, uintptr_t arg, int *errcode) {
     pyb_usb_hid_obj_t *self = MP_OBJ_TO_PTR(self_in);
     mp_uint_t ret;
     if (request == MP_STREAM_POLL) {
-        mp_uint_t flags = arg;
+        uintptr_t flags = arg;
         ret = 0;
         if ((flags & MP_STREAM_POLL_RD) && usbd_hid_rx_num(&self->usb_dev->usbd_hid_itf) > 0) {
             ret |= MP_STREAM_POLL_RD;
         }
-        if ((flags & MP_STREAM_POLL_WR) && USBD_HID_CanSendReport(&self->usb_dev->usbd_cdc_msc_hid_state)) {
+        if ((flags & MP_STREAM_POLL_WR) && USBD_HID_CanSendReport(&self->usb_dev->usbd_hid_itf.base)) {
             ret |= MP_STREAM_POLL_WR;
         }
     } else {

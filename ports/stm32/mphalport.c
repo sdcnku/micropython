@@ -19,7 +19,7 @@ NORETURN void mp_hal_raise(HAL_StatusTypeDef status) {
     mp_raise_OSError(mp_hal_status_to_errno_table[status]);
 }
 
-int mp_hal_stdin_rx_chr(void) {
+MP_WEAK int mp_hal_stdin_rx_chr(void) {
     for (;;) {
 #if 0
 #ifdef USE_HOST_MODE
@@ -30,13 +30,6 @@ int mp_hal_stdin_rx_chr(void) {
         }
 #endif
 #endif
-
-        #if MICROPY_HW_ENABLE_USB
-        byte c;
-        if (usb_vcp_recv_byte(&c) != 0) {
-            return c;
-        }
-        #endif
         if (MP_STATE_PORT(pyb_stdio_uart) != NULL && uart_rx_any(MP_STATE_PORT(pyb_stdio_uart))) {
             return uart_rx_char(MP_STATE_PORT(pyb_stdio_uart));
         }
@@ -52,18 +45,13 @@ void mp_hal_stdout_tx_str(const char *str) {
     mp_hal_stdout_tx_strn(str, strlen(str));
 }
 
-void mp_hal_stdout_tx_strn(const char *str, size_t len) {
+MP_WEAK void mp_hal_stdout_tx_strn(const char *str, size_t len) {
     if (MP_STATE_PORT(pyb_stdio_uart) != NULL) {
         uart_tx_strn(MP_STATE_PORT(pyb_stdio_uart), str, len);
     }
 #if 0 && defined(USE_HOST_MODE) && MICROPY_HW_HAS_LCD
     lcd_print_strn(str, len);
 #endif
-    #if MICROPY_HW_ENABLE_USB
-    if (usb_vcp_is_enabled()) {
-        usb_vcp_send_strn(str, len);
-    }
-    #endif
     mp_uos_dupterm_tx_strn(str, len);
 }
 
@@ -87,6 +75,7 @@ void mp_hal_stdout_tx_strn_cooked(const char *str, size_t len) {
     }
 }
 
+#if __CORTEX_M >= 0x03
 void mp_hal_ticks_cpu_enable(void) {
     if (!(DWT->CTRL & DWT_CTRL_CYCCNTENA_Msk)) {
         CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
@@ -98,9 +87,10 @@ void mp_hal_ticks_cpu_enable(void) {
         DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
     }
 }
+#endif
 
 void mp_hal_gpio_clock_enable(GPIO_TypeDef *gpio) {
-    #if defined(STM32L476xx) || defined(STM32L486xx)
+    #if defined(STM32L476xx) || defined(STM32L496xx)
     if (gpio == GPIOG) {
         // Port G pins 2 thru 15 are powered using VddIO2 on these MCUs.
         HAL_PWREx_EnableVddIO2();
@@ -109,7 +99,10 @@ void mp_hal_gpio_clock_enable(GPIO_TypeDef *gpio) {
 
     // This logic assumes that all the GPIOx_EN bits are adjacent and ordered in one register
 
-    #if defined(STM32F4) || defined(STM32F7)
+    #if defined(STM32F0)
+    #define AHBxENR AHBENR
+    #define AHBxENR_GPIOAEN_Pos RCC_AHBENR_GPIOAEN_Pos
+    #elif defined(STM32F4) || defined(STM32F7)
     #define AHBxENR AHB1ENR
     #define AHBxENR_GPIOAEN_Pos RCC_AHB1ENR_GPIOAEN_Pos
     #elif defined(STM32H7)
@@ -156,6 +149,17 @@ void mp_hal_pin_config_speed(mp_hal_pin_obj_t pin_obj, uint32_t speed) {
     GPIO_TypeDef *gpio = pin_obj->gpio;
     uint32_t pin = pin_obj->pin;
     gpio->OSPEEDR = (gpio->OSPEEDR & ~(3 << (2 * pin))) | (speed << (2 * pin));
+}
+
+MP_WEAK void mp_hal_get_mac(int idx, uint8_t buf[6]) {
+    // Generate a random locally administered MAC address (LAA)
+    uint8_t *id = (uint8_t *)MP_HAL_UNIQUE_ID_ADDRESS;
+    buf[0] = 0x02; // LAA range
+    buf[1] = (id[11] << 4) | (id[10] & 0xf);
+    buf[2] = (id[9] << 4) | (id[8] & 0xf);
+    buf[3] = (id[7] << 4) | (id[6] & 0xf);
+    buf[4] = id[2];
+    buf[5] = (id[0] << 2) | idx;
 }
 
 extern int mp_stream_errno;

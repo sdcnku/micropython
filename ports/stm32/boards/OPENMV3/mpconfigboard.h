@@ -3,7 +3,6 @@
 #define MICROPY_PY_SYS_PLATFORM     "OpenMV3-M7"
 
 #define MICROPY_HW_HAS_SWITCH       (0)
-#define MICROPY_HW_HAS_SDCARD       (1)
 #define MICROPY_HW_HAS_MMA7660      (0)
 #define MICROPY_HW_HAS_LIS3DSH      (0)
 #define MICROPY_HW_HAS_LCD          (0)
@@ -17,6 +16,7 @@
 #define MICROPY_HW_ENABLE_SPI3      (0)
 #define MICROPY_HW_ENABLE_SPI4      (0)
 #define MICROPY_HW_ENABLE_USB       (1)
+#define MICROPY_HW_ENABLE_SDCARD    (1)
 #define MICROPY_FATFS_EXFAT         (1)
 
 #define MICROPY_HW_CLK_PLLM (12)

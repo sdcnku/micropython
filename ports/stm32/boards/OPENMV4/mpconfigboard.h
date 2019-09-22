@@ -2,7 +2,6 @@
 #define MICROPY_HW_MCU_NAME         "STM32H743"
 #define MICROPY_PY_SYS_PLATFORM     "OpenMV4-H7"
 
-#define MICROPY_HW_HAS_SDCARD       (1)
 #define MICROPY_HW_ENABLE_RNG       (1)
 #define MICROPY_HW_ENABLE_RTC       (1)
 #define MICROPY_HW_ENABLE_TIMER     (1)
@@ -11,6 +10,7 @@
 #define MICROPY_HW_ENABLE_ADC       (1)
 #define MICROPY_HW_ENABLE_SPI2      (1)
 #define MICROPY_HW_ENABLE_USB       (1)
+#define MICROPY_HW_ENABLE_SDCARD    (1)
 #define MICROPY_FATFS_EXFAT         (1)
 
 // Note these are not used in top system.c.

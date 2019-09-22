@@ -16,6 +16,7 @@
 #include "systick.h"
 #include "sdram.h"
 
+#define SDRAM_TIMEOUT                            ((uint32_t)0xFFFF)
 #define SDRAM_MODEREG_BURST_LENGTH_1             ((uint16_t)0x0000)
 #define SDRAM_MODEREG_BURST_LENGTH_2             ((uint16_t)0x0001)
 #define SDRAM_MODEREG_BURST_LENGTH_4             ((uint16_t)0x0002)
@@ -131,9 +132,10 @@ bool sdram_init(void) {
 
     /* SDRAM device configuration */
     hsdram.Instance = FMC_SDRAM_DEVICE;
-    /* TMRD */
+    /* Timing configuration for 90 Mhz of SD clock frequency (180Mhz/2) */
+    /* TMRD: 2 Clock cycles */
     SDRAM_Timing.LoadToActiveDelay    = MICROPY_HW_SDRAM_TIMING_TMRD;
-    /* TXSR */
+    /* TXSR: min=70ns (6x11.90ns) */
     SDRAM_Timing.ExitSelfRefreshDelay = MICROPY_HW_SDRAM_TIMING_TXSR;
     /* TRAS */
     SDRAM_Timing.SelfRefreshTime      = MICROPY_HW_SDRAM_TIMING_TRAS;
@@ -181,62 +183,60 @@ static void sdram_init_seq(SDRAM_HandleTypeDef
         *hsdram, FMC_SDRAM_CommandTypeDef *command)
 {
     /* Program the SDRAM external device */
-    __IO uint32_t tmpmrd = 0;
+    __IO uint32_t tmpmrd =0;
 
-    /* Step 1:  Configure a clock configuration enable command */
-    command->CommandMode            = FMC_SDRAM_CMD_CLK_ENABLE;
-    command->CommandTarget          = FMC_SDRAM_CMD_TARGET_BANK;
-    command->AutoRefreshNumber      = 1;
+    /* Step 3:  Configure a clock configuration enable command */
+    command->CommandMode           = FMC_SDRAM_CMD_CLK_ENABLE;
+    command->CommandTarget         = FMC_SDRAM_CMD_TARGET_BANK;
+    command->AutoRefreshNumber     = 1;
     command->ModeRegisterDefinition = 0;
 
     /* Send the command */
     HAL_SDRAM_SendCommand(hsdram, command, 0x1000);
 
-    /* Step 2: Insert 100 ms delay */
+    /* Step 4: Insert 100 ms delay */
     HAL_Delay(100);
 
-    /* Step 3: Configure a PALL (precharge all) command */
-    command->CommandMode            = FMC_SDRAM_CMD_PALL;
-    command->CommandTarget          = FMC_SDRAM_CMD_TARGET_BANK;
-    command->AutoRefreshNumber      = 1;
+    /* Step 5: Configure a PALL (precharge all) command */
+    command->CommandMode           = FMC_SDRAM_CMD_PALL;
+    command->CommandTarget         = FMC_SDRAM_CMD_TARGET_BANK;
+    command->AutoRefreshNumber     = 1;
     command->ModeRegisterDefinition = 0;
 
     /* Send the command */
     HAL_SDRAM_SendCommand(hsdram, command, 0x1000);
 
-    /* Step 4 : Configure a Auto-Refresh command */
-    command->CommandMode            = FMC_SDRAM_CMD_AUTOREFRESH_MODE;
-    command->CommandTarget          = FMC_SDRAM_CMD_TARGET_BANK;
-    command->AutoRefreshNumber      = MICROPY_HW_SDRAM_AUTOREFRESH_NUM;
+    /* Step 6 : Configure a Auto-Refresh command */
+    command->CommandMode           = FMC_SDRAM_CMD_AUTOREFRESH_MODE;
+    command->CommandTarget         = FMC_SDRAM_CMD_TARGET_BANK;
+    command->AutoRefreshNumber     = MICROPY_HW_SDRAM_AUTOREFRESH_NUM;
     command->ModeRegisterDefinition = 0;
 
     /* Send the command */
     HAL_SDRAM_SendCommand(hsdram, command, 0x1000);
 
-    /* Step 5: Program the external memory mode register */
+    /* Step 7: Program the external memory mode register */
     tmpmrd = (uint32_t)FMC_INIT(SDRAM_MODEREG_BURST_LENGTH, MICROPY_HW_SDRAM_BURST_LENGTH) |
         SDRAM_MODEREG_BURST_TYPE_SEQUENTIAL   |
         FMC_INIT(SDRAM_MODEREG_CAS_LATENCY, MICROPY_HW_SDRAM_CAS_LATENCY) |
         SDRAM_MODEREG_OPERATING_MODE_STANDARD |
         SDRAM_MODEREG_WRITEBURST_MODE_SINGLE;
-
-    command->CommandMode            = FMC_SDRAM_CMD_LOAD_MODE;
-    command->CommandTarget          = FMC_SDRAM_CMD_TARGET_BANK;
-    command->AutoRefreshNumber      = 1;
+    command->CommandMode           = FMC_SDRAM_CMD_LOAD_MODE;
+    command->CommandTarget         = FMC_SDRAM_CMD_TARGET_BANK;
+    command->AutoRefreshNumber     = 1;
     command->ModeRegisterDefinition = tmpmrd;
 
     /* Send the command */
     HAL_SDRAM_SendCommand(hsdram, command, 0x1000);
 
-    /* Step 6: Set the refresh rate counter
+    /* Step 8: Set the refresh rate counter
        RefreshRate = 64 ms / 8192 cyc = 7.8125 us/cyc
 
+       RefreshCycles = 7.8125 us * 90 MHz = 703
        According to the formula on p.1665 of the reference manual,
-       we also need to subtract 20 from the value.
-    */
-    #if !defined(MICROPY_HW_SDRAM_FREQUENCY)
-    #define MICROPY_HW_SDRAM_FREQUENCY 90000
-    #endif
+       we also need to subtract 20 from the value, so the target
+       refresh rate is 703 - 20 = 683.
+     */
     #define REFRESH_COUNT (MICROPY_HW_SDRAM_REFRESH_RATE * MICROPY_HW_SDRAM_FREQUENCY / 8192 - 20)
     HAL_SDRAM_ProgramRefreshRate(hsdram, REFRESH_COUNT);
 

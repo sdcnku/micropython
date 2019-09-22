@@ -36,6 +36,8 @@
 #define USBD_PID_CDC_HID (0x9801)
 #define USBD_PID_CDC     (0x9802)
 #define USBD_PID_MSC     (0x9803)
+#define USBD_PID_CDC2_MSC (0x9804)
+#define USBD_PID_CDC2    (0x9805)
 
 typedef enum {
     PYB_USB_STORAGE_MEDIUM_NONE = 0,
@@ -48,12 +50,16 @@ typedef enum {
     USB_PHY_HS_ID = 1,
 } USB_PHY_ID;
 
+typedef struct _pyb_usb_vcp_obj_t pyb_usb_vcp_obj_t;
+
 extern mp_uint_t pyb_usb_flags;
 extern pyb_usb_storage_medium_t pyb_usb_storage_medium;
-extern const struct _mp_obj_tuple_t pyb_usb_hid_mouse_obj;
-extern const struct _mp_obj_tuple_t pyb_usb_hid_keyboard_obj;
+extern const struct _mp_rom_obj_tuple_t pyb_usb_hid_mouse_obj;
+extern const struct _mp_rom_obj_tuple_t pyb_usb_hid_keyboard_obj;
 extern const mp_obj_type_t pyb_usb_vcp_type;
 extern const mp_obj_type_t pyb_usb_hid_type;
+extern const pyb_usb_vcp_obj_t pyb_usb_vcp_obj;
+
 MP_DECLARE_CONST_FUN_OBJ_KW(pyb_usb_mode_obj);
 MP_DECLARE_CONST_FUN_OBJ_0(pyb_have_cdc_obj); // deprecated
 MP_DECLARE_CONST_FUN_OBJ_1(pyb_hid_send_report_obj); // deprecated
@@ -66,6 +72,7 @@ int usb_vcp_recv_byte(uint8_t *c); // if a byte is available, return 1 and put t
 void usb_vcp_send_strn(const char* str, int len);
 uint32_t usb_cdc_tx_buf_len();
 uint8_t *usb_cdc_tx_buf(uint32_t bytes);
+void usb_vcp_attach_to_repl(const pyb_usb_vcp_obj_t *self, bool attached);
 
 void pyb_usb_host_init(void);
 void pyb_usb_host_process(void);
