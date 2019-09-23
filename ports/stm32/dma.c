@@ -546,12 +546,11 @@ void DMA2_Channel7_IRQHandler(void) { IRQ_ENTER(DMA2_Channel7_IRQn); if (dma_han
 
 #endif
 
-static void dma_idle_handler(uint32_t tick);
+void dma_idle_handler(uint32_t tick);
 
 // Resets the idle counter for the DMA controller associated with dma_id.
 static void dma_tickle(dma_id_t dma_id) {
     dma_idle.counter[(dma_id < NSTREAMS_PER_CONTROLLER) ? 0 : 1] = 1;
-    systick_enable_dispatch(SYSTICK_DISPATCH_DMA, dma_idle_handler);
 }
 
 static void dma_enable_clock(dma_id_t dma_id) {
@@ -700,7 +699,7 @@ void dma_invalidate_channel(const dma_descr_t *dma_descr) {
 
 // Called from the SysTick handler
 // We use LSB of tick to select which controller to process
-static void dma_idle_handler(uint32_t tick) {
+void dma_idle_handler(uint32_t tick) {
     if (!DMA_IDLE_ENABLED() || !DMA_IDLE_TICK(tick)) {
         return;
     }
