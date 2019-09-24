@@ -231,7 +231,10 @@ bool sdcard_is_present(void) {
 }
 
 #if MICROPY_HW_ENABLE_SDCARD
+STATIC void sdcard_reset_periph();
 STATIC HAL_StatusTypeDef sdmmc_init_sd(void) {
+    sdcard_reset_periph();
+
     // SD device interface configuration
     sdmmc_handle.sd.Instance = SDIO;
     sdmmc_handle.sd.Init.ClockEdge           = SDIO_CLOCK_EDGE_RISING;
