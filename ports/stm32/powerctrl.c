@@ -280,6 +280,8 @@ void powerctrl_enter_stop_mode(void) {
     HAL_PWREx_EnableFlashPowerDown();
     #endif
 
+    HAL_SuspendTick();
+
     # if defined(STM32F7)
     HAL_PWR_EnterSTOPMode((PWR_CR1_LPDS | PWR_CR1_LPUDS | PWR_CR1_FPDS | PWR_CR1_UDEN), PWR_STOPENTRY_WFI);
     # else
@@ -344,6 +346,8 @@ void powerctrl_enter_stop_mode(void) {
     #endif
 
     #endif
+
+    HAL_ResumeTick();
 
     // Enable IRQs now that all clocks are reconfigured
     enable_irq(irq_state);
