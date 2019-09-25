@@ -457,8 +457,10 @@ void spi_transfer(const spi_t *self, size_t len, const uint8_t *src, uint8_t *de
 
     if (dest == NULL) {
         // send only
-        if (len == 1 || query_irq() == IRQ_STATE_DISABLED) {
+        if (len == 1 || query_irq() == IRQ_STATE_DISABLED || !DMA_BUFFER(src)) {
+            mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
             status = HAL_SPI_Transmit(self->spi, (uint8_t*)src, len, timeout);
+            MICROPY_END_ATOMIC_SECTION(atomic_state);
         } else {
             DMA_HandleTypeDef tx_dma;
             dma_init(&tx_dma, self->tx_dma_descr, DMA_MEMORY_TO_PERIPH, self->spi);
@@ -483,8 +485,10 @@ void spi_transfer(const spi_t *self, size_t len, const uint8_t *src, uint8_t *de
         }
     } else if (src == NULL) {
         // receive only
-        if (len == 1 || query_irq() == IRQ_STATE_DISABLED) {
+        if (len == 1 || query_irq() == IRQ_STATE_DISABLED || !DMA_BUFFER(dest)) {
+            mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
             status = HAL_SPI_Receive(self->spi, dest, len, timeout);
+            MICROPY_END_ATOMIC_SECTION(atomic_state);
         } else {
             DMA_HandleTypeDef tx_dma, rx_dma;
             if (self->spi->Init.Mode == SPI_MODE_MASTER) {
@@ -518,8 +522,10 @@ void spi_transfer(const spi_t *self, size_t len, const uint8_t *src, uint8_t *de
         }
     } else {
         // send and receive
-        if (len == 1 || query_irq() == IRQ_STATE_DISABLED) {
+        if (len == 1 || query_irq() == IRQ_STATE_DISABLED || !DMA_BUFFER(src) || !DMA_BUFFER(dest)) {
+            mp_uint_t atomic_state = MICROPY_BEGIN_ATOMIC_SECTION();
             status = HAL_SPI_TransmitReceive(self->spi, (uint8_t*)src, dest, len, timeout);
+            MICROPY_END_ATOMIC_SECTION(atomic_state);
         } else {
             DMA_HandleTypeDef tx_dma, rx_dma;
             dma_init(&tx_dma, self->tx_dma_descr, DMA_MEMORY_TO_PERIPH, self->spi);
