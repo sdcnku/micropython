@@ -500,8 +500,8 @@ int USBD_SelectMode(usbd_cdc_msc_hid_state_t *usbd, uint32_t mode, USBD_HID_Mode
 
         case USBD_MODE_CDC_HID:
             usbd->hid->desc = d + n;
-            n += make_cdc_desc(d + n, 1, CDC_IFACE_NUM_WITH_HID);
             n += make_hid_desc(d + n, hid_info);
+            n += make_cdc_desc(d + n, 1, CDC_IFACE_NUM_WITH_HID);
             usbd->cdc->iface_num = CDC_IFACE_NUM_WITH_HID;
             usbd->hid->in_ep = HID_IN_EP_WITH_CDC;
             usbd->hid->out_ep = HID_OUT_EP_WITH_CDC;
