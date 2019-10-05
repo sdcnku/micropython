@@ -79,9 +79,9 @@
 #define MICROPY_HW_SDRAM_FREQUENCY          (80000) // 80 MHz
 #define MICROPY_HW_SDRAM_TIMING_TMRD        (2)
 #define MICROPY_HW_SDRAM_TIMING_TXSR        (6)
-#define MICROPY_HW_SDRAM_TIMING_TRAS        (6)
-#define MICROPY_HW_SDRAM_TIMING_TRC         (8)
-#define MICROPY_HW_SDRAM_TIMING_TWR         (4)
+#define MICROPY_HW_SDRAM_TIMING_TRAS        (4)
+#define MICROPY_HW_SDRAM_TIMING_TRC         (5)
+#define MICROPY_HW_SDRAM_TIMING_TWR         (2)
 #define MICROPY_HW_SDRAM_TIMING_TRP         (2)
 #define MICROPY_HW_SDRAM_TIMING_TRCD        (2)
 
@@ -93,13 +93,19 @@
 //#define MICROPY_HW_SDRAM_TIMING_TXSR        (9)
 //#define MICROPY_HW_SDRAM_TIMING_TRAS        (6)
 //#define MICROPY_HW_SDRAM_TIMING_TRC         (8)
-//#define MICROPY_HW_SDRAM_TIMING_TWR         (4)
-//#define MICROPY_HW_SDRAM_TIMING_TRP         (2)
-//#define MICROPY_HW_SDRAM_TIMING_TRCD        (2)
+//#define MICROPY_HW_SDRAM_TIMING_TWR         (3)
+//#define MICROPY_HW_SDRAM_TIMING_TRP         (3)
+//#define MICROPY_HW_SDRAM_TIMING_TRCD        (3)
+
+// 16-bit SDRAM
+//#define MICROPY_HW_SDRAM_ROW_BITS_NUM       13
+//#define MICROPY_HW_SDRAM_MEM_BUS_WIDTH      16
+
+// 32-bit SDRAM
+#define MICROPY_HW_SDRAM_ROW_BITS_NUM       12
+#define MICROPY_HW_SDRAM_MEM_BUS_WIDTH      32
 
 #define MICROPY_HW_SDRAM_COLUMN_BITS_NUM    9
-#define MICROPY_HW_SDRAM_ROW_BITS_NUM       13
-#define MICROPY_HW_SDRAM_MEM_BUS_WIDTH      16
 #define MICROPY_HW_SDRAM_INTERN_BANKS_NUM   4
 #define MICROPY_HW_SDRAM_RPIPE_DELAY        0
 #define MICROPY_HW_SDRAM_RBURST             (1)
@@ -120,6 +126,8 @@
 #define MICROPY_HW_FMC_BA1      (pin_G5)
 #define MICROPY_HW_FMC_NBL0     (pin_E0)
 #define MICROPY_HW_FMC_NBL1     (pin_E1)
+#define MICROPY_HW_FMC_NBL2     (pin_I4)
+#define MICROPY_HW_FMC_NBL3     (pin_I5)
 #define MICROPY_HW_FMC_A0       (pin_F0)
 #define MICROPY_HW_FMC_A1       (pin_F1)
 #define MICROPY_HW_FMC_A2       (pin_F2)
@@ -149,3 +157,19 @@
 #define MICROPY_HW_FMC_D13      (pin_D8)
 #define MICROPY_HW_FMC_D14      (pin_D9)
 #define MICROPY_HW_FMC_D15      (pin_D10)
+#define MICROPY_HW_FMC_D16      (pin_H8)
+#define MICROPY_HW_FMC_D17      (pin_H9)
+#define MICROPY_HW_FMC_D18      (pin_H10)
+#define MICROPY_HW_FMC_D19      (pin_H11)
+#define MICROPY_HW_FMC_D20      (pin_H12)
+#define MICROPY_HW_FMC_D21      (pin_H13)
+#define MICROPY_HW_FMC_D22      (pin_H14)
+#define MICROPY_HW_FMC_D23      (pin_H15)
+#define MICROPY_HW_FMC_D24      (pin_I0)
+#define MICROPY_HW_FMC_D25      (pin_I1)
+#define MICROPY_HW_FMC_D26      (pin_I2)
+#define MICROPY_HW_FMC_D27      (pin_I3)
+#define MICROPY_HW_FMC_D28      (pin_I6)
+#define MICROPY_HW_FMC_D29      (pin_I7)
+#define MICROPY_HW_FMC_D30      (pin_I9)
+#define MICROPY_HW_FMC_D31      (pin_I10)
