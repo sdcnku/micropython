@@ -64,18 +64,17 @@
 ///     tim.callback(lambda t: ...)     # set callback for update interrupt (t=tim instance)
 ///     tim.callback(None)              # clear callback
 ///
-/// *Note:* Timer 3 is used for fading the blue LED.  Timer 5 controls
-/// the servo driver, and Timer 6 is used for timed ADC/DAC reading/writing.
-/// It is recommended to use the other timers in your programs.
-
-// The timers can be used by multiple drivers, and need a common point for
-// the interrupts to be dispatched, so they are all collected here.
-//
-// TIM4:
-//  - servo controller, PWM
-//
-// TIM6:
-//  - ADC, DAC for read_timed and write_timed
+/// The timers can be used by multiple drivers, and need a common point for
+/// the interrupts to be dispatched, so they are all collected here.
+///
+/// TIM4:
+///  - servo controller, PWM
+///
+/// TIM5:
+///  - WiFi debug dispatch.
+///
+/// TIM6:
+///  - ADC, DAC for read_timed and write_timed
 
 typedef enum {
     CHANNEL_MODE_PWM_NORMAL,
@@ -199,7 +198,7 @@ void timer_tim5_init(uint freq) {
 
     uint32_t period = MAX(1, timer_get_source_freq(5) / freq);
     uint32_t prescaler = 1;
-    while (period > 0xffff) {
+    while (period > 0xffffffff) { // TIM5 is 32-bits
         period >>= 1;
         prescaler <<= 1;
     }
