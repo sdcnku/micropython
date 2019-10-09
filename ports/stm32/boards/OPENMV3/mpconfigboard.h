@@ -77,3 +77,6 @@
 #define MICROPY_HW_LED_OTYPE        (GPIO_MODE_OUTPUT_PP)
 #define MICROPY_HW_LED_ON(pin)      (pin->gpio->BSRR = (pin->pin_mask << 16))
 #define MICROPY_HW_LED_OFF(pin)     (pin->gpio->BSRR = pin->pin_mask)
+
+// Servos
+#define PYB_SERVO_NUM (4)
