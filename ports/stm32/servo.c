@@ -42,7 +42,7 @@
 // pins PA0-PA3 are used directly if the X pins are not defined).
 
 #ifndef PYB_SERVO_NUM
-#define PYB_SERVO_NUM (3)
+#define PYB_SERVO_NUM (2)
 #endif
 
 typedef struct _pyb_servo_obj_t {
@@ -79,8 +79,11 @@ void servo_init(void) {
 
     pyb_servo_obj[0].pin = pin_D12;
     pyb_servo_obj[1].pin = pin_D13;
-#if PYB_SERVO_NUM == 3
+#if PYB_SERVO_NUM >= 3
     pyb_servo_obj[2].pin = pin_D14;
+#endif
+#if PYB_SERVO_NUM >= 4
+    pyb_servo_obj[3].pin = pin_D15;
 #endif
 }
 
@@ -118,8 +121,8 @@ void servo_timer_irq_callback(void) {
 }
 
 STATIC void servo_init_channel(pyb_servo_obj_t *s) {
-    static const uint8_t channel_table[3] =
-        {TIM_CHANNEL_1, TIM_CHANNEL_2, TIM_CHANNEL_3};
+    static const uint8_t channel_table[4] =
+        {TIM_CHANNEL_1, TIM_CHANNEL_2, TIM_CHANNEL_3, TIM_CHANNEL_4};
     uint32_t channel = channel_table[s->pin->pin - 12];
 
     // GPIO configuration
@@ -149,6 +152,7 @@ STATIC mp_obj_t pyb_servo_set(mp_obj_t port, mp_obj_t value) {
         case 1: TIM4->CCR1 = v; break;
         case 2: TIM4->CCR2 = v; break;
         case 3: TIM4->CCR3 = v; break;
+        case 4: TIM4->CCR4 = v; break;
     }
     return mp_const_none;
 }
