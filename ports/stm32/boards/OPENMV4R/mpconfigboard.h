@@ -75,36 +75,38 @@
 #define MICROPY_HW_SDRAM_STARTUP_TEST       (1)
 
 // Timing configuration for 240MHz/3=80MHz (12.5ns)
-#define MICROPY_HW_SDRAM_CLOCK_PERIOD       3
+//#define MICROPY_HW_SDRAM_CLOCK_PERIOD       3
+//#define MICROPY_HW_SDRAM_CAS_LATENCY        2
+//#define MICROPY_HW_SDRAM_FREQUENCY          (80000) // 80 MHz
+//#define MICROPY_HW_SDRAM_TIMING_TMRD        (2)
+//#define MICROPY_HW_SDRAM_TIMING_TXSR        (6)
+//#define MICROPY_HW_SDRAM_TIMING_TRAS        (4)
+//#define MICROPY_HW_SDRAM_TIMING_TRC         (5)
+//#define MICROPY_HW_SDRAM_TIMING_TWR         (2)
+//#define MICROPY_HW_SDRAM_TIMING_TRP         (2)
+//#define MICROPY_HW_SDRAM_TIMING_TRCD        (2)
+
+// Timing configuration for 200MHz/2=100MHz (10ns)
+#define MICROPY_HW_SDRAM_CLOCK_PERIOD       2
 #define MICROPY_HW_SDRAM_CAS_LATENCY        2
-#define MICROPY_HW_SDRAM_FREQUENCY          (80000) // 80 MHz
+#define MICROPY_HW_SDRAM_FREQUENCY          (100000) // 100 MHz
 #define MICROPY_HW_SDRAM_TIMING_TMRD        (2)
-#define MICROPY_HW_SDRAM_TIMING_TXSR        (6)
-#define MICROPY_HW_SDRAM_TIMING_TRAS        (4)
-#define MICROPY_HW_SDRAM_TIMING_TRC         (5)
-#define MICROPY_HW_SDRAM_TIMING_TWR         (2)
+#define MICROPY_HW_SDRAM_TIMING_TXSR        (7)
+#define MICROPY_HW_SDRAM_TIMING_TRAS        (5)
+#define MICROPY_HW_SDRAM_TIMING_TRC         (6)
+#define MICROPY_HW_SDRAM_TIMING_TWR         (3)
 #define MICROPY_HW_SDRAM_TIMING_TRP         (2)
 #define MICROPY_HW_SDRAM_TIMING_TRCD        (2)
-
-// Timing configuration for 240MHz/2=120MHz (8.33ns)
-//#define MICROPY_HW_SDRAM_CLOCK_PERIOD       2
-//#define MICROPY_HW_SDRAM_CAS_LATENCY        2
-//#define MICROPY_HW_SDRAM_FREQUENCY          (120000) // 120 MHz
-//#define MICROPY_HW_SDRAM_TIMING_TMRD        (2)
-//#define MICROPY_HW_SDRAM_TIMING_TXSR        (9)
-//#define MICROPY_HW_SDRAM_TIMING_TRAS        (6)
-//#define MICROPY_HW_SDRAM_TIMING_TRC         (8)
-//#define MICROPY_HW_SDRAM_TIMING_TWR         (3)
-//#define MICROPY_HW_SDRAM_TIMING_TRP         (3)
-//#define MICROPY_HW_SDRAM_TIMING_TRCD        (3)
 
 // 16-bit SDRAM
 //#define MICROPY_HW_SDRAM_ROW_BITS_NUM       13
 //#define MICROPY_HW_SDRAM_MEM_BUS_WIDTH      16
+//#define MICROPY_HW_SDRAM_REFRESH_CYCLES     8192
 
 // 32-bit SDRAM
 #define MICROPY_HW_SDRAM_ROW_BITS_NUM       12
 #define MICROPY_HW_SDRAM_MEM_BUS_WIDTH      32
+#define MICROPY_HW_SDRAM_REFRESH_CYCLES     4096
 
 #define MICROPY_HW_SDRAM_COLUMN_BITS_NUM    9
 #define MICROPY_HW_SDRAM_INTERN_BANKS_NUM   4
