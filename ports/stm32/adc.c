@@ -140,8 +140,6 @@
 #elif defined(STM32L432xx) || defined(STM32L475xx) || \
       defined(STM32L476xx) || defined(STM32L496xx)
 #define VBAT_DIV (3)
-#elif defined(STM32H743xx)
-#define VBAT_DIV (4)
 #else
 #error Unsupported processor
 #endif
@@ -321,14 +319,16 @@ STATIC void adc_config_channel(ADC_HandleTypeDef *adc_handle, uint32_t channel) 
 #endif
     sConfig.Channel = channel;
 #if defined(STM32F0)
-    sConfig.SamplingTime = ADC_SAMPLETIME_71CYCLES_5;
+    sConfig.SamplingTime = ADC_SAMPLETIME_55CYCLES_5;
 #elif defined(STM32F4) || defined(STM32F7)
-    sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;
+    if (__HAL_ADC_IS_CHANNEL_INTERNAL(channel)) {
+        sConfig.SamplingTime = ADC_SAMPLETIME_480CYCLES;
+    } else {
+        sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;
+    }
 #elif defined(STM32H7)
-    if (channel == ADC_CHANNEL_VREFINT
-        || channel == ADC_CHANNEL_TEMPSENSOR
-        || channel == ADC_CHANNEL_VBAT) {
-        sConfig.SamplingTime = ADC_SAMPLETIME_387CYCLES_5;
+    if (__HAL_ADC_IS_CHANNEL_INTERNAL(channel)) {
+        sConfig.SamplingTime = ADC_SAMPLETIME_810CYCLES_5;
     } else {
         sConfig.SamplingTime = ADC_SAMPLETIME_8CYCLES_5;
     }
@@ -337,9 +337,7 @@ STATIC void adc_config_channel(ADC_HandleTypeDef *adc_handle, uint32_t channel) 
     sConfig.OffsetRightShift = DISABLE;
     sConfig.OffsetSignedSaturation = DISABLE;
 #elif defined(STM32L4)
-    if (channel == ADC_CHANNEL_VREFINT
-        || channel == ADC_CHANNEL_TEMPSENSOR
-        || channel == ADC_CHANNEL_VBAT) {
+    if (__HAL_ADC_IS_CHANNEL_INTERNAL(channel)) {
         sConfig.SamplingTime = ADC_SAMPLETIME_247CYCLES_5;
     } else {
         sConfig.SamplingTime = ADC_SAMPLETIME_12CYCLES_5;
@@ -356,14 +354,6 @@ STATIC void adc_config_channel(ADC_HandleTypeDef *adc_handle, uint32_t channel) 
     // channels before calling HAL_ADC_ConfigChannel, which will select the desired one.
     adc_handle->Instance->CHSELR = 0;
     #endif
-
-    if (__HAL_ADC_IS_CHANNEL_INTERNAL(channel)) {
-#if defined(STM32H7)
-        sConfig.SamplingTime = ADC_SAMPLETIME_810CYCLES_5;
-#else
-        sConfig.SamplingTime = ADC_SAMPLETIME_480CYCLES;
-#endif
-    }
 
     HAL_ADC_ConfigChannel(adc_handle, &sConfig);
 }
@@ -430,6 +420,7 @@ STATIC mp_obj_t adc_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_
     if (!is_adcx_channel(channel)) {
         nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_ValueError, "not a valid ADC Channel: %d", channel));
     }
+
 
     if (ADC_FIRST_GPIO_CHANNEL <= channel && channel <= ADC_LAST_GPIO_CHANNEL) {
         // these channels correspond to physical GPIO ports so make sure they exist
