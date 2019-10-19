@@ -215,11 +215,18 @@ extern const struct _mp_obj_module_t mjpeg_module;
 extern const struct _mp_obj_module_t cpufreq_module;
 extern const struct _mp_obj_module_t nn_module;
 extern const struct _mp_obj_module_t tv_module;
+extern const struct _mp_obj_module_t nn_st_module;
 
 #if MICROPY_PY_STM
 #define STM_BUILTIN_MODULE               { MP_ROM_QSTR(MP_QSTR_stm), MP_ROM_PTR(&stm_module) },
 #else
 #define STM_BUILTIN_MODULE
+#endif
+
+#if CUBEAI
+#define CUBEAI_BUILTIN_MODULE            { MP_OBJ_NEW_QSTR(MP_QSTR_nn_st),   (mp_obj_t)&nn_st_module },
+#else
+#define CUBEAI_BUILTIN_MODULE
 #endif
 
 #if MICROPY_PY_USOCKET && MICROPY_PY_LWIP
@@ -259,6 +266,7 @@ extern const struct _mp_obj_module_t tv_module;
     { MP_OBJ_NEW_QSTR(MP_QSTR_cpufreq), (mp_obj_t)&cpufreq_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_nn),      (mp_obj_t)&nn_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_tv),      (mp_obj_t)&tv_module }, \
+    CUBEAI_BUILTIN_MODULE \
     SOCKET_BUILTIN_MODULE \
     NETWORK_BUILTIN_MODULE \
     { MP_ROM_QSTR(MP_QSTR__onewire), MP_ROM_PTR(&mp_module_onewire) }, \
