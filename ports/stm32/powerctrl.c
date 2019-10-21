@@ -282,6 +282,17 @@ void powerctrl_enter_stop_mode(void) {
 
     HAL_SuspendTick();
 
+    #if defined(MCU_SERIES_H7)
+    // If current vscale is 0 we need to switch to vscale 1 before entering low power mode.
+    if (HAL_GetREVID() >= 0x2003) {
+        __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+
+        // Wait for PWR_FLAG_VOSRDY
+        while (!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {
+        }
+    }
+    #endif
+
     # if defined(STM32F7)
     HAL_PWR_EnterSTOPMode((PWR_CR1_LPDS | PWR_CR1_LPUDS | PWR_CR1_FPDS | PWR_CR1_UDEN), PWR_STOPENTRY_WFI);
     # else
@@ -345,6 +356,16 @@ void powerctrl_enter_stop_mode(void) {
     }
     #endif
 
+    #endif
+
+    #if defined(MCU_SERIES_H7)
+    // Switch back to voltage scale 0.
+    if (HAL_GetREVID() >= 0x2003) {
+        __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE0);
+        // Wait for PWR_FLAG_VOSRDY
+        while (!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {
+        }
+    }
     #endif
 
     HAL_ResumeTick();
