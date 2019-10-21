@@ -70,6 +70,30 @@
 // Servos
 #define PYB_SERVO_NUM (2)
 
+// Use external SPI flash for storage
+#define MICROPY_HW_ENABLE_INTERNAL_FLASH_STORAGE (0)
+
+// QSPI Flash 128MBits
+#define MICROPY_HW_SPIFLASH_SIZE_BITS   (128 * 1024 * 1024)
+#define MICROPY_HW_QSPIFLASH_SIZE_BITS_LOG2 (27)
+#define MICROPY_HW_QSPIFLASH_CS         (pin_G6)
+#define MICROPY_HW_QSPIFLASH_SCK        (pin_F10)
+#define MICROPY_HW_QSPIFLASH_IO0        (pin_F8)
+#define MICROPY_HW_QSPIFLASH_IO1        (pin_F9)
+#define MICROPY_HW_QSPIFLASH_IO2        (pin_F7)
+#define MICROPY_HW_QSPIFLASH_IO3        (pin_F6)
+
+// block device config for SPI flash
+extern const struct _mp_spiflash_config_t spiflash_config;
+extern struct _spi_bdev_t spi_bdev;
+#define MICROPY_HW_BDEV_IOCTL(op, arg) ( \
+    (op) == BDEV_IOCTL_NUM_BLOCKS ? (MICROPY_HW_SPIFLASH_SIZE_BITS / 8 / FLASH_BLOCK_SIZE) : \
+    (op) == BDEV_IOCTL_INIT ? spi_bdev_ioctl(&spi_bdev, (op), (uint32_t)&spiflash_config) : \
+    spi_bdev_ioctl(&spi_bdev, (op), (arg)) \
+)
+#define MICROPY_HW_BDEV_READBLOCKS(dest, bl, n) spi_bdev_readblocks(&spi_bdev, (dest), (bl), (n))
+#define MICROPY_HW_BDEV_WRITEBLOCKS(src, bl, n) spi_bdev_writeblocks(&spi_bdev, (src), (bl), (n))
+
 // SDRAM
 #define MICROPY_HW_SDRAM_SIZE               (32 * 1024 * 1024)
 #define MICROPY_HW_SDRAM_STARTUP_TEST       (1)
