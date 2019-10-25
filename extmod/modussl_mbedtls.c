@@ -130,7 +130,7 @@ STATIC mp_obj_ssl_socket_t *socket_new(mp_obj_t sock, struct ssl_args *args) {
     mbedtls_ctr_drbg_init(&o->ctr_drbg);
     #ifdef MBEDTLS_DEBUG_C
     // Debug level (0-4)
-    mbedtls_debug_set_threshold(0);
+    mbedtls_debug_set_threshold(4);
     #endif
 
     mbedtls_entropy_init(&o->entropy);

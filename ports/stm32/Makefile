@@ -73,7 +73,7 @@ CFLAGS_MCU_f7 = $(CFLAGS_CORTEX_M) -mtune=cortex-m7 -mcpu=cortex-m7
 CFLAGS_MCU_l4 = $(CFLAGS_CORTEX_M) -mtune=cortex-m4 -mcpu=cortex-m4
 CFLAGS_MCU_h7 = $(CFLAGS_CORTEX_M) -mtune=cortex-m7 -mcpu=cortex-m7
 
-CFLAGS += $(INC) -Wall -Wpointer-arith -Werror -std=gnu99 -nostdlib $(CFLAGS_MOD)
+CFLAGS += $(INC) -Wall -Wpointer-arith -Werror -std=gnu99 -nostdlib $(CFLAGS_MOD) $(CFLAGS_EXTRA)
 CFLAGS += -D$(CMSIS_MCU)
 CFLAGS += $(CFLAGS_MCU_$(MCU_SERIES))
 CFLAGS += -I$(BOARD_DIR)
@@ -381,6 +381,11 @@ SRC_MOD += $(addprefix $(CC3000_DIR)/src/,\
 	patch.c \
 	patch_prog.c \
 	)
+endif
+
+ifeq ($(MICROPY_SSL_MBEDTLS),1)
+CFLAGS_MOD += -DMBEDTLS_CONFIG_FILE='"mbedtls/mbedtls_config.h"'
+SRC_MOD += mbedtls/mbedtls_port.c
 endif
 
 OBJ =
