@@ -140,6 +140,14 @@
 #define MICROPY_PY_URE_SUB          (1)
 #define MICROPY_PY_UHEAPQ           (1)
 #define MICROPY_PY_UHASHLIB         (1)
+#ifndef MICROPY_PY_USSL
+#define MICROPY_PY_USSL             (1)
+#define MICROPY_SSL_MBEDTLS         (1)
+#endif
+#define MICROPY_PY_USSL_FINALISER   (1)
+#define MICROPY_PY_UHASHLIB_MD5     (MICROPY_PY_USSL)
+#define MICROPY_PY_UHASHLIB_SHA1    (MICROPY_PY_USSL)
+#define MICROPY_PY_UCRYPTOLIB       (MICROPY_PY_USSL)
 #define MICROPY_PY_UBINASCII        (1)
 #define MICROPY_PY_URANDOM          (1)
 #define MICROPY_PY_URANDOM_EXTRA_FUNCS (1)
@@ -244,6 +252,12 @@ extern const struct _mp_obj_module_t nn_st_module;
 #define SOCKET_BUILTIN_MODULE_WEAK_LINKS
 #endif
 
+#if MICROPY_PY_USSL
+#define SSL_BUILTIN_MODULE_WEAK_LINKS       { MP_ROM_QSTR(MP_QSTR_ssl), MP_ROM_PTR(&mp_module_ussl) },
+#else
+#define SSL_BUILTIN_MODULE_WEAK_LINKS
+#endif
+
 #if MICROPY_PY_NETWORK
 #define NETWORK_BUILTIN_MODULE              { MP_ROM_QSTR(MP_QSTR_network), MP_ROM_PTR(&mp_module_network) },
 #else
@@ -286,6 +300,7 @@ extern const struct _mp_obj_module_t nn_st_module;
     { MP_OBJ_NEW_QSTR(MP_QSTR_random), (mp_obj_t)&mp_module_urandom }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_select), (mp_obj_t)&mp_module_uselect }, \
     SOCKET_BUILTIN_MODULE_WEAK_LINKS \
+    SSL_BUILTIN_MODULE_WEAK_LINKS \
     { MP_ROM_QSTR(MP_QSTR_struct), MP_ROM_PTR(&mp_module_ustruct) }, \
     { MP_ROM_QSTR(MP_QSTR_machine), MP_ROM_PTR(&machine_module) }, \
     { MP_ROM_QSTR(MP_QSTR_errno), MP_ROM_PTR(&mp_module_uerrno) }, \
@@ -298,6 +313,12 @@ extern const struct _mp_obj_module_t nn_st_module;
     STM_BUILTIN_MODULE \
 
 #define MP_STATE_PORT MP_STATE_VM
+
+#if MICROPY_SSL_MBEDTLS
+#define MICROPY_PORT_ROOT_POINTER_MBEDTLS void **mbedtls_memory;
+#else
+#define MICROPY_PORT_ROOT_POINTER_MBEDTLS
+#endif
 
 #define MICROPY_PORT_ROOT_POINTERS \
     const char *readline_hist[8]; \
@@ -327,6 +348,9 @@ extern const struct _mp_obj_module_t nn_st_module;
     \
     /* list of registered NICs */ \
     mp_obj_list_t mod_network_nic_list; \
+    \
+    MICROPY_PORT_ROOT_POINTER_MBEDTLS \
+
 
 // type definitions for the specific machine
 
