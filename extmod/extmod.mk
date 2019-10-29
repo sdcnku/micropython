@@ -191,3 +191,20 @@ $(BUILD)/$(BTREE_DIR)/%.o: CFLAGS += -Wno-old-style-definition -Wno-sign-compare
 $(BUILD)/extmod/modbtree.o: CFLAGS += $(BTREE_DEFS)
 endif
 
+################################################################################
+# ulab
+
+ifeq ($(MICROPY_PY_ULAB),1)
+CFLAGS_MOD += -DMICROPY_PY_ULAB=1 -I$(TOP)/extmod/ulab/code
+ULAB_DIR = extmod/ulab
+SRC_MOD += $(addprefix $(ULAB_DIR)/,\
+	code/fft.c          \
+	code/linalg.c       \
+	code/ndarray.c      \
+	code/numerical.c    \
+	code/poly.c         \
+	code/ulab.c         \
+	code/vectorise.c    \
+	)
+endif
+
