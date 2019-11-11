@@ -67,14 +67,10 @@ Methods
     single byte given by ``write``.
     Returns ``None``.
 
-    Note: on WiPy this function returns the number of bytes read.
-
 .. method:: SPI.write(buf)
 
     Write the bytes contained in ``buf``.
     Returns ``None``.
-
-    Note: on WiPy this function returns the number of bytes written.
 
 .. method:: SPI.write_readinto(write_buf, read_buf)
 
@@ -82,8 +78,6 @@ Methods
     buffers can be the same or different, but both buffers must have the
     same length.
     Returns ``None``.
-
-    Note: on WiPy this function returns the number of bytes written.
 
 Constants
 ---------

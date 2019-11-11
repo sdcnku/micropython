@@ -115,37 +115,67 @@ the following libraries.
    uctypes.rst
 
 
-Libraries specific to the pyboard
----------------------------------
+Libraries specific to the OpenMV Cam
+------------------------------------
 
-The following libraries are specific to the pyboard.
-
-.. toctree::
-  :maxdepth: 2
-
-  pyb.rst
-  lcd160cr.rst
-
-
-Libraries specific to the WiPy
-------------------------------
-
-The following libraries and classes are specific to the WiPy.
+The following libraries are specific to the OpenMV Cam.
 
 .. toctree::
-  :maxdepth: 2
+   :maxdepth: 2
 
-  wipy.rst
-  machine.TimerWiPy.rst
+   pyb.rst
+   pyb.ADC.rst
+   pyb.CAN.rst
+   pyb.DAC.rst
+   pyb.ExtInt.rst
+   pyb.I2C.rst
+   pyb.LED.rst
+   pyb.Pin.rst
+   pyb.RTC.rst
+   pyb.Servo.rst
+   pyb.SPI.rst
+   pyb.Timer.rst
+   pyb.UART.rst
+   pyb.USB_VCP.rst
+   omv.time.rst
+   omv.sensor.rst
+   omv.image.rst
+   omv.nn.rst
+   omv.tf.rst
+   omv.gif.rst
+   omv.mjpeg.rst
+   omv.lcd.rst
+   omv.fir.rst
+   omv.tv.rst
+   omv.cpufreq.rst
+   omv.omv.rst
 
+Third-party libraries on the OpenMV Cam
+---------------------------------------
 
-Libraries specific to the ESP8266 and ESP32
--------------------------------------------
+The following third-party math libraries are built-in to your OpenMV Cam's firmware:
 
-The following libraries are specific to the ESP8266 and ESP32.
+   * `OpenRV <https://github.com/nickoala/openrv>`_ (Hu moments, Planar homography, and Quickshift++)
+      * `vec <https://gitlab.com/nickoala/micropython-vec>`_ (Vector Operations)
+      * `mtx <https://gitlab.com/nickoala/micropython-mtx>`_ (Fast Matrix Multiplication and Linear Solver)
+   * `ulab <https://micropython-ulab.readthedocs.io/en/latest/>`_ (numpy-like array manipulation library)
+   * `umatrix <https://github.com/iyassou/umatrix>`_ (a matrix library)
+   * `ulinalg <https://github.com/jalawson/ulinalg>`_ (linear algebra routines)
+   * `pid <https://github.com/openmv/openmv/blob/master/scripts/libraries/pid.py>`_ (Proportional/Integral/Derivative Control)
 
-.. toctree::
-  :maxdepth: 2
+The following third-party driver libraries are built-in to your OpenMV Cam's firmware:
 
-  esp.rst
-  esp32.rst
+   * `BNO055 <https://github.com/openmv/openmv/blob/master/scripts/libraries/bno055.py>`_ IMU Driver
+      * Examples scripts are located in OpenMV IDE under the ``IMU Shield`` examples folder.
+   * `SSD1306 <https://github.com/openmv/openmv/blob/master/scripts/libraries/ssd1306.py>`_ OLED Driver
+   * `TB6612 <https://github.com/openmv/openmv/blob/master/scripts/libraries/tb6612.py>`_ Stepper Motor Driver
+      * Examples scripts are located in OpenMV IDE under the ``Motor Shield`` examples folder.
+   * `VL51L1X <https://github.com/openmv/openmv/blob/master/scripts/libraries/vl53l1x.py>`_ ToF Distance Sensor Driver
+      * Examples scripts are located in OpenMV IDE under the ``Distance Shield`` examples folder.
+
+The following third-party protocol libraries are built-in to your OpenMV Cam's firmware:
+
+   * `modbus <https://github.com/openmv/openmv/blob/master/scripts/libraries/modbus.py>`_ protocol library
+      * Examples scripts are located in OpenMV IDE under the ``Modbus`` examples folder.
+   * `mqtt <https://github.com/openmv/openmv/blob/master/scripts/libraries/mqtt.py>`_ protocol library
+      * Examples scripts are located in OpenMV IDE under the ``WiFi Shield`` examples folder.

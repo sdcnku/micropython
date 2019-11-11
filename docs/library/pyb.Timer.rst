@@ -36,11 +36,7 @@ Further examples::
     tim.callback(lambda t: ...)     # set callback for update interrupt (t=tim instance)
     tim.callback(None)              # clear callback
 
-*Note:* Timer(2) and Timer(3) are used for PWM to set the intensity of LED(3)
-and LED(4) respectively.  But these timers are only configured for PWM if
-the intensity of the relevant LED is set to a value between 1 and 254.  If
-the intensity feature of the LEDs is not used then these timers are free for
-general purpose use.  Similarly, Timer(5) controls the servo driver, and
+*Note:* Timer(1) is used for the camera.  Similarly, Timer(5) controls the servo driver, and
 Timer(6) is used for timed ADC/DAC reading/writing.  It is recommended to
 use the other timers in your programs.
 
@@ -112,7 +108,7 @@ Methods
 .. method:: Timer.deinit()
 
    Deinitialises the timer.
-   
+
    Disables the callback (and the associated irq).
 
    Disables any channel callbacks (and the associated irq).
@@ -191,7 +187,7 @@ Methods
      - Read the encoder value using the timer.counter() method.
      - Only works on CH1 and CH2 (and not on CH1N or CH2N)
      - The channel number is ignored when setting the encoder mode.
-       
+
    PWM Example::
 
        timer = pyb.Timer(2, freq=1000)

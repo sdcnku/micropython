@@ -21,16 +21,13 @@ Timer callbacks.
     :func:`micropython.alloc_emergency_exception_buf` for how to get around this
     limitation.
 
-If you are using a WiPy board please refer to :ref:`machine.TimerWiPy <machine.TimerWiPy>`
-instead of this class.
-
 Constructors
 ------------
 
 .. class:: Timer(id, ...)
 
    Construct a new timer object of the given id. Id of -1 constructs a
-   virtual timer (if supported by a board).
+   virtual timer (if supported).
 
 Methods
 -------
