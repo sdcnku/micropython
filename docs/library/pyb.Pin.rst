@@ -12,22 +12,22 @@ Usage Model:
 
 All Board Pins are predefined as pyb.Pin.board.Name::
 
-    x1_pin = pyb.Pin.board.X1
+    p0_pin = pyb.Pin.board.P0
 
-    g = pyb.Pin(pyb.Pin.board.X1, pyb.Pin.IN)
+    g = pyb.Pin(pyb.Pin.board.P0, pyb.Pin.IN)
 
 CPU pins which correspond to the board pins are available
 as ``pyb.Pin.cpu.Name``. For the CPU pins, the names are the port letter
-followed by the pin number. On the PYBv1.0, ``pyb.Pin.board.X1`` and
-``pyb.Pin.cpu.A0`` are the same pin.
+followed by the pin number. On the OpenMV Cam, ``pyb.Pin.board.P0`` and
+``pyb.Pin.cpu.PB15`` are the same pin.
 
 You can also use strings::
 
-    g = pyb.Pin('X1', pyb.Pin.OUT_PP)
+    g = pyb.Pin('P0', pyb.Pin.OUT_PP)
 
 Users can add their own names::
 
-    MyMapperDict = { 'LeftMotorDir' : pyb.Pin.cpu.C12 }
+    MyMapperDict = { 'LeftMotorDir' : pyb.Pin.cpu.PB15 }
     pyb.Pin.dict(MyMapperDict)
     g = pyb.Pin("LeftMotorDir", pyb.Pin.OUT_OD)
 
@@ -39,7 +39,7 @@ Users can also add their own mapping function::
 
     def MyMapper(pin_name):
        if pin_name == "LeftMotorDir":
-           return pyb.Pin.cpu.A0
+           return pyb.Pin.cpu.PB15
 
     pyb.Pin.mapper(MyMapper)
 
@@ -60,7 +60,7 @@ how a particular object gets mapped to a pin.
 
 When a pin has the ``Pin.PULL_UP`` or ``Pin.PULL_DOWN`` pull-mode enabled,
 that pin has an effective 40k Ohm resistor pulling it to 3V3 or GND
-respectively (except pin Y5 which has 11k Ohm resistors).
+respectively.
 
 Now every time a falling edge is seen on the gpio pin, the callback will be
 executed. Caution: mechanical push buttons have "bounce" and pushing or
@@ -225,26 +225,15 @@ object represents a particular function for a pin.
 
 Usage Model::
 
-    x3 = pyb.Pin.board.X3
-    x3_af = x3.af_list()
+    p0 = pyb.Pin.board.P0
+    p0_af = p0.af_list()
 
-x3_af will now contain an array of PinAF objects which are available on
-pin X3.
-
-For the pyboard, x3_af would contain:
-    [Pin.AF1_TIM2, Pin.AF2_TIM5, Pin.AF3_TIM9, Pin.AF7_USART2]
+p0_af will now contain an array of PinAF objects which are available on
+pin P0.
 
 Normally, each peripheral would configure the af automatically, but sometimes
 the same function is available on multiple pins, and having more control
 is desired.
-
-To configure X3 to expose TIM2_CH3, you could use::
-
-   pin = pyb.Pin(pyb.Pin.board.X3, mode=pyb.Pin.AF_PP, af=pyb.Pin.AF1_TIM2)
-
-or::
-
-   pin = pyb.Pin(pyb.Pin.board.X3, mode=pyb.Pin.AF_PP, af=1)
 
 Methods
 -------
