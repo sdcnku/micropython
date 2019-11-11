@@ -89,12 +89,6 @@ Power related functions
      return `machine.DEEPSLEEP` and this can be used to distinguish a deepsleep wake
      from other resets.
 
-.. function:: wake_reason()
-
-   Get the wake reason. See :ref:`constants <machine_constants>` for the possible return values.
-
-   Availability: ESP32, WiPy.
-
 Miscellaneous functions
 -----------------------
 
@@ -120,12 +114,6 @@ Miscellaneous functions
    (*) above, and -1 if there was timeout during the main measurement, marked (**)
    above. The timeout is the same for both cases and given by *timeout_us* (which
    is in microseconds).
-
-.. function:: rng()
-
-   Return a 24-bit software generated random number.
-
-   Availability: WiPy.
 
 .. _machine_constants:
 
@@ -160,11 +148,9 @@ Classes
 
    machine.Pin.rst
    machine.Signal.rst
-   machine.ADC.rst
    machine.UART.rst
    machine.SPI.rst
    machine.I2C.rst
    machine.RTC.rst
    machine.Timer.rst
    machine.WDT.rst
-   machine.SD.rst
