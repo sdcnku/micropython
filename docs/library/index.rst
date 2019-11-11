@@ -166,16 +166,16 @@ The following third-party math libraries are built-in to your OpenMV Cam's firmw
 The following third-party driver libraries are built-in to your OpenMV Cam's firmware:
 
    * `BNO055 <https://github.com/openmv/openmv/blob/master/scripts/libraries/bno055.py>`_ IMU Driver
-      * Examples scripts are located in OpenMV IDE under the `IMU Shield` examples folder.
+      * Examples scripts are located in OpenMV IDE under the ``IMU Shield`` examples folder.
    * `SSD1306 <https://github.com/openmv/openmv/blob/master/scripts/libraries/ssd1306.py>`_ OLED Driver
    * `TB6612 <https://github.com/openmv/openmv/blob/master/scripts/libraries/tb6612.py>`_ Stepper Motor Driver
-      * Examples scripts are located in OpenMV IDE under the `Motor Shield` examples folder.
+      * Examples scripts are located in OpenMV IDE under the ``Motor Shield`` examples folder.
    * `VL51L1X <https://github.com/openmv/openmv/blob/master/scripts/libraries/vl53l1x.py>`_ ToF Distance Sensor Driver
-      * Examples scripts are located in OpenMV IDE under the `Distance Shield` examples folder.
+      * Examples scripts are located in OpenMV IDE under the ``Distance Shield`` examples folder.
 
 The following third-party protocol libraries are built-in to your OpenMV Cam's firmware:
 
    * `modbus <https://github.com/openmv/openmv/blob/master/scripts/libraries/modbus.py>`_ protocol library
-      * Examples scripts are located in OpenMV IDE under the `Modbus` examples folder.
+      * Examples scripts are located in OpenMV IDE under the ``Modbus`` examples folder.
    * `mqtt <https://github.com/openmv/openmv/blob/master/scripts/libraries/mqtt.py>`_ protocol library
-      * Examples scripts are located in OpenMV IDE under the `WiFi Shield` examples folder.
+      * Examples scripts are located in OpenMV IDE under the ``WiFi Shield`` examples folder.
