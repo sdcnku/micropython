@@ -845,6 +845,11 @@ STATIC mp_obj_t pyb_timer_make_new(const mp_obj_type_t *type, size_t n_args, siz
         nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_ValueError, "Timer(%d) doesn't exist", tim_id));
     }
 
+    // check if the timer is reserved
+    if (tim_id == 1 || tim_id == 4 || tim_id == 5 || tim_id == 6) {
+        nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_ValueError, "Timer(%d) is reserved", tim_id));
+    }
+
     pyb_timer_obj_t *tim;
     if (MP_STATE_PORT(pyb_timer_obj_all)[tim_id - 1] == NULL) {
         // create new Timer object
