@@ -88,7 +88,23 @@ version = release = '1.11'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['build', '.venv']
+exclude_patterns = ['build', '.venv', "esp32", "esp8266", "pyboard", "wipy",
+                    "develop/index.rst",
+                    "develop/cmodules.rst",
+                    "library/esp.rst",
+                    "library/esp32.rst",
+                    "library/lcd160cr.rst",
+                    "library/machine.ADC.rst",
+                    "library/machine.SD.rst",
+                    "library/machine.TimerWiPy.rst",
+                    "library/network.CC3K.rst",
+                    "library/network.WIZNET5K.rst",
+                    "library/network.WLAN.rst",
+                    "library/network.WLANWiPy.rst",
+                    "library/pyb.Accel.rst",
+                    "library/pyb.LCD.rst",
+                    "library/pyb.Switch.rst",
+                    "library/wipy.rst"]
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.

@@ -97,7 +97,7 @@ Servo Pinout:
 
 * Servo(1) -> P7 (PD12)
 * Servo(2) -> P8 (PD13)
-* Servo(3) -> P9 (PD14) (OpenMV Cam M7/H7 Only)
+* Servo(3) -> P9 (PD14) (OpenMV Cam M7/H7 Only - Not OpenMV Cam H7 Plus)
 
 External interrupts
 -------------------
@@ -144,7 +144,7 @@ Timer Pinout:
 * Timer 2 Channel 1 Positive -> P6 (PA5)
 * Timer 4 Channel 1 Negative -> P7 (PD12)
 * Timer 4 Channel 2 Negative -> P8 (PD13)
-* Timer 4 Channel 3 Positive -> P9 (PD14) (OpenMV Cam M7/H7 Only)
+* Timer 4 Channel 3 Positive -> P9 (PD14) (OpenMV Cam M7/H7 Only - Not OpenMV Cam H7 Plus)
 
 PWM (pulse width modulation)
 ----------------------------
@@ -168,7 +168,7 @@ Timer Pinout:
 * Timer 2 Channel 1 Positive -> P6 (PA5)
 * Timer 4 Channel 1 Negative -> P7 (PD12)
 * Timer 4 Channel 2 Negative -> P8 (PD13)
-* Timer 4 Channel 3 Positive -> P9 (PD14) (OpenMV Cam M7/H7 Only)
+* Timer 4 Channel 3 Positive -> P9 (PD14) (OpenMV Cam M7/H7 Only - Not OpenMV Cam H7 Plus)
 
 ADC (analog to digital conversion)
 ----------------------------------

@@ -12,6 +12,7 @@ OpenMV Cam `here <https://www.tensorflow.org/lite/microcontrollers>`__. In
 particular:
 
    * Supported operations are listed `here <https://github.com/openmv/tensorflow/blob/openmv/tensorflow/lite/micro/kernels/all_ops_resolver.cc>`__.
+
      * Note that tensorflow lite operations are versioned. If no version numbers
        are listed after the operation then the min and max version supported are
        1. If there are numbers after an operation those numbers represent the
@@ -19,6 +20,7 @@ particular:
      * If you are using Keras to generate your model be careful about only using
        operators that are supported by tensorflow lite for microcontrollers. Otherwise,
        your model will not be runnable by your OpenMV Cam.
+
    * Convert your model to a FlatBuffer by following the instructions `here <https://www.tensorflow.org/lite/microcontrollers/build_convert#model_conversion>`__.
    * Finally, quantize your model by following the instructions `here <https://www.tensorflow.org/lite/microcontrollers/build_convert#quantization>`__.
 
@@ -103,7 +105,7 @@ Functions
    OpenMV Cam's internal flash. This built-in model does not use any Micropython Heap
    as all the weights are stored in flash which is accessible in the same way as RAM.
 
-   ``load_to_fb` if passed as True will instead reserve part of the OpenMV Cam frame buffer
+   ``load_to_fb`` if passed as True will instead reserve part of the OpenMV Cam frame buffer
    stack for storing the TensorFlow Lite model. You will get the most efficent execution
    performance for large models that do not fit on the heap by loading them into frame buffer
    memory once from disk and then repeatedly executing the model. That said, the frame buffer
