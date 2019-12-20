@@ -153,10 +153,14 @@ See :ref:`pyb.Pin <pyb.Pin>` and :ref:`pyb.Timer <pyb.Timer>`. ::
 
     from pyb import Pin, Timer
 
-    p = Pin('P7') # P7 has TIM4, CH1
-    tim = Timer(4, freq=1000)
-    ch = tim.channel(1, Timer.PWM, pin=p)
+    p = Pin('P4') # P4 has TIM2, CH3
+    tim = Timer(2, freq=1000)
+    ch = tim.channel(3, Timer.PWM, pin=p)
     ch.pulse_width_percent(50)
+
+For OpenMV Cam M4: TIM2 and TIM3
+For OpenMV Cam F7: TIM2, TIM3 and TIM7 through TIM14
+For OpenMV Cam H7: TIM2, TIM3, TIM7, TIM8 and TIM12 through TIM17
 
 Timer Pinout:
 
