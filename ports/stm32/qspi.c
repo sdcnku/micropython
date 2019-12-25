@@ -34,7 +34,7 @@
 #if defined(MICROPY_HW_QSPIFLASH_SIZE_BITS_LOG2)
 
 #ifndef MICROPY_HW_QSPI_PRESCALER
-#define MICROPY_HW_QSPI_PRESCALER       3  // F_CLK = F_AHB/3 (72MHz when CPU is 216MHz)
+#define MICROPY_HW_QSPI_PRESCALER       2  // F_CLK = F_AHB/2 (100MHz)
 #endif
 
 #ifndef MICROPY_HW_QSPI_SAMPLE_SHIFT
@@ -61,6 +61,10 @@ void qspi_init(void) {
     // Bring up the QSPI peripheral
 
     __HAL_RCC_QSPI_CLK_ENABLE();
+    __HAL_RCC_QSPI_CLK_SLEEP_ENABLE();
+
+    __HAL_RCC_QSPI_FORCE_RESET();
+    __HAL_RCC_QSPI_RELEASE_RESET();
 
     QUADSPI->CR =
         (MICROPY_HW_QSPI_PRESCALER - 1) << QUADSPI_CR_PRESCALER_Pos
@@ -107,6 +111,14 @@ STATIC int qspi_ioctl(void *self_in, uint32_t cmd) {
     switch (cmd) {
         case MP_QSPI_IOCTL_INIT:
             qspi_init();
+            break;
+        case MP_QSPI_IOCTL_BUS_ACQUIRE:
+            // Abort any ongoing transfer if peripheral is busy
+            if (QUADSPI->SR & QUADSPI_SR_BUSY) {
+                QUADSPI->CR |= QUADSPI_CR_ABORT;
+                while (QUADSPI->CR & QUADSPI_CR_ABORT) {
+                }
+            }
             break;
         case MP_QSPI_IOCTL_BUS_RELEASE:
             // Switch to memory-map mode when bus is idle
@@ -244,6 +256,7 @@ STATIC uint32_t qspi_read_cmd(void *self_in, uint8_t cmd, size_t len) {
 
 STATIC void qspi_read_cmd_qaddr_qdata(void *self_in, uint8_t cmd, uint32_t addr, size_t len, uint8_t *dest) {
     (void)self_in;
+
     QUADSPI->FCR = QUADSPI_FCR_CTCF; // clear TC flag
 
     QUADSPI->DLR = len - 1; // number of bytes to read
@@ -251,7 +264,7 @@ STATIC void qspi_read_cmd_qaddr_qdata(void *self_in, uint8_t cmd, uint32_t addr,
     QUADSPI->CCR =
         0 << QUADSPI_CCR_DDRM_Pos // DDR mode disabled
         | 0 << QUADSPI_CCR_SIOO_Pos // send instruction every transaction
-        | 1 << QUADSPI_CCR_FMODE_Pos // indirect read mode
+        | 0 << QUADSPI_CCR_FMODE_Pos // indirect write mode
         | 3 << QUADSPI_CCR_DMODE_Pos // data on 4 lines
         | 4 << QUADSPI_CCR_DCYC_Pos // 4 dummy cycles
         | 0 << QUADSPI_CCR_ABSIZE_Pos // 8-bit alternate byte
@@ -264,6 +277,9 @@ STATIC void qspi_read_cmd_qaddr_qdata(void *self_in, uint8_t cmd, uint32_t addr,
 
     QUADSPI->ABR = 0; // alternate byte: disable continuous read mode
     QUADSPI->AR = addr; // addres to read from
+
+    QUADSPI->CCR |= (1 << QUADSPI_CCR_FMODE_Pos); // indirect read mode
+    QUADSPI->AR = addr; // re-write the addres to read from
 
     // Read in the data 4 bytes at a time if dest is aligned
     if (((uintptr_t)dest & 3) == 0) {
