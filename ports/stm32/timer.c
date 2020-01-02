@@ -846,7 +846,7 @@ STATIC mp_obj_t pyb_timer_make_new(const mp_obj_type_t *type, size_t n_args, siz
     }
 
     // check if the timer is reserved
-    if (tim_id == 1 || tim_id == 4 || tim_id == 5 || tim_id == 6) {
+    if (tim_id == 1 || tim_id == 5 || tim_id == 6) {
         nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_ValueError, "Timer(%d) is reserved", tim_id));
     }
 
