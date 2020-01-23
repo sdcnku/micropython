@@ -96,7 +96,7 @@ LDFLAGS += --gc-sections
 
 # Debugging/Optimization
 ifeq ($(DEBUG), 1)
-CFLAGS += -g -DPENDSV_DEBUG
+CFLAGS += -ggdb3
 COPT = -O0
 endif
 
