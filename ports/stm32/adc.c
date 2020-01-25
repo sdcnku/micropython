@@ -137,7 +137,9 @@
 #define VBAT_DIV (4)
 #elif defined(STM32H743xx)
 #define VBAT_DIV (4)
-#elif defined(STM32L432xx) || defined(STM32L475xx) || \
+#elif defined(STM32L432xx) || \
+      defined(STM32L451xx) || defined(STM32L452xx) || \
+      defined(STM32L462xx) || defined(STM32L475xx) || \
       defined(STM32L476xx) || defined(STM32L496xx)
 #define VBAT_DIV (3)
 #else
@@ -156,8 +158,10 @@
 #define VREFIN_CAL ((uint16_t *)ADC_CAL_ADDRESS)
 
 #ifndef __HAL_ADC_IS_CHANNEL_INTERNAL
-#define __HAL_ADC_IS_CHANNEL_INTERNAL(channel)\
-    (channel == ADC_CHANNEL_VBAT || channel == ADC_CHANNEL_VREFINT ||  channel == ADC_CHANNEL_TEMPSENSOR)
+#define __HAL_ADC_IS_CHANNEL_INTERNAL(channel) \
+    (channel == ADC_CHANNEL_VBAT \
+     || channel == ADC_CHANNEL_VREFINT \
+     || channel == ADC_CHANNEL_TEMPSENSOR)
 #endif
 
 typedef struct _pyb_obj_adc_t {
@@ -243,7 +247,13 @@ STATIC void adcx_init_handle(ADC_HandleTypeDef *adch, ADC_TypeDef *adcInstance, 
     adch->Init.EOCSelection          = ADC_EOC_SINGLE_CONV;
     adch->Init.ExternalTrigConv      = ADC_SOFTWARE_START;
     adch->Init.ExternalTrigConvEdge  = ADC_EXTERNALTRIGCONVEDGE_NONE;
-    #if defined(STM32F0) || defined(STM32F4) || defined(STM32F7)
+    #if defined(STM32F0)
+    adch->Init.ClockPrescaler        = ADC_CLOCK_SYNC_PCLK_DIV4; // 12MHz
+    adch->Init.ScanConvMode          = DISABLE;
+    adch->Init.DataAlign             = ADC_DATAALIGN_RIGHT;
+    adch->Init.DMAContinuousRequests = DISABLE;
+    adch->Init.SamplingTimeCommon    = ADC_SAMPLETIME_55CYCLES_5; // ~4uS
+    #elif defined(STM32F4) || defined(STM32F7)
     adch->Init.ClockPrescaler        = ADC_CLOCK_SYNC_PCLK_DIV2;
     adch->Init.ScanConvMode          = DISABLE;
     adch->Init.DataAlign             = ADC_DATAALIGN_RIGHT;
@@ -266,10 +276,6 @@ STATIC void adcx_init_handle(ADC_HandleTypeDef *adch, ADC_TypeDef *adcInstance, 
     adch->Init.DMAContinuousRequests = DISABLE;
     #else
     #error Unsupported processor
-    #endif
-
-    #if defined(STM32F0)
-    adch->Init.SamplingTimeCommon = ADC_SAMPLETIME_71CYCLES_5;
     #endif
 
     HAL_ADC_Init(adch);
@@ -309,15 +315,16 @@ STATIC void adc_init_single(pyb_obj_adc_t *adc_obj) {
 STATIC void adc_config_channel(ADC_HandleTypeDef *adc_handle, uint32_t channel) {
     ADC_ChannelConfTypeDef sConfig;
 
-#if defined (STM32H7)
+    #if defined (STM32H7)
     sConfig.Rank = ADC_REGULAR_RANK_1;
     if (__HAL_ADC_IS_CHANNEL_INTERNAL(channel) == 0) {
         channel = __HAL_ADC_DECIMAL_NB_TO_CHANNEL(channel);
     }
-#else
+    #else
     sConfig.Rank = 1;
-#endif
+    #endif
     sConfig.Channel = channel;
+
 #if defined(STM32F0)
     sConfig.SamplingTime = ADC_SAMPLETIME_55CYCLES_5;
 #elif defined(STM32F4) || defined(STM32F7)

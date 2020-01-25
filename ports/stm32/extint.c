@@ -345,7 +345,19 @@ void extint_set(const pin_obj_t *pin, uint32_t mode) {
             (SYSCFG->EXTICR[line >> 2] & ~(0x0f << (4 * (line & 0x03))))
             | ((uint32_t)(GPIO_GET_INDEX(pin->gpio)) << (4 * (line & 0x03)));
 
-        extint_trigger_mode(line, mode);
+        // Enable or disable the rising detector
+        if ((mode & GPIO_MODE_IT_RISING) == GPIO_MODE_IT_RISING) {
+            EXTI_RTSR |= 1 << line;
+        } else {
+            EXTI_RTSR &= ~(1 << line);
+        }
+
+        // Enable or disable the falling detector
+        if ((mode & GPIO_MODE_IT_FALLING) == GPIO_MODE_IT_FALLING) {
+            EXTI_FTSR |= 1 << line;
+        } else {
+            EXTI_FTSR &= ~(1 << line);
+        }
 
         // Configure the NVIC
         NVIC_SetPriority(IRQn_NONNEG(nvic_irq_channel[line]), IRQ_PRI_EXTINT);
@@ -360,8 +372,8 @@ void extint_enable(uint line) {
     if (line >= EXTI_NUM_VECTORS) {
         return;
     }
-    #if defined(STM32F0) || defined(STM32F7) || defined(STM32H7)
-    // The Cortex-M7 doesn't have bitband support.
+    #if !defined(EXTI_MODE_BB)
+    // This MCU doesn't have bitband support.
     mp_uint_t irq_state = disable_irq();
     if (pyb_extint_mode[line] == EXTI_Mode_Interrupt) {
         #if defined(STM32H7)
@@ -394,8 +406,8 @@ void extint_disable(uint line) {
         return;
     }
 
-    #if defined(STM32F0) || defined(STM32F7) || defined(STM32H7)
-    // The Cortex-M7 doesn't have bitband support.
+    #if !defined(EXTI_MODE_BB)
+    // This MCU doesn't have bitband support.
     mp_uint_t irq_state = disable_irq();
     #if defined(STM32H7)
     EXTI_D1->IMR1 &= ~(1 << line);
@@ -435,8 +447,8 @@ void extint_trigger_mode(uint line, uint32_t mode) {
     if (line >= EXTI_NUM_VECTORS) {
         return;
     }
-    #if defined(STM32F0) || defined(STM32F7) || defined(STM32H7)
-    // The Cortex-M7 doesn't have bitband support.
+    #if !defined(EXTI_MODE_BB)
+    // This MCU doesn't have bitband support.
     mp_uint_t irq_state = disable_irq();
     // Enable or disable the rising detector
     if ((mode & GPIO_MODE_IT_RISING) == GPIO_MODE_IT_RISING) {
@@ -660,7 +672,7 @@ void Handle_EXTI_Irq(uint32_t line) {
                     // Uncaught exception; disable the callback so it doesn't run again.
                     *cb = mp_const_none;
                     extint_disable(line);
-                    printf("Uncaught exception in ExtInt interrupt handler line %u\n", (unsigned int)line);
+                    mp_printf(MICROPY_ERROR_PRINTER, "uncaught exception in ExtInt interrupt handler line %u\n", (unsigned int)line);
                     mp_obj_print_exception(&mp_plat_print, MP_OBJ_FROM_PTR(nlr.ret_val));
                 }
                 gc_unlock();

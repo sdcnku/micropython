@@ -24,56 +24,67 @@
  * THE SOFTWARE.
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <stdarg.h>
-
-#include "py/objtuple.h"
-#include "py/objarray.h"
 #include "py/runtime.h"
-#include "py/gc.h"
-#include "py/binary.h"
-#include "py/stream.h"
 #include "py/mperrno.h"
 #include "py/mphal.h"
-#include "bufhelper.h"
 #include "can.h"
 #include "irq.h"
 
 #if MICROPY_HW_ENABLE_CAN && MICROPY_HW_ENABLE_FDCAN
 
-#define FDCAN_ELEMENT_MASK_STDID ((uint32_t)0x1FFC0000U) /* Standard Identifier         */
-#define FDCAN_ELEMENT_MASK_EXTID ((uint32_t)0x1FFFFFFFU) /* Extended Identifier         */
-#define FDCAN_ELEMENT_MASK_RTR   ((uint32_t)0x20000000U) /* Remote Transmission Request */
-#define FDCAN_ELEMENT_MASK_XTD   ((uint32_t)0x40000000U) /* Extended Identifier         */
-#define FDCAN_ELEMENT_MASK_ESI   ((uint32_t)0x80000000U) /* Error State Indicator       */
-#define FDCAN_ELEMENT_MASK_TS    ((uint32_t)0x0000FFFFU) /* Timestamp                   */
-#define FDCAN_ELEMENT_MASK_DLC   ((uint32_t)0x000F0000U) /* Data Length Code            */
-#define FDCAN_ELEMENT_MASK_BRS   ((uint32_t)0x00100000U) /* Bit Rate Switch             */
-#define FDCAN_ELEMENT_MASK_FDF   ((uint32_t)0x00200000U) /* FD Format                   */
-#define FDCAN_ELEMENT_MASK_EFC   ((uint32_t)0x00800000U) /* Event FIFO Control          */
-#define FDCAN_ELEMENT_MASK_MM    ((uint32_t)0xFF000000U) /* Message Marker              */
-#define FDCAN_ELEMENT_MASK_FIDX  ((uint32_t)0x7F000000U) /* Filter Index                */
-#define FDCAN_ELEMENT_MASK_ANMF  ((uint32_t)0x80000000U) /* Accepted Non-matching Frame */
-#define FDCAN_ELEMENT_MASK_ET    ((uint32_t)0x00C00000U) /* Event type                  */
+#define FDCAN_ELEMENT_MASK_STDID (0x1ffc0000) // Standard Identifier
+#define FDCAN_ELEMENT_MASK_EXTID (0x1fffffff) // Extended Identifier
+#define FDCAN_ELEMENT_MASK_RTR   (0x20000000) // Remote Transmission Request
+#define FDCAN_ELEMENT_MASK_XTD   (0x40000000) // Extended Identifier
+#define FDCAN_ELEMENT_MASK_ESI   (0x80000000) // Error State Indicator
+#define FDCAN_ELEMENT_MASK_TS    (0x0000ffff) // Timestamp
+#define FDCAN_ELEMENT_MASK_DLC   (0x000f0000) // Data Length Code
+#define FDCAN_ELEMENT_MASK_BRS   (0x00100000) // Bit Rate Switch
+#define FDCAN_ELEMENT_MASK_FDF   (0x00200000) // FD Format
+#define FDCAN_ELEMENT_MASK_FIDX  (0x7f000000) // Filter Index
+#define FDCAN_ELEMENT_MASK_ANMF  (0x80000000) // Accepted Non-matching Frame
 
-void can_init0(void) {
-    for (uint i = 0; i < MP_ARRAY_SIZE(MP_STATE_PORT(pyb_can_obj_all)); i++) {
-        MP_STATE_PORT(pyb_can_obj_all)[i] = NULL;
+bool can_init(pyb_can_obj_t *can_obj, uint32_t mode, uint32_t prescaler, uint32_t sjw, uint32_t bs1, uint32_t bs2, bool auto_restart) {
+    (void)auto_restart;
+
+    FDCAN_InitTypeDef *init = &can_obj->can.Init;
+    init->FrameFormat = FDCAN_FRAME_CLASSIC;
+    init->Mode = mode;
+
+    init->NominalPrescaler = prescaler; // tq = NominalPrescaler x (1/fdcan_ker_ck)
+    init->NominalSyncJumpWidth = sjw;
+    init->NominalTimeSeg1 = bs1; // NominalTimeSeg1 = Propagation_segment + Phase_segment_1
+    init->NominalTimeSeg2 = bs2;
+
+    init->AutoRetransmission = ENABLE;
+    init->TransmitPause = DISABLE;
+    init->ProtocolException = ENABLE;
+
+    // The Message RAM is shared between CAN1 and CAN2. Setting the offset to half
+    // the Message RAM for the second CAN and using half the resources for each CAN.
+    if (can_obj->can_id == PYB_CAN_1) {
+        init->MessageRAMOffset = 0;
+    } else {
+        init->MessageRAMOffset = 2560/2;
     }
-}
 
-void can_deinit_all(void) {
-    for (int i = 0; i < MP_ARRAY_SIZE(MP_STATE_PORT(pyb_can_obj_all)); i++) {
-        pyb_can_obj_t *can_obj = MP_STATE_PORT(pyb_can_obj_all)[i];
-        if (can_obj != NULL) {
-            can_deinit(can_obj);
-        }
-    }
-}
+    init->StdFiltersNbr = 64; // 128 / 2
+    init->ExtFiltersNbr = 0; // Not used
 
-// assumes Init parameters have been set up correctly
-bool can_init(pyb_can_obj_t *can_obj) {
+    init->TxEventsNbr  = 16; // 32 / 2
+    init->RxBuffersNbr = 32; // 64 / 2
+    init->TxBuffersNbr = 16; // 32 / 2
+
+    init->RxFifo0ElmtsNbr = 64; // 128 / 2
+    init->RxFifo0ElmtSize = FDCAN_DATA_BYTES_8;
+
+    init->RxFifo1ElmtsNbr = 64; // 128 / 2
+    init->RxFifo1ElmtSize = FDCAN_DATA_BYTES_8;
+
+    init->TxFifoQueueElmtsNbr = 16; // Tx fifo elements
+    init->TxElmtSize = FDCAN_DATA_BYTES_8;
+    init->TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
+
     FDCAN_GlobalTypeDef *CANx = NULL;
     const pin_obj_t *pins[2];
 
@@ -102,28 +113,26 @@ bool can_init(pyb_can_obj_t *can_obj) {
     __HAL_RCC_FDCAN_CLK_ENABLE();
 
     // init GPIO
-    uint32_t mode = MP_HAL_PIN_MODE_ALT;
-    uint32_t pull = MP_HAL_PIN_PULL_UP;
-    for (int i = 0; i < 2; i++) {
-        if (!mp_hal_pin_config_alt(pins[i], mode, pull, AF_FN_CAN, can_obj->can_id)) {
+    uint32_t pin_mode = MP_HAL_PIN_MODE_ALT;
+    uint32_t pin_pull = MP_HAL_PIN_PULL_UP;
+    for (int i = 0; i < 2; ++i) {
+        if (!mp_hal_pin_config_alt(pins[i], pin_mode, pin_pull, AF_FN_CAN, can_obj->can_id)) {
             return false;
         }
     }
 
     // init CANx
     can_obj->can.Instance = CANx;
-
     HAL_FDCAN_Init(&can_obj->can);
 
     // Disable acceptance of non-matching frames (enabled by default)
-    HAL_FDCAN_ConfigGlobalFilter(&can_obj->can,
-            FDCAN_REJECT, FDCAN_REJECT, DISABLE, DISABLE);
+    HAL_FDCAN_ConfigGlobalFilter(&can_obj->can, FDCAN_REJECT, FDCAN_REJECT, DISABLE, DISABLE);
 
     // The configuration registers are locked after CAN is started.
     HAL_FDCAN_Start(&can_obj->can);
 
-    // Reset all filters.
-    for (int f=0; f<64; f++) {
+    // Reset all filters
+    for (int f = 0; f < 64; ++f) {
         can_clearfilter(can_obj, f, 0);
     }
 
@@ -191,7 +200,7 @@ void can_clearfilter(pyb_can_obj_t *self, uint32_t f, uint8_t bank) {
 
 int can_receive(FDCAN_HandleTypeDef *can, int fifo, FDCAN_RxHeaderTypeDef *hdr, uint8_t *data, uint32_t timeout_ms) {
     volatile uint32_t *rxf, *rxa;
-    if(fifo == FDCAN_RX_FIFO0) {
+    if (fifo == FDCAN_RX_FIFO0) {
         rxf = &can->Instance->RXF0S;
         rxa = &can->Instance->RXF0A;
     } else {
@@ -208,30 +217,29 @@ int can_receive(FDCAN_HandleTypeDef *can, int fifo, FDCAN_RxHeaderTypeDef *hdr, 
         }
     }
 
-    // Read message data
-    uint32_t index = 0;
-    uint32_t *address;
+    // Get pointer to incoming message
+    uint32_t index = (can->Instance->RXF0S & FDCAN_RXF0S_F0GI) >> 8;
+    uint32_t *address = (uint32_t*)(can->msgRam.RxFIFO0SA + (index * can->Init.RxFifo0ElmtSize * 4));
 
-    /* Calculate Rx FIFO 0 element address */
-    index = ((can->Instance->RXF0S & FDCAN_RXF0S_F0GI) >> 8);
-    address = (uint32_t *)(can->msgRam.RxFIFO0SA + (index * can->Init.RxFifo0ElmtSize * 4));
+    // Parse header of message
     hdr->IdType = *address & FDCAN_ELEMENT_MASK_XTD;
     if(hdr->IdType == FDCAN_STANDARD_ID) {
-      hdr->Identifier = ((*address & FDCAN_ELEMENT_MASK_STDID) >> 18);
+      hdr->Identifier = (*address & FDCAN_ELEMENT_MASK_STDID) >> 18;
     } else {
-      hdr->Identifier = (*address & FDCAN_ELEMENT_MASK_EXTID);
+      hdr->Identifier = *address & FDCAN_ELEMENT_MASK_EXTID;
     }
-    hdr->RxFrameType = (*address & FDCAN_ELEMENT_MASK_RTR);
-    hdr->ErrorStateIndicator = (*address++ & FDCAN_ELEMENT_MASK_ESI);
-    hdr->RxTimestamp = (*address & FDCAN_ELEMENT_MASK_TS);
-    hdr->DataLength =  ((*address & FDCAN_ELEMENT_MASK_DLC)>>16);
-    hdr->BitRateSwitch = (*address & FDCAN_ELEMENT_MASK_BRS);
-    hdr->FDFormat = (*address & FDCAN_ELEMENT_MASK_FDF);
-    hdr->FilterIndex = ((*address & FDCAN_ELEMENT_MASK_FIDX) >> 24);
-    hdr->IsFilterMatchingFrame = ((*address++ & FDCAN_ELEMENT_MASK_ANMF) >> 31);
-    // Copy data.
-    uint8_t *pdata = (uint8_t *)address;
-    for(uint32_t i=0; i<8; i++) { // TODO use DLCtoBytes[hdr->DataLength] for length > 8
+    hdr->RxFrameType = *address & FDCAN_ELEMENT_MASK_RTR;
+    hdr->ErrorStateIndicator = *address++ & FDCAN_ELEMENT_MASK_ESI;
+    hdr->RxTimestamp = *address & FDCAN_ELEMENT_MASK_TS;
+    hdr->DataLength = (*address & FDCAN_ELEMENT_MASK_DLC) >> 16;
+    hdr->BitRateSwitch = *address & FDCAN_ELEMENT_MASK_BRS;
+    hdr->FDFormat = *address & FDCAN_ELEMENT_MASK_FDF;
+    hdr->FilterIndex = (*address & FDCAN_ELEMENT_MASK_FIDX) >> 24;
+    hdr->IsFilterMatchingFrame = (*address++ & FDCAN_ELEMENT_MASK_ANMF) >> 31;
+
+    // Copy data
+    uint8_t *pdata = (uint8_t*)address;
+    for(uint32_t i = 0; i < 8; ++i) { // TODO use DLCtoBytes[hdr->DataLength] for length > 8
       *data++ = *pdata++;
     }
 
@@ -241,7 +249,7 @@ int can_receive(FDCAN_HandleTypeDef *can, int fifo, FDCAN_RxHeaderTypeDef *hdr, 
     return 0; // success
 }
 
-void can_rx_irq_handler(uint can_id, uint fifo_id) {
+STATIC void can_rx_irq_handler(uint can_id, uint fifo_id) {
     mp_obj_t callback;
     pyb_can_obj_t *self;
     mp_obj_t irq_reason = MP_OBJ_NEW_SMALL_INT(0);
@@ -286,4 +294,32 @@ void can_rx_irq_handler(uint can_id, uint fifo_id) {
     pyb_can_handle_callback(self, fifo_id, callback, irq_reason);
 }
 
-#endif // MICROPY_HW_ENABLE_FDCAN
+#if defined(MICROPY_HW_CAN1_TX)
+void FDCAN1_IT0_IRQHandler(void) {
+    IRQ_ENTER(FDCAN1_IT0_IRQn);
+    can_rx_irq_handler(PYB_CAN_1, FDCAN_RX_FIFO0);
+    IRQ_EXIT(FDCAN1_IT0_IRQn);
+}
+
+void FDCAN1_IT1_IRQHandler(void) {
+    IRQ_ENTER(FDCAN1_IT1_IRQn);
+    can_rx_irq_handler(PYB_CAN_1, FDCAN_RX_FIFO1);
+    IRQ_EXIT(FDCAN1_IT1_IRQn);
+}
+#endif
+
+#if defined(MICROPY_HW_CAN2_TX)
+void FDCAN2_IT0_IRQHandler(void) {
+    IRQ_ENTER(FDCAN2_IT0_IRQn);
+    can_rx_irq_handler(PYB_CAN_2, FDCAN_RX_FIFO0);
+    IRQ_EXIT(FDCAN2_IT0_IRQn);
+}
+
+void FDCAN2_IT1_IRQHandler(void) {
+    IRQ_ENTER(FDCAN2_IT1_IRQn);
+    can_rx_irq_handler(PYB_CAN_2, FDCAN_RX_FIFO1);
+    IRQ_EXIT(FDCAN2_IT1_IRQn);
+}
+#endif
+
+#endif // MICROPY_HW_ENABLE_CAN && MICROPY_HW_ENABLE_FDCAN

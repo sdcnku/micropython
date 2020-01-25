@@ -74,11 +74,11 @@ it will fallback to loading the built-in ``ujson`` module.
    :maxdepth: 1
 
    builtins.rst
-   array.rst
    cmath.rst
    gc.rst
    math.rst
    sys.rst
+   uarray.rst
    ubinascii.rst
    ucollections.rst
    uerrno.rst
@@ -111,6 +111,7 @@ the following libraries.
    machine.rst
    micropython.rst
    network.rst
+   ubluetooth.rst
    ucryptolib.rst
    uctypes.rst
 

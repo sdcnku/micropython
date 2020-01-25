@@ -24,23 +24,13 @@
  * THE SOFTWARE.
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <stdarg.h>
-
-#include "py/objtuple.h"
-#include "py/objarray.h"
 #include "py/runtime.h"
-#include "py/gc.h"
-#include "py/binary.h"
-#include "py/stream.h"
 #include "py/mperrno.h"
 #include "py/mphal.h"
-#include "bufhelper.h"
 #include "can.h"
 #include "irq.h"
 
-#if MICROPY_HW_ENABLE_CAN && !(MICROPY_HW_ENABLE_FDCAN)
+#if MICROPY_HW_ENABLE_CAN
 
 void can_init0(void) {
     for (uint i = 0; i < MP_ARRAY_SIZE(MP_STATE_PORT(pyb_can_obj_all)); i++) {
@@ -57,8 +47,22 @@ void can_deinit_all(void) {
     }
 }
 
-// assumes Init parameters have been set up correctly
-bool can_init(pyb_can_obj_t *can_obj) {
+#if !MICROPY_HW_ENABLE_FDCAN
+
+bool can_init(pyb_can_obj_t *can_obj, uint32_t mode, uint32_t prescaler, uint32_t sjw, uint32_t bs1, uint32_t bs2, bool auto_restart) {
+    CAN_InitTypeDef *init = &can_obj->can.Init;
+    init->Mode = mode << 4; // shift-left so modes fit in a small-int
+    init->Prescaler = prescaler;
+    init->SJW = ((sjw - 1) & 3) << 24;
+    init->BS1 = ((bs1 - 1) & 0xf) << 16;
+    init->BS2 = ((bs2 - 1) & 7) << 20;
+    init->TTCM = DISABLE;
+    init->ABOM = auto_restart ? ENABLE : DISABLE;
+    init->AWUM = DISABLE;
+    init->NART = DISABLE;
+    init->RFLM = DISABLE;
+    init->TXFP = DISABLE;
+
     CAN_TypeDef *CANx = NULL;
     uint32_t sce_irq = 0;
     const pin_obj_t *pins[2];
@@ -100,10 +104,10 @@ bool can_init(pyb_can_obj_t *can_obj) {
     }
 
     // init GPIO
-    uint32_t mode = MP_HAL_PIN_MODE_ALT;
-    uint32_t pull = MP_HAL_PIN_PULL_UP;
+    uint32_t pin_mode = MP_HAL_PIN_MODE_ALT;
+    uint32_t pin_pull = MP_HAL_PIN_PULL_UP;
     for (int i = 0; i < 2; i++) {
-        if (!mp_hal_pin_config_alt(pins[i], mode, pull, AF_FN_CAN, can_obj->can_id)) {
+        if (!mp_hal_pin_config_alt(pins[i], pin_mode, pin_pull, AF_FN_CAN, can_obj->can_id)) {
             return false;
         }
     }
@@ -308,7 +312,7 @@ HAL_StatusTypeDef CAN_Transmit(CAN_HandleTypeDef *hcan, uint32_t Timeout) {
     }
 }
 
-void can_rx_irq_handler(uint can_id, uint fifo_id) {
+STATIC void can_rx_irq_handler(uint can_id, uint fifo_id) {
     mp_obj_t callback;
     pyb_can_obj_t *self;
     mp_obj_t irq_reason = MP_OBJ_NEW_SMALL_INT(0);
@@ -350,7 +354,7 @@ void can_rx_irq_handler(uint can_id, uint fifo_id) {
     pyb_can_handle_callback(self, fifo_id, callback, irq_reason);
 }
 
-void can_sce_irq_handler(uint can_id) {
+STATIC void can_sce_irq_handler(uint can_id) {
     pyb_can_obj_t *self = MP_STATE_PORT(pyb_can_obj_all)[can_id - 1];
     if (self) {
         self->can.Instance->MSR = CAN_MSR_ERRI;
@@ -364,5 +368,67 @@ void can_sce_irq_handler(uint can_id) {
         }
     }
 }
+
+#if defined(MICROPY_HW_CAN1_TX)
+void CAN1_RX0_IRQHandler(void) {
+    IRQ_ENTER(CAN1_RX0_IRQn);
+    can_rx_irq_handler(PYB_CAN_1, CAN_FIFO0);
+    IRQ_EXIT(CAN1_RX0_IRQn);
+}
+
+void CAN1_RX1_IRQHandler(void) {
+    IRQ_ENTER(CAN1_RX1_IRQn);
+    can_rx_irq_handler(PYB_CAN_1, CAN_FIFO1);
+    IRQ_EXIT(CAN1_RX1_IRQn);
+}
+
+void CAN1_SCE_IRQHandler(void) {
+    IRQ_ENTER(CAN1_SCE_IRQn);
+    can_sce_irq_handler(PYB_CAN_1);
+    IRQ_EXIT(CAN1_SCE_IRQn);
+}
+#endif
+
+#if defined(MICROPY_HW_CAN2_TX)
+void CAN2_RX0_IRQHandler(void) {
+    IRQ_ENTER(CAN2_RX0_IRQn);
+    can_rx_irq_handler(PYB_CAN_2, CAN_FIFO0);
+    IRQ_EXIT(CAN2_RX0_IRQn);
+}
+
+void CAN2_RX1_IRQHandler(void) {
+    IRQ_ENTER(CAN2_RX1_IRQn);
+    can_rx_irq_handler(PYB_CAN_2, CAN_FIFO1);
+    IRQ_EXIT(CAN2_RX1_IRQn);
+}
+
+void CAN2_SCE_IRQHandler(void) {
+    IRQ_ENTER(CAN2_SCE_IRQn);
+    can_sce_irq_handler(PYB_CAN_2);
+    IRQ_EXIT(CAN2_SCE_IRQn);
+}
+#endif
+
+#if defined(MICROPY_HW_CAN3_TX)
+void CAN3_RX0_IRQHandler(void) {
+    IRQ_ENTER(CAN3_RX0_IRQn);
+    can_rx_irq_handler(PYB_CAN_3, CAN_FIFO0);
+    IRQ_EXIT(CAN3_RX0_IRQn);
+}
+
+void CAN3_RX1_IRQHandler(void) {
+    IRQ_ENTER(CAN3_RX1_IRQn);
+    can_rx_irq_handler(PYB_CAN_3, CAN_FIFO1);
+    IRQ_EXIT(CAN3_RX1_IRQn);
+}
+
+void CAN3_SCE_IRQHandler(void) {
+    IRQ_ENTER(CAN3_SCE_IRQn);
+    can_sce_irq_handler(PYB_CAN_3);
+    IRQ_EXIT(CAN3_SCE_IRQn);
+}
+#endif
+
+#endif // !MICROPY_HW_ENABLE_FDCAN
 
 #endif // MICROPY_HW_ENABLE_CAN
