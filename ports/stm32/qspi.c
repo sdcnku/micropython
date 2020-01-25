@@ -28,10 +28,13 @@
 
 #include "py/mperrno.h"
 #include "py/mphal.h"
+#include "mpu.h"
 #include "qspi.h"
 #include "pin_static_af.h"
 
 #if defined(MICROPY_HW_QSPIFLASH_SIZE_BITS_LOG2)
+
+#define QSPI_MAP_ADDR (0x90000000)
 
 #ifndef MICROPY_HW_QSPI_PRESCALER
 #define MICROPY_HW_QSPI_PRESCALER       2  // F_CLK = F_AHB/2 (100MHz)
@@ -49,7 +52,31 @@
 #define MICROPY_HW_QSPI_CS_HIGH_CYCLES  2  // nCS stays high for 2 cycles
 #endif
 
+static inline void qspi_mpu_disable_all(void) {
+    // Configure MPU to disable access to entire QSPI region, to prevent CPU
+    // speculative execution from accessing this region and modifying QSPI registers.
+    uint32_t irq_state = mpu_config_start();
+    mpu_config_region(MPU_REGION_QSPI1, QSPI_MAP_ADDR, MPU_CONFIG_DISABLE(0x00, MPU_REGION_SIZE_256MB));
+    mpu_config_end(irq_state);
+}
+
+static inline void qspi_mpu_enable_mapped(void) {
+    // Configure MPU to allow access to only the valid part of external SPI flash.
+    // The memory accesses to the mapped QSPI are faster if the MPU is not used
+    // for the memory-mapped region, so 3 MPU regions are used to disable access
+    // to everything except the valid address space, using holes in the bottom
+    // of the regions and nesting them.
+    // At the moment this is hard-coded to 2MiB of QSPI address space.
+    uint32_t irq_state = mpu_config_start();
+    mpu_config_region(MPU_REGION_QSPI1, QSPI_MAP_ADDR, MPU_CONFIG_DISABLE(0x01, MPU_REGION_SIZE_256MB));
+    mpu_config_region(MPU_REGION_QSPI2, QSPI_MAP_ADDR, MPU_CONFIG_DISABLE(0x0f, MPU_REGION_SIZE_32MB));
+    mpu_config_region(MPU_REGION_QSPI3, QSPI_MAP_ADDR, MPU_CONFIG_DISABLE(0x01, MPU_REGION_SIZE_16MB));
+    mpu_config_end(irq_state);
+}
+
 void qspi_init(void) {
+    qspi_mpu_disable_all();
+
     // Configure pins
     mp_hal_pin_config_alt_static_speed(MICROPY_HW_QSPIFLASH_CS, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_QUADSPI_BK1_NCS);
     mp_hal_pin_config_alt_static_speed(MICROPY_HW_QSPIFLASH_SCK, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, MP_HAL_PIN_SPEED_VERY_HIGH, STATIC_AF_QUADSPI_CLK);
@@ -61,8 +88,6 @@ void qspi_init(void) {
     // Bring up the QSPI peripheral
 
     __HAL_RCC_QSPI_CLK_ENABLE();
-    __HAL_RCC_QSPI_CLK_SLEEP_ENABLE();
-
     __HAL_RCC_QSPI_FORCE_RESET();
     __HAL_RCC_QSPI_RELEASE_RESET();
 
@@ -104,6 +129,8 @@ void qspi_memory_map(void) {
         | 1 << QUADSPI_CCR_IMODE_Pos // instruction on 1 line
         | 0xeb << QUADSPI_CCR_INSTRUCTION_Pos // quad read opcode
         ;
+
+    qspi_mpu_enable_mapped();
 }
 
 STATIC int qspi_ioctl(void *self_in, uint32_t cmd) {
@@ -113,6 +140,8 @@ STATIC int qspi_ioctl(void *self_in, uint32_t cmd) {
             qspi_init();
             break;
         case MP_QSPI_IOCTL_BUS_ACQUIRE:
+            // Disable memory-mapped region during bus access
+            qspi_mpu_disable_all();
             // Abort any ongoing transfer if peripheral is busy
             if (QUADSPI->SR & QUADSPI_SR_BUSY) {
                 QUADSPI->CR |= QUADSPI_CR_ABORT;
@@ -256,7 +285,6 @@ STATIC uint32_t qspi_read_cmd(void *self_in, uint8_t cmd, size_t len) {
 
 STATIC void qspi_read_cmd_qaddr_qdata(void *self_in, uint8_t cmd, uint32_t addr, size_t len, uint8_t *dest) {
     (void)self_in;
-
     QUADSPI->FCR = QUADSPI_FCR_CTCF; // clear TC flag
 
     QUADSPI->DLR = len - 1; // number of bytes to read
@@ -276,10 +304,10 @@ STATIC void qspi_read_cmd_qaddr_qdata(void *self_in, uint8_t cmd, uint32_t addr,
         ;
 
     QUADSPI->ABR = 0; // alternate byte: disable continuous read mode
-    QUADSPI->AR = addr; // addres to read from
+    QUADSPI->AR = addr; // address to read from
 
     QUADSPI->CCR |= (1 << QUADSPI_CCR_FMODE_Pos); // indirect read mode
-    QUADSPI->AR = addr; // re-write the addres to read from
+    QUADSPI->AR = addr; // re-write the address to read from
 
     // Read in the data 4 bytes at a time if dest is aligned
     if (((uintptr_t)dest & 3) == 0) {
