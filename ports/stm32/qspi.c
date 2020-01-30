@@ -52,14 +52,6 @@
 #define MICROPY_HW_QSPI_CS_HIGH_CYCLES  2  // nCS stays high for 2 cycles
 #endif
 
-#if (MICROPY_HW_QSPIFLASH_SIZE_BITS_LOG2 -3 -1) >= 24
-#define QSPI_CMD 0xec
-#define QSPI_ADSIZE 3
-#else 
-#define QSPI_CMD 0xeb
-#define QSPI_ADSIZE 2
-#endif 
-
 static inline void qspi_mpu_disable_all(void) {
     // Configure MPU to disable access to entire QSPI region, to prevent CPU
     // speculative execution from accessing this region and modifying QSPI registers.
@@ -120,11 +112,10 @@ void qspi_init(void) {
         ;
 }
 
-void qspi_memory_map() {
+void qspi_memory_map(void) {
     // Enable memory-mapped mode
 
     QUADSPI->ABR = 0; // disable continuous read mode
-
     QUADSPI->CCR =
         0 << QUADSPI_CCR_DDRM_Pos // DDR mode disabled
         | 0 << QUADSPI_CCR_SIOO_Pos // send instruction every transaction
@@ -133,10 +124,10 @@ void qspi_memory_map() {
         | 4 << QUADSPI_CCR_DCYC_Pos // 4 dummy cycles
         | 0 << QUADSPI_CCR_ABSIZE_Pos // 8-bit alternate byte
         | 3 << QUADSPI_CCR_ABMODE_Pos // alternate byte on 4 lines
-        | QSPI_ADSIZE << QUADSPI_CCR_ADSIZE_Pos
+        | 2 << QUADSPI_CCR_ADSIZE_Pos // 24-bit address size
         | 3 << QUADSPI_CCR_ADMODE_Pos // address on 4 lines
         | 1 << QUADSPI_CCR_IMODE_Pos // instruction on 1 line
-        | QSPI_CMD << QUADSPI_CCR_INSTRUCTION_Pos
+        | 0xeb << QUADSPI_CCR_INSTRUCTION_Pos // quad read opcode
         ;
 
     qspi_mpu_enable_mapped();
@@ -212,8 +203,6 @@ STATIC void qspi_write_cmd_data(void *self_in, uint8_t cmd, size_t len, uint32_t
 STATIC void qspi_write_cmd_addr_data(void *self_in, uint8_t cmd, uint32_t addr, size_t len, const uint8_t *src) {
     (void)self_in;
 
-    uint8_t adsize = MP_SPI_ADDR_32B(addr)? 3:2;
-
     QUADSPI->FCR = QUADSPI_FCR_CTCF; // clear TC flag
 
     if (len == 0) {
@@ -224,7 +213,7 @@ STATIC void qspi_write_cmd_addr_data(void *self_in, uint8_t cmd, uint32_t addr, 
             | 0 << QUADSPI_CCR_DMODE_Pos // no data
             | 0 << QUADSPI_CCR_DCYC_Pos // 0 dummy cycles
             | 0 << QUADSPI_CCR_ABMODE_Pos // no alternate byte
-            | adsize << QUADSPI_CCR_ADSIZE_Pos // 32/24-bit address size
+            | 2 << QUADSPI_CCR_ADSIZE_Pos // 24-bit address size
             | 1 << QUADSPI_CCR_ADMODE_Pos // address on 1 line
             | 1 << QUADSPI_CCR_IMODE_Pos // instruction on 1 line
             | cmd << QUADSPI_CCR_INSTRUCTION_Pos // write opcode
@@ -241,7 +230,7 @@ STATIC void qspi_write_cmd_addr_data(void *self_in, uint8_t cmd, uint32_t addr, 
             | 1 << QUADSPI_CCR_DMODE_Pos // data on 1 line
             | 0 << QUADSPI_CCR_DCYC_Pos // 0 dummy cycles
             | 0 << QUADSPI_CCR_ABMODE_Pos // no alternate byte
-            | adsize << QUADSPI_CCR_ADSIZE_Pos // 32/24-bit address size
+            | 2 << QUADSPI_CCR_ADSIZE_Pos // 24-bit address size
             | 1 << QUADSPI_CCR_ADMODE_Pos // address on 1 line
             | 1 << QUADSPI_CCR_IMODE_Pos // instruction on 1 line
             | cmd << QUADSPI_CCR_INSTRUCTION_Pos // write opcode
@@ -296,9 +285,6 @@ STATIC uint32_t qspi_read_cmd(void *self_in, uint8_t cmd, size_t len) {
 
 STATIC void qspi_read_cmd_qaddr_qdata(void *self_in, uint8_t cmd, uint32_t addr, size_t len, uint8_t *dest) {
     (void)self_in;
-
-    uint8_t adsize = MP_SPI_ADDR_32B(addr)? 3:2;
-
     QUADSPI->FCR = QUADSPI_FCR_CTCF; // clear TC flag
 
     QUADSPI->DLR = len - 1; // number of bytes to read
@@ -311,7 +297,7 @@ STATIC void qspi_read_cmd_qaddr_qdata(void *self_in, uint8_t cmd, uint32_t addr,
         | 4 << QUADSPI_CCR_DCYC_Pos // 4 dummy cycles
         | 0 << QUADSPI_CCR_ABSIZE_Pos // 8-bit alternate byte
         | 3 << QUADSPI_CCR_ABMODE_Pos // alternate byte on 4 lines
-        | adsize << QUADSPI_CCR_ADSIZE_Pos // 32 or 24-bit address size
+        | 2 << QUADSPI_CCR_ADSIZE_Pos // 24-bit address size
         | 3 << QUADSPI_CCR_ADMODE_Pos // address on 4 lines
         | 1 << QUADSPI_CCR_IMODE_Pos // instruction on 1 line
         | cmd << QUADSPI_CCR_INSTRUCTION_Pos // quad read opcode
