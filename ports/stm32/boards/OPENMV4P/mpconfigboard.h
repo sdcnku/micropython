@@ -1,6 +1,6 @@
-#define MICROPY_HW_BOARD_NAME       "OPENMV4R"
+#define MICROPY_HW_BOARD_NAME       "OPENMV4P"
 #define MICROPY_HW_MCU_NAME         "STM32H743"
-#define MICROPY_PY_SYS_PLATFORM     "OpenMV4R-H7"
+#define MICROPY_PY_SYS_PLATFORM     "OpenMV4P-H7"
 
 #define MICROPY_HW_ENABLE_RNG       (1)
 #define MICROPY_HW_ENABLE_RTC       (1)
