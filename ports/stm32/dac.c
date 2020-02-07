@@ -160,6 +160,24 @@ STATIC void dac_start(uint32_t dac_channel) {
     DAC->CR |= DAC_CR_EN1 << dac_channel;
 }
 
+#if defined(STM32H7)
+// Workaround until dma_nohal functions get fixed.
+static DAC_HandleTypeDef hdac;
+static DMA_HandleTypeDef hdma;
+
+STATIC void dac_start_dma(uint32_t dac_channel, const dma_descr_t *dma_descr, uint32_t dma_mode, uint32_t bit_size, uint32_t dac_align, size_t len, void *buf) {
+    hdac.Instance = DAC1;
+    HAL_DAC_Init(&hdac);
+
+    dma_deinit(dma_descr);
+    dma_init(&hdma, dma_descr, DMA_MEMORY_TO_PERIPH, &hdac);
+    hdac.DMA_Handle2 = &hdma;
+
+    MP_HAL_CLEAN_DCACHE(buf, len);
+    HAL_DAC_Start_DMA(&hdac, dac_channel, (uint32_t *)buf, len, DAC_ALIGN_8B_R);
+}
+
+#else
 STATIC void dac_start_dma(uint32_t dac_channel, const dma_descr_t *dma_descr, uint32_t dma_mode, uint32_t bit_size, uint32_t dac_align, size_t len, void *buf) {
     uint32_t dma_align;
     if (bit_size == 8) {
@@ -184,6 +202,7 @@ STATIC void dac_start_dma(uint32_t dac_channel, const dma_descr_t *dma_descr, ui
     DAC->CR |= DAC_CR_EN1 << dac_channel;
 }
 
+#endif
 /******************************************************************************/
 // MicroPython bindings
 

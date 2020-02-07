@@ -156,7 +156,7 @@ static const DMA_InitTypeDef dma_init_struct_dac = {
     .MemInc              = DMA_MINC_ENABLE,
     .PeriphDataAlignment = DMA_PDATAALIGN_BYTE,
     .MemDataAlignment    = DMA_MDATAALIGN_BYTE,
-    .Mode                = DMA_NORMAL,
+    .Mode                = DMA_CIRCULAR,
     .Priority            = DMA_PRIORITY_HIGH,
     #if defined(STM32F4) || defined(STM32F7) || defined(STM32H7)
     .FIFOMode            = DMA_FIFOMODE_DISABLE,
