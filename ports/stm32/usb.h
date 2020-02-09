@@ -31,7 +31,9 @@
 #define PYB_USB_FLAG_USB_MODE_CALLED    (0x0002)
 
 // Windows needs a different PID to distinguish different device configurations
+#ifndef USBD_VID
 #define USBD_VID         (0xf055)
+#endif
 #define USBD_PID_CDC_MSC (0x9800)
 #define USBD_PID_CDC_HID (0x9801)
 #define USBD_PID_CDC     (0x9802)

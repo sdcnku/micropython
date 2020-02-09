@@ -36,23 +36,37 @@
 // need this header just for MP_HAL_UNIQUE_ID_ADDRESS
 #include "py/mphal.h"
 
-#define USBD_VID                      0x1209
-#define USBD_PID                      0xabd1
-
+#ifndef USBD_LANGID_STRING
 #define USBD_LANGID_STRING            0x409
-#define USBD_MANUFACTURER_STRING      "OpenMV"
+#endif
 
-#define USBD_PRODUCT_FS_STRING        "OpenMV Virtual Comm Port in FS Mode"
-#define USBD_PRODUCT_HS_STRING        "OpenMV Virtual Comm Port in HS Mode"
+#ifndef USBD_MANUFACTURER_STRING
+#define USBD_MANUFACTURER_STRING      "MicroPython"
+#endif
 
-#define USBD_SERIALNUMBER_FS_STRING   "000000000011"
-#define USBD_SERIALNUMBER_HS_STRING   "000000000010"
+#ifndef USBD_PRODUCT_HS_STRING
+#define USBD_PRODUCT_HS_STRING        "Pyboard Virtual Comm Port in HS Mode"
+#endif
 
-#define USBD_INTERFACE_FS_STRING      "VCP Interface"
-#define USBD_INTERFACE_HS_STRING      "VCP Interface"
+#ifndef USBD_PRODUCT_FS_STRING
+#define USBD_PRODUCT_FS_STRING        "Pyboard Virtual Comm Port in FS Mode"
+#endif
 
-#define USBD_CONFIGURATION_FS_STRING  "VCP Config"
-#define USBD_CONFIGURATION_HS_STRING  "VCP Config"
+#ifndef USBD_CONFIGURATION_HS_STRING
+#define USBD_CONFIGURATION_HS_STRING  "Pyboard Config"
+#endif
+
+#ifndef USBD_INTERFACE_HS_STRING
+#define USBD_INTERFACE_HS_STRING      "Pyboard Interface"
+#endif
+
+#ifndef USBD_CONFIGURATION_FS_STRING
+#define USBD_CONFIGURATION_FS_STRING  "Pyboard Config"
+#endif
+
+#ifndef USBD_INTERFACE_FS_STRING
+#define USBD_INTERFACE_FS_STRING      "Pyboard Interface"
+#endif
 
 __ALIGN_BEGIN static const uint8_t USBD_LangIDDesc[USB_LEN_LANGID_STR_DESC] __ALIGN_END = {
     USB_LEN_LANGID_STR_DESC,

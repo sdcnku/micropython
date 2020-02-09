@@ -22,6 +22,19 @@
 #define MICROPY_HW_CLK_PLLQ (7)
 #define MICROPY_HW_CLK_PLLP (RCC_PLLP_DIV2)
 
+#define USBD_VID                      0x1209
+#define USBD_PID                      0xabd1
+#define USBD_LANGID_STRING            0x409
+#define USBD_MANUFACTURER_STRING      "OpenMV"
+#define USBD_PRODUCT_FS_STRING        "OpenMV Virtual Comm Port in FS Mode"
+#define USBD_PRODUCT_HS_STRING        "OpenMV Virtual Comm Port in HS Mode"
+#define USBD_SERIALNUMBER_FS_STRING   "000000000011"
+#define USBD_SERIALNUMBER_HS_STRING   "000000000010"
+#define USBD_INTERFACE_FS_STRING      "VCP Interface"
+#define USBD_INTERFACE_HS_STRING      "VCP Interface"
+#define USBD_CONFIGURATION_FS_STRING  "VCP Config"
+#define USBD_CONFIGURATION_HS_STRING  "VCP Config"
+
 // UART config
 #define MICROPY_HW_UART3_PORT (GPIOB)
 #define MICROPY_HW_UART3_PINS (GPIO_PIN_10 | GPIO_PIN_11)
