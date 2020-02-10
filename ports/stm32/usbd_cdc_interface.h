@@ -31,8 +31,12 @@
   ******************************************************************************
   */
 
+#ifndef USBD_CDC_RX_DATA_SIZE
 #define USBD_CDC_RX_DATA_SIZE (512) // this must be 2 or greater, and a power of 2
+#endif
+#ifndef USBD_CDC_TX_DATA_SIZE
 #define USBD_CDC_TX_DATA_SIZE (512) // I think this can be any value (was 2048)
+#endif
 
 #define DBG_MAX_PACKET      (64)
 
