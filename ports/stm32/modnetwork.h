@@ -91,7 +91,9 @@ typedef struct _mod_network_socket_obj_t {
         } u_param;
         mp_uint_t u_state;
     };
+    #if MICROPY_PY_WINC1500
     winc_socket_buf_t sockbuf;
+    #endif
 } mod_network_socket_obj_t;
 
 extern const mod_network_nic_type_t mod_network_nic_type_wiznet5k;
