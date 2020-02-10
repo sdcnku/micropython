@@ -90,9 +90,4 @@ void pyb_can_handle_callback(pyb_can_obj_t *self, uint fifo_id, mp_obj_t callbac
 
 #endif // MICROPY_HW_ENABLE_CAN
 
-void can_clearfilter(pyb_can_obj_t *self, uint32_t f, uint8_t bank);
-int can_receive(CAN_HandleTypeDef *can, int fifo, CanRxMsgTypeDef *msg, uint8_t *data, uint32_t timeout_ms);
-HAL_StatusTypeDef CAN_Transmit(CAN_HandleTypeDef *hcan, uint32_t Timeout);
-void pyb_can_handle_callback(pyb_can_obj_t *self, uint fifo_id, mp_obj_t callback, mp_obj_t irq_reason);
-
 #endif // MICROPY_INCLUDED_STM32_CAN_H
