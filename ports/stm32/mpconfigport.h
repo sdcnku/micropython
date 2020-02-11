@@ -216,7 +216,6 @@ extern const struct _mp_obj_module_t mp_module_usocket;
 extern const struct _mp_obj_module_t mp_module_network;
 extern const struct _mp_obj_module_t mp_module_onewire;
 extern const struct _mp_obj_module_t omv_module;
-extern const struct _mp_obj_module_t imu_module;
 extern const struct _mp_obj_module_t time_module;
 extern const struct _mp_obj_module_t sensor_module;
 extern const struct _mp_obj_module_t image_module;
@@ -231,6 +230,9 @@ extern const struct _mp_obj_module_t tv_module;
 extern const struct _mp_obj_module_t nn_st_module;
 #if MICROPY_PY_ULAB
 extern const struct _mp_obj_module_t ulab_user_cmodule;
+#endif
+#if MICROPY_PY_IMU
+extern const struct _mp_obj_module_t imu_module;
 #endif
 
 #if MICROPY_PY_STM
@@ -250,6 +252,13 @@ extern const struct _mp_obj_module_t ulab_user_cmodule;
 #else
 #define ULAB_BUILTIN_MODULE
 #endif
+
+#if MICROPY_PY_IMU
+#define IMU_BUILTIN_MODULE              {  MP_OBJ_NEW_QSTR(MP_QSTR_imu),   (mp_obj_t)&imu_module },
+#else
+#define IMU_BUILTIN_MODULE
+#endif
+
 
 #if MICROPY_PY_USOCKET && MICROPY_PY_LWIP
 // usocket implementation provided by lwIP
@@ -281,7 +290,6 @@ extern const struct _mp_obj_module_t ulab_user_cmodule;
     { MP_OBJ_NEW_QSTR(MP_QSTR_uos), (mp_obj_t)&mp_module_uos }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_utime), (mp_obj_t)&mp_module_utime }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_omv),     (mp_obj_t)&omv_module }, \
-    { MP_OBJ_NEW_QSTR(MP_QSTR_imu),     (mp_obj_t)&imu_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_time),    (mp_obj_t)&time_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_sensor),  (mp_obj_t)&sensor_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_image),   (mp_obj_t)&image_module }, \
@@ -295,6 +303,7 @@ extern const struct _mp_obj_module_t ulab_user_cmodule;
     { MP_OBJ_NEW_QSTR(MP_QSTR_tv),      (mp_obj_t)&tv_module }, \
     CUBEAI_BUILTIN_MODULE \
     ULAB_BUILTIN_MODULE \
+    IMU_BUILTIN_MODULE \
     SOCKET_BUILTIN_MODULE \
     NETWORK_BUILTIN_MODULE \
     { MP_ROM_QSTR(MP_QSTR__onewire), MP_ROM_PTR(&mp_module_onewire) }, \
