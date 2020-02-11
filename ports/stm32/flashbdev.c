@@ -104,7 +104,7 @@ const void *CACHE_MEM_START_ADDR = &_ffs_cache;
 #define FLASH_MEM_SEG1_START_ADDR (0x08008000) // sector 1
 #define FLASH_MEM_SEG1_NUM_BLOCKS (192)  // (32+32+32)*1024/512
 
-#elif defined(STM32H743xx)
+#elif defined(STM32H743xx) || defined(STM32H747xx)
 
 // The STM32H743 flash sectors are 128K
 
