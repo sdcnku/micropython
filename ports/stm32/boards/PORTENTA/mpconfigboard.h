@@ -126,7 +126,7 @@ void PORTENTA_reboot_to_bootloader(void);
 //#define MICROPY_HEAP_START              sdram_start()
 //#define MICROPY_HEAP_END                sdram_end()
 
-// Timing configuration for 100 Mhz SDRAM clock frequency (200Mhz/2)
+// Timing configuration for 90 Mhz (11.90ns) of SD clock frequency (180Mhz/2)
 #define MICROPY_HW_SDRAM_TIMING_TMRD        (2)
 #define MICROPY_HW_SDRAM_TIMING_TXSR        (7)
 #define MICROPY_HW_SDRAM_TIMING_TRAS        (4)
@@ -135,14 +135,14 @@ void PORTENTA_reboot_to_bootloader(void);
 #define MICROPY_HW_SDRAM_TIMING_TRP         (2)
 #define MICROPY_HW_SDRAM_TIMING_TRCD        (2)
 #define MICROPY_HW_SDRAM_REFRESH_RATE       (64) // ms
-#define MICROPY_HW_SDRAM_FREQUENCY          (100000) // 100 MHz
+#define MICROPY_HW_SDRAM_FREQUENCY          (90000) // 100 MHz
 
 #define MICROPY_HW_SDRAM_BURST_LENGTH       2
 #define MICROPY_HW_SDRAM_CAS_LATENCY        3
 #define MICROPY_HW_SDRAM_COLUMN_BITS_NUM    8
 #define MICROPY_HW_SDRAM_ROW_BITS_NUM       12
 #define MICROPY_HW_SDRAM_MEM_BUS_WIDTH      16
-#define MICROPY_HW_SDRAM_REFRESH_CYCLES     4096
+#define MICROPY_HW_SDRAM_REFRESH_CYCLES     8192
 #define MICROPY_HW_SDRAM_INTERN_BANKS_NUM   4
 #define MICROPY_HW_SDRAM_CLOCK_PERIOD       2
 #define MICROPY_HW_SDRAM_RPIPE_DELAY        1
