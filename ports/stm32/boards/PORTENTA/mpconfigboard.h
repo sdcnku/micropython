@@ -215,7 +215,4 @@ void PORTENTA_reboot_to_bootloader(void);
 #define USBD_INTERFACE_FS_STRING      "Portenta Interface"
 #define MICROPY_PY_SYS_PLATFORM       "Portenta"
 #define USBD_PID_RNDIS_CDC_MSC        0x005B
-//#define USBD_VID                      0x2341
-// Use OPENMV's VID/PID for now to work with the IDE.
-#define USBD_VID                      0x1209
-#define USBD_PID                      0xabd1
+#define USBD_VID                      0x2341
