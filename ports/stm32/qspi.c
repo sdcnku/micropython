@@ -198,6 +198,8 @@ STATIC void qspi_write_cmd_data(void *self_in, uint8_t cmd, size_t len, uint32_t
             | cmd << QUADSPI_CCR_INSTRUCTION_Pos // write opcode
             ;
 
+        __DSB(); __ISB();
+
         // This assumes len==2
         *(uint16_t*)&QUADSPI->DR = data;
     }
