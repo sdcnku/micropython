@@ -105,10 +105,16 @@ extern const dma_descr_t dma_I2C_4_RX;
 // NOTE: F4 CCM memory is not accessible by GP-DMA.
 #define DMA_BUFFER(p)       ((((uint32_t)p & 3) == 0) && ((uint32_t) p > 0x10010000))
 #elif defined(STM32H7)
-// NOTE: H7 SD DMA can only access AXI SRAM memory.
-#define DMA_BUFFER(p)       ((((uint32_t)p & 3) == 0) && ((uint32_t) p >= 0x24000000) && ((uint32_t) p < 0x24080000))
+#define DMA_BUFFER(p)       (((uint32_t)p & 3) == 0)
 #else
 #error Unsupported processor
+#endif
+
+// NOTE: H7 SD DMA can only access AXI SRAM memory.
+#if !defined(STM32H7)
+    #define IS_AXI_SRAM(p)      (1)
+#else
+    #define IS_AXI_SRAM(p)      ((uint32_t) p >= 0x24000000) && ((uint32_t) p < 0x24080000)
 #endif
 
 void dma_init(DMA_HandleTypeDef *dma, const dma_descr_t *dma_descr, uint32_t dir, void *data);
