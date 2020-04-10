@@ -399,7 +399,7 @@ void pyb_i2c_init_freq(const pyb_i2c_obj_t *self, mp_int_t freq) {
 
 STATIC void i2c_reset_after_error(I2C_HandleTypeDef *i2c) {
     // wait for bus-busy flag to be cleared, with a timeout
-    for (int timeout = 50; timeout > 0; --timeout) {
+    for (int timeout = 5; timeout > 0; --timeout) {
         if (!__HAL_I2C_GET_FLAG(i2c, I2C_FLAG_BUSY)) {
             // stop bit was generated and bus is back to normal
             return;
