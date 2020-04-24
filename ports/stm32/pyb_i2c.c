@@ -340,6 +340,12 @@ void pyb_i2c_init(I2C_HandleTypeDef *i2c) {
 }
 
 void i2c_deinit(I2C_HandleTypeDef *i2c) {
+    if (pyb_i2c->rx_dma_descr != NULL) {
+        dma_deinit(pyb_i2c->rx_dma_descr);
+    }
+    if (pyb_i2c->tx_dma_descr != NULL) {
+        dma_deinit(pyb_i2c->tx_dma_descr);
+    }
     HAL_I2C_DeInit(i2c);
     if (0) {
     #if defined(MICROPY_HW_I2C1_SCL)
@@ -374,6 +380,15 @@ void i2c_deinit(I2C_HandleTypeDef *i2c) {
         HAL_NVIC_DisableIRQ(I2C4_EV_IRQn);
         HAL_NVIC_DisableIRQ(I2C4_ER_IRQn);
     #endif
+    }
+}
+
+void i2c_deinit_all(void) {
+    for (int i = 0; i < (sizeof(pyb_i2c_obj) / sizeof(pyb_i2c_obj_t)); i++) {
+        const pyb_i2c_obj_t *pyb_i2c = &pyb_i2c_obj[i];
+        if (pyb_i2c->i2c != NULL) {
+            i2c_deinit(pyb_i2c->i2c);
+        }
     }
 }
 

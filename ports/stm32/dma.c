@@ -776,6 +776,7 @@ void dma_init(DMA_HandleTypeDef *dma, const dma_descr_t *dma_descr, uint32_t dir
 
 void dma_deinit(const dma_descr_t *dma_descr) {
     if (dma_descr != NULL) {
+        HAL_DMA_Abort(dma_handle[dma_descr->id]);
         #if !defined(STM32F0)
         HAL_NVIC_DisableIRQ(dma_irqn[dma_descr->id]);
         #endif
