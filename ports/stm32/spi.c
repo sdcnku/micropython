@@ -142,6 +142,15 @@ void spi_init0(void) {
     #endif
 }
 
+void spi_deinit_all(void) {
+    for (int i = 0; i < (sizeof(spi_obj) / sizeof(spi_t)); i++) {
+        const spi_t *spi = &spi_obj[i];
+        if (spi->spi != NULL) {
+            spi_deinit(spi);
+        }
+    }
+}
+
 int spi_find_index(mp_obj_t id) {
     if (mp_obj_is_str(id)) {
         // given a string id
@@ -386,6 +395,12 @@ void spi_init(const spi_t *self, bool enable_nss_pin) {
 }
 
 void spi_deinit(const spi_t *spi_obj) {
+    if (spi_obj->rx_dma_descr != NULL) {
+        dma_deinit(spi_obj->rx_dma_descr);
+    }
+    if (spi_obj->tx_dma_descr != NULL) {
+        dma_deinit(spi_obj->tx_dma_descr);
+    }
     SPI_HandleTypeDef *spi = spi_obj->spi;
     HAL_SPI_DeInit(spi);
     if (0) {
