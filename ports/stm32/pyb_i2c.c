@@ -340,16 +340,22 @@ void pyb_i2c_init(I2C_HandleTypeDef *i2c) {
 }
 
 void i2c_deinit(I2C_HandleTypeDef *i2c) {
+    // Find and disabled the correct dma channels for the i2c bus.
+    for (int i = 0; i < (sizeof(pyb_i2c_obj) / sizeof(pyb_i2c_obj_t)); i++) {
+        if (pyb_i2c_obj[i].i2c == i2c) {
+            if (pyb_i2c_obj[i].rx_dma_descr != NULL) {
+                dma_deinit(pyb_i2c_obj[i].rx_dma_descr);
+            }
+            if (pyb_i2c_obj[i].tx_dma_descr != NULL) {
+                dma_deinit(pyb_i2c_obj[i].tx_dma_descr);
+            }
+            break;
+        }
+    }
     HAL_I2C_DeInit(i2c);
     if (0) {
     #if defined(MICROPY_HW_I2C1_SCL)
     } else if (i2c->Instance == I2C1) {
-        if (pyb_i2c_obj[0].rx_dma_descr != NULL) {
-            dma_deinit(pyb_i2c_obj[0].rx_dma_descr);
-        }
-        if (pyb_i2c_obj[0].tx_dma_descr != NULL) {
-            dma_deinit(pyb_i2c_obj[0].tx_dma_descr);
-        }
         __HAL_RCC_I2C1_FORCE_RESET();
         __HAL_RCC_I2C1_RELEASE_RESET();
         __HAL_RCC_I2C1_CLK_DISABLE();
@@ -359,12 +365,6 @@ void i2c_deinit(I2C_HandleTypeDef *i2c) {
     #endif
     #if defined(MICROPY_HW_I2C2_SCL)
     } else if (i2c->Instance == I2C2) {
-        if (pyb_i2c_obj[1].rx_dma_descr != NULL) {
-            dma_deinit(pyb_i2c_obj[1].rx_dma_descr);
-        }
-        if (pyb_i2c_obj[1].tx_dma_descr != NULL) {
-            dma_deinit(pyb_i2c_obj[1].tx_dma_descr);
-        }
         __HAL_RCC_I2C2_FORCE_RESET();
         __HAL_RCC_I2C2_RELEASE_RESET();
         __HAL_RCC_I2C2_CLK_DISABLE();
@@ -373,12 +373,6 @@ void i2c_deinit(I2C_HandleTypeDef *i2c) {
     #endif
     #if defined(MICROPY_HW_I2C3_SCL)
     } else if (i2c->Instance == I2C3) {
-        if (pyb_i2c_obj[2].rx_dma_descr != NULL) {
-            dma_deinit(pyb_i2c_obj[2].rx_dma_descr);
-        }
-        if (pyb_i2c_obj[2].tx_dma_descr != NULL) {
-            dma_deinit(pyb_i2c_obj[2].tx_dma_descr);
-        }
         __HAL_RCC_I2C3_FORCE_RESET();
         __HAL_RCC_I2C3_RELEASE_RESET();
         __HAL_RCC_I2C3_CLK_DISABLE();
@@ -387,12 +381,6 @@ void i2c_deinit(I2C_HandleTypeDef *i2c) {
     #endif
     #if defined(MICROPY_HW_I2C4_SCL)
     } else if (i2c->Instance == I2C4) {
-        if (pyb_i2c_obj[3].rx_dma_descr != NULL) {
-            dma_deinit(pyb_i2c_obj[3].rx_dma_descr);
-        }
-        if (pyb_i2c_obj[3].tx_dma_descr != NULL) {
-            dma_deinit(pyb_i2c_obj[3].tx_dma_descr);
-        }
         __HAL_RCC_I2C4_FORCE_RESET();
         __HAL_RCC_I2C4_RELEASE_RESET();
         __HAL_RCC_I2C4_CLK_DISABLE();
