@@ -154,5 +154,3 @@ Classes
    machine.RTC.rst
    machine.Timer.rst
    machine.WDT.rst
-   machine.SD.rst
-   machine.SDCard.rst

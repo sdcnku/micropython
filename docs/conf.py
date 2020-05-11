@@ -66,7 +66,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'MicroPython'
-copyright = '2014-2019, Damien P. George, Paul Sokolovsky, OpenMV LLC, and contributors'
+copyright = '2014-2020, Damien P. George, Paul Sokolovsky, OpenMV LLC, and contributors'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -91,11 +91,15 @@ version = release = '1.12'
 exclude_patterns = ['build', '.venv', "esp32", "esp8266", "pyboard", "wipy",
                     "develop/index.rst",
                     "develop/cmodules.rst",
+                    "develop/natmod.rst",
+                    "develop/qstr.rst",
                     "library/esp.rst",
                     "library/esp32.rst",
                     "library/lcd160cr.rst",
                     "library/machine.ADC.rst",
+                    "library/machine.ADCWiPy.rst",
                     "library/machine.SD.rst",
+                    "library/machine.SDCard.rst",
                     "library/machine.TimerWiPy.rst",
                     "library/network.CC3K.rst",
                     "library/network.WIZNET5K.rst",
@@ -104,7 +108,9 @@ exclude_patterns = ['build', '.venv', "esp32", "esp8266", "pyboard", "wipy",
                     "library/pyb.Accel.rst",
                     "library/pyb.LCD.rst",
                     "library/pyb.Switch.rst",
-                    "library/wipy.rst"]
+                    "library/ubluetooth.rst",
+                    "library/wipy.rst",
+                    "reference/packages.rst"]
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
