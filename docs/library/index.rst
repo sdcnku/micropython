@@ -111,9 +111,9 @@ the following libraries.
    machine.rst
    micropython.rst
    network.rst
-   ubluetooth.rst
    ucryptolib.rst
    uctypes.rst
+   mutex.rst
 
 
 Libraries specific to the OpenMV Cam
@@ -149,6 +149,8 @@ The following libraries are specific to the OpenMV Cam.
    omv.fir.rst
    omv.tv.rst
    omv.cpufreq.rst
+   omv.imu.rst
+   omv.rpc.rst
    omv.omv.rst
 
 Third-party libraries on the OpenMV Cam

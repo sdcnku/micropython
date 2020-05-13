@@ -25,7 +25,6 @@ implementation and the best practices to use them.
    isr_rules.rst
    speed_python.rst
    constrained.rst
-   packages.rst
    asm_thumb2_index.rst
    filesystem.rst
    pyboard.py.rst
