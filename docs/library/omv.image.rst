@@ -1827,7 +1827,8 @@ Methods
       `image.get_pixel()` and `image.set_pixel()` are the only methods that allow
       you to manipulate bayer pattern images. Bayer pattern images are literal images
       where pixels in the image are R/G/R/G/etc. for even rows and G/B/G/B/etc. for
-      odd rows. Each pixel is 8-bits.
+      odd rows. Each pixel is 8-bits. If you call this method with ``rgbtuple`` set then `image.get_pixel()`
+      will debayer the source image at that pixel location and return a valid RGB888 tuple for the pixel location.
 
 .. method:: image.set_pixel(x, y, pixel)
 
@@ -1850,7 +1851,8 @@ Methods
       `image.get_pixel()` and `image.set_pixel()` are the only methods that allow
       you to manipulate bayer pattern images. Bayer pattern images are literal images
       where pixels in the image are R/G/R/G/etc. for even rows and G/B/G/B/etc. for
-      odd rows. Each pixel is 8-bits.
+      odd rows. Each pixel is 8-bits. If you call this method with an RGB888 tuple the grayscale
+      value of that RGB888 tuple is extracted and set to the pixel location.
 
 .. method:: image.mean_pool(x_div, y_div)
 
@@ -2367,7 +2369,7 @@ Methods
 
    Not supported on compressed images or bayer images.
 
-.. method:: image.draw_image(image, x, y, [x_scale=1.0, [y_scale=1.0, [alpha=256, [mask=None, [color_palette=-1]]]]])
+.. method:: image.draw_image(image, x, y, [x_scale=1.0, [y_scale=1.0, [alpha=256, [mask=None, [color_palette=-1, [alpha_palette=-1]]]]]])
 
    Draws an ``image`` whose top-left corner starts at location x, y. You may either
    pass x, y separately or as a tuple (x, y). This method ia very flexible and does
@@ -2397,6 +2399,9 @@ Methods
    ``color_palette`` if not ``-1`` can be `sensor.PALETTE_RAINBOW`, `sensor.PALETTE_IRONBOW`, or
    a 256 pixel in total RGB565 image to use as a color palette to draw a GRAYSCALE image on an
    RGB565 image in color.
+
+   ``alpha_palette`` if not ``-1`` can be a 256 pixel in total GRAYSCALE image to use as a alpha
+   palette to draw a GRAYSCALE image on an RGB565 or GRAYSCALE image with transparency.
 
    Returns the image object so you can call another method using ``.`` notation.
 
@@ -3386,7 +3391,7 @@ Methods
 
    This method is not available on the OpenMV Cam M4.
 
-.. method:: image.lens_corr([strength=1.8, [zoom=1.0]])
+.. method:: image.lens_corr([strength=1.8, [zoom=1.0, [x_corr=0.0, [y_corr=0.0]]]])
 
    Performs lens correction to un-fisheye the image due to the lens distortion.
 
@@ -3395,6 +3400,10 @@ Methods
    looks good.
 
    ``zoom`` is the amount to zoom in on the image by. 1.0 by default.
+
+   ``x_corr`` floating point pixel offset from center. Can be negative or positive.
+
+   ``y_corr`` floating point pixel offset from center. Can be negative or positive.
 
    Returns the image object so you can call another method using ``.`` notation.
 
@@ -3459,7 +3468,7 @@ Methods
 
    This method is not available on the OpenMV Cam M4.
 
-.. method:: image.get_histogram([thresholds, [invert=False, [roi, [bins, [l_bins, [a_bins, [b_bins]]]]]]])
+.. method:: image.get_histogram([thresholds, [invert=False, [roi, [bins, [l_bins, [a_bins, [b_bins, [difference]]]]]]]])
 
    Computes the normalized histogram on all color channels for an ``roi`` and
    returns a `image.histogram` object. Please see the `image.histogram` object for more
@@ -3513,9 +3522,13 @@ Methods
    the number of unique pixel values for each channel. By default, the historgram
    will have the maximum number of bins per channel.
 
+   ``difference`` may be set to an image object to cause this method to operate
+   on the difference image between the current image and the ``difference`` image
+   object. This saves having to use a separate buffer.
+
    Not supported on compressed images or bayer images.
 
-.. method:: image.get_statistics([thresholds, [invert=False, [roi, [bins, [l_bins, [a_bins, [b_bins]]]]]]])
+.. method:: image.get_statistics([thresholds, [invert=False, [roi, [bins, [l_bins, [a_bins, [b_bins, [difference]]]]]]]])
 
    Computes the mean, median, mode, standard deviation, min, max, lower
    quartile, and upper quartile for all color channels for an ``roi`` and
@@ -3572,6 +3585,10 @@ Methods
    channel. Additionally, it makes no sense to set the bin count larger than
    the number of unique pixel values for each channel. By default, the historgram
    will have the maximum number of bins per channel.
+
+   ``difference`` may be set to an image object to cause this method to operate
+   on the difference image between the current image and the ``difference`` image
+   object. This saves having to use a separate buffer.
 
    Not supported on compressed images or bayer images.
 

@@ -210,6 +210,14 @@ Methods
    Returns the number of color channels in the model. 1 for grayscale
    and 3 for RGB.
 
+.. method:: tf_model.signed()
+
+   Returns True if the model input is signed and False if unsigned.
+
+.. method:: tf_model.is_float()
+
+   Returns True if the model input is floating point and False if not floating point.
+
 .. method:: tf_model.classify(img, [roi, [min_scale=1.0, [scale_mul=0.5, [x_overlap=0, [y_overlap=0]]]]])
 
    Executes the TensorFlow Lite image classification model on the ``img``

@@ -109,8 +109,17 @@ the following libraries.
    btree.rst
    framebuf.rst
    machine.rst
+   machine.Pin.rst
+   machine.Signal.rst
+   machine.UART.rst
+   machine.SPI.rst
+   machine.I2C.rst
+   machine.RTC.rst
+   machine.Timer.rst
+   machine.WDT.rst
    micropython.rst
    network.rst
+   network.WINC.rst
    ucryptolib.rst
    uctypes.rst
    mutex.rst
@@ -129,6 +138,7 @@ The following libraries are specific to the OpenMV Cam.
    pyb.CAN.rst
    pyb.DAC.rst
    pyb.ExtInt.rst
+   pyb.Flash.rst
    pyb.I2C.rst
    pyb.LED.rst
    pyb.Pin.rst
@@ -151,6 +161,7 @@ The following libraries are specific to the OpenMV Cam.
    omv.cpufreq.rst
    omv.imu.rst
    omv.rpc.rst
+   omv.rtsp.rst
    omv.omv.rst
 
 Third-party libraries on the OpenMV Cam
