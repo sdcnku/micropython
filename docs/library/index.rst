@@ -104,22 +104,13 @@ Functionality specific to the MicroPython implementation is available in
 the following libraries.
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 3
 
    btree.rst
    framebuf.rst
    machine.rst
-   machine.Pin.rst
-   machine.Signal.rst
-   machine.UART.rst
-   machine.SPI.rst
-   machine.I2C.rst
-   machine.RTC.rst
-   machine.Timer.rst
-   machine.WDT.rst
    micropython.rst
    network.rst
-   network.WINC.rst
    ucryptolib.rst
    uctypes.rst
    mutex.rst
@@ -131,23 +122,9 @@ Libraries specific to the OpenMV Cam
 The following libraries are specific to the OpenMV Cam.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    pyb.rst
-   pyb.ADC.rst
-   pyb.CAN.rst
-   pyb.DAC.rst
-   pyb.ExtInt.rst
-   pyb.Flash.rst
-   pyb.I2C.rst
-   pyb.LED.rst
-   pyb.Pin.rst
-   pyb.RTC.rst
-   pyb.Servo.rst
-   pyb.SPI.rst
-   pyb.Timer.rst
-   pyb.UART.rst
-   pyb.USB_VCP.rst
    omv.time.rst
    omv.sensor.rst
    omv.image.rst

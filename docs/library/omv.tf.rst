@@ -120,19 +120,19 @@ Functions
    Note that deallocations happen in the reverse order of allocation.
 
 class tf_classification -- tf classification dection result
-===========================================================
+-----------------------------------------------------------
 
 The tf_classification object is returned by `tf.classify()` or `tf_model.classify()`.
 
 Constructors
-------------
+~~~~~~~~~~~~
 
 .. class:: tf.tf_classification()
 
    Please call `tf.classify()` or `tf_model.classify()` to create this object.
 
 Methods
--------
+~~~~~~~
 
 .. method:: tf_classification.rect()
 
@@ -174,14 +174,14 @@ Methods
    You may also get this value doing ``[4]`` on the object.
 
 class tf_model -- TensorFlow Model
-==================================
+----------------------------------
 
 If your model size is small enough and you have enough heap or frame buffer space you may wish
 to directly load the model into memory to save from having to load it from disk
 each time you wish to execute it.
 
 Constructors
-------------
+~~~~~~~~~~~~
 
 .. class:: tf.tf_model()
 
@@ -189,7 +189,7 @@ Constructors
    you to execute a model from RAM versus having to load it from disk repeatedly.
 
 Methods
--------
+~~~~~~~
 
 .. method:: tf_model.len()
 

@@ -22,12 +22,12 @@ Note that not all RTSP clients can decode all types of JPEG images streamed. For
 use the OV2640/OV5640 camera modules `sensor.JPEG` mode for streaming RTSP JPEG video.
 
 class rtsp_server - rtsp_server class
-=====================================
+-------------------------------------
 
 The `rtsp_server` class creates a single connection RTSP web server on your OpenMV Cam.
 
 Constructors
-------------
+~~~~~~~~~~~~
 
 .. class:: rtsp.rtsp_server(ssid, ssid_key, ssid_security, port=554, mode=network.WINC.MODE_STA, static_ip=None)
 
@@ -41,7 +41,7 @@ Constructors
    * static_ip - If not None then a tuple of the (IP Address, Subnet Mask, Gateway, DNS Address)
 
 Methods
--------
+~~~~~~~
 
 .. method:: rtsp_server.register_setup_cb(cb)
 
