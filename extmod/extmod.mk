@@ -241,5 +241,10 @@ SRC_MOD += $(addprefix $(ULAB_DIR)/,\
 	code/poly.c         \
 	code/ulab.c         \
 	code/vectorise.c    \
+	code/create.c    	\
+	code/approx.c		\
+	code/filter.c		\
+	code/compare.c		\
+	code/extras.c		\
 	)
 endif
