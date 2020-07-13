@@ -32,16 +32,16 @@ void PORTENTA_board_early_init(void);
 #define ARDUINO_1200BPS_TOUCH PORTENTA_reboot_to_bootloader
 void PORTENTA_reboot_to_bootloader(void);
 
-// The board has an 27MHz HSE, the following gives 400MHz CPU speed
-#define MICROPY_HW_CLK_PLLM (9)
-#define MICROPY_HW_CLK_PLLN (300)
+// The board has an 25MHz HSE, the following gives 450MHz CPU speed
+#define MICROPY_HW_CLK_PLLM (5)
+#define MICROPY_HW_CLK_PLLN (180)
 #define MICROPY_HW_CLK_PLLFRACN (0)
 #define MICROPY_HW_CLK_PLLP (2)
 #define MICROPY_HW_CLK_PLLQ (10)
 #define MICROPY_HW_CLK_PLLR (2)
 
 // The USB clock is set using PLL3
-#define MICROPY_HW_CLK_PLL3M (27)
+#define MICROPY_HW_CLK_PLL3M (25)
 #define MICROPY_HW_CLK_PLL3N (336)
 #define MICROPY_HW_CLK_PLL3FRACN (0)
 #define MICROPY_HW_CLK_PLL3P (2)
@@ -215,4 +215,5 @@ void PORTENTA_reboot_to_bootloader(void);
 #define USBD_INTERFACE_FS_STRING      "Portenta Interface"
 #define MICROPY_PY_SYS_PLATFORM       "Portenta"
 #define USBD_PID_RNDIS_CDC_MSC        0x005B
+#define USBD_PID                      0x005B
 #define USBD_VID                      0x2341
