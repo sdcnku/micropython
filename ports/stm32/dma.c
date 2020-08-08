@@ -145,7 +145,7 @@ static const DMA_InitTypeDef dma_init_struct_sdio = {
 
 #if defined(MICROPY_HW_ENABLE_DAC) && MICROPY_HW_ENABLE_DAC
 // Default parameters to dma_init() for DAC tx
-static const DMA_InitTypeDef dma_init_struct_dac = {
+DMA_InitTypeDef dma_init_struct_dac = {
     #if defined(STM32F4) || defined(STM32F7)
     .Channel             = 0,
     #elif defined(STM32H7) || defined(STM32L0) || defined(STM32L4)
@@ -156,7 +156,7 @@ static const DMA_InitTypeDef dma_init_struct_dac = {
     .MemInc              = DMA_MINC_ENABLE,
     .PeriphDataAlignment = DMA_PDATAALIGN_BYTE,
     .MemDataAlignment    = DMA_MDATAALIGN_BYTE,
-    .Mode                = DMA_CIRCULAR,
+    .Mode                = DMA_NORMAL,
     .Priority            = DMA_PRIORITY_HIGH,
     #if defined(STM32F4) || defined(STM32F7) || defined(STM32H7)
     .FIFOMode            = DMA_FIFOMODE_DISABLE,

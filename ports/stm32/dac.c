@@ -164,12 +164,15 @@ STATIC void dac_start(uint32_t dac_channel) {
 // Workaround until dma_nohal functions get fixed.
 static DAC_HandleTypeDef hdac;
 static DMA_HandleTypeDef hdma;
+extern DMA_InitTypeDef dma_init_struct_dac;
 
 STATIC void dac_start_dma(uint32_t dac_channel, const dma_descr_t *dma_descr, uint32_t dma_mode, uint32_t bit_size, uint32_t dac_align, size_t len, void *buf) {
     hdac.Instance = DAC1;
     HAL_DAC_Init(&hdac);
 
     dma_deinit(dma_descr);
+    // Currently there's no other way to set the mode when using this API.
+    dma_init_struct_dac.Mode = dma_mode;
     dma_init(&hdma, dma_descr, DMA_MEMORY_TO_PERIPH, &hdac);
     hdac.DMA_Handle2 = &hdma;
 
