@@ -15,7 +15,6 @@ MICROPY_PY_NETWORK_CYW43 = 0
 #MICROPY_PY_USSL = 1
 #MICROPY_SSL_MBEDTLS = 1
 #MICROPY_SSL_AXTLS = 1
-MICROPY_PY_ULAB = 1
 
 ifeq ($(USE_MBOOT),1)
 # When using Mboot all the text goes together after the filesystem
