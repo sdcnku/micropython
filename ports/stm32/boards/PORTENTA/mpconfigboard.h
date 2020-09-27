@@ -9,10 +9,9 @@
 #define MICROPY_HW_ENABLE_USB       (1)
 #define MICROPY_HW_HAS_SWITCH       (0)
 #define MICROPY_HW_HAS_FLASH        (1)
-#define MICROPY_HW_HAS_SDCARD       (0)
 #define MICROPY_HW_ENABLE_SERVO     (1)
 #define MICROPY_HW_ENABLE_TIMER     (1)
-#define MICROPY_HW_ENABLE_SDCARD    (0)
+#define MICROPY_HW_ENABLE_SDCARD    (1)
 #define MICROPY_HW_ENABLE_MMCARD    (0)
 
 #define MICROPY_HW_ENABLE_INTERNAL_FLASH_STORAGE (0)
@@ -112,6 +111,13 @@ void PORTENTA_reboot_to_bootloader(void);
 #define MICROPY_HW_LED3             (pyb_pin_LEDB) // yellow
 #define MICROPY_HW_LED_ON(pin)      (mp_hal_pin_low(pin))
 #define MICROPY_HW_LED_OFF(pin)     (mp_hal_pin_high(pin))
+
+#define MICROPY_HW_SDMMC2_CK        (pin_D6)
+#define MICROPY_HW_SDMMC2_CMD       (pin_D7)
+#define MICROPY_HW_SDMMC2_D0        (pin_B14)
+#define MICROPY_HW_SDMMC2_D1        (pin_B15)
+#define MICROPY_HW_SDMMC2_D2        (pin_B3)
+#define MICROPY_HW_SDMMC2_D3        (pin_B4)
 
 // USB config
 #define MICROPY_HW_USB_HS           (1)
