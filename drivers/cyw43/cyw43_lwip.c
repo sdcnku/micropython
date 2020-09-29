@@ -25,6 +25,7 @@
  */
 
 #include <string.h>
+#include <stdio.h>
 
 #include "py/mphal.h"
 #include "lib/netutils/netutils.h"
