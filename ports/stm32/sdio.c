@@ -293,7 +293,7 @@ int sdio_transfer_cmd53(bool write, uint32_t block_size, uint32_t arg, size_t le
         return -MP_EINVAL;
     }
 
-    bool dma = (len > 16);
+    bool dma = (len > 16) && DMA_BUFFER(buf) && IS_AXI_SRAM(buf);
 
     SDMMC1->ICR = SDMMC_STATIC_FLAGS; // clear interrupts
     SDMMC1->MASK &= SDMMC_MASK_SDIOITIE;
