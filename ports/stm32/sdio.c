@@ -31,6 +31,7 @@
 #include "genhdr/pins.h"
 #include "pendsv.h"
 #include "sdio.h"
+#include "dma.h"
 
 #if MICROPY_PY_NETWORK_CYW43
 
