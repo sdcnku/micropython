@@ -77,8 +77,6 @@ static inline void qspi_mpu_enable_mapped(void) {
     // At the moment this is hard-coded to 2MiB of QSPI address space.
     uint32_t irq_state = mpu_config_start();
     mpu_config_region(MPU_REGION_QSPI1, QSPI_MAP_ADDR, MPU_CONFIG_DISABLE(0x01, MPU_REGION_SIZE_256MB));
-    mpu_config_region(MPU_REGION_QSPI2, QSPI_MAP_ADDR, MPU_CONFIG_DISABLE(0x0f, MPU_REGION_SIZE_32MB));
-    mpu_config_region(MPU_REGION_QSPI3, QSPI_MAP_ADDR, MPU_CONFIG_DISABLE(0x01, MPU_REGION_SIZE_16MB));
     mpu_config_end(irq_state);
 }
 
