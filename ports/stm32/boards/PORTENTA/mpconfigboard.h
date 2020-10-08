@@ -56,7 +56,7 @@ void PORTENTA_reboot_to_bootloader(void);
 
 // QSPI flash #2, to be memory mapped
 #define MICROPY_HW_QSPIFLASH_SIZE_BITS_LOG2 (27)
-#define MICROPY_HW_SPIFLASH_SIZE_BITS (128 * 1024 * 1024)
+#define MICROPY_HW_SPIFLASH_SIZE_BITS (120 * 1024 * 1024)
 #define MICROPY_HW_QSPIFLASH_CS     (pyb_pin_QSPI2_CS)
 #define MICROPY_HW_QSPIFLASH_SCK    (pyb_pin_QSPI2_CLK)
 #define MICROPY_HW_QSPIFLASH_IO0    (pyb_pin_QSPI2_D0)
