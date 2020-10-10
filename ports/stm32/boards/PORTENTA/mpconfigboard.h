@@ -64,6 +64,7 @@ void PORTENTA_reboot_to_bootloader(void);
 #define MICROPY_HW_QSPIFLASH_IO2    (pyb_pin_QSPI2_D2)
 #define MICROPY_HW_QSPIFLASH_IO3    (pyb_pin_QSPI2_D3)
 
+#define MICROPY_HW_QSPI_PRESCALER       (3) //currently 180MHz/3=60MHz
 #define MICROPY_HW_QSPI_SAMPLE_SHIFT	(0)
 
 // SPI flash #2, block device config
