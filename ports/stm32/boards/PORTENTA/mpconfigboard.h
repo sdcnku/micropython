@@ -64,7 +64,7 @@ void PORTENTA_reboot_to_bootloader(void);
 #define MICROPY_HW_QSPIFLASH_IO2    (pyb_pin_QSPI2_D2)
 #define MICROPY_HW_QSPIFLASH_IO3    (pyb_pin_QSPI2_D3)
 
-#define MICROPY_HW_QSPI_PRESCALER       (3) //currently 180MHz/3=60MHz
+#define MICROPY_HW_QSPI_PRESCALER       (4) //200MHz/4=50MHz
 #define MICROPY_HW_QSPI_SAMPLE_SHIFT	(0)
 
 // SPI flash #2, block device config
@@ -133,29 +133,32 @@ void PORTENTA_reboot_to_bootloader(void);
 //#define MICROPY_HEAP_START              sdram_start()
 //#define MICROPY_HEAP_END                sdram_end()
 
-// Timing configuration for 90 Mhz (11.90ns) of SD clock frequency (180Mhz/2)
+// Timing configuration for 200MHz/2=100MHz (10ns)
+#define MICROPY_HW_SDRAM_CLOCK_PERIOD       2
+#define MICROPY_HW_SDRAM_CAS_LATENCY        2
+#define MICROPY_HW_SDRAM_FREQUENCY          (100000) // 100 MHz
 #define MICROPY_HW_SDRAM_TIMING_TMRD        (2)
 #define MICROPY_HW_SDRAM_TIMING_TXSR        (7)
-#define MICROPY_HW_SDRAM_TIMING_TRAS        (4)
-#define MICROPY_HW_SDRAM_TIMING_TRC         (7)
-#define MICROPY_HW_SDRAM_TIMING_TWR         (2)
+#define MICROPY_HW_SDRAM_TIMING_TRAS        (5)
+#define MICROPY_HW_SDRAM_TIMING_TRC         (6)
+#define MICROPY_HW_SDRAM_TIMING_TWR         (3)
 #define MICROPY_HW_SDRAM_TIMING_TRP         (2)
 #define MICROPY_HW_SDRAM_TIMING_TRCD        (2)
-#define MICROPY_HW_SDRAM_REFRESH_RATE       (64) // ms
-#define MICROPY_HW_SDRAM_FREQUENCY          (90000) // 100 MHz
 
-#define MICROPY_HW_SDRAM_BURST_LENGTH       2
-#define MICROPY_HW_SDRAM_CAS_LATENCY        3
-#define MICROPY_HW_SDRAM_COLUMN_BITS_NUM    8
 #define MICROPY_HW_SDRAM_ROW_BITS_NUM       12
 #define MICROPY_HW_SDRAM_MEM_BUS_WIDTH      16
 #define MICROPY_HW_SDRAM_REFRESH_CYCLES     8192
+
+#define MICROPY_HW_SDRAM_COLUMN_BITS_NUM    8
 #define MICROPY_HW_SDRAM_INTERN_BANKS_NUM   4
-#define MICROPY_HW_SDRAM_CLOCK_PERIOD       2
 #define MICROPY_HW_SDRAM_RPIPE_DELAY        1
 #define MICROPY_HW_SDRAM_RBURST             (0)
 #define MICROPY_HW_SDRAM_WRITE_PROTECTION   (0)
+
 #define MICROPY_HW_SDRAM_AUTOREFRESH_NUM    (4)
+#define MICROPY_HW_SDRAM_BURST_LENGTH       2
+#define MICROPY_HW_SDRAM_REFRESH_RATE       (64) // ms
+
 
 #define MICROPY_HW_FMC_SDCKE0   (pin_H2)
 #define MICROPY_HW_FMC_SDNE0    (pin_H3)  // SD_CS ????
