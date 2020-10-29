@@ -235,6 +235,9 @@ extern const struct _mp_obj_module_t ulab_user_cmodule;
 #if MICROPY_PY_IMU
 extern const struct _mp_obj_module_t imu_module;
 #endif
+#if MICROPY_PY_AUDIO
+extern const struct _mp_obj_module_t audio_module;
+#endif
 
 #if MICROPY_PY_STM
 #define STM_BUILTIN_MODULE               { MP_ROM_QSTR(MP_QSTR_stm), MP_ROM_PTR(&stm_module) },
@@ -260,7 +263,6 @@ extern const struct _mp_obj_module_t imu_module;
 #define IMU_BUILTIN_MODULE
 #endif
 
-
 #if MICROPY_PY_USOCKET && MICROPY_PY_LWIP
 // usocket implementation provided by lwIP
 #define SOCKET_BUILTIN_MODULE               { MP_ROM_QSTR(MP_QSTR_usocket), MP_ROM_PTR(&mp_module_lwip) },
@@ -282,6 +284,12 @@ extern const struct _mp_obj_module_t imu_module;
 #define NETWORK_BUILTIN_MODULE              { MP_ROM_QSTR(MP_QSTR_network), MP_ROM_PTR(&mp_module_network) },
 #else
 #define NETWORK_BUILTIN_MODULE
+#endif
+
+#if MICROPY_PY_AUDIO
+#define AUDIO_BUILTIN_MODULE            {  MP_OBJ_NEW_QSTR(MP_QSTR_audio), (mp_obj_t)&audio_module },
+#else
+#define AUDIO_BUILTIN_MODULE
 #endif
 
 #define MICROPY_PORT_BUILTIN_MODULES \
@@ -307,6 +315,7 @@ extern const struct _mp_obj_module_t imu_module;
     IMU_BUILTIN_MODULE \
     SOCKET_BUILTIN_MODULE \
     NETWORK_BUILTIN_MODULE \
+    AUDIO_BUILTIN_MODULE \
     { MP_ROM_QSTR(MP_QSTR__onewire), MP_ROM_PTR(&mp_module_onewire) }, \
 
 // extra constants
