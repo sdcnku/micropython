@@ -152,7 +152,7 @@ MP_DECLARE_CONST_FUN_OBJ_0(pyb_irq_stats_obj);
 // that rely on the flash storage.
 #define IRQ_PRI_FLASH           NVIC_EncodePriority(NVIC_PRIORITYGROUP_4, 2, 0)
 
-// DCMI Priority 
+// DCMI Priority
 #define IRQ_PRI_DCMI            NVIC_EncodePriority(NVIC_PRIORITYGROUP_4, 3, 0)
 
 // DCMI DMA2_Stream1
@@ -181,6 +181,12 @@ MP_DECLARE_CONST_FUN_OBJ_0(pyb_irq_stats_obj);
 #define IRQ_PRI_CAN             NVIC_EncodePriority(NVIC_PRIORITYGROUP_4, 8, 0)
 
 #define IRQ_PRI_SPI             NVIC_EncodePriority(NVIC_PRIORITYGROUP_4, 9, 0)
+
+// SPI2TX DMA1_Stream4
+#define IRQ_PRI_DMA14           NVIC_EncodePriority(NVIC_PRIORITYGROUP_4, 10, 0)
+
+#define IRQ_PRI_LTDC            NVIC_EncodePriority(NVIC_PRIORITYGROUP_4, 10, 0)
+#define IRQ_PRI_DSI             NVIC_EncodePriority(NVIC_PRIORITYGROUP_4, 10, 0)
 
 // Interrupt priority for non-special timers.
 #define IRQ_PRI_TIMX            NVIC_EncodePriority(NVIC_PRIORITYGROUP_4, 12, 0)
