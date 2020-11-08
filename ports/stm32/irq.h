@@ -182,10 +182,8 @@ MP_DECLARE_CONST_FUN_OBJ_0(pyb_irq_stats_obj);
 
 #define IRQ_PRI_SPI             NVIC_EncodePriority(NVIC_PRIORITYGROUP_4, 9, 0)
 
-// SPI2TX DMA1_Stream4
-#define IRQ_PRI_DMA14           NVIC_EncodePriority(NVIC_PRIORITYGROUP_4, 10, 0)
-
 #define IRQ_PRI_LTDC            NVIC_EncodePriority(NVIC_PRIORITYGROUP_4, 10, 0)
+
 #define IRQ_PRI_DSI             NVIC_EncodePriority(NVIC_PRIORITYGROUP_4, 10, 0)
 
 // Interrupt priority for non-special timers.
