@@ -238,6 +238,9 @@ extern const struct _mp_obj_module_t imu_module;
 #if MICROPY_PY_AUDIO
 extern const struct _mp_obj_module_t audio_module;
 #endif
+#if MICROPY_PY_MICRO_SPEECH
+extern const struct _mp_obj_module_t micro_speech_module;
+#endif
 
 #if MICROPY_PY_STM
 #define STM_BUILTIN_MODULE               { MP_ROM_QSTR(MP_QSTR_stm), MP_ROM_PTR(&stm_module) },
@@ -292,6 +295,12 @@ extern const struct _mp_obj_module_t audio_module;
 #define AUDIO_BUILTIN_MODULE
 #endif
 
+#if MICROPY_PY_MICRO_SPEECH
+#define MICRO_SPEECH_BUILTIN_MODULE     {  MP_OBJ_NEW_QSTR(MP_QSTR_micro_speech), (mp_obj_t)&micro_speech_module },
+#else
+#define MICRO_SPEECH_BUILTIN_MODULE
+#endif
+
 #define MICROPY_PORT_BUILTIN_MODULES \
     { MP_OBJ_NEW_QSTR(MP_QSTR_umachine), (mp_obj_t)&machine_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_pyb), (mp_obj_t)&pyb_module }, \
@@ -316,6 +325,7 @@ extern const struct _mp_obj_module_t audio_module;
     SOCKET_BUILTIN_MODULE \
     NETWORK_BUILTIN_MODULE \
     AUDIO_BUILTIN_MODULE \
+    MICRO_SPEECH_BUILTIN_MODULE \
     { MP_ROM_QSTR(MP_QSTR__onewire), MP_ROM_PTR(&mp_module_onewire) }, \
 
 // extra constants
