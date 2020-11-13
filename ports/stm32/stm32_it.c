@@ -84,7 +84,6 @@
 #include "usb.h"
 
 extern void __fatal_error(const char*);
-extern DCMI_HandleTypeDef DCMIHandle;
 extern void DCMI_VsyncExtiCallback();
 #if defined(MICROPY_HW_USB_FS)
 extern PCD_HandleTypeDef pcd_fs_handle;
@@ -739,14 +738,6 @@ void TIM17_IRQHandler(void) {
     IRQ_EXIT(TIM17_IRQn);
 }
 #endif
-
-void DCMI_IRQHandler(void) {
-    HAL_DCMI_IRQHandler(&DCMIHandle);
-}
-
-void DMA2_Stream1_IRQHandler(void) {
-    HAL_DMA_IRQHandler(DCMIHandle.DMA_Handle);
-}
 
 // UART/USART IRQ handlers
 void USART1_IRQHandler(void) {
