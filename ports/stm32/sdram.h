@@ -11,5 +11,5 @@
 bool sdram_init(void);
 void *sdram_start(void);
 void *sdram_end(void);
-bool sdram_test(bool fast);
+bool sdram_test(bool exhaustive);
 #endif // __SDRAM_H__

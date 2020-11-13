@@ -169,7 +169,13 @@ bool sdram_init(void) {
     }
 
     sdram_init_seq(&hsdram, &command);
+
+    #if MICROPY_HW_SDRAM_STARTUP_TEST
+    HAL_Delay(100);
+    return sdram_test(true);
+    #else
     return true;
+    #endif
 }
 
 void *sdram_start(void) {
@@ -254,50 +260,63 @@ static void sdram_init_seq(SDRAM_HandleTypeDef
     #endif
 }
 
-bool __attribute__((optimize("O0"))) sdram_test(bool fast) {
+bool __attribute__((optimize("O0"))) sdram_test(bool exhaustive)
+{
+    char error_buffer[1024];
     uint8_t const pattern = 0xaa;
     uint8_t const antipattern = 0x55;
     uint8_t *const mem_base = (uint8_t*)sdram_start();
 
-    /* test data bus */
-    for (uint8_t i = 1; i; i <<= 1) {
-        *mem_base = i;
-        if (*mem_base != i) {
-            printf("data bus lines test failed! data (%d)\n", i);
-            return false;
+    // Test data bus
+    for (uint32_t i=0; i<MICROPY_HW_SDRAM_MEM_BUS_WIDTH; i++) {
+        *((uint32_t*)mem_base) = (1<<i);
+        if (*((uint32_t*)mem_base) != (1<<i)) {
+            snprintf(error_buffer, sizeof(error_buffer),
+                    "Data bus test failed at 0x%p expected 0x%x found 0x%lx",
+                    &mem_base[0], (1<<i), ((uint32_t*)mem_base)[0]);
+            __fatal_error(error_buffer);
         }
     }
 
-    /* test address bus */
-    /* Check individual address lines */
-    for (uint32_t i = 1; i < MICROPY_HW_SDRAM_SIZE; i <<= 1) {
+    // Test address bus
+    for (uint32_t i=1; i<MICROPY_HW_SDRAM_SIZE; i<<=1) {
         mem_base[i] = pattern;
         if (mem_base[i] != pattern) {
-            printf("address bus lines test failed! address (%p)\n", &mem_base[i]);
-            return false;
+            snprintf(error_buffer, sizeof(error_buffer),
+                    "Address bus test failed at 0x%p expected 0x%x found 0x%x",
+                    &mem_base[i], pattern, mem_base[i]);
+            __fatal_error(error_buffer);
         }
     }
 
-    /* Check for aliasing (overlaping addresses) */
+    // Check for aliasing (overlaping addresses)
     mem_base[0] = antipattern;
-    for (uint32_t i = 1; i < MICROPY_HW_SDRAM_SIZE; i <<= 1) {
+    for (uint32_t i=1; i<MICROPY_HW_SDRAM_SIZE; i<<=1) {
         if (mem_base[i] != pattern) {
-            printf("address bus overlap %p\n", &mem_base[i]);
-            return false;
+            snprintf(error_buffer, sizeof(error_buffer),
+                    "Address bus overlap at 0x%p expected 0x%x found 0x%x",
+                    &mem_base[i], pattern, mem_base[i]);
+            __fatal_error(error_buffer);
         }
     }
 
-    /* test all ram cells */
-    if (!fast) {
-        for (uint32_t i = 0; i < MICROPY_HW_SDRAM_SIZE; ++i) {
+    // Test all RAM cells
+    if (exhaustive) {
+        // Write all memory first then compare, so even if the cache
+        // is enabled, it's not just writing and reading from cache.
+        // Note: This test should also detect refresh rate issues.
+        for (uint32_t i=0; i<MICROPY_HW_SDRAM_SIZE; i++) {
             mem_base[i] = pattern;
+        }
+
+        for (uint32_t i=0; i<MICROPY_HW_SDRAM_SIZE; i++) {
             if (mem_base[i] != pattern) {
-                printf("address bus test failed! address (%p)\n", &mem_base[i]);
-                return false;
+                snprintf(error_buffer, sizeof(error_buffer),
+                        "Address bus slow test failed at 0x%p expected 0x%x found 0x%x",
+                        &mem_base[i], pattern, mem_base[i]);
+                __fatal_error(error_buffer);
             }
         }
-    } else {
-        memset(mem_base, pattern, MICROPY_HW_SDRAM_SIZE);
     }
 
     return true;
