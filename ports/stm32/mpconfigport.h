@@ -128,7 +128,7 @@
 #endif
 #define MICROPY_PY_UERRNO           (1)
 #ifndef MICROPY_PY_THREAD
-#define MICROPY_PY_THREAD           (1)
+#define MICROPY_PY_THREAD           (0)
 #endif
 
 // extended modules
