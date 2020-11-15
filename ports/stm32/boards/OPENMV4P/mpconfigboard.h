@@ -110,7 +110,8 @@ extern struct _spi_bdev_t spi_bdev;
 
 // SDRAM
 #define MICROPY_HW_SDRAM_SIZE               (32 * 1024 * 1024)
-#define MICROPY_HW_SDRAM_STARTUP_TEST       (0)
+#define MICROPY_HW_SDRAM_STARTUP_TEST       (1)
+#define MICROPY_HW_SDRAM_TEST_EXHAUSTIVE    (false)
 
 // Timing configuration for 240MHz/3=80MHz (12.5ns)
 //#define MICROPY_HW_SDRAM_CLOCK_PERIOD       3

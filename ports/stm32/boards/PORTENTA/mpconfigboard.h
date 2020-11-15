@@ -128,10 +128,9 @@ void PORTENTA_reboot_to_bootloader(void);
 #define GPIO_AF10_OTG_HS            (GPIO_AF10_OTG2_HS)
 
 // SDRAM
-#define MICROPY_HW_SDRAM_SIZE  			(64 / 8 * 1024 * 1024)  // 64 Mbit
-#define MICROPY_HW_SDRAM_STARTUP_TEST   (0)
-//#define MICROPY_HEAP_START              sdram_start()
-//#define MICROPY_HEAP_END                sdram_end()
+#define MICROPY_HW_SDRAM_SIZE               (64 / 8 * 1024 * 1024)  // 64 Mbit
+#define MICROPY_HW_SDRAM_STARTUP_TEST       (1)
+#define MICROPY_HW_SDRAM_TEST_EXHAUSTIVE    (false)
 
 // Timing configuration for 200MHz/2=100MHz (10ns)
 #define MICROPY_HW_SDRAM_CLOCK_PERIOD       2
