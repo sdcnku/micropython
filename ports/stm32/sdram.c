@@ -170,12 +170,7 @@ bool sdram_init(void) {
 
     sdram_init_seq(&hsdram, &command);
 
-    #if MICROPY_HW_SDRAM_STARTUP_TEST
-    HAL_Delay(100);
-    return sdram_test(true);
-    #else
     return true;
-    #endif
 }
 
 void *sdram_start(void) {
@@ -267,6 +262,22 @@ bool __attribute__((optimize("O0"))) sdram_test(bool exhaustive)
     uint8_t const antipattern = 0x55;
     uint8_t *const mem_base = (uint8_t*)sdram_start();
 
+    #if defined(MCU_SERIES_F7) || defined(MCU_SERIES_H7)
+    bool i_cache_disabled = false;
+    bool d_cache_disabled = false;
+
+    // Disable caches for testing.
+    if (SCB->CCR & (uint32_t)SCB_CCR_IC_Msk) {
+        SCB_DisableICache();
+        i_cache_disabled = true;
+    }
+
+    if (SCB->CCR & (uint32_t)SCB_CCR_DC_Msk) {
+        SCB_DisableDCache();
+        d_cache_disabled = true;
+    }
+    #endif
+
     // Test data bus
     for (uint32_t i=0; i<MICROPY_HW_SDRAM_MEM_BUS_WIDTH; i++) {
         *((uint32_t*)mem_base) = (1<<i);
@@ -319,6 +330,17 @@ bool __attribute__((optimize("O0"))) sdram_test(bool exhaustive)
         }
     }
 
+    #if defined(MCU_SERIES_F7) || defined(MCU_SERIES_H7)
+    // Enable caches back only if the caches
+    // were enabled before running the test.
+    if (i_cache_disabled) {
+        SCB_EnableICache();
+    }
+
+    if (d_cache_disabled) {
+        SCB_EnableDCache();
+    }
+    #endif
     return true;
 }
 
