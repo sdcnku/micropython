@@ -25,7 +25,7 @@ void PORTENTA_board_early_init(void) {
     gpio_eth_rst_init_structure.Pull = GPIO_PULLUP;
     gpio_eth_rst_init_structure.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOJ, &gpio_eth_rst_init_structure);
-    HAL_GPIO_WritePin(GPIOJ, GPIO_PIN_15, 0);
+    HAL_GPIO_WritePin(GPIOJ, GPIO_PIN_15, 1);
 
     // Explicitly init SPI2 because it's not enabled as a block device
     // spi_bdev_ioctl(&spi_bdev2, BDEV_IOCTL_INIT, (uint32_t)&spiflash2_config);
