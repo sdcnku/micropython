@@ -62,7 +62,7 @@ typedef struct _usbd_cdc_itf_t {
     uint8_t tx_buf[USBD_CDC_TX_DATA_SIZE]; // data for USB IN endpoind is stored in this buffer
     uint16_t tx_buf_ptr_in; // increment this pointer modulo USBD_CDC_TX_DATA_SIZE when new data is available
     volatile uint16_t tx_buf_ptr_out; // increment this pointer modulo USBD_CDC_TX_DATA_SIZE when data is drained
-    uint16_t tx_buf_ptr_out_shadow; // shadow of above
+    uint16_t tx_buf_ptr_out_next; // next position of above once transmission finished
     uint8_t tx_need_empty_packet; // used to flush the USB IN endpoint if the last packet was exactly the endpoint packet size
 
     uint32_t baudrate;

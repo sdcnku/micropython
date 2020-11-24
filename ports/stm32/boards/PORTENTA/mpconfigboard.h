@@ -122,6 +122,9 @@ void PORTENTA_reboot_to_bootloader(void);
 
 // USB config
 #define MICROPY_HW_USB_HS           (1)
+#define MICROPY_HW_USB_HS_ULPI_NXT  (pin_H4)
+#define MICROPY_HW_USB_HS_ULPI_DIR  (pin_I11)
+
 //#define MICROPY_HW_USB_FS			(1)
 #define USBD_CDC_RX_DATA_SIZE       (512)
 #define USBD_CDC_TX_DATA_SIZE       (512)
