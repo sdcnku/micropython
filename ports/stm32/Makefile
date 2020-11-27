@@ -132,6 +132,7 @@ LDFLAGS += --gc-sections
 ifeq ($(DEBUG), 1)
 CFLAGS += -ggdb3
 COPT = -O0
+MICROPY_ROM_TEXT_COMPRESSION = 0
 else
 COPT += -O2 -DNDEBUG
 endif
