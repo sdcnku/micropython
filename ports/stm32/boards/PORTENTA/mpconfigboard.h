@@ -206,7 +206,6 @@ void PORTENTA_reboot_to_bootloader(void);
 #define MICROPY_HW_FMC_D15      (pin_D10)
 
 // Ethernet via RMII
-/*
 #define MICROPY_HW_ETH_MDC          (pin_C1)
 #define MICROPY_HW_ETH_MDIO         (pin_A2)
 #define MICROPY_HW_ETH_RMII_REF_CLK (pin_A1)
@@ -216,7 +215,6 @@ void PORTENTA_reboot_to_bootloader(void);
 #define MICROPY_HW_ETH_RMII_TX_EN   (pin_G11)
 #define MICROPY_HW_ETH_RMII_TXD0    (pin_G13)
 #define MICROPY_HW_ETH_RMII_TXD1    (pin_G12)
-*/
 
 #define USBD_MANUFACTURER_STRING      "Arduino"
 #define USBD_PRODUCT_HS_STRING        "Portenta Virtual Comm Port in HS Mode"
