@@ -287,7 +287,12 @@ STATIC int pyexec_friendly_repl_process_char(int c) {
         } else if (ret == CHAR_CTRL_B) {
             // reset friendly REPL
             mp_hal_stdout_tx_str("\r\n");
-            mp_hal_stdout_tx_str("MicroPython " MICROPY_GIT_TAG " OpenMV " OPENMV_GIT_TAG " " MICROPY_BUILD_DATE "; " MICROPY_HW_BOARD_NAME "-" MICROPY_HW_MCU_NAME "\r\n");
+            char buf_ver[16];
+            uint32_t hal_ver = HAL_GetHalVersion();
+            snprintf(buf_ver, sizeof(buf_ver), "%ld.%ld.%ld", hal_ver >> 24, (hal_ver >> 16) & 0xFF, (hal_ver >> 8) & 0xFF);
+            mp_hal_stdout_tx_str("MicroPython: " MICROPY_GIT_TAG " OpenMV: " OPENMV_GIT_TAG " HAL: v");
+            mp_hal_stdout_tx_str(buf_ver);
+            mp_hal_stdout_tx_str(" BOARD: " MICROPY_HW_BOARD_NAME "-" MICROPY_HW_MCU_NAME "\r\n");
             #if MICROPY_PY_BUILTINS_HELP
             mp_hal_stdout_tx_str("Type \"help()\" for more information.\r\n");
             #endif
@@ -434,8 +439,14 @@ int pyexec_friendly_repl(void) {
     mp_call_function_1(mp_load_attr(lcd_o, qstr_from_str("light")), mp_const_true);
     #endif
 
+    char buf_ver[16];
+    uint32_t hal_ver = HAL_GetHalVersion();
+    snprintf(buf_ver, sizeof(buf_ver), "%ld.%ld.%ld", hal_ver >> 24, (hal_ver >> 16) & 0xFF, (hal_ver >> 8) & 0xFF);
 friendly_repl_reset:
-    mp_hal_stdout_tx_str("MicroPython " MICROPY_GIT_TAG " OpenMV " OPENMV_GIT_TAG " " MICROPY_BUILD_DATE "; " MICROPY_HW_BOARD_NAME "-" MICROPY_HW_MCU_NAME "\r\n");
+    mp_hal_stdout_tx_str("MicroPython: " MICROPY_GIT_TAG " OpenMV: " OPENMV_GIT_TAG " HAL: v");
+    mp_hal_stdout_tx_str(buf_ver);
+    mp_hal_stdout_tx_str(" BOARD: " MICROPY_HW_BOARD_NAME "-" MICROPY_HW_MCU_NAME "\r\n");
+
     #if MICROPY_PY_BUILTINS_HELP
     mp_hal_stdout_tx_str("Type \"help()\" for more information.\r\n");
     #endif
