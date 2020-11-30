@@ -29,6 +29,8 @@ Constructors
    Construct a new timer object of the given id. Id of -1 constructs a
    virtual timer (if supported).
 
+   See ``init`` for parameters of initialisation.
+
 Methods
 -------
 
