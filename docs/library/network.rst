@@ -149,3 +149,5 @@ provide a way to control networking interfaces of various kinds.
    :maxdepth: 1
 
    network.WINC.rst
+   network.WLAN.rst
+   network.LAN.rst

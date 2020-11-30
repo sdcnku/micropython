@@ -71,13 +71,12 @@ directory ``json``) and load that module if it is found.  If nothing is found,
 it will fallback to loading the built-in ``ujson`` module.
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 3
 
    builtins.rst
    cmath.rst
    gc.rst
    math.rst
-   sys.rst
    uarray.rst
    uasyncio.rst
    ubinascii.rst
@@ -93,6 +92,7 @@ it will fallback to loading the built-in ``ujson`` module.
    usocket.rst
    ussl.rst
    ustruct.rst
+   usys.rst
    utime.rst
    uzlib.rst
    _thread.rst
@@ -126,13 +126,13 @@ The following libraries are specific to the OpenMV Cam.
    :maxdepth: 3
 
    pyb.rst
-   omv.time.rst
    omv.sensor.rst
    omv.image.rst
-   omv.nn.rst
    omv.tf.rst
    omv.gif.rst
    omv.mjpeg.rst
+   omv.audio.rst
+   omv.micro_speech.rst
    omv.lcd.rst
    omv.fir.rst
    omv.tv.rst
@@ -145,29 +145,62 @@ The following libraries are specific to the OpenMV Cam.
 Third-party libraries on the OpenMV Cam
 ---------------------------------------
 
-The following third-party math libraries are built-in to your OpenMV Cam's firmware:
+The following third-party libraries are built-in to your OpenMV Cam's firmware:
 
-   * `OpenRV <https://github.com/nickoala/openrv>`_ (Hu moments, Planar homography, and Quickshift++)
-      * `vec <https://gitlab.com/nickoala/micropython-vec>`_ (Vector Operations)
-      * `mtx <https://gitlab.com/nickoala/micropython-mtx>`_ (Fast Matrix Multiplication and Linear Solver)
-   * `ulab <https://micropython-ulab.readthedocs.io/en/latest/>`_ (numpy-like array manipulation library)
-   * `umatrix <https://github.com/iyassou/umatrix>`_ (a matrix library)
-   * `ulinalg <https://github.com/jalawson/ulinalg>`_ (linear algebra routines)
-   * `pid <https://github.com/openmv/openmv/blob/master/scripts/libraries/pid.py>`_ (Proportional/Integral/Derivative Control)
+:mod:`ulab` --- `numpy-like array manipulation library <https://micropython-ulab.readthedocs.io/en/latest/>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The following third-party driver libraries are built-in to your OpenMV Cam's firmware:
+.. module:: ulab
+   :synopsis: numpy-like array manipulation library
 
-   * `BNO055 <https://github.com/openmv/openmv/blob/master/scripts/libraries/bno055.py>`_ IMU Driver
-      * Examples scripts are located in OpenMV IDE under the ``IMU Shield`` examples folder.
-   * `SSD1306 <https://github.com/openmv/openmv/blob/master/scripts/libraries/ssd1306.py>`_ OLED Driver
-   * `TB6612 <https://github.com/openmv/openmv/blob/master/scripts/libraries/tb6612.py>`_ Stepper Motor Driver
-      * Examples scripts are located in OpenMV IDE under the ``Motor Shield`` examples folder.
-   * `VL51L1X <https://github.com/openmv/openmv/blob/master/scripts/libraries/vl53l1x.py>`_ ToF Distance Sensor Driver
-      * Examples scripts are located in OpenMV IDE under the ``Distance Shield`` examples folder.
+:mod:`pid` --- `Proportional/Integral/Derivative Control <https://github.com/openmv/openmv/blob/master/scripts/libraries/pid.py>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The following third-party protocol libraries are built-in to your OpenMV Cam's firmware:
+.. module:: pid
+   :synopsis: Proportional/Integral/Derivative Control
 
-   * `modbus <https://github.com/openmv/openmv/blob/master/scripts/libraries/modbus.py>`_ protocol library
-      * Examples scripts are located in OpenMV IDE under the ``Modbus`` examples folder.
-   * `mqtt <https://github.com/openmv/openmv/blob/master/scripts/libraries/mqtt.py>`_ protocol library
-      * Examples scripts are located in OpenMV IDE under the ``WiFi Shield`` examples folder.
+:mod:`bno055` --- `IMU Driver <https://github.com/openmv/openmv/blob/master/scripts/libraries/bno055.py>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. module:: bno055
+   :synopsis: IMU Driver
+
+Examples scripts are located in OpenMV IDE under the ``IMU Shield`` examples folder.
+
+:mod:`ssd1306` --- `OLED Driver <https://github.com/openmv/openmv/blob/master/scripts/libraries/ssd1306.py>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. module:: ssd1306
+   :synopsis: OLED Driver
+
+:mod:`tb6612` --- `Stepper Motor Driver <https://github.com/openmv/openmv/blob/master/scripts/libraries/tb6612.py>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. module:: tb6612
+   :synopsis: Stepper Motor Driver
+
+Examples scripts are located in OpenMV IDE under the ``Motor Shield`` examples folder.
+
+:mod:`vl53l1x` --- `ToF Distance Sensor Driver <https://github.com/openmv/openmv/blob/master/scripts/libraries/vl53l1x.py>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. module:: vl53l1x
+   :synopsis: ToF Distance Sensor Driver
+
+Examples scripts are located in OpenMV IDE under the ``Distance Shield`` examples folder.
+
+:mod:`modbus` --- `modbus protocol library <https://github.com/openmv/openmv/blob/master/scripts/libraries/modbus.py>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. module:: modbus
+   :synopsis: modbus protocol library
+
+Examples scripts are located in OpenMV IDE under the ``Modbus`` examples folder.
+
+:mod:`mqtt` --- `mqtt protocol library <https://github.com/openmv/openmv/blob/master/scripts/libraries/mqtt.py>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. module:: mqtt
+   :synopsis: mqtt protocol library
+
+Examples scripts are located in OpenMV IDE under the ``WiFi Shield`` examples folder.

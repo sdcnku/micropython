@@ -12,11 +12,9 @@ the connected host.
 Constructors
 ------------
 
-.. class:: pyb.USB_VCP(id=0)
+.. class:: pyb.USB_VCP()
 
-   Create a new USB_VCP object.  The *id* argument specifies which USB VCP port to
-   use.
-
+   Create a new USB_VCP object.
 
 Methods
 -------

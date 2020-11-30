@@ -84,6 +84,8 @@ Methods
    * bit_rate - CAN bit rate.
    * sampling_point - Tseg1/Tseg2 ratio. Typically 75%. (50.0, 62.5, 75, 87.5, etc.)
 
+   Returns (prescaler, bs1, bs2)
+
 .. method:: CAN.deinit()
 
    Turn off the CAN bus.

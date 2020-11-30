@@ -53,8 +53,7 @@ Constructors
 
    Construct a new DAC object.
 
-   ``port`` can be a pin object, or an integer (1).
-    DAC(1) is on pin P6.
+   ``port`` can be a pin object, or an integer (1). DAC(1) is on pin P6.
 
    ``bits`` is an integer specifying the resolution, and can be 8 or 12.
    The maximum value for the write and write_timed methods will be
