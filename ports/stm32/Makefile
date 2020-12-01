@@ -131,7 +131,7 @@ LDFLAGS += --gc-sections
 # Debugging/Optimization
 ifeq ($(DEBUG), 1)
 CFLAGS += -ggdb3
-COPT = -O0
+COPT = -Og
 MICROPY_ROM_TEXT_COMPRESSION = 0
 else
 COPT += -O2 -DNDEBUG
