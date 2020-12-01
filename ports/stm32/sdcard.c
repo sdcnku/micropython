@@ -487,10 +487,10 @@ mp_uint_t sdcard_read_blocks(uint8_t *dest, uint32_t block_num, uint32_t num_blo
 
     HAL_StatusTypeDef err = HAL_OK;
 
-    if (query_irq() == IRQ_STATE_ENABLED && DMA_BUFFER(dest) && IS_AXI_SRAM(dest)) {
-        // we must disable USB irqs to prevent MSC contention with SD card
-        uint32_t basepri = raise_irq_pri(IRQ_PRI_OTG_FS);
+    // we must disable USB irqs to prevent MSC contention with SD card
+    uint32_t basepri = raise_irq_pri(IRQ_PRI_OTG_FS);
 
+    if (query_irq() == IRQ_STATE_ENABLED && DMA_BUFFER(dest) && IS_AXI_SRAM(dest)) {
         #if SDIO_USE_GPDMA
         DMA_HandleTypeDef sd_dma;
         dma_init(&sd_dma, &SDMMC_DMA, DMA_PERIPH_TO_MEMORY, &sdmmc_handle);
@@ -532,8 +532,6 @@ mp_uint_t sdcard_read_blocks(uint8_t *dest, uint32_t block_num, uint32_t num_blo
             sdmmc_handle.sd.hdmarx = NULL;
         }
         #endif
-
-        restore_irq_pri(basepri);
     } else {
         #if MICROPY_HW_ENABLE_MMCARD
         if (pyb_sdmmc_flags & PYB_SDMMC_FLAG_MMC) {
@@ -547,6 +545,7 @@ mp_uint_t sdcard_read_blocks(uint8_t *dest, uint32_t block_num, uint32_t num_blo
             err = sdcard_wait_finished(60000);
         }
     }
+    restore_irq_pri(basepri);
     return err;
 }
 
@@ -557,11 +556,10 @@ mp_uint_t sdcard_write_blocks(const uint8_t *src, uint32_t block_num, uint32_t n
     }
 
     HAL_StatusTypeDef err = HAL_OK;
+    // we must disable USB irqs to prevent MSC contention with SD card
+    uint32_t basepri = raise_irq_pri(IRQ_PRI_OTG_FS);
 
     if (query_irq() == IRQ_STATE_ENABLED && DMA_BUFFER(src) && IS_AXI_SRAM(src)) {
-        // we must disable USB irqs to prevent MSC contention with SD card
-        uint32_t basepri = raise_irq_pri(IRQ_PRI_OTG_FS);
-
         #if SDIO_USE_GPDMA
         DMA_HandleTypeDef sd_dma;
         dma_init(&sd_dma, &SDMMC_DMA, DMA_MEMORY_TO_PERIPH, &sdmmc_handle);
@@ -602,8 +600,6 @@ mp_uint_t sdcard_write_blocks(const uint8_t *src, uint32_t block_num, uint32_t n
             sdmmc_handle.sd.hdmatx = NULL;
         }
         #endif
-
-        restore_irq_pri(basepri);
     } else {
         #if MICROPY_HW_ENABLE_MMCARD
         if (pyb_sdmmc_flags & PYB_SDMMC_FLAG_MMC) {
@@ -617,6 +613,7 @@ mp_uint_t sdcard_write_blocks(const uint8_t *src, uint32_t block_num, uint32_t n
             err = sdcard_wait_finished(60000);
         }
     }
+    restore_irq_pri(basepri);
 
     return err;
 }
