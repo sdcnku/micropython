@@ -516,11 +516,13 @@ void powerctrl_enter_stop_mode(void) {
     HAL_PWREx_EnableFlashPowerDown();
     #endif
 
-    HAL_SuspendTick();
-
     #if defined(MCU_SERIES_H7)
+    // Save RCC CR to re-enable OSCs and PLLs after wake up from low power mode.
+    uint32_t rcc_cr = RCC->CR;
+
     // Save the current voltage scaling level to restore after exiting low power mode.
     uint32_t vscaling = POWERCTRL_GET_VOLTAGE_SCALING();
+
     // If the current voltage scaling level is 0, switch to level 1 before entering low power mode.
     if (vscaling == PWR_REGULATOR_VOLTAGE_SCALE0) {
         __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
@@ -608,14 +610,39 @@ void powerctrl_enter_stop_mode(void) {
     #endif
 
     #if defined(STM32H7)
-    // Enable PLL3 for USB
-    RCC->CR |= RCC_CR_PLL3ON;
-    while (!(RCC->CR & RCC_CR_PLL3RDY)) {
+    // Enable HSI
+    if (rcc_cr & RCC_CR_HSION) {
+        RCC->CR |= RCC_CR_HSION;
+        while (!(RCC->CR & RCC_CR_HSIRDY)) {
+        }
+    }
+
+    // Enable CSI
+    if (rcc_cr & RCC_CR_CSION) {
+        RCC->CR |= RCC_CR_CSION;
+        while (!(RCC->CR & RCC_CR_CSIRDY)) {
+        }
     }
 
     // Enable HSI48
-    __HAL_RCC_HSI48_ENABLE();
-    while (!__HAL_RCC_GET_FLAG(RCC_FLAG_HSI48RDY)) {
+    if (rcc_cr & RCC_CR_HSI48ON) {
+        RCC->CR |= RCC_CR_HSI48ON;
+        while (!(RCC->CR & RCC_CR_HSI48RDY)) {
+        }
+    }
+
+    // Enable PLL2
+    if (rcc_cr & RCC_CR_PLL2ON) {
+        RCC->CR |= RCC_CR_PLL2ON;
+        while (!(RCC->CR & RCC_CR_PLL2RDY)) {
+        }
+    }
+
+    // Enable PLL3
+    if (rcc_cr & RCC_CR_PLL3ON) {
+        RCC->CR |= RCC_CR_PLL3ON;
+        while (!(RCC->CR & RCC_CR_PLL3RDY)) {
+        }
     }
     #endif
 
@@ -627,8 +654,6 @@ void powerctrl_enter_stop_mode(void) {
     #endif
 
     #endif // defined(STM32F0)
-
-    HAL_ResumeTick();
 
     #if defined(MICROPY_BOARD_LEAVE_STOP)
     MICROPY_BOARD_LEAVE_STOP
