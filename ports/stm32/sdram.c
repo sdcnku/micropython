@@ -49,12 +49,12 @@
 
 #ifdef FMC_SDRAM_BANK
 
-static void sdram_init_seq(SDRAM_HandleTypeDef
-    *hsdram, FMC_SDRAM_CommandTypeDef *command);
+static SDRAM_HandleTypeDef hsdram;
 extern void __fatal_error(const char *msg);
+static void sdram_init_seq(SDRAM_HandleTypeDef *hsdram, FMC_SDRAM_CommandTypeDef *command);
 
-bool sdram_init(void) {
-    SDRAM_HandleTypeDef hsdram;
+bool sdram_init(void)
+{
     FMC_SDRAM_TimingTypeDef SDRAM_Timing;
     FMC_SDRAM_CommandTypeDef command;
 
@@ -173,16 +173,18 @@ bool sdram_init(void) {
     return true;
 }
 
-void *sdram_start(void) {
+void *sdram_start(void)
+{
     return (void *)SDRAM_START_ADDRESS;
 }
 
-void *sdram_end(void) {
+void *sdram_end(void)
+{
     return (void *)(SDRAM_START_ADDRESS + MICROPY_HW_SDRAM_SIZE);
 }
 
-static void sdram_init_seq(SDRAM_HandleTypeDef
-    *hsdram, FMC_SDRAM_CommandTypeDef *command) {
+static void sdram_init_seq(SDRAM_HandleTypeDef *hsdram, FMC_SDRAM_CommandTypeDef *command)
+{
     /* Program the SDRAM external device */
     __IO uint32_t tmpmrd = 0;
 
@@ -252,6 +254,26 @@ static void sdram_init_seq(SDRAM_HandleTypeDef
     mpu_config_region(MPU_REGION_SDRAM2, SDRAM_START_ADDRESS, MPU_CONFIG_SDRAM(SDRAM_MPU_REGION_SIZE));
     mpu_config_end(irq_state);
     #endif
+}
+
+void sdram_enter_low_power()
+{
+    FMC_SDRAM_CommandTypeDef command;
+    command.CommandMode = FMC_SDRAM_CMD_SELFREFRESH_MODE;
+    command.CommandTarget = FMC_SDRAM_CMD_TARGET_BANK;
+    command.AutoRefreshNumber = 1;
+    command.ModeRegisterDefinition = 0;
+    HAL_SDRAM_SendCommand(&hsdram, &command, 0xFFFF);
+}
+
+void sdram_leave_low_power()
+{
+    FMC_SDRAM_CommandTypeDef command;
+    command.CommandMode = FMC_SDRAM_CMD_NORMAL_MODE;
+    command.CommandTarget = FMC_SDRAM_CMD_TARGET_BANK;
+    command.AutoRefreshNumber = 1;
+    command.ModeRegisterDefinition = 0;
+    HAL_SDRAM_SendCommand(&hsdram, &command, 0xFFFF);
 }
 
 bool __attribute__((optimize("O0"))) sdram_test(bool exhaustive)
