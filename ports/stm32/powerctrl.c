@@ -38,6 +38,12 @@
 #define RCC_SR_SFTRSTF  RCC_RSR_SFT2RSTF
 #endif
 #define RCC_SR_RMVF     RCC_RSR_RMVF
+// This macro returns the actual voltage scaling level factoring in the power overdrive bit.
+// If the current voltage scale is VOLTAGE_SCALE1 and PWER_ODEN bit is set return VOLTAGE_SCALE0
+// otherwise the current voltage scaling (level VOS1 to VOS3) set in PWER_CSR is returned instead.
+#define POWERCTRL_GET_VOLTAGE_SCALING()     \
+    (((PWR->CSR1 & PWR_CSR1_ACTVOS) && (SYSCFG->PWRCR & SYSCFG_PWRCR_ODEN)) ?\
+     PWR_REGULATOR_VOLTAGE_SCALE0 : (PWR->CSR1 & PWR_CSR1_ACTVOS))
 #else
 #define RCC_SR          CSR
 #define RCC_SR_SFTRSTF  RCC_CSR_SFTRSTF
@@ -513,10 +519,11 @@ void powerctrl_enter_stop_mode(void) {
     HAL_SuspendTick();
 
     #if defined(MCU_SERIES_H7)
-    // If current vscale is 0 we need to switch to vscale 1 before entering low power mode.
-    if (HAL_GetREVID() >= 0x2003) {
+    // Save the current voltage scaling level to restore after exiting low power mode.
+    uint32_t vscaling = POWERCTRL_GET_VOLTAGE_SCALING();
+    // If the current voltage scaling level is 0, switch to level 1 before entering low power mode.
+    if (vscaling == PWR_REGULATOR_VOLTAGE_SCALE0) {
         __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
-
         // Wait for PWR_FLAG_VOSRDY
         while (!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {
         }
@@ -544,6 +551,17 @@ void powerctrl_enter_stop_mode(void) {
     }
 
     #else
+
+    #if defined(MCU_SERIES_H7)
+    // When exiting from Stop or Standby modes, the Run mode voltage scaling is reset to
+    // the default VOS3 value. Restore the voltage scaling to the previous voltage scale.
+    if (vscaling != POWERCTRL_GET_VOLTAGE_SCALING()) {
+        __HAL_PWR_VOLTAGESCALING_CONFIG(vscaling);
+        // Wait for PWR_FLAG_VOSRDY
+        while (!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {
+        }
+    }
+    #endif
 
     #if !defined(STM32L4)
     // enable clock
@@ -594,6 +612,11 @@ void powerctrl_enter_stop_mode(void) {
     RCC->CR |= RCC_CR_PLL3ON;
     while (!(RCC->CR & RCC_CR_PLL3RDY)) {
     }
+
+    // Enable HSI48
+    __HAL_RCC_HSI48_ENABLE();
+    while (!__HAL_RCC_GET_FLAG(RCC_FLAG_HSI48RDY)) {
+    }
     #endif
 
     #if defined(STM32L4)
@@ -603,17 +626,7 @@ void powerctrl_enter_stop_mode(void) {
     }
     #endif
 
-    #endif
-
-    #if defined(MCU_SERIES_H7)
-    // Switch back to voltage scale 0.
-    if (HAL_GetREVID() >= 0x2003) {
-        __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE0);
-        // Wait for PWR_FLAG_VOSRDY
-        while (!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {
-        }
-    }
-    #endif
+    #endif // defined(STM32F0)
 
     HAL_ResumeTick();
 
