@@ -140,9 +140,60 @@ STATIC void pyb_can_print(const mp_print_t *print, mp_obj_t self_in, mp_print_ki
     }
 }
 
+STATIC void pyb_can_calc_bit_timing(mp_arg_val_t *args)
+{
+    enum { ARG_mode, ARG_extframe, ARG_prescaler, ARG_sjw, ARG_bs1, ARG_bs2, ARG_auto_restart, ARG_baudrate, ARG_sampling_point};
+
+    uint32_t can_kern_clk = 0;
+    uint32_t baudrate = args[ARG_baudrate].u_int;
+    uint32_t sampoint = args[ARG_sampling_point].u_int;
+
+    // Find CAN kernel clock
+    #if defined(STM32H7)
+    switch (__HAL_RCC_GET_FDCAN_SOURCE()) {
+        case RCC_FDCANCLKSOURCE_HSE:
+            can_kern_clk = HSE_VALUE;
+            break;
+        case RCC_FDCANCLKSOURCE_PLL: {
+            PLL1_ClocksTypeDef pll1_clocks;
+            HAL_RCCEx_GetPLL1ClockFreq(&pll1_clocks);
+            can_kern_clk = pll1_clocks.PLL1_Q_Frequency;
+            break;
+        }
+        case RCC_FDCANCLKSOURCE_PLL2: {
+            PLL2_ClocksTypeDef pll2_clocks;
+            HAL_RCCEx_GetPLL2ClockFreq(&pll2_clocks);
+            can_kern_clk = pll2_clocks.PLL2_Q_Frequency;
+            break;
+        }
+    }
+    #else // F4 and F7 and assume other MCUs too.
+    // CAN1/CAN2/CAN3 on APB1 use GetPCLK1Freq, alternatively use the following:
+    // can_kern_clk = ((HSE_VALUE / osc_config.PLL.PLLM ) * osc_config.PLL.PLLN) /
+    //  (osc_config.PLL.PLLQ * clk_init.AHBCLKDivider * clk_init.APB1CLKDivider);
+    can_kern_clk = HAL_RCC_GetPCLK1Freq();
+    #endif
+    for (int brp=1; brp<512; brp++) {// These values work on all MCUs
+        for (int bs1=1; bs1<16; bs1++) {
+            for (int bs2=1; bs2<8; bs2++) {
+                if ((baudrate == (can_kern_clk / (brp * (1 + bs1 + bs2)))) &&
+                        ((sampoint * 10) == (((1 + bs1) * 1000) / (1 + bs1 + bs2)))) {
+                    args[ARG_bs1].u_int = bs1;
+                    args[ARG_bs2].u_int = bs2;
+                    args[ARG_prescaler].u_int = brp;
+                    //printf("CAN kernel clock: %lu prescaler: %u bs1: %u bs1: %u\n", can_kern_clk,
+                    //        args[ARG_prescaler].u_int, args[ARG_bs1].u_int, args[ARG_bs2].u_int);
+                    return;
+                }
+            }
+        }
+    }
+    mp_raise_msg(&mp_type_ValueError, MP_ERROR_TEXT("Invalid baudrate and/or sampling point!"));
+}
+
 // init(mode, extframe=False, prescaler=100, *, sjw=1, bs1=6, bs2=8)
 STATIC mp_obj_t pyb_can_init_helper(pyb_can_obj_t *self, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-    enum { ARG_mode, ARG_extframe, ARG_prescaler, ARG_sjw, ARG_bs1, ARG_bs2, ARG_auto_restart };
+    enum { ARG_mode, ARG_extframe, ARG_prescaler, ARG_sjw, ARG_bs1, ARG_bs2, ARG_auto_restart, ARG_baudrate, ARG_sampling_point};
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_mode,         MP_ARG_REQUIRED | MP_ARG_INT,   {.u_int = CAN_MODE_NORMAL} },
         { MP_QSTR_extframe,     MP_ARG_BOOL,                    {.u_bool = false} },
@@ -151,6 +202,8 @@ STATIC mp_obj_t pyb_can_init_helper(pyb_can_obj_t *self, size_t n_args, const mp
         { MP_QSTR_bs1,          MP_ARG_KW_ONLY | MP_ARG_INT,    {.u_int = CAN_DEFAULT_BS1} },
         { MP_QSTR_bs2,          MP_ARG_KW_ONLY | MP_ARG_INT,    {.u_int = CAN_DEFAULT_BS2} },
         { MP_QSTR_auto_restart, MP_ARG_KW_ONLY | MP_ARG_BOOL,   {.u_bool = false} },
+        { MP_QSTR_baudrate,     MP_ARG_KW_ONLY | MP_ARG_INT,    {.u_int = 0} },  // use args by default
+        { MP_QSTR_sampling_point, MP_ARG_KW_ONLY | MP_ARG_INT,  {.u_int = 75} }, // 75% sampling point
     };
 
     // parse args
@@ -161,6 +214,11 @@ STATIC mp_obj_t pyb_can_init_helper(pyb_can_obj_t *self, size_t n_args, const mp
 
     // set the CAN configuration values
     memset(&self->can, 0, sizeof(self->can));
+
+    // Calculate CAN bit timing from baudrate if provided
+    if (args[ARG_baudrate].u_int != 0) {
+        pyb_can_calc_bit_timing(args);
+    }
 
     // init CAN (if it fails, it's because the port doesn't exist)
     if (!can_init(self, args[ARG_mode].u_int, args[ARG_prescaler].u_int, args[ARG_sjw].u_int,
