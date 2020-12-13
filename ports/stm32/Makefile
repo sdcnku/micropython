@@ -36,7 +36,7 @@ MCU_SERIES_UPPER = $(shell echo $(MCU_SERIES) | tr '[:lower:]' '[:upper:]')
 CMSIS_MCU_LOWER = $(shell echo $(CMSIS_MCU) | tr '[:upper:]' '[:lower:]')
 
 LD_DIR=boards
-CMSIS_DIR=$(TOP_DIR)/lib/cmsis
+CMSIS_DIR=$(TOP_DIR)/hal/cmsis
 HAL_DIR=$(TOP_DIR)/sthal/$(MCU_SERIES)
 USBDEV_DIR=usbdev
 #USBHOST_DIR=usbhost
