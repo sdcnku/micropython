@@ -10,3 +10,6 @@
 [submodule "extmod/ulab"]
 	path = extmod/ulab
 	url = https://github.com/v923z/micropython-ulab.git
+[submodule "lib/tinyusb"]
+	path = lib/tinyusb
+	url = https://github.com/hathach/tinyusb
