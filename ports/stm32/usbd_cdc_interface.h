@@ -94,7 +94,7 @@ void usbd_cdc_tx_always(usbd_cdc_itf_t *cdc, const uint8_t *buf, uint32_t len);
 int usbd_cdc_rx_num(usbd_cdc_itf_t *cdc);
 int usbd_cdc_rx(usbd_cdc_itf_t *cdc, uint8_t *buf, uint32_t len, uint32_t timeout);
 
-uint32_t usbd_cdc_tx_buf_len(usbd_cdc_itf_t *cdc);
-uint8_t *usbd_cdc_tx_buf(usbd_cdc_itf_t *cdc, uint32_t bytes);
+uint32_t usbd_cdc_buf_len(usbd_cdc_itf_t *cdc);
+uint32_t usbd_cdc_get_buf(usbd_cdc_itf_t *cdc, uint8_t *buf, uint32_t len);
 
 #endif // MICROPY_INCLUDED_STM32_USBD_CDC_INTERFACE_H

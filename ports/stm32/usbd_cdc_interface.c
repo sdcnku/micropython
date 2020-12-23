@@ -318,13 +318,15 @@ void usbd_cdc_rx_check_resume(usbd_cdc_itf_t *cdc) {
     enable_irq(irq_state);
 }
 
-uint32_t usbd_cdc_tx_buf_len(usbd_cdc_itf_t *cdc) {
+uint32_t usbd_cdc_buf_len(usbd_cdc_itf_t *cdc) {
     return usbd_cdc_tx_send_length(cdc);
 }
 
-uint8_t *usbd_cdc_tx_buf(usbd_cdc_itf_t *cdc, uint32_t bytes) {
+uint32_t usbd_cdc_get_buf(usbd_cdc_itf_t *cdc, uint8_t *buf, uint32_t len)
+{
     cdc->tx_buf_ptr_out = cdc->tx_buf_ptr_out_next;
-    return usbd_cdc_tx_buffer_getp(cdc, bytes);
+    memcpy(buf, usbd_cdc_tx_buffer_getp(cdc, len), len);
+    return len;
 }
 
 static void send_packet(usbd_cdc_itf_t *cdc) {

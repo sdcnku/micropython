@@ -356,14 +356,14 @@ void usb_vcp_send_strn(const char *str, int len) {
     }
 }
 
-uint32_t usb_cdc_tx_buf_len()
+uint32_t usb_cdc_buf_len()
 {
-    return usbd_cdc_tx_buf_len(&usb_device.usbd_cdc_itf[0]);
+    return usbd_cdc_buf_len(&usb_device.usbd_cdc_itf[0]);
 }
 
-uint8_t *usb_cdc_tx_buf(uint32_t bytes)
+uint32_t usb_cdc_get_buf(uint8_t *buf, uint32_t len)
 {
-    return usbd_cdc_tx_buf(&usb_device.usbd_cdc_itf[0], bytes);
+    return usbd_cdc_get_buf(&usb_device.usbd_cdc_itf[0], buf, len);
 }
 
 usbd_cdc_itf_t *usb_vcp_get(int idx) {
