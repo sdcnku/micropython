@@ -25,9 +25,15 @@
  */
 
 #include "tusb.h"
+#include "mpconfigboard.h"
 
+#ifndef USBD_VID
 #define USBD_VID (0xf055)
+#endif
+
+#ifndef USBD_PID
 #define USBD_PID (0x9802)
+#endif
 
 #define USBD_DESC_LEN (TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN)
 #define USBD_MAX_POWER_MA (250)
@@ -66,7 +72,7 @@ static const tusb_desc_device_t usbd_desc_device = {
 };
 
 static const uint8_t usbd_desc_cfg[USBD_DESC_LEN] = {
-    TUD_CONFIG_DESCRIPTOR(USBD_ITF_MAX, USBD_STR_0, USBD_DESC_LEN,
+    TUD_CONFIG_DESCRIPTOR(1, USBD_ITF_MAX, USBD_STR_0, USBD_DESC_LEN,
         TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, USBD_MAX_POWER_MA),
 
     TUD_CDC_DESCRIPTOR(USBD_ITF_CDC, USBD_STR_CDC, USBD_CDC_EP_CMD,
@@ -89,9 +95,11 @@ const uint8_t *tud_descriptor_configuration_cb(uint8_t index) {
     return usbd_desc_cfg;
 }
 
-const uint16_t *tud_descriptor_string_cb(uint8_t index) {
+const uint16_t *tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
     #define DESC_STR_MAX (20)
     static uint16_t desc_str[DESC_STR_MAX];
+
+    (void)langid;
 
     uint8_t len;
     if (index == 0) {

@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2019 Glenn Ruben Bakke
+ * Copyright (c) 2013, 2014 Damien P. George
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,21 +23,24 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#ifndef MICROPY_INCLUDED_STM32_PENDSV_H
+#define MICROPY_INCLUDED_STM32_PENDSV_H
 
-#ifndef NRF_DRIVERS_USB_CDC_H__
-#define NRF_DRIVERS_USB_CDC_H__
+enum {
+    PENDSV_DISPATCH_CDC,
+    #if MICROPY_PY_AUDIO
+    PENDSV_DISPATCH_AUDIO,
+    #endif
+    PENDSV_DISPATCH_MAX
+};
 
-#include "tusb.h"
+#define PENDSV_DISPATCH_NUM_SLOTS PENDSV_DISPATCH_MAX
 
-void usb_cdc_init(void);
+typedef void (*pendsv_dispatch_t)(void);
 
-void usb_cdc_loop(void);
-int  usb_cdc_read_char(void);
-void usb_cdc_write_char(char c);
+void pendsv_init(void);
+void pendsv_kbd_intr(void);
+void pendsv_nlr_jump(void *val);
+void pendsv_schedule_dispatch(size_t slot, pendsv_dispatch_t f);
 
-void usb_cdc_sd_event_handler(uint32_t soc_evt);
-
-uint32_t usb_cdc_buf_len();
-uint32_t usb_cdc_get_buf(uint8_t *buf, uint32_t len);
-
-#endif // NRF_DRIVERS_USB_CDC_H__
+#endif // MICROPY_INCLUDED_STM32_PENDSV_H

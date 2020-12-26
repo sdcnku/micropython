@@ -36,7 +36,7 @@ endif
 -include boards/$(BOARD)/modules/boardmodules.mk
 
 # qstr definitions (must come before including py.mk)
-QSTR_DEFS = qstrdefsport.h $(BUILD)/pins_qstr.h
+override QSTR_DEFS += qstrdefsport.h $(BUILD)/pins_qstr.h
 
 # MicroPython feature configurations
 ifeq ($(DEBUG), 0)
@@ -125,8 +125,8 @@ LDFLAGS += -mthumb -mabi=aapcs $(addprefix -T,$(LD_FILES)) -L boards/
 #Debugging/Optimization
 ifeq ($(DEBUG), 1)
 #ASMFLAGS += -g -gtabs+
-CFLAGS += -O0 -ggdb
-LDFLAGS += -O0
+CFLAGS += -Og -ggdb3
+LDFLAGS += -Og
 else
 CFLAGS += -Os -DNDEBUG
 LDFLAGS += -Os
@@ -230,6 +230,7 @@ SRC_NRFX += $(addprefix lib/nrfx/drivers/src/,\
 
 SRC_C += \
 	main.c \
+	pendsv.c \
 	mphalport.c \
 	help.c \
 	gccollect.c \
@@ -328,9 +329,9 @@ $(filter $(PY_BUILD)/../extmod/vfs_fat_%.o, $(PY_O)): COPT += -Os
 .PHONY: all flash deploy sd binary hex
 
 ifeq ($(MCU_VARIANT), nrf91)
-all: binary hex secureboot
+all: $(OBJ)
 else
-all: binary hex
+all: $(OBJ)
 endif
 
 OUTPUT_FILENAME = firmware
