@@ -255,12 +255,17 @@ extern const struct _mp_obj_module_t ble_module;
 #define BLE_MODULE
 #endif
 
+extern const struct _mp_obj_module_t image_module;
+extern const struct _mp_obj_module_t fir_module;
+
 #define MICROPY_PORT_BUILTIN_MODULES \
     { MP_ROM_QSTR(MP_QSTR_board), MP_ROM_PTR(&board_module) }, \
     { MP_ROM_QSTR(MP_QSTR_machine), MP_ROM_PTR(&machine_module) }, \
     { MP_ROM_QSTR(MP_QSTR_utime), MP_ROM_PTR(&mp_module_utime) }, \
     { MP_ROM_QSTR(MP_QSTR_time), MP_ROM_PTR(&mp_module_utime) }, \
     { MP_ROM_QSTR(MP_QSTR_uos), MP_ROM_PTR(&mp_module_uos) }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_image),   (mp_obj_t)&image_module }, \
+    { MP_OBJ_NEW_QSTR(MP_QSTR_fir),     (mp_obj_t)&fir_module }, \
     BLE_MODULE \
     MUSIC_MODULE \
     UBLUEPY_MODULE \
