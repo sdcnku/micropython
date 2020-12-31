@@ -264,6 +264,12 @@ extern const struct _mp_obj_module_t ulab_user_cmodule;
 #else
 #define ULAB_BUILTIN_MODULE
 #endif
+#if MICROPY_PY_AUDIO
+extern const struct _mp_obj_module_t audio_module;
+#define AUDIO_BUILTIN_MODULE            {  MP_OBJ_NEW_QSTR(MP_QSTR_audio), (mp_obj_t)&audio_module },
+#else
+#define AUDIO_BUILTIN_MODULE
+#endif
 
 #define MICROPY_PORT_BUILTIN_MODULES \
     { MP_ROM_QSTR(MP_QSTR_board), MP_ROM_PTR(&board_module) }, \
@@ -274,6 +280,7 @@ extern const struct _mp_obj_module_t ulab_user_cmodule;
     { MP_OBJ_NEW_QSTR(MP_QSTR_image),   (mp_obj_t)&image_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_fir),     (mp_obj_t)&fir_module }, \
     ULAB_BUILTIN_MODULE \
+    AUDIO_BUILTIN_MODULE \
     BLE_MODULE \
     MUSIC_MODULE \
     UBLUEPY_MODULE \
