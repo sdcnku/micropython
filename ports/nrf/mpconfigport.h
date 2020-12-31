@@ -255,8 +255,15 @@ extern const struct _mp_obj_module_t ble_module;
 #define BLE_MODULE
 #endif
 
+// OpenMV external modules.
 extern const struct _mp_obj_module_t image_module;
 extern const struct _mp_obj_module_t fir_module;
+#if MICROPY_PY_ULAB
+extern const struct _mp_obj_module_t ulab_user_cmodule;
+#define ULAB_BUILTIN_MODULE              {  MP_OBJ_NEW_QSTR(MP_QSTR_ulab),   (mp_obj_t)&ulab_user_cmodule },
+#else
+#define ULAB_BUILTIN_MODULE
+#endif
 
 #define MICROPY_PORT_BUILTIN_MODULES \
     { MP_ROM_QSTR(MP_QSTR_board), MP_ROM_PTR(&board_module) }, \
@@ -266,6 +273,7 @@ extern const struct _mp_obj_module_t fir_module;
     { MP_ROM_QSTR(MP_QSTR_uos), MP_ROM_PTR(&mp_module_uos) }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_image),   (mp_obj_t)&image_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_fir),     (mp_obj_t)&fir_module }, \
+    ULAB_BUILTIN_MODULE \
     BLE_MODULE \
     MUSIC_MODULE \
     UBLUEPY_MODULE \

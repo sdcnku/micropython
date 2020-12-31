@@ -141,6 +141,7 @@ SRC_LIB += $(addprefix lib/,\
         libm/fmodf.c \
         libm/nearbyintf.c \
         libm/ef_sqrt.c \
+        libm/erf_lgamma.c \
         libm/kf_rem_pio2.c \
         libm/kf_sin.c \
         libm/kf_cos.c \
@@ -152,10 +153,17 @@ SRC_LIB += $(addprefix lib/,\
         libm/sf_frexp.c \
         libm/sf_modf.c \
         libm/sf_ldexp.c \
+        libm/sf_erf.c\
         libm/asinfacosf.c \
         libm/atanf.c \
         libm/atan2f.c \
         libm/roundf.c \
+        libm/log1pf.c\
+        libm/acoshf.c\
+        libm/asinhf.c\
+        libm/atanhf.c\
+        libm/wf_lgamma.c\
+        libm/wf_tgamma.c\
 	)
 
 endif
@@ -180,6 +188,7 @@ SRC_LIB += $(addprefix lib/,\
         libm/sf_ldexp.c \
         libm/asinfacosf.c \
         libm/atanf.c \
+        libm/atan2f.c \
         libm/atan2f.c \
         )
 
