@@ -29,7 +29,7 @@
 #include "nrf_rtc.h"
 
 #define PIN_ENABLE_SENSORS_3V3     (22u)
-#define PIN_ENABLE_I2C_PULLUP      (33u)
+#define PIN_ENABLE_I2C_PULLUP      (32u)
 
 void NANO33_board_early_init(void)
 {
