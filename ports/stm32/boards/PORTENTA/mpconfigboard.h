@@ -32,11 +32,10 @@ void PORTENTA_board_early_init(void);
 #define ARDUINO_1200BPS_TOUCH PORTENTA_reboot_to_bootloader
 void PORTENTA_reboot_to_bootloader(void);
 
-#define MICROPY_BOARD_ENTER_STOP sdram_enter_low_power();
-void sdram_enter_low_power();
-
-#define MICROPY_BOARD_LEAVE_STOP sdram_leave_low_power();
-void sdram_leave_low_power();
+void PORTENTA_board_low_power(int mode);
+#define MICROPY_BOARD_LEAVE_STOP    PORTENTA_board_low_power(0);
+#define MICROPY_BOARD_ENTER_STOP    PORTENTA_board_low_power(1);
+#define MICROPY_BOARD_ENTER_STANDBY PORTENTA_board_low_power(2);
 
 // The board has an 25MHz HSE, the following gives 450MHz CPU speed
 #define MICROPY_HW_CLK_PLLM (5)

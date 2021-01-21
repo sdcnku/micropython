@@ -21,10 +21,10 @@
 #define MICROPY_HW_CLK_PLLQ         (8)
 #define MICROPY_HW_CLK_PLLR         (2)
 
-void sdram_leave_low_power();
-void sdram_enter_low_power();
-#define MICROPY_BOARD_ENTER_STOP sdram_enter_low_power();
-#define MICROPY_BOARD_LEAVE_STOP sdram_leave_low_power();
+void board_low_power(int mode);
+#define MICROPY_BOARD_LEAVE_STOP    board_low_power(0);
+#define MICROPY_BOARD_ENTER_STOP    board_low_power(1);
+#define MICROPY_BOARD_ENTER_STANDBY board_low_power(2);
 
 #define USBD_VID                      0x1209
 #define USBD_PID                      0xabd1
