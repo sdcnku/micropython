@@ -234,17 +234,26 @@ ifeq ($(MICROPY_PY_ULAB),1)
 CFLAGS_MOD += -DMICROPY_PY_ULAB=1 -I$(TOP)/extmod/ulab/code
 ULAB_DIR = extmod/ulab
 SRC_MOD += $(addprefix $(ULAB_DIR)/,\
-	code/fft.c          \
-	code/linalg.c       \
-	code/ndarray.c      \
-	code/numerical.c    \
-	code/poly.c         \
-	code/ulab.c         \
-	code/vectorise.c    \
-	code/create.c    	\
-	code/approx.c		\
-	code/filter.c		\
-	code/compare.c		\
-	code/extras.c		\
+	code/scipy/optimize/optimize.c      \
+	code/scipy/signal/signal.c          \
+	code/scipy/special/special.c        \
+	code/ndarray_operators.c            \
+	code/ulab_tools.c                   \
+	code/ndarray.c                      \
+	code/numpy/approx/approx.c          \
+	code/numpy/compare/compare.c        \
+	code/ulab_create.c                  \
+	code/numpy/fft/fft.c                \
+	code/numpy/fft/fft_tools.c          \
+	code/numpy/filter/filter.c          \
+	code/numpy/linalg/linalg.c          \
+	code/numpy/linalg/linalg_tools.c    \
+	code/numpy/numerical/numerical.c    \
+	code/numpy/poly/poly.c              \
+	code/numpy/vector/vector.c          \
+	code/user/user.c                    \
+	code/numpy/numpy.c                  \
+	code/scipy/scipy.c                  \
+	code/ulab.c                         \
 	)
 endif
