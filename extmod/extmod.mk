@@ -154,6 +154,8 @@ $(BUILD)/$(LWIP_DIR)/core/ipv4/dhcp.o: CFLAGS_MOD += -Wno-address
 SRC_MOD += extmod/modlwip.c lib/netutils/netutils.c
 SRC_MOD += $(addprefix $(LWIP_DIR)/,\
 	apps/mdns/mdns.c \
+	apps/mdns/mdns_out.c \
+	apps/mdns/mdns_domain.c \
 	core/def.c \
 	core/dns.c \
 	core/inet_chksum.c \
@@ -179,6 +181,7 @@ SRC_MOD += $(addprefix $(LWIP_DIR)/,\
 	core/ipv4/ip4_addr.c \
 	core/ipv4/ip4.c \
 	core/ipv4/ip4_frag.c \
+	core/ipv4/acd.c \
 	core/ipv6/dhcp6.c \
 	core/ipv6/ethip6.c \
 	core/ipv6/icmp6.c \
