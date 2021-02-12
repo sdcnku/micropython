@@ -2,6 +2,7 @@
 #define MICROPY_HW_MCU_NAME         "STM32H747"
 #define MICROPY_HW_FLASH_FS_LABEL	"portenta"
 
+#define MICROPY_FATFS_EXFAT         (1)
 #define MICROPY_HW_ENABLE_RTC       (1)
 #define MICROPY_HW_ENABLE_RNG       (1)
 #define MICROPY_HW_ENABLE_ADC       (1)
@@ -12,8 +13,9 @@
 #define MICROPY_HW_ENABLE_SERVO     (1)
 #define MICROPY_HW_ENABLE_TIMER     (1)
 #define MICROPY_HW_ENABLE_SDCARD    (1)
-#define MICROPY_FATFS_EXFAT         (1)
 #define MICROPY_HW_ENABLE_MMCARD    (0)
+// Reserved DMA streams
+#define MICROPY_HW_DMA2S1_IS_RESERVED
 
 #define MICROPY_HW_ENABLE_INTERNAL_FLASH_STORAGE (0)
 
