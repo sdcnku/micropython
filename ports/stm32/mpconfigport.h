@@ -258,13 +258,17 @@ extern const struct _mp_obj_module_t omv_module;
 extern const struct _mp_obj_module_t sensor_module;
 #endif
 extern const struct _mp_obj_module_t image_module;
+#if MICROPY_PY_LCD
 extern const struct _mp_obj_module_t lcd_module;
+#endif
 extern const struct _mp_obj_module_t fir_module;
 extern const struct _mp_obj_module_t gif_module;
 extern const struct _mp_obj_module_t mjpeg_module;
 extern const struct _mp_obj_module_t cpufreq_module;
 extern const struct _mp_obj_module_t tf_module;
+#if MICROPY_PY_TV
 extern const struct _mp_obj_module_t tv_module;
+#endif
 extern const struct _mp_obj_module_t nn_st_module;
 #if MICROPY_PY_ULAB
 extern const struct _mp_obj_module_t ulab_user_cmodule;
@@ -344,6 +348,18 @@ extern const struct _mp_obj_module_t micro_speech_module;
 #define SENSOR_BUILTIN_MODULE
 #endif
 
+#if MICROPY_PY_LCD
+#define LCD_BUILTIN_MODULE              {  MP_ROM_QSTR(MP_QSTR_lcd), MP_ROM_PTR(&lcd_module) },
+#else
+#define LCD_BUILTIN_MODULE
+#endif
+
+#if MICROPY_PY_TV
+#define TV_BUILTIN_MODULE               {  MP_ROM_QSTR(MP_QSTR_tv), MP_ROM_PTR(&tv_module) },
+#else
+#define TV_BUILTIN_MODULE
+#endif
+
 #define MICROPY_PORT_BUILTIN_MODULES \
     { MP_OBJ_NEW_QSTR(MP_QSTR_umachine), (mp_obj_t)&machine_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_pyb), (mp_obj_t)&pyb_module }, \
@@ -354,13 +370,13 @@ extern const struct _mp_obj_module_t micro_speech_module;
     { MP_OBJ_NEW_QSTR(MP_QSTR_omv),     (mp_obj_t)&omv_module }, \
     SENSOR_BUILTIN_MODULE \
     { MP_OBJ_NEW_QSTR(MP_QSTR_image),   (mp_obj_t)&image_module }, \
-    { MP_OBJ_NEW_QSTR(MP_QSTR_lcd),     (mp_obj_t)&lcd_module }, \
+    LCD_BUILTIN_MODULE \
     { MP_OBJ_NEW_QSTR(MP_QSTR_fir),     (mp_obj_t)&fir_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_gif),     (mp_obj_t)&gif_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_mjpeg),   (mp_obj_t)&mjpeg_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_cpufreq), (mp_obj_t)&cpufreq_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_tf),      (mp_obj_t)&tf_module }, \
-    { MP_OBJ_NEW_QSTR(MP_QSTR_tv),      (mp_obj_t)&tv_module }, \
+    MICROPY_PY_TV \
     CUBEAI_BUILTIN_MODULE \
     ULAB_BUILTIN_MODULE \
     IMU_BUILTIN_MODULE \
