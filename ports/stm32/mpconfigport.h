@@ -376,7 +376,7 @@ extern const struct _mp_obj_module_t micro_speech_module;
     { MP_OBJ_NEW_QSTR(MP_QSTR_mjpeg),   (mp_obj_t)&mjpeg_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_cpufreq), (mp_obj_t)&cpufreq_module }, \
     { MP_OBJ_NEW_QSTR(MP_QSTR_tf),      (mp_obj_t)&tf_module }, \
-    MICROPY_PY_TV \
+    TV_BUILTIN_MODULE \
     CUBEAI_BUILTIN_MODULE \
     ULAB_BUILTIN_MODULE \
     IMU_BUILTIN_MODULE \
