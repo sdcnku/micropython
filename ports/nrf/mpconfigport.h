@@ -283,6 +283,13 @@ extern const struct _mp_obj_module_t tv_module;
 #define TV_BUILTIN_MODULE
 #endif
 
+#if MICROPY_PY_SENSOR
+extern const struct _mp_obj_module_t sensor_module;
+#define SENSOR_BUILTIN_MODULE           {  MP_ROM_QSTR(MP_QSTR_sensor), MP_ROM_PTR(&sensor_module) },
+#else
+#define SENSOR_BUILTIN_MODULE
+#endif
+
 #define MICROPY_PORT_BUILTIN_MODULES \
     { MP_ROM_QSTR(MP_QSTR_board), MP_ROM_PTR(&board_module) }, \
     { MP_ROM_QSTR(MP_QSTR_machine), MP_ROM_PTR(&machine_module) }, \
@@ -295,6 +302,7 @@ extern const struct _mp_obj_module_t tv_module;
     AUDIO_BUILTIN_MODULE \
     LCD_BUILTIN_MODULE \
     TV_BUILTIN_MODULE \
+    SENSOR_BUILTIN_MODULE \
     BLE_MODULE \
     MUSIC_MODULE \
     UBLUEPY_MODULE \
