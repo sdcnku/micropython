@@ -540,6 +540,8 @@ void powerctrl_enter_stop_mode(void) {
     #if defined(STM32F7)
     HAL_PWR_EnterSTOPMode((PWR_CR1_LPDS | PWR_CR1_LPUDS | PWR_CR1_FPDS | PWR_CR1_UDEN), PWR_STOPENTRY_WFI);
     #else
+    // Clear any pending EXTIs.
+    EXTI_D1->PR1 = 0x3fffff; __ISB(); __DSB();
     HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
     #endif
 
