@@ -18,13 +18,6 @@
 // Reserved DMA streams
 #define MICROPY_HW_DMA2S1_IS_RESERVED
 
-#define MICROPY_PY_USOCKET          (1)
-#define MICROPY_PY_NETWORK          (1)
-#define MICROPY_PY_THREAD           (1)
-#define MICROPY_PY_RNDIS			(0)
-#define OPENAMP_PY					(0)
-#define MICROPY_JERRYSCRIPT         (0)
-
 #define MICROPY_BOARD_EARLY_INIT BORMIO_board_early_init
 void BORMIO_board_early_init(void);
 

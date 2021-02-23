@@ -21,13 +21,6 @@
 
 #define MICROPY_HW_CLK_USE_BYPASS	(1)
 
-#define MICROPY_PY_USOCKET          (1)
-#define MICROPY_PY_NETWORK          (1)
-#define MICROPY_PY_THREAD           (1)
-#define MICROPY_PY_RNDIS			(0)
-#define OPENAMP_PY					(0)
-#define MICROPY_JERRYSCRIPT         (0)
-
 #define MICROPY_BOARD_EARLY_INIT PORTENTA_board_early_init
 void PORTENTA_board_early_init(void);
 
