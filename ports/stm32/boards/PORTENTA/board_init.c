@@ -2,6 +2,7 @@
 #include "py/mphal.h"
 #include "storage.h"
 #include "sdram.h"
+#include "eth.h"
 
 #if OPENAMP_PY
 #include "modopenamp.h"
@@ -47,12 +48,15 @@ void PORTENTA_board_low_power(int mode)
 {
     switch (mode) {
         case 0:     // Leave stop mode.
+            eth_leave_low_power();
             sdram_leave_low_power();
             break;
         case 1:     // Enter stop mode.
+            eth_enter_low_power();
             sdram_enter_low_power();
             break;
         case 2:     // Enter standby mode.
+            eth_enter_low_power();
             sdram_powerdown();
             break;
     }

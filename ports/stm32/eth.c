@@ -46,6 +46,7 @@
 #define PHY_BCR                 (0x0000)
 #define PHY_BCR_SOFT_RESET      (0x8000)
 #define PHY_BCR_AUTONEG_EN      (0x1000)
+#define LAN8742_BCR_POWER_DOWN  (0x0800U)
 
 #undef PHY_BSR
 #define PHY_BSR                 (0x0001)
@@ -812,6 +813,20 @@ int eth_stop(eth_t *self) {
     eth_lwip_deinit(self);
     eth_mac_deinit(self);
     return 0;
+}
+
+void eth_enter_low_power()
+{
+    uint16_t bcr = eth_phy_read(PHY_BCR);
+    bcr |= LAN8742_BCR_POWER_DOWN;
+    eth_phy_write(PHY_BCR, bcr);
+}
+
+void eth_leave_low_power()
+{
+    uint16_t bcr = eth_phy_read(PHY_BCR);
+    bcr &= ~LAN8742_BCR_POWER_DOWN;
+    eth_phy_write(PHY_BCR, bcr);
 }
 
 #endif // defined(MICROPY_HW_ETH_MDC)
