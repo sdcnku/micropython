@@ -56,7 +56,7 @@ static volatile uint8_t *sdmmc_buf_top;
 #define OMV_ATTR_ALIGNED(x, a)   x __attribute__((aligned(a)))
 #define OMV_ATTR_SECTION(x, s)   x __attribute__((section(s)))
 #define DMA_BUF_SIZE    (4*1024)
-static uint8_t OMV_ATTR_SECTION(OMV_ATTR_ALIGNED(DMA_BUFFER[DMA_BUF_SIZE], 4), ".dma_buffer");
+static uint8_t OMV_ATTR_SECTION(OMV_ATTR_ALIGNED(DMA_BUFFER[DMA_BUF_SIZE], 4), ".d1_dma_buffer");
 
 // The H7/F7/L4 have 2 SDMMC peripherals, but at the moment this driver only supports using one of them at a time.
 // Use SDMMC2 only if the WiFi SDMMC instance is defined explicitly as SDMMC2, otherwise SDMMC1 is used by default.
