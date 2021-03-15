@@ -282,6 +282,12 @@ extern const struct _mp_obj_module_t tv_module;
 #else
 #define TV_BUILTIN_MODULE
 #endif
+#if MICROPY_PY_BUZZER
+extern const struct _mp_obj_module_t buzzer_module;
+#define BUZZER_BUILTIN_MODULE           {  MP_ROM_QSTR(MP_QSTR_buzzer), MP_ROM_PTR(&buzzer_module) },
+#else
+#define BUZZER_BUILTIN_MODULE
+#endif
 
 #if MICROPY_PY_SENSOR
 extern const struct _mp_obj_module_t sensor_module;
@@ -302,6 +308,7 @@ extern const struct _mp_obj_module_t sensor_module;
     AUDIO_BUILTIN_MODULE \
     LCD_BUILTIN_MODULE \
     TV_BUILTIN_MODULE \
+    BUZZER_BUILTIN_MODULE \
     SENSOR_BUILTIN_MODULE \
     BLE_MODULE \
     MUSIC_MODULE \
