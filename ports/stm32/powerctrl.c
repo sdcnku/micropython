@@ -542,10 +542,18 @@ void powerctrl_enter_stop_mode(void) {
     EXTI_D1->PR1 = 0x3fffff; __ISB(); __DSB();
     #endif
 
+    #if defined(MICROPY_BOARD_OSC_DISABLE)
+    MICROPY_BOARD_OSC_DISABLE
+    #endif
+
     #if defined(STM32F7)
     HAL_PWR_EnterSTOPMode((PWR_CR1_LPDS | PWR_CR1_LPUDS | PWR_CR1_FPDS | PWR_CR1_UDEN), PWR_STOPENTRY_WFI);
     #else
     HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
+    #endif
+
+    #if defined(MICROPY_BOARD_OSC_ENABLE)
+    MICROPY_BOARD_OSC_ENABLE
     #endif
 
     // reconfigure the system clock after waking up

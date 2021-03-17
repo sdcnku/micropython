@@ -32,6 +32,10 @@ void PORTENTA_board_low_power(int mode);
 #define MICROPY_BOARD_ENTER_STOP    PORTENTA_board_low_power(1);
 #define MICROPY_BOARD_ENTER_STANDBY PORTENTA_board_low_power(2);
 
+void PORTENTA_board_osc_enable(int enable);
+#define MICROPY_BOARD_OSC_ENABLE    PORTENTA_board_osc_enable(1);
+#define MICROPY_BOARD_OSC_DISABLE   PORTENTA_board_osc_enable(0);
+
 // The board has an 25MHz HSE, the following gives 450MHz CPU speed
 #define MICROPY_HW_CLK_PLLM (5)
 #define MICROPY_HW_CLK_PLLN (180)

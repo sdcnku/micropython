@@ -13,14 +13,7 @@ void PORTENTA_board_early_init(void) {
 
     // Enable oscillator pin
     // This is enabled in the bootloader anyway.
-    __HAL_RCC_GPIOH_CLK_ENABLE();
-    GPIO_InitTypeDef  gpio_osc_init_structure;
-    gpio_osc_init_structure.Pin = GPIO_PIN_1;
-    gpio_osc_init_structure.Mode = GPIO_MODE_OUTPUT_PP;
-    gpio_osc_init_structure.Pull = GPIO_PULLUP;
-    gpio_osc_init_structure.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(GPIOH, &gpio_osc_init_structure);
-    HAL_GPIO_WritePin(GPIOH, GPIO_PIN_1, 1);
+    PORTENTA_board_osc_enable(true);
 
     // PMIC SW1 current limit fix
     __HAL_RCC_GPIOB_CLK_ENABLE();
@@ -88,8 +81,27 @@ void PORTENTA_reboot_to_bootloader(void) {
     NVIC_SystemReset();
 }
 
+void PORTENTA_board_osc_enable(int enable) {
+    __HAL_RCC_GPIOH_CLK_ENABLE();
+    GPIO_InitTypeDef  gpio_osc_init_structure;
+    gpio_osc_init_structure.Pin = GPIO_PIN_1;
+    gpio_osc_init_structure.Mode = GPIO_MODE_OUTPUT_PP;
+    gpio_osc_init_structure.Pull = GPIO_PULLUP;
+    gpio_osc_init_structure.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(GPIOH, &gpio_osc_init_structure);
+    HAL_GPIO_WritePin(GPIOH, GPIO_PIN_1, enable);
+}
+
 void PORTENTA_board_low_power(int mode)
 {
+    __HAL_RCC_GPIOH_CLK_ENABLE();
+    GPIO_InitTypeDef  gpio_osc_init_structure;
+    gpio_osc_init_structure.Pin = GPIO_PIN_1;
+    gpio_osc_init_structure.Mode = GPIO_MODE_OUTPUT_PP;
+    gpio_osc_init_structure.Pull = GPIO_PULLUP;
+    gpio_osc_init_structure.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(GPIOH, &gpio_osc_init_structure);
+
     switch (mode) {
         case 0:     // Leave stop mode.
             ulpi_leave_low_power();
