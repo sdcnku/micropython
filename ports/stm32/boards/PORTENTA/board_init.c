@@ -94,14 +94,6 @@ void PORTENTA_board_osc_enable(int enable) {
 
 void PORTENTA_board_low_power(int mode)
 {
-    __HAL_RCC_GPIOH_CLK_ENABLE();
-    GPIO_InitTypeDef  gpio_osc_init_structure;
-    gpio_osc_init_structure.Pin = GPIO_PIN_1;
-    gpio_osc_init_structure.Mode = GPIO_MODE_OUTPUT_PP;
-    gpio_osc_init_structure.Pull = GPIO_PULLUP;
-    gpio_osc_init_structure.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(GPIOH, &gpio_osc_init_structure);
-
     switch (mode) {
         case 0:     // Leave stop mode.
             ulpi_leave_low_power();
