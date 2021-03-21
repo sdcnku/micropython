@@ -691,6 +691,18 @@ void powerctrl_enter_standby_mode(void) {
     MICROPY_BOARD_ENTER_STANDBY
     #endif
 
+    // Disable SysTick Interrupt
+    // Note: This seems to be required at least on the H747,
+    // otherwise the MCU will leave stop mode immediately on entry.
+    SysTick->CTRL &= ~SysTick_CTRL_TICKINT_Msk;
+
+    #if defined(MCU_SERIES_H7)
+    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE3);
+    // Wait for PWR_FLAG_VOSRDY
+    while (!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {
+    }
+    #endif
+
     // We need to clear the PWR wake-up-flag before entering standby, since
     // the flag may have been set by a previous wake-up event.  Furthermore,
     // we need to disable the wake-up sources while clearing this flag, so
@@ -749,7 +761,13 @@ void powerctrl_enter_standby_mode(void) {
     PWR->CSR1 |= PWR_CSR1_EIWUP;
     #endif
 
+    #if defined(MICROPY_BOARD_OSC_DISABLE)
+    MICROPY_BOARD_OSC_DISABLE
+    #endif
+
     // enter standby mode
     HAL_PWR_EnterSTANDBYMode();
     // we never return; MCU is reset on exit from standby
+    // But just in case...
+    NVIC_SystemReset();
 }

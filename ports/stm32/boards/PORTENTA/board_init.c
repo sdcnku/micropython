@@ -10,6 +10,7 @@
 #endif
 
 void PORTENTA_board_early_init(void) {
+    HAL_InitTick(0);
 
     // Enable oscillator pin
     // This is enabled in the bootloader anyway.
@@ -66,8 +67,13 @@ void PORTENTA_board_early_init(void) {
     gpio_eth_rst_init_structure.Pull = GPIO_PULLUP;
     gpio_eth_rst_init_structure.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOJ, &gpio_eth_rst_init_structure);
+    HAL_GPIO_WritePin(GPIOJ, GPIO_PIN_15, 0);
+    HAL_Delay(100);
     HAL_GPIO_WritePin(GPIOJ, GPIO_PIN_15, 1);
     eth_enter_low_power();
+
+    // Make sure UPLI is Not in low-power mode.
+    ulpi_leave_low_power();
 
     #if OPENAMP_PY
     OpenAMP_MPU_Config();
@@ -114,4 +120,15 @@ void PORTENTA_board_low_power(int mode)
 
     // Enable QSPI deepsleep for modes 1 and 2
     mp_spiflash_deepsleep(&spi_bdev2.spiflash, (mode != 0));
+
+    #if defined(M4_APP_ADDR)
+    // Signal Cortex-M4 to go to Standby mode.
+    if (mode == 2) {
+        __HAL_RCC_HSEM_CLK_ENABLE();
+        HAL_HSEM_FastTake(0);
+        HAL_HSEM_Release(0, 0);
+        __HAL_RCC_HSEM_CLK_DISABLE();
+        HAL_Delay(100);
+    }
+    #endif
 }
