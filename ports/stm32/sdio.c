@@ -341,7 +341,7 @@ int sdio_transfer_cmd53(bool write, uint32_t block_size, uint32_t arg, size_t le
     }
 
     uint8_t *buf = buf_in;
-    bool dma = (len > 16) && DMA_BUFFER(buf) && IS_AXI_SRAM(buf);
+    bool dma = (len > 16) && DMA_BUFFER(buf) && IS_D1_ADDR(buf);
     bool dma_buf_used = false;
 
     // For read transfers bigger than FIFO size with a non-DMA buffer provided, we use

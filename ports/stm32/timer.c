@@ -923,9 +923,9 @@ STATIC mp_obj_t pyb_timer_make_new(const mp_obj_type_t *type, size_t n_args, siz
         mp_raise_msg_varg(&mp_type_ValueError, MP_ERROR_TEXT("Timer(%d) doesn't exist"), tim_id);
     }
 
-    // check if the timer is reserved
-    if (tim_id == 1 || tim_id == 5 || tim_id == 6) {
-        nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_ValueError, MP_ERROR_TEXT("Timer(%d) is reserved"), tim_id));
+    // check if the timer is reserved for system use or not
+    if (MICROPY_HW_TIM_IS_RESERVED(tim_id)) {
+        mp_raise_msg_varg(&mp_type_ValueError, MP_ERROR_TEXT("Timer(%d) is reserved"), tim_id);
     }
 
     pyb_timer_obj_t *tim;

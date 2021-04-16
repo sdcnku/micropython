@@ -17,6 +17,7 @@
 #define MICROPY_HW_ENABLE_MMCARD    (0)
 // Reserved DMA streams
 #define MICROPY_HW_DMA2S1_IS_RESERVED
+#define MICROPY_HW_TIM_IS_RESERVED(id) (id == 1 || id == 5 || id == 6)
 
 #define MICROPY_BOARD_EARLY_INIT BORMIO_board_early_init
 void BORMIO_board_early_init(void);
@@ -40,6 +41,7 @@ void BORMIO_board_low_power(int mode);
 
 // Use external SPI flash for storage
 #define MICROPY_HW_ENABLE_INTERNAL_FLASH_STORAGE (0)
+#define MICROPY_HW_SPIFLASH_ENABLE_CACHE (1)
 
 // QSPI Flash 128Mbit
 #define MICROPY_HW_SPIFLASH_SIZE_BITS (120 * 1024 * 1024)

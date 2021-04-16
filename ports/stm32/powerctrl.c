@@ -32,9 +32,9 @@
 
 #if defined(STM32H7)
 #define RCC_SR          RSR
-#if defined (STM32H743xx)
+#if defined(STM32H743xx)
 #define RCC_SR_SFTRSTF  RCC_RSR_SFTRSTF
-#elif defined (STM32H747xx)
+#elif defined(STM32H747xx)
 #define RCC_SR_SFTRSTF  RCC_RSR_SFT2RSTF
 #endif
 #define RCC_SR_RMVF     RCC_RSR_RMVF
@@ -42,8 +42,8 @@
 // If the current voltage scale is VOLTAGE_SCALE1 and PWER_ODEN bit is set return VOLTAGE_SCALE0
 // otherwise the current voltage scaling (level VOS1 to VOS3) set in PWER_CSR is returned instead.
 #define POWERCTRL_GET_VOLTAGE_SCALING()     \
-    (((PWR->CSR1 & PWR_CSR1_ACTVOS) && (SYSCFG->PWRCR & SYSCFG_PWRCR_ODEN)) ?\
-     PWR_REGULATOR_VOLTAGE_SCALE0 : (PWR->CSR1 & PWR_CSR1_ACTVOS))
+    (((PWR->CSR1 & PWR_CSR1_ACTVOS) && (SYSCFG->PWRCR & SYSCFG_PWRCR_ODEN)) ? \
+    PWR_REGULATOR_VOLTAGE_SCALE0 : (PWR->CSR1 & PWR_CSR1_ACTVOS))
 #else
 #define RCC_SR          CSR
 #define RCC_SR_SFTRSTF  RCC_CSR_SFTRSTF
@@ -521,7 +521,7 @@ void powerctrl_enter_stop_mode(void) {
     HAL_PWREx_EnableFlashPowerDown();
     #endif
 
-    #if defined(MCU_SERIES_H7)
+    #if defined(STM32H7)
     // Save RCC CR to re-enable OSCs and PLLs after wake up from low power mode.
     uint32_t rcc_cr = RCC->CR;
 
@@ -572,7 +572,7 @@ void powerctrl_enter_stop_mode(void) {
 
     #else
 
-    #if defined(MCU_SERIES_H7)
+    #if defined(STM32H7)
     // When exiting from Stop or Standby modes, the Run mode voltage scaling is reset to
     // the default VOS3 value. Restore the voltage scaling to the previous voltage scale.
     if (vscaling != POWERCTRL_GET_VOLTAGE_SCALING()) {

@@ -489,7 +489,7 @@ mp_uint_t sdcard_read_blocks(uint8_t *dest, uint32_t block_num, uint32_t num_blo
     // we must disable USB irqs to prevent MSC contention with SD card
     uint32_t basepri = raise_irq_pri(IRQ_PRI_OTG_FS);
 
-    if (query_irq() == IRQ_STATE_ENABLED && DMA_BUFFER(dest) && IS_AXI_SRAM(dest)) {
+    if (query_irq() == IRQ_STATE_ENABLED && DMA_BUFFER(dest) && IS_D1_ADDR(dest)) {
         #if SDIO_USE_GPDMA
         DMA_HandleTypeDef sd_dma;
         dma_init(&sd_dma, &SDMMC_DMA, DMA_PERIPH_TO_MEMORY, &sdmmc_handle);
@@ -558,7 +558,7 @@ mp_uint_t sdcard_write_blocks(const uint8_t *src, uint32_t block_num, uint32_t n
     // we must disable USB irqs to prevent MSC contention with SD card
     uint32_t basepri = raise_irq_pri(IRQ_PRI_OTG_FS);
 
-    if (query_irq() == IRQ_STATE_ENABLED && DMA_BUFFER(src) && IS_AXI_SRAM(src)) {
+    if (query_irq() == IRQ_STATE_ENABLED && DMA_BUFFER(src) && IS_D1_ADDR(src)) {
         #if SDIO_USE_GPDMA
         DMA_HandleTypeDef sd_dma;
         dma_init(&sd_dma, &SDMMC_DMA, DMA_MEMORY_TO_PERIPH, &sdmmc_handle);
