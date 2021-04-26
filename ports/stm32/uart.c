@@ -118,16 +118,10 @@ STATIC const pyb_uart_irq_map_t mp_uart_irq_map[] = {
 void uart_init0(void) {
     #if defined(STM32H7)
     RCC_PeriphCLKInitTypeDef RCC_PeriphClkInit = {0};
-    // Configure USART1/6 clock source
-    RCC_PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART16;
+    // Configure USART1/6 and USART2/3/4/5/7/8 clock sources
+    RCC_PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART16 | RCC_PERIPHCLK_USART234578;
     RCC_PeriphClkInit.Usart16ClockSelection = RCC_USART16CLKSOURCE_D2PCLK2;
-    if (HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphClkInit) != HAL_OK) {
-        __fatal_error("HAL_RCCEx_PeriphCLKConfig");
-    }
-
-    // Configure USART2/3/4/5/7/8 clock source
-    RCC_PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART234578;
-    RCC_PeriphClkInit.Usart16ClockSelection = RCC_USART234578CLKSOURCE_D2PCLK1;
+    RCC_PeriphClkInit.Usart234578ClockSelection = RCC_USART234578CLKSOURCE_D2PCLK1;
     if (HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphClkInit) != HAL_OK) {
         __fatal_error("HAL_RCCEx_PeriphCLKConfig");
     }
@@ -370,6 +364,16 @@ bool uart_init(pyb_uart_obj_t *uart_obj,
             #endif
             pins[0] = MICROPY_HW_UART7_TX;
             pins[1] = MICROPY_HW_UART7_RX;
+            #if defined(MICROPY_HW_UART7_RTS)
+            if (flow & UART_HWCONTROL_RTS) {
+                pins[2] = MICROPY_HW_UART7_RTS;
+            }
+            #endif
+            #if defined(MICROPY_HW_UART7_CTS)
+            if (flow & UART_HWCONTROL_CTS) {
+                pins[3] = MICROPY_HW_UART7_CTS;
+            }
+            #endif
             break;
         #endif
 
