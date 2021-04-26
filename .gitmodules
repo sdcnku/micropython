@@ -16,3 +16,6 @@
 [submodule "lib/pico-sdk"]
 	path = lib/pico-sdk
 	url = https://github.com/raspberrypi/pico-sdk.git
+[submodule "lib/mynewt-nimble"]
+	path = lib/mynewt-nimble
+	url = https://github.com/apache/mynewt-nimble.git
