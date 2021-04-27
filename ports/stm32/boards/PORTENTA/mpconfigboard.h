@@ -101,6 +101,12 @@ void PORTENTA_board_osc_enable(int enable);
 #define MICROPY_HW_UART8_TX         (pin_J8)
 #define MICROPY_HW_UART8_RX         (pin_J9)
 
+// UART7 config
+#define MICROPY_HW_UART7_TX         (pyb_pin_BT_TXD)
+#define MICROPY_HW_UART7_RX         (pyb_pin_BT_RXD)
+#define MICROPY_HW_UART7_RTS        (pyb_pin_BT_RTS)
+#define MICROPY_HW_UART7_CTS        (pyb_pin_BT_CTS)
+
 // I2C busses
 #define MICROPY_HW_I2C3_SCL         (pin_H7)
 #define MICROPY_HW_I2C3_SDA         (pin_H8)
@@ -151,6 +157,11 @@ void PORTENTA_board_osc_enable(int enable);
 #define USBD_CDC_RX_DATA_SIZE       (512)
 #define USBD_CDC_TX_DATA_SIZE       (512)
 #define GPIO_AF10_OTG_HS            (GPIO_AF10_OTG2_HS)
+
+// Bluetooth config
+#define MICROPY_HW_BLE_UART_ID       (PYB_UART_7)
+#define MICROPY_HW_BLE_UART_BAUDRATE (115200)
+#define MICROPY_HW_BLE_UART_BAUDRATE_SECONDARY (3000000)
 
 // SDRAM
 #define MICROPY_HW_SDRAM_SIZE               (64 / 8 * 1024 * 1024)  // 64 Mbit
