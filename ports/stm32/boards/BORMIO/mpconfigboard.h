@@ -98,13 +98,13 @@ extern struct _spi_bdev_t spi_bdev;
 #define MICROPY_HW_LED_OFF(pin)     (mp_hal_pin_high(pin))
 
 // WiFi SDMMC
-#define MICROPY_HW_WIFI_SDMMC       (2)
-#define MICROPY_HW_SDMMC2_CK        (pin_C1)
-#define MICROPY_HW_SDMMC2_CMD       (pin_D7)
-#define MICROPY_HW_SDMMC2_D0        (pin_B14)
-#define MICROPY_HW_SDMMC2_D1        (pin_B15)
-#define MICROPY_HW_SDMMC2_D2        (pin_G11)
-#define MICROPY_HW_SDMMC2_D3        (pin_B4)
+#define MICROPY_HW_SDIO_SDMMC       (2)
+#define MICROPY_HW_SDIO_CK          (pin_C1)
+#define MICROPY_HW_SDIO_CMD         (pin_D7)
+#define MICROPY_HW_SDIO_D0          (pin_B14)
+#define MICROPY_HW_SDIO_D1          (pin_B15)
+#define MICROPY_HW_SDIO_D2          (pin_G11)
+#define MICROPY_HW_SDIO_D3          (pin_B4)
 
 // USB config
 #define MICROPY_HW_USB_FS           (1)

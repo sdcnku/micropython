@@ -131,22 +131,22 @@ void PORTENTA_board_osc_enable(int enable);
 #define MICROPY_HW_LED_OFF(pin)     (mp_hal_pin_high(pin))
 
 // WiFi SDMMC
-#define MICROPY_HW_WIFI_SDMMC       (1)
-#define MICROPY_HW_SDMMC1_CK        (pin_C12)
-#define MICROPY_HW_SDMMC1_CMD       (pin_D2)
-#define MICROPY_HW_SDMMC1_D0        (pin_C8)
-#define MICROPY_HW_SDMMC1_D1        (pin_C9)
-#define MICROPY_HW_SDMMC1_D2        (pin_C10)
-#define MICROPY_HW_SDMMC1_D3        (pin_C11)
+#define MICROPY_HW_SDIO_SDMMC       (1)
+#define MICROPY_HW_SDIO_CK          (pin_C12)
+#define MICROPY_HW_SDIO_CMD         (pin_D2)
+#define MICROPY_HW_SDIO_D0          (pin_C8)
+#define MICROPY_HW_SDIO_D1          (pin_C9)
+#define MICROPY_HW_SDIO_D2          (pin_C10)
+#define MICROPY_HW_SDIO_D3          (pin_C11)
 
 // SD Card SDMMC
 #define MICROPY_HW_SDCARD_SDMMC     (2)
-#define MICROPY_HW_SDMMC2_CK        (pin_D6)
-#define MICROPY_HW_SDMMC2_CMD       (pin_D7)
-#define MICROPY_HW_SDMMC2_D0        (pin_B14)
-#define MICROPY_HW_SDMMC2_D1        (pin_B15)
-#define MICROPY_HW_SDMMC2_D2        (pin_B3)
-#define MICROPY_HW_SDMMC2_D3        (pin_B4)
+#define MICROPY_HW_SDCARD_CK        (pin_D6)
+#define MICROPY_HW_SDCARD_CMD       (pin_D7)
+#define MICROPY_HW_SDCARD_D0        (pin_B14)
+#define MICROPY_HW_SDCARD_D1        (pin_B15)
+#define MICROPY_HW_SDCARD_D2        (pin_B3)
+#define MICROPY_HW_SDCARD_D3        (pin_B4)
 
 // USB config
 #define MICROPY_HW_USB_HS           (1)
