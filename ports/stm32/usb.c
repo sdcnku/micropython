@@ -368,6 +368,11 @@ uint32_t usb_cdc_get_buf(uint8_t *buf, uint32_t len)
     return usbd_cdc_get_buf(&usb_device.usbd_cdc_itf[0], buf, len);
 }
 
+int usb_cdc_debug_mode_enabled()
+{
+    return usbd_cdc_debug_mode_enabled(&usb_device.usbd_cdc_itf[0]);
+}
+
 usbd_cdc_itf_t *usb_vcp_get(int idx) {
     return &usb_device.usbd_cdc_itf[idx];
 }
