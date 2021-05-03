@@ -40,6 +40,9 @@ enum {
     #if MICROPY_PY_AUDIO
     PENDSV_DISPATCH_AUDIO,
     #endif
+    #if MICROPY_PY_WINC1500
+    PENDSV_DISPATCH_WINC,
+    #endif
     PENDSV_DISPATCH_MAX
 };
 
