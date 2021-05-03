@@ -237,7 +237,6 @@ void usbd_cdc_tx_ready(usbd_cdc_state_t *cdc_in) {
         if (cdc->dbg_xfer_length) {
             send_packet(cdc);
         } else {
-            cdc->tx_buf_ptr_out = cdc->tx_buf_ptr_out_next;
             if (cdc->dbg_last_packet == CDC_DATA_FS_MAX_PACKET_SIZE) {
                 cdc->dbg_last_packet = 0;
                 USBD_CDC_TransmitPacket(&cdc->base, 0, cdc->dbg_xfer_buffer);
@@ -323,6 +322,10 @@ void usbd_cdc_rx_check_resume(usbd_cdc_itf_t *cdc) {
 }
 
 uint32_t usbd_cdc_buf_len(usbd_cdc_itf_t *cdc) {
+    cdc->tx_buf_ptr_out = cdc->tx_buf_ptr_out_next;
+    if (usbd_cdc_tx_buffer_empty(cdc)) {
+        return 0;
+    }
     return usbd_cdc_tx_send_length(cdc);
 }
 
