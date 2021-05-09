@@ -33,7 +33,6 @@
 #include "servo.h"
 #include "pin.h"
 #include "irq.h"
-#include "wifidbg.h"
 
 /// \moduleref pyb
 /// \class Timer - periodically call a function
@@ -63,17 +62,21 @@
 ///     tim.callback(lambda t: ...)     # set callback for update interrupt (t=tim instance)
 ///     tim.callback(None)              # clear callback
 ///
-/// The timers can be used by multiple drivers, and need a common point for
-/// the interrupts to be dispatched, so they are all collected here.
-///
-/// TIM4:
-///  - servo controller, PWM
-///
-/// TIM5:
-///  - WiFi debug dispatch.
-///
-/// TIM6:
-///  - ADC, DAC for read_timed and write_timed
+/// *Note:* Timer 3 is used for fading the blue LED.  Timer 5 controls
+/// the servo driver, and Timer 6 is used for timed ADC/DAC reading/writing.
+/// It is recommended to use the other timers in your programs.
+
+// The timers can be used by multiple drivers, and need a common point for
+// the interrupts to be dispatched, so they are all collected here.
+//
+// TIM3:
+//  - LED 4, PWM to set the LED intensity
+//
+// TIM5:
+//  - servo controller, PWM
+//
+// TIM6:
+//  - ADC, DAC for read_timed and write_timed
 
 typedef enum {
     CHANNEL_MODE_PWM_NORMAL,
@@ -139,7 +142,6 @@ typedef struct _pyb_timer_obj_t {
 #define TIMER_CNT_MASK(self)    ((self)->is_32bit ? 0xffffffff : 0xffff)
 #define TIMER_CHANNEL(self)     ((((self)->channel) - 1) << 2)
 
-TIM_HandleTypeDef TIM4_Handle;
 TIM_HandleTypeDef TIM5_Handle;
 TIM_HandleTypeDef TIM6_Handle;
 
@@ -165,52 +167,27 @@ void timer_deinit(void) {
     }
 }
 
-// TIM4 is set-up for the servo controller
+#if defined(TIM5)
+// TIM5 is set-up for the servo controller
 // This function inits but does not start the timer
-void timer_tim4_init(void) {
-    // TIM4 clock enable
-    __TIM4_CLK_ENABLE();
-    __HAL_RCC_TIM4_CLK_ENABLE();
-
-    // set up and enable interrupt
-    NVIC_SetPriority(TIM4_IRQn, IRQ_PRI_TIM4);
-    HAL_NVIC_EnableIRQ(TIM4_IRQn);
-
-    // PWM clock configuration
-    TIM4_Handle.Instance = TIM4;
-    TIM4_Handle.Init.Period = 2000 - 1; // timer cycles at 50Hz
-    TIM4_Handle.Init.Prescaler = (timer_get_source_freq(4) / 100000) - 1; // timer runs at 100kHz
-    TIM4_Handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    TIM4_Handle.Init.CounterMode = TIM_COUNTERMODE_UP;
-
-    HAL_TIM_PWM_Init(&TIM4_Handle);
-}
-
-void timer_tim5_init(uint freq) {
+void timer_tim5_init(void) {
     // TIM5 clock enable
-    __TIM5_CLK_ENABLE();
     __HAL_RCC_TIM5_CLK_ENABLE();
 
     // set up and enable interrupt
-    NVIC_SetPriority(TIM5_IRQn, IRQ_PRI_WIFITIM);
+    NVIC_SetPriority(TIM5_IRQn, IRQ_PRI_TIM5);
     HAL_NVIC_EnableIRQ(TIM5_IRQn);
 
-    uint32_t period = MAX(1, timer_get_source_freq(5) / freq);
-    uint32_t prescaler = 1;
-    while (period > 0xffffffff) { // TIM5 is 32-bits
-        period >>= 1;
-        prescaler <<= 1;
-    }
-
+    // PWM clock configuration
     TIM5_Handle.Instance = TIM5;
-    TIM5_Handle.Init.Period = period - 1;
-    TIM5_Handle.Init.Prescaler = prescaler - 1;
-    TIM5_Handle.Init.ClockDivision     = 0;
-    TIM5_Handle.Init.CounterMode       = TIM_COUNTERMODE_UP;
-    TIM5_Handle.Init.RepetitionCounter = 0;
-    HAL_TIM_Base_Init(&TIM5_Handle);
-    HAL_TIM_Base_Start_IT(&TIM5_Handle);
+    TIM5_Handle.Init.Period = 2000 - 1; // timer cycles at 50Hz
+    TIM5_Handle.Init.Prescaler = (timer_get_source_freq(5) / 100000) - 1; // timer runs at 100kHz
+    TIM5_Handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    TIM5_Handle.Init.CounterMode = TIM_COUNTERMODE_UP;
+
+    HAL_TIM_PWM_Init(&TIM5_Handle);
 }
+#endif
 
 #if defined(TIM6)
 // Init TIM6 with a counter-overflow at the given frequency (given in Hz)
@@ -244,14 +221,10 @@ TIM_HandleTypeDef *timer_tim6_init(uint freq) {
 // Interrupt dispatch
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     #if MICROPY_HW_ENABLE_SERVO
-    if (htim == &TIM4_Handle) {
+    if (htim == &TIM5_Handle) {
         servo_timer_irq_callback();
     }
     #endif
-
-    if (htim == &TIM5_Handle) {
-        wifidbg_dispatch();
-    }
 }
 
 // Get the frequency (in Hz) of the source clock for the given timer.
@@ -1599,7 +1572,6 @@ STATIC mp_obj_t pyb_timer_channel_callback(mp_obj_t self_in, mp_obj_t callback) 
     } else {
         mp_raise_ValueError(MP_ERROR_TEXT("callback must be None or a callable object"));
     }
-
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(pyb_timer_channel_callback_obj, pyb_timer_channel_callback);

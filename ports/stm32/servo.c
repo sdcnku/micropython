@@ -62,8 +62,6 @@ typedef struct _pyb_servo_obj_t {
 STATIC pyb_servo_obj_t pyb_servo_obj[PYB_SERVO_NUM];
 
 void servo_init(void) {
-    timer_tim4_init();
-
     // reset servo objects
     for (int i = 0; i < PYB_SERVO_NUM; i++) {
         pyb_servo_obj[i].base.type = &pyb_servo_type;
@@ -110,13 +108,13 @@ void servo_timer_irq_callback(void) {
                 need_it = true;
             }
             // set the pulse width
-            *(&TIM4->CCR1 + (s->pin->pin - 12)) = s->pulse_cur;
+            *(&TIM5->CCR1 + (s->pin->pin - 12)) = s->pulse_cur;
         }
     }
     if (need_it) {
-        __HAL_TIM_ENABLE_IT(&TIM4_Handle, TIM_IT_UPDATE);
+        __HAL_TIM_ENABLE_IT(&TIM5_Handle, TIM_IT_UPDATE);
     } else {
-        __HAL_TIM_DISABLE_IT(&TIM4_Handle, TIM_IT_UPDATE);
+        __HAL_TIM_DISABLE_IT(&TIM5_Handle, TIM_IT_UPDATE);
     }
 }
 
@@ -126,7 +124,11 @@ STATIC void servo_init_channel(pyb_servo_obj_t *s) {
     uint32_t channel = channel_table[s->pin->pin - 12];
 
     // GPIO configuration
-    mp_hal_pin_config(s->pin, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, GPIO_AF2_TIM4);
+    mp_hal_pin_config(s->pin, MP_HAL_PIN_MODE_ALT, MP_HAL_PIN_PULL_NONE, GPIO_AF2_TIM5);
+
+    if (__HAL_RCC_TIM5_IS_CLK_DISABLED()) {
+        timer_tim5_init();
+    }
 
     // PWM mode configuration
     TIM_OC_InitTypeDef oc_init;
@@ -134,10 +136,10 @@ STATIC void servo_init_channel(pyb_servo_obj_t *s) {
     oc_init.Pulse = s->pulse_cur; // units of 10us
     oc_init.OCPolarity = TIM_OCPOLARITY_HIGH;
     oc_init.OCFastMode = TIM_OCFAST_DISABLE;
-    HAL_TIM_PWM_ConfigChannel(&TIM4_Handle, &oc_init, channel);
+    HAL_TIM_PWM_ConfigChannel(&TIM5_Handle, &oc_init, channel);
 
     // start PWM
-    HAL_TIM_PWM_Start(&TIM4_Handle, channel);
+    HAL_TIM_PWM_Start(&TIM5_Handle, channel);
 }
 
 /******************************************************************************/
@@ -154,16 +156,16 @@ STATIC mp_obj_t pyb_servo_set(mp_obj_t port, mp_obj_t value) {
     }
     switch (p) {
         case 1:
-            TIM4->CCR1 = v;
+            TIM5->CCR1 = v;
             break;
         case 2:
-            TIM4->CCR2 = v;
+            TIM5->CCR2 = v;
             break;
         case 3:
-            TIM4->CCR3 = v;
+            TIM5->CCR3 = v;
             break;
         case 4:
-            TIM4->CCR4 = v;
+            TIM5->CCR4 = v;
             break;
     }
     return mp_const_none;
@@ -174,8 +176,8 @@ MP_DEFINE_CONST_FUN_OBJ_2(pyb_servo_set_obj, pyb_servo_set);
 STATIC mp_obj_t pyb_pwm_set(mp_obj_t period, mp_obj_t pulse) {
     int pe = mp_obj_get_int(period);
     int pu = mp_obj_get_int(pulse);
-    TIM4->ARR = pe;
-    TIM4->CCR3 = pu;
+    TIM5->ARR = pe;
+    TIM5->CCR3 = pu;
     return mp_const_none;
 }
 
