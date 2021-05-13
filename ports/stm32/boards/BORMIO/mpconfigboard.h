@@ -22,7 +22,7 @@
 #define MICROPY_BOARD_EARLY_INIT BORMIO_board_early_init
 void BORMIO_board_early_init(void);
 
-#define ARDUINO_1200BPS_TOUCH BORMIO_reboot_to_bootloader
+#define MICROPY_RESET_TO_BOOTLOADER BORMIO_reboot_to_bootloader
 void BORMIO_reboot_to_bootloader(void);
 
 void BORMIO_board_low_power(int mode);

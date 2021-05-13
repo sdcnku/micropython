@@ -26,7 +26,7 @@
 #define MICROPY_BOARD_EARLY_INIT PORTENTA_board_early_init
 void PORTENTA_board_early_init(void);
 
-#define ARDUINO_1200BPS_TOUCH PORTENTA_reboot_to_bootloader
+#define MICROPY_RESET_TO_BOOTLOADER PORTENTA_reboot_to_bootloader
 void PORTENTA_reboot_to_bootloader(void);
 
 void PORTENTA_board_low_power(int mode);
