@@ -792,6 +792,10 @@ int eth_link_status(eth_t *self) {
 
 int eth_start(eth_t *self) {
     eth_lwip_deinit(self);
+
+    // Leave low power mode
+    eth_leave_low_power();
+
     int ret = eth_mac_init(self);
     if (ret < 0) {
         return ret;
