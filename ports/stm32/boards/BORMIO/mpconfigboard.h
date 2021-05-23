@@ -17,7 +17,7 @@
 #define MICROPY_HW_ENABLE_MMCARD    (0)
 // Reserved DMA streams
 #define MICROPY_HW_DMA2S1_IS_RESERVED
-#define MICROPY_HW_TIM_IS_RESERVED(id) (id == 1 || id == 5 || id == 6)
+#define MICROPY_HW_TIM_IS_RESERVED(id) (id == 1 || id == 6)
 
 #define MICROPY_BOARD_EARLY_INIT BORMIO_board_early_init
 void BORMIO_board_early_init(void);
