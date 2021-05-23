@@ -112,10 +112,10 @@ void PORTENTA_board_osc_enable(int enable);
 #define MICROPY_HW_I2C3_SDA         (pin_H8)
 
 // SPI
-//#define MICROPY_HW_SPI2_NSS         (pin_I0)
-//#define MICROPY_HW_SPI2_SCK         (pin_I1)
-//#define MICROPY_HW_SPI2_MISO        (pin_B14)
-//#define MICROPY_HW_SPI2_MOSI        (pin_B15)
+#define MICROPY_HW_SPI2_NSS         (pin_I0)
+#define MICROPY_HW_SPI2_SCK         (pin_I1)
+#define MICROPY_HW_SPI2_MISO        (pin_C2)
+#define MICROPY_HW_SPI2_MOSI        (pin_C3)
 
 // USRSW is pulled low. Pressing the button makes the input go high.
 #define MICROPY_HW_USRSW_PIN        (pin_A0)
