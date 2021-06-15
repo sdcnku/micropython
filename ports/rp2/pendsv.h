@@ -1,7 +1,9 @@
 /*
+ * This file is part of the MicroPython project, http://micropython.org/
+ *
  * The MIT License (MIT)
  *
- * Copyright (c) 2020-2021 Damien P. George
+ * Copyright (c) 2013, 2014 Damien P. George
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +22,25 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
- *
  */
-#ifndef MICROPY_INCLUDED_RP2_TUSB_CONFIG_H
-#define MICROPY_INCLUDED_RP2_TUSB_CONFIG_H
+#ifndef MICROPY_INCLUDED_STM32_PENDSV_H
+#define MICROPY_INCLUDED_STM32_PENDSV_H
 
-#define CFG_TUSB_RHPORT0_MODE   (OPT_MODE_DEVICE)
+enum {
+    PENDSV_DISPATCH_CDC,
+    #if MICROPY_PY_AUDIO
+    PENDSV_DISPATCH_AUDIO,
+    #endif
+    PENDSV_DISPATCH_MAX
+};
 
-#define CFG_TUD_CDC             (1)
-#define CFG_TUD_CDC_RX_BUFSIZE  (512)
-#define CFG_TUD_CDC_TX_BUFSIZE  (512)
-//#define CFG_TUD_CDC_EP_BUFSIZE  (512)
+#define PENDSV_DISPATCH_NUM_SLOTS PENDSV_DISPATCH_MAX
 
-#define CFG_TUD_MSC             (1)
-// This must match both the FLASH_SECTOR_SIZE and FATFS_MAX_SS
-#define CFG_TUD_MSC_BUFSIZE     (4096)
+typedef void (*pendsv_dispatch_t)(void);
 
+void pendsv_init(void);
+void pendsv_kbd_intr(void);
+void pendsv_nlr_jump(void *val);
+void pendsv_schedule_dispatch(size_t slot, pendsv_dispatch_t f);
 
-#endif // MICROPY_INCLUDED_RP2_TUSB_CONFIG_H
+#endif // MICROPY_INCLUDED_STM32_PENDSV_H

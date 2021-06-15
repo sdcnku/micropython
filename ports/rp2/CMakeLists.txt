@@ -90,7 +90,7 @@ set(MICROPY_SOURCE_PORT
     machine_timer.c
     machine_uart.c
     machine_wdt.c
-    main.c
+    pendsv.c
     modmachine.c
     modrp2.c
     moduos.c
@@ -101,6 +101,7 @@ set(MICROPY_SOURCE_PORT
     rp2_pio.c
     tusb_port.c
     uart.c
+    msc_disk.c
 )
 
 set(MICROPY_SOURCE_QSTR
@@ -154,7 +155,9 @@ set(PICO_SDK_COMPONENTS
     pico_sync
     pico_time
     pico_unique_id
+    tinyusb_common
     tinyusb_device
+    cmsis_core
 )
 
 # Define mpy-cross flags and frozen manifest
@@ -182,6 +185,8 @@ target_include_directories(${MICROPY_TARGET} PRIVATE
 target_compile_options(${MICROPY_TARGET} PRIVATE
     -Wall
     -Werror
+    # TODO: This flag is currently needed for tinyusb.
+    -Wno-unused-but-set-variable
 )
 
 target_compile_definitions(${MICROPY_TARGET} PRIVATE
@@ -216,6 +221,8 @@ add_custom_command(TARGET ${MICROPY_TARGET}
     COMMAND arm-none-eabi-size --format=berkeley ${PROJECT_BINARY_DIR}/${MICROPY_TARGET}.elf
     VERBATIM
 )
+
+include(${OMV_CMAKE})
 
 # Collect all the include directories and compile definitions for the pico-sdk components.
 foreach(comp ${PICO_SDK_COMPONENTS})
