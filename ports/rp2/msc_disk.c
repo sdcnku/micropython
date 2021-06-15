@@ -34,6 +34,8 @@
 #define FLASH_BASE_ADDR     (PICO_FLASH_SIZE_BYTES - MICROPY_HW_FLASH_STORAGE_BYTES)
 #define FLASH_MMAP_ADDR     (XIP_BASE + FLASH_BASE_ADDR)
 
+static bool ejected = false;
+
 // Invoked when received SCSI_CMD_INQUIRY
 // Application fill vendor id, product id and revision with string up to 8, 16, 4 characters respectively
 void tud_msc_inquiry_cb(uint8_t lun, uint8_t vendor_id[8], uint8_t product_id[16], uint8_t product_rev[4]) {
@@ -49,6 +51,10 @@ void tud_msc_inquiry_cb(uint8_t lun, uint8_t vendor_id[8], uint8_t product_id[16
 // Invoked when received Test Unit Ready command.
 // return true allowing host to read/write this LUN e.g SD card inserted
 bool tud_msc_test_unit_ready_cb(uint8_t lun) {
+    if (ejected) {
+        tud_msc_set_sense(lun, SCSI_SENSE_NOT_READY, 0x3a, 0x00);
+        return false;
+    }
     return true;
 }
 
@@ -63,6 +69,14 @@ void tud_msc_capacity_cb(uint8_t lun, uint32_t *block_count, uint16_t *block_siz
 // - Start = 0 : stopped power mode, if load_eject = 1 : unload disk storage
 // - Start = 1 : active mode, if load_eject = 1 : load disk storage
 bool tud_msc_start_stop_cb(uint8_t lun, uint8_t power_condition, bool start, bool load_eject) {
+    if (load_eject) {
+        if (start) {
+            // load disk storage
+        } else {
+            // unload disk storage
+            ejected = true;
+        }
+    }
     return true;
 }
 
