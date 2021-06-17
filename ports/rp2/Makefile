@@ -15,7 +15,7 @@ CMAKE_ARGS += -DUSER_C_MODULES=${USER_C_MODULES}
 endif
 
 all:
-	[ -d $(BUILD) ] || cmake -B $(BUILD) -S . -DPICO_BUILD_DOCS=0 ${CMAKE_ARGS}
+	[ -d $(BUILD) ] || cmake -S . -B $(BUILD) -DPICO_BUILD_DOCS=0 ${CMAKE_ARGS}
 	$(MAKE) $(MAKESILENT) -C $(BUILD)
 
 clean:
