@@ -29,6 +29,11 @@
 #include "hardware/sync.h"
 #include "pico/stdlib.h"
 
+// This implementation does Not support Flash sector caching.
+#if MICROPY_FATFS_MAX_SS != FLASH_SECTOR_SIZE
+#error MICROPY_FATFS_MAX_SS must be the same size as FLASH_SECTOR_SIZE
+#endif
+
 #define BLOCK_SIZE          (FLASH_SECTOR_SIZE)
 #define BLOCK_COUNT         (MICROPY_HW_FLASH_STORAGE_BYTES / BLOCK_SIZE)
 #define FLASH_BASE_ADDR     (PICO_FLASH_SIZE_BYTES - MICROPY_HW_FLASH_STORAGE_BYTES)
@@ -39,13 +44,13 @@ static bool ejected = false;
 // Invoked when received SCSI_CMD_INQUIRY
 // Application fill vendor id, product id and revision with string up to 8, 16, 4 characters respectively
 void tud_msc_inquiry_cb(uint8_t lun, uint8_t vendor_id[8], uint8_t product_id[16], uint8_t product_rev[4]) {
-    const char vid[] = "Micropython";
+    const char vid[] = "Micropy";
     const char pid[] = "Mass Storage";
     const char rev[] = "1.0";
 
-    memcpy(vendor_id, vid, strlen(vid));
-    memcpy(product_id, pid, strlen(pid));
-    memcpy(product_rev, rev, strlen(rev));
+    strncpy((char *)vendor_id,   vid, 8);
+    strncpy((char *)product_id,  pid, 16);
+    strncpy((char *)product_rev, rev, 4);
 }
 
 // Invoked when received Test Unit Ready command.
@@ -72,6 +77,7 @@ bool tud_msc_start_stop_cb(uint8_t lun, uint8_t power_condition, bool start, boo
     if (load_eject) {
         if (start) {
             // load disk storage
+            ejected = false;
         } else {
             // unload disk storage
             ejected = true;
@@ -107,7 +113,6 @@ int32_t tud_msc_scsi_cb(uint8_t lun, uint8_t const scsi_cmd[16], void *buffer, u
     switch (scsi_cmd[0]) {
         case SCSI_CMD_PREVENT_ALLOW_MEDIUM_REMOVAL:
             // Sync the logical unit if needed.
-            resplen = 0;
             break;
 
         default:
