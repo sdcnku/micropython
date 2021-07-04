@@ -74,6 +74,7 @@ set(MICROPY_SOURCE_LIB
     ${MICROPY_DIR}/lib/utils/pyexec.c
     ${MICROPY_DIR}/lib/utils/stdout_helpers.c
     ${MICROPY_DIR}/lib/utils/sys_stdio_mphal.c
+    ${MICROPY_DIR}/lib/netutils/netutils.c
 )
 
 set(MICROPY_SOURCE_DRIVERS
@@ -102,6 +103,8 @@ set(MICROPY_SOURCE_PORT
     tusb_port.c
     uart.c
     msc_disk.c
+    modusocket.c
+    modnetwork.c
 )
 
 set(MICROPY_SOURCE_QSTR
@@ -124,6 +127,8 @@ set(MICROPY_SOURCE_QSTR
     ${PROJECT_SOURCE_DIR}/modutime.c
     ${PROJECT_SOURCE_DIR}/rp2_flash.c
     ${PROJECT_SOURCE_DIR}/rp2_pio.c
+    ${PROJECT_SOURCE_DIR}/modusocket.c
+    ${PROJECT_SOURCE_DIR}/modnetwork.c
 )
 
 set(PICO_SDK_COMPONENTS
