@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2013, 2014 Damien P. George
+ * Copyright (c) 2020 Jim Mussared
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,27 +23,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#ifndef MICROPY_INCLUDED_STM32_PENDSV_H
-#define MICROPY_INCLUDED_STM32_PENDSV_H
 
-enum {
-    PENDSV_DISPATCH_CDC,
-    #if MICROPY_PY_AUDIO
-    PENDSV_DISPATCH_AUDIO,
-    #endif
-    #if MICROPY_PY_BLUETOOTH && !MICROPY_PY_BLUETOOTH_USE_SYNC_EVENTS
-    PENDSV_DISPATCH_BLUETOOTH_HCI,
-    #endif
-    PENDSV_DISPATCH_MAX
-};
+#ifndef MICROPY_INCLUDED_RP2_NIMBLE_PORT_H
+#define MICROPY_INCLUDED_RP2_NIMBLE_PORT_H
 
-#define PENDSV_DISPATCH_NUM_SLOTS PENDSV_DISPATCH_MAX
-
-typedef void (*pendsv_dispatch_t)(void);
-
-void pendsv_init(void);
-void pendsv_kbd_intr(void);
-void pendsv_nlr_jump(void *val);
-void pendsv_schedule_dispatch(size_t slot, pendsv_dispatch_t f);
-
-#endif // MICROPY_INCLUDED_STM32_PENDSV_H
+#endif // MICROPY_INCLUDED_RP2_NIMBLE_PORT_H

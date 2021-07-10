@@ -5,3 +5,14 @@
 
 // Enable USB Mass Storage with FatFS filesystem.
 #define MICROPY_HW_USB_MSC  (1)
+
+// UART 1 config.
+#define MICROPY_HW_UART1_TX             (8)
+#define MICROPY_HW_UART1_RX             (9)
+#define MICROPY_HW_UART1_CTS            (10)
+#define MICROPY_HW_UART1_RTS            (11)
+
+// Bluetooth config.
+#define MICROPY_HW_BLE_UART_ID          (1)
+#define MICROPY_HW_BLE_UART_BAUDRATE    (115200)
+
