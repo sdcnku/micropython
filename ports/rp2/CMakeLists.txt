@@ -188,6 +188,15 @@ if(MICROPY_BLUETOOTH_NIMBLE)
     list(APPEND MICROPY_INC_CORE ${NIMBLE_INCLUDE})
 endif()
 
+
+if(MICROPY_PY_NETWORK_NINAW10)
+    list(APPEND MICROPY_SOURCE_DRIVERS ${MICROPY_DIR}/drivers/ninaw10/nina_bt_hci.c)
+    target_compile_definitions(${MICROPY_TARGET} PRIVATE
+        MICROPY_BLUETOOTH_NIMBLE=1
+        MICROPY_PY_NETWORK_NINAW10=1
+    )
+endif()
+
 # Define mpy-cross flags and frozen manifest
 set(MICROPY_CROSS_FLAGS -march=armv7m)
 set(MICROPY_FROZEN_MANIFEST ${PROJECT_SOURCE_DIR}/manifest.py)

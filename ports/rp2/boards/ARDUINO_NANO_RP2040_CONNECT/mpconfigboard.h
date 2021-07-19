@@ -13,6 +13,8 @@
 #define MICROPY_HW_UART1_RTS            (11)
 
 // Bluetooth config.
+#define MICROPY_HW_NINA_RESET           (3)
+#define MICROPY_HW_NINA_GPIO1           (9)
 #define MICROPY_HW_BLE_UART_ID          (1)
-#define MICROPY_HW_BLE_UART_BAUDRATE    (115200)
+#define MICROPY_HW_BLE_UART_BAUDRATE    (119600)
 
