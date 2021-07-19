@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2018-2020 Damien P. George
+ * Copyright (c) 2021 Ibrahim Abdelkader <iabdalkader@openmv.io>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,16 +36,21 @@
 
 #if MICROPY_PY_BLUETOOTH
 
-#define DEBUG_printf(...) // mp_printf(&mp_plat_print, "mpbthciport.c: " __VA_ARGS__)
+#define debug_printf(...) //mp_printf(&mp_plat_print, "mpbthciport.c: " __VA_ARGS__)
+#define error_printf(...) mp_printf(&mp_plat_print, "mpbthciport.c: " __VA_ARGS__)
 
 uint8_t mp_bluetooth_hci_cmd_buf[4 + 256];
 
 #if MICROPY_PY_BLUETOOTH_USE_SYNC_EVENTS
+// Poll timer ID.
+static alarm_id_t poll_timer_id = 0;
+
 // Prevent double-enqueuing of the scheduled task.
 STATIC volatile bool events_task_is_scheduled;
 #endif
 
 static int64_t mp_bluetooth_hci_timer_callback(alarm_id_t id, void *user_data) {
+    poll_timer_id = 0;
     mp_bluetooth_hci_poll_now();
     return 0;
 }
@@ -64,15 +69,13 @@ STATIC void mp_bluetooth_hci_start_polling(void) {
 }
 
 void mp_bluetooth_hci_poll_in_ms(uint32_t ms) {
-    add_alarm_in_ms(ms, mp_bluetooth_hci_timer_callback, NULL, true);
+    poll_timer_id = add_alarm_in_ms(ms, mp_bluetooth_hci_timer_callback, NULL, true);
 }
 
 #if MICROPY_PY_BLUETOOTH_USE_SYNC_EVENTS
 
 // For synchronous mode, we run all BLE stack code inside a scheduled task.
-// This task is scheduled periodically via a soft timer, or
-// immediately on HCI UART RXIDLE.
-
+// This task is scheduled periodically via a timer, or immediately after UART RX IRQ.
 STATIC mp_obj_t run_events_scheduled_task(mp_obj_t none_in) {
     (void)none_in;
     events_task_is_scheduled = false;
@@ -102,19 +105,19 @@ void mp_bluetooth_hci_poll_now(void) {
 
 #endif
 
-mp_obj_t mp_bluetooth_uart;
+mp_obj_t mp_bthci_uart;
 
 int mp_bluetooth_hci_uart_init(uint32_t port, uint32_t baudrate) {
-    DEBUG_printf("mp_bluetooth_hci_uart_init\n");
+    debug_printf("mp_bluetooth_hci_uart_init\n");
 
     mp_obj_t args[] = {
         MP_OBJ_NEW_SMALL_INT(MICROPY_HW_BLE_UART_ID),
         MP_OBJ_NEW_SMALL_INT(MICROPY_HW_BLE_UART_BAUDRATE),
-        MP_OBJ_NEW_QSTR(MP_QSTR_flow), MP_OBJ_NEW_SMALL_INT(true),
+        MP_OBJ_NEW_QSTR(MP_QSTR_flow), MP_OBJ_NEW_SMALL_INT((1 | 2)),
     };
 
-    mp_bluetooth_uart = machine_uart_type.make_new((mp_obj_t)&machine_uart_type, 2, 1, args);
-    MP_STATE_PORT(mp_bluetooth_uart) = mp_bluetooth_uart;
+    mp_bthci_uart = machine_uart_type.make_new((mp_obj_t)&machine_uart_type, 2, 1, args);
+    MP_STATE_PORT(mp_bthci_uart) = mp_bthci_uart;
 
     // Start the HCI polling to process any initial events/packets.
     mp_bluetooth_hci_start_polling();
@@ -122,24 +125,43 @@ int mp_bluetooth_hci_uart_init(uint32_t port, uint32_t baudrate) {
 }
 
 int mp_bluetooth_hci_uart_deinit(void) {
-    DEBUG_printf("mp_bluetooth_hci_uart_deinit\n");
+    debug_printf("mp_bluetooth_hci_uart_deinit\n");
+
+    // If a poll callback is set cancel it now.
+    if (poll_timer_id > 0) {
+        cancel_alarm(poll_timer_id);
+    }
+    poll_timer_id = 0;
     return 0;
 }
 
 int mp_bluetooth_hci_uart_set_baudrate(uint32_t baudrate) {
-    DEBUG_printf("mp_bluetooth_hci_uart_set_baudrate(%lu)\n", baudrate);
+    debug_printf("mp_bluetooth_hci_uart_set_baudrate(%lu)\n", baudrate);
     return 0;
 }
 
+int mp_bluetooth_hci_uart_any() {
+    int errcode = 0;
+    const mp_stream_p_t *proto = (mp_stream_p_t *) machine_uart_type.protocol;
+
+    mp_uint_t ret = proto->ioctl(mp_bthci_uart, MP_STREAM_POLL, MP_STREAM_POLL_RD, &errcode);
+    if (errcode != 0) {
+        error_printf("Uart ioctl failed to poll UART %d\n", errcode);
+        return -1;
+    }
+    return (ret & MP_STREAM_POLL_RD);
+}
+
 int mp_bluetooth_hci_uart_write(const uint8_t *buf, size_t len) {
-    DEBUG_printf("mp_bluetooth_hci_uart_write\n");
+    debug_printf("mp_bluetooth_hci_uart_write\n");
+
+    int errcode = 0;
+    const mp_stream_p_t *proto = (mp_stream_p_t *) machine_uart_type.protocol;
 
     mp_bluetooth_hci_controller_wakeup();
-    int errcode;
-    const mp_stream_p_t *proto = (mp_stream_p_t *) machine_uart_type.protocol;
-    proto->write(&mp_bluetooth_uart, (void *)buf, len, &errcode);
-    if (errcode != 0) {
-        mp_printf(&mp_plat_print, "\nmp_bluetooth_hci_uart_write: failed to write to UART %d\n", errcode);
+
+    if (proto->write(mp_bthci_uart, (void *)buf, len, &errcode) < 0) {
+        error_printf("mp_bluetooth_hci_uart_write: failed to write to UART %d\n", errcode);
     }
     return 0;
 }
@@ -147,53 +169,47 @@ int mp_bluetooth_hci_uart_write(const uint8_t *buf, size_t len) {
 // This function expects the controller to be in the wake state via a previous call
 // to mp_bluetooth_hci_controller_woken.
 int mp_bluetooth_hci_uart_readchar(void) {
-    DEBUG_printf("mp_bluetooth_hci_uart_readchar\n");
-
-    int errcode = 0;
-    const mp_stream_p_t *proto = (mp_stream_p_t *) machine_uart_type.protocol;
-    mp_uint_t ret = proto->ioctl(&mp_bluetooth_uart, MP_STREAM_POLL, MP_STREAM_POLL_RD, &errcode);
-    if (errcode != 0) {
-        mp_printf(&mp_plat_print, "\nmp_bluetooth_hci_uart_readchar: failed to poll UART %d\n", errcode);
-    } else if (ret & MP_STREAM_POLL_RD) {
-        uint8_t buf;
-        errcode = 0;
-        ret = proto->read(&mp_bluetooth_uart, (void *) &buf, 1, &errcode);
-        if (errcode != 0) {
-            mp_printf(&mp_plat_print, "\nmp_bluetooth_hci_uart_readchar: failed to read UART %d\n", errcode);
-        } else { 
-            return buf;
+    debug_printf("mp_bluetooth_hci_uart_readchar\n");
+    if (mp_bluetooth_hci_uart_any()) {
+        int errcode = 0;
+        uint8_t buf = 0;
+        const mp_stream_p_t *proto = (mp_stream_p_t *) machine_uart_type.protocol;
+        if (proto->read(mp_bthci_uart, (void *) &buf, 1, &errcode) < 0) {
+            error_printf("mp_bluetooth_hci_uart_readchar: failed to read UART %d\n", errcode);
+            return -1;
         }
+        return buf;
+    } else {
+        debug_printf("mp_bluetooth_hci_uart_readchar: not ready\n");
+        return -1;
     }
-    return -1;
 }
 
 // Default (weak) implementation of the HCI controller interface.
 // A driver (e.g. cywbt43.c) can override these for controller-specific
 // functionality (i.e. power management).
-
 MP_WEAK int mp_bluetooth_hci_controller_init(void) {
-    DEBUG_printf("mp_bluetooth_hci_controller_init (default)\n");
+    debug_printf("mp_bluetooth_hci_controller_init (default)\n");
     return 0;
 }
 
 MP_WEAK int mp_bluetooth_hci_controller_deinit(void) {
-    DEBUG_printf("mp_bluetooth_hci_controller_deinit (default)\n");
+    debug_printf("mp_bluetooth_hci_controller_deinit (default)\n");
     return 0;
 }
 
 MP_WEAK int mp_bluetooth_hci_controller_sleep_maybe(void) {
-    DEBUG_printf("mp_bluetooth_hci_controller_sleep_maybe (default)\n");
+    debug_printf("mp_bluetooth_hci_controller_sleep_maybe (default)\n");
     return 0;
 }
 
 MP_WEAK bool mp_bluetooth_hci_controller_woken(void) {
-    DEBUG_printf("mp_bluetooth_hci_controller_woken (default)\n");
+    debug_printf("mp_bluetooth_hci_controller_woken (default)\n");
     return true;
 }
 
 MP_WEAK int mp_bluetooth_hci_controller_wakeup(void) {
-    DEBUG_printf("mp_bluetooth_hci_controller_wakeup (default)\n");
+    debug_printf("mp_bluetooth_hci_controller_wakeup (default)\n");
     return 0;
 }
-
 #endif // MICROPY_PY_BLUETOOTH

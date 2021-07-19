@@ -230,7 +230,7 @@ extern const struct _mp_obj_module_t sensor_module;
 #define NETWORK_BUILTIN_MODULE
 #endif
 #if MICROPY_PY_BLUETOOTH
-#define MICROPY_PORT_ROOT_POINTER_BLUETOOTH struct _machine_uart_obj_t *mp_bluetooth_uart;
+#define MICROPY_PORT_ROOT_POINTER_BLUETOOTH struct _machine_uart_obj_t *mp_bthci_uart;
 #else
 #define MICROPY_PORT_ROOT_POINTER_BLUETOOTH
 #endif
