@@ -286,5 +286,5 @@ int mp_hal_init(void)
 uint32_t HAL_GetHalVersion()
 {
     // Hard-coded becasue it's not defined in SDK
-    return ((0<<24) | (0<<16) | (0<<8) | (0<<0));
+    return ((1<<24) | (2<<16) | (0<<8) | (0<<0));
 }
