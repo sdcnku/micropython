@@ -114,9 +114,10 @@ int mp_bluetooth_hci_uart_init(uint32_t port, uint32_t baudrate) {
         MP_OBJ_NEW_SMALL_INT(MICROPY_HW_BLE_UART_ID),
         MP_OBJ_NEW_SMALL_INT(MICROPY_HW_BLE_UART_BAUDRATE),
         MP_OBJ_NEW_QSTR(MP_QSTR_flow), MP_OBJ_NEW_SMALL_INT((1 | 2)),
+        MP_OBJ_NEW_QSTR(MP_QSTR_timeout), MP_OBJ_NEW_SMALL_INT(1000),
     };
 
-    mp_bthci_uart = machine_uart_type.make_new((mp_obj_t)&machine_uart_type, 2, 1, args);
+    mp_bthci_uart = machine_uart_type.make_new((mp_obj_t)&machine_uart_type, 2, 2, args);
     MP_STATE_PORT(mp_bthci_uart) = mp_bthci_uart;
 
     // Start the HCI polling to process any initial events/packets.
