@@ -65,22 +65,15 @@ typedef struct _mod_network_socket_obj_t {
     mp_obj_base_t base;
     mp_obj_t nic;
     mod_network_nic_type_t *nic_type;
-    union {
-        struct {
-            int16_t fd;
-            uint16_t timeout;
-        };
-        struct {
-            uint8_t domain;
-            uint8_t type;
-            int8_t fileno;
-        } u_param;
-        mp_uint_t u_state;
-    };
+    int16_t fd;
+    uint16_t timeout;
+    uint8_t domain;
+    uint8_t type;
     #if MICROPY_PY_WINC1500
     winc_socket_buf_t sockbuf;
     #endif
     bool bound;
+    uint16_t port;
 } mod_network_socket_obj_t;
 
 extern const mod_network_nic_type_t mod_network_nic_type_nina;
