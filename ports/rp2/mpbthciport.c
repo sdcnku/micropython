@@ -31,29 +31,22 @@
 #include "extmod/modbluetooth.h"
 #include "modmachine.h"
 #include "mpbthciport.h"
-#include "pendsv.h"
 #include "pico/stdlib.h"
 
 #if MICROPY_PY_BLUETOOTH
 
-#define debug_printf(...) //mp_printf(&mp_plat_print, "mpbthciport.c: " __VA_ARGS__)
+#define debug_printf(...) // mp_printf(&mp_plat_print, "mpbthciport.c: " __VA_ARGS__)
 #define error_printf(...) mp_printf(&mp_plat_print, "mpbthciport.c: " __VA_ARGS__)
+
+// Poll timer ID.
+static alarm_id_t poll_timer_id = 0;
 
 uint8_t mp_bluetooth_hci_cmd_buf[4 + 256];
 
 #if MICROPY_PY_BLUETOOTH_USE_SYNC_EVENTS
-// Poll timer ID.
-static alarm_id_t poll_timer_id = 0;
-
 // Prevent double-enqueuing of the scheduled task.
 STATIC volatile bool events_task_is_scheduled;
 #endif
-
-static int64_t mp_bluetooth_hci_timer_callback(alarm_id_t id, void *user_data) {
-    poll_timer_id = 0;
-    mp_bluetooth_hci_poll_now();
-    return 0;
-}
 
 void mp_bluetooth_hci_init(void) {
     #if MICROPY_PY_BLUETOOTH_USE_SYNC_EVENTS
@@ -66,6 +59,12 @@ STATIC void mp_bluetooth_hci_start_polling(void) {
     events_task_is_scheduled = false;
     #endif
     mp_bluetooth_hci_poll_now();
+}
+
+static int64_t mp_bluetooth_hci_timer_callback(alarm_id_t id, void *user_data) {
+    poll_timer_id = 0;
+    mp_bluetooth_hci_poll_now();
+    return 0;
 }
 
 void mp_bluetooth_hci_poll_in_ms(uint32_t ms) {
@@ -98,6 +97,7 @@ void mp_bluetooth_hci_poll_now(void) {
 }
 
 #else // !MICROPY_PY_BLUETOOTH_USE_SYNC_EVENTS
+#include "pendsv.h"
 
 void mp_bluetooth_hci_poll_now(void) {
     pendsv_schedule_dispatch(PENDSV_DISPATCH_BLUETOOTH_HCI, mp_bluetooth_hci_poll);
@@ -143,21 +143,21 @@ int mp_bluetooth_hci_uart_set_baudrate(uint32_t baudrate) {
 
 int mp_bluetooth_hci_uart_any() {
     int errcode = 0;
-    const mp_stream_p_t *proto = (mp_stream_p_t *) machine_uart_type.protocol;
+    const mp_stream_p_t *proto = (mp_stream_p_t *)machine_uart_type.protocol;
 
     mp_uint_t ret = proto->ioctl(mp_bthci_uart, MP_STREAM_POLL, MP_STREAM_POLL_RD, &errcode);
     if (errcode != 0) {
         error_printf("Uart ioctl failed to poll UART %d\n", errcode);
         return -1;
     }
-    return (ret & MP_STREAM_POLL_RD);
+    return ret & MP_STREAM_POLL_RD;
 }
 
 int mp_bluetooth_hci_uart_write(const uint8_t *buf, size_t len) {
     debug_printf("mp_bluetooth_hci_uart_write\n");
 
     int errcode = 0;
-    const mp_stream_p_t *proto = (mp_stream_p_t *) machine_uart_type.protocol;
+    const mp_stream_p_t *proto = (mp_stream_p_t *)machine_uart_type.protocol;
 
     mp_bluetooth_hci_controller_wakeup();
 
@@ -174,8 +174,8 @@ int mp_bluetooth_hci_uart_readchar(void) {
     if (mp_bluetooth_hci_uart_any()) {
         int errcode = 0;
         uint8_t buf = 0;
-        const mp_stream_p_t *proto = (mp_stream_p_t *) machine_uart_type.protocol;
-        if (proto->read(mp_bthci_uart, (void *) &buf, 1, &errcode) < 0) {
+        const mp_stream_p_t *proto = (mp_stream_p_t *)machine_uart_type.protocol;
+        if (proto->read(mp_bthci_uart, (void *)&buf, 1, &errcode) < 0) {
             error_printf("mp_bluetooth_hci_uart_readchar: failed to read UART %d\n", errcode);
             return -1;
         }

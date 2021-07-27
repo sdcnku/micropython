@@ -24,14 +24,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
 #include "py/runtime.h"
 #include "py/mperrno.h"
 #include "py/mphal.h"
 #include "py/stream.h"
 
 #if MICROPY_PY_BLUETOOTH && MICROPY_BLUETOOTH_NIMBLE
-
 #define DEBUG_printf(...) // printf("mpnimbleport.c: " __VA_ARGS__)
 
 #include "host/ble_hs.h"
@@ -69,8 +67,9 @@ void mp_bluetooth_hci_poll(void) {
 // --- Port-specific helpers for the generic NimBLE bindings. -----------------
 
 void mp_bluetooth_nimble_hci_uart_wfi(void) {
+    #if defined(__WFI)
     __WFI();
-
+    #endif
     // This is called while NimBLE is waiting in ble_npl_sem_pend, i.e. waiting for an HCI ACK.
     // Do not need to run events here (it must not invoke Python code), only processing incoming HCI data.
     mp_bluetooth_nimble_hci_uart_process(false);
