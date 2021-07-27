@@ -18,3 +18,6 @@
 #define MICROPY_HW_BLE_UART_ID          (1)
 #define MICROPY_HW_BLE_UART_BAUDRATE    (119600)
 
+#define USBD_VID (0x2341)
+#define USBD_PID (0x015e)
+
