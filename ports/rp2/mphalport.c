@@ -192,11 +192,11 @@ int mp_hal_stdin_rx_chr(void) {
 void mp_hal_stdout_tx_strn(const char *str, mp_uint_t len) {
     if (dbg_mode_enabled) {
         if (tud_cdc_connected()) {
-            irq_set_enabled(USBCTRL_IRQ, false);
+            NVIC_DisableIRQ(PendSV_IRQn);
             for (int i=0; i<len; i++) {
                 ringbuf_put((ringbuf_t*)&tx_ringbuf, str[i]);
             }
-            irq_set_enabled(USBCTRL_IRQ, true);
+            NVIC_EnableIRQ(PendSV_IRQn);
         }
         return;
     }
