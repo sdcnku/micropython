@@ -82,6 +82,9 @@ STATIC const mp_rom_map_elem_t mp_module_network_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_WLAN), MP_ROM_PTR(&mod_network_nic_type_nina) },
     #endif
     { MP_ROM_QSTR(MP_QSTR_route), MP_ROM_PTR(&network_route_obj) },
+    // Station/AP mode.
+    { MP_ROM_QSTR(MP_QSTR_STA_IF), MP_ROM_INT(0) },
+    { MP_ROM_QSTR(MP_QSTR_AP_IF), MP_ROM_INT(1) },
 };
 
 STATIC MP_DEFINE_CONST_DICT(mp_module_network_globals, mp_module_network_globals_table);
