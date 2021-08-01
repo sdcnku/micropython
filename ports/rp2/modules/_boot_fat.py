@@ -1,7 +1,6 @@
 import os
 import machine, rp2
 
-
 # Try to mount the filesystem, and format the flash if it doesn't exist.
 # Note: the flash requires the programming size to be aligned to 256 bytes.
 bdev = rp2.Flash()
@@ -11,6 +10,10 @@ try:
 except:
     os.VfsFat.mkfs(bdev)
     vfs = os.VfsFat(bdev)
-os.mount(vfs, "/")
+    os.mount(vfs, "/")
+try:
+    os.stat('.openmv_disk')
+except:
+    open('.openmv_disk', 'w').close()
 
 del os, bdev, vfs
