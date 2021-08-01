@@ -26,11 +26,11 @@
 
 #include "tusb.h"
 
-#ifndef USBD_VID
-#define USBD_VID (0x2E8A) // Raspberry Pi
+#ifndef MICROPY_HW_USB_VID
+#define MICROPY_HW_USB_VID (0x2E8A) // Raspberry Pi
 #endif
-#ifndef USBD_PID
-#define USBD_PID (0x0005) // RP2 MicroPython
+#ifndef MICROPY_HW_USB_PID
+#define MICROPY_HW_USB_PID (0x0005) // RP2 MicroPython
 #endif
 
 #if CFG_TUD_MSC
@@ -74,8 +74,8 @@ static const tusb_desc_device_t usbd_desc_device = {
     .bDeviceSubClass = MISC_SUBCLASS_COMMON,
     .bDeviceProtocol = MISC_PROTOCOL_IAD,
     .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE,
-    .idVendor = USBD_VID,
-    .idProduct = USBD_PID,
+    .idVendor = MICROPY_HW_USB_VID,
+    .idProduct = MICROPY_HW_USB_PID,
     .bcdDevice = 0x0100,
     .iManufacturer = USBD_STR_MANUF,
     .iProduct = USBD_STR_PRODUCT,
