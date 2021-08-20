@@ -202,6 +202,11 @@ struct _mp_bluetooth_nimble_malloc_t;
 #else
 #define MICROPY_PORT_ROOT_POINTER_BLUETOOTH_NIMBLE
 #endif
+#if MICROPY_PY_AUDIO
+#define MICROPY_PORT_ROOT_POINTER_AUDIO struct _audio_data_t *audio_data;
+#else
+#define MICROPY_PORT_ROOT_POINTER_AUDIO
+#endif
 
 #define MICROPY_PORT_BUILTIN_MODULES \
     { MP_OBJ_NEW_QSTR(MP_QSTR_machine),     (mp_obj_t)&mp_module_machine }, \
@@ -220,6 +225,7 @@ struct _mp_bluetooth_nimble_malloc_t;
     void *rp2_uart_rx_buffer[2]; \
     void *rp2_uart_tx_buffer[2]; \
     mp_obj_list_t mod_network_nic_list; \
+    MICROPY_PORT_ROOT_POINTER_AUDIO \
     MICROPY_PORT_ROOT_POINTER_BLUETOOTH \
     MICROPY_PORT_ROOT_POINTER_BLUETOOTH_NIMBLE \
 
