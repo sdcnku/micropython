@@ -14,6 +14,11 @@ void BORMIO_board_early_init(void) {
     // This is enabled in the bootloader anyway.
     BORMIO_board_osc_enable(true);
 
+    // Make sure PC2 and PC3 and PC2_C and PC3_C pads are connected
+    // through the analog switch for ULPI NXT and DIR pins.
+    HAL_SYSCFG_AnalogSwitchConfig(SYSCFG_SWITCH_PC2, SYSCFG_SWITCH_PC2_CLOSE);
+    HAL_SYSCFG_AnalogSwitchConfig(SYSCFG_SWITCH_PC3, SYSCFG_SWITCH_PC3_CLOSE);
+
     // Make sure UPLI is Not in low-power mode.
     ulpi_leave_low_power();
 
