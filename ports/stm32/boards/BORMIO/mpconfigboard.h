@@ -127,6 +127,6 @@ extern struct _spi_bdev_t spi_bdev;
 #define USBD_CONFIGURATION_FS_STRING  "Bormio Config"
 #define USBD_INTERFACE_FS_STRING      "Bormio Interface"
 #define MICROPY_PY_SYS_PLATFORM       "Bormio"
-#define USBD_PID_RNDIS_CDC_MSC        0x005B
-#define USBD_PID                      0x005B
+#define USBD_PID_RNDIS_CDC_MSC        0x045F
+#define USBD_PID                      0x045F
 #define USBD_VID                      0x2341
