@@ -1,5 +1,6 @@
 #define MICROPY_HW_BOARD_NAME       "PORTENTA"
 #define MICROPY_HW_MCU_NAME         "STM32H747"
+#define MICROPY_PY_SYS_PLATFORM     "Portenta"
 #define MICROPY_HW_FLASH_FS_LABEL	"portenta"
 
 #define MICROPY_FATFS_EXFAT         (1)
@@ -154,8 +155,8 @@ void PORTENTA_board_osc_enable(int enable);
 #define MICROPY_HW_USB_HS_ULPI_DIR  (pin_I11)
 
 //#define MICROPY_HW_USB_FS			(1)
-#define USBD_CDC_RX_DATA_SIZE       (512)
-#define USBD_CDC_TX_DATA_SIZE       (512)
+#define MICROPY_HW_USB_CDC_RX_DATA_SIZE       (512)
+#define MICROPY_HW_USB_CDC_TX_DATA_SIZE       (512)
 #define GPIO_AF10_OTG_HS            (GPIO_AF10_OTG2_HS)
 
 // Bluetooth config
@@ -249,14 +250,26 @@ void PORTENTA_board_osc_enable(int enable);
 #define MICROPY_HW_ETH_RMII_TXD0    (pin_G13)
 #define MICROPY_HW_ETH_RMII_TXD1    (pin_G12)
 
-#define USBD_MANUFACTURER_STRING      "Arduino"
-#define USBD_PRODUCT_HS_STRING        "Portenta Virtual Comm Port in HS Mode"
-#define USBD_PRODUCT_FS_STRING        "Portenta Virtual Comm Port in FS Mode"
-#define USBD_CONFIGURATION_HS_STRING  "Portenta Config"
-#define USBD_INTERFACE_HS_STRING      "Portenta Interface"
-#define USBD_CONFIGURATION_FS_STRING  "Portenta Config"
-#define USBD_INTERFACE_FS_STRING      "Portenta Interface"
-#define MICROPY_PY_SYS_PLATFORM       "Portenta"
-#define USBD_PID_RNDIS_CDC_MSC        0x005B
-#define USBD_PID                      0x005B
-#define USBD_VID                      0x2341
+#define MICROPY_HW_USB_VID                      0x2341
+#define MICROPY_HW_USB_PID                      0x005B
+#define MICROPY_HW_USB_PID_CDC_MSC              (MICROPY_HW_USB_PID)
+#define MICROPY_HW_USB_PID_CDC_HID              (MICROPY_HW_USB_PID)
+#define MICROPY_HW_USB_PID_CDC                  (MICROPY_HW_USB_PID)
+#define MICROPY_HW_USB_PID_MSC                  (MICROPY_HW_USB_PID)
+#define MICROPY_HW_USB_PID_CDC2_MSC             (MICROPY_HW_USB_PID)
+#define MICROPY_HW_USB_PID_CDC2                 (MICROPY_HW_USB_PID)
+#define MICROPY_HW_USB_PID_CDC3                 (MICROPY_HW_USB_PID)
+#define MICROPY_HW_USB_PID_CDC3_MSC             (MICROPY_HW_USB_PID)
+#define MICROPY_HW_USB_PID_CDC_MSC_HID          (MICROPY_HW_USB_PID)
+#define MICROPY_HW_USB_PID_CDC2_MSC_HID         (MICROPY_HW_USB_PID)
+#define MICROPY_HW_USB_PID_CDC3_MSC_HID         (MICROPY_HW_USB_PID)
+#define MICROPY_HW_USB_LANGID_STRING            0x409
+#define MICROPY_HW_USB_MANUFACTURER_STRING      "Arduino"
+#define MICROPY_HW_USB_PRODUCT_FS_STRING        "Portenta Virtual Comm Port in FS Mode"
+#define MICROPY_HW_USB_PRODUCT_HS_STRING        "Portenta Virtual Comm Port in HS Mode"
+//#define MICROPY_HW_USB_SERIALNUMBER_FS_STRING   "000000000011"
+//#define MICROPY_HW_USB_SERIALNUMBER_HS_STRING   "000000000010"
+#define MICROPY_HW_USB_INTERFACE_FS_STRING      "Portenta Interface"
+#define MICROPY_HW_USB_INTERFACE_HS_STRING      "Portenta Interface"
+#define MICROPY_HW_USB_CONFIGURATION_FS_STRING  "Portenta Config"
+#define MICROPY_HW_USB_CONFIGURATION_HS_STRING  "Portenta Config"

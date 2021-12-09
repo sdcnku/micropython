@@ -1,5 +1,6 @@
 #define MICROPY_HW_BOARD_NAME       "BORMIO"
 #define MICROPY_HW_MCU_NAME         "STM32H747"
+#define MICROPY_PY_SYS_PLATFORM     "Bormio"
 #define MICROPY_HW_FLASH_FS_LABEL	"bormio"
 
 #define MICROPY_FATFS_EXFAT         (1)
@@ -116,18 +117,30 @@ extern struct _spi_bdev_t spi_bdev;
 #define MICROPY_HW_USB_HS_ULPI_DIR  (pin_C2)
 
 //#define MICROPY_HW_USB_FS           (1)
-#define USBD_CDC_RX_DATA_SIZE       (512)
-#define USBD_CDC_TX_DATA_SIZE       (512)
+#define MICROPY_HW_USB_CDC_RX_DATA_SIZE       (512)
+#define MICROPY_HW_USB_CDC_TX_DATA_SIZE       (512)
 #define GPIO_AF10_OTG_HS            (GPIO_AF10_OTG2_HS)
 
-#define USBD_MANUFACTURER_STRING      "Arduino"
-#define USBD_PRODUCT_HS_STRING        "Bormio Virtual Comm Port in HS Mode"
-#define USBD_PRODUCT_FS_STRING        "Bormio Virtual Comm Port in FS Mode"
-#define USBD_CONFIGURATION_HS_STRING  "Bormio Config"
-#define USBD_INTERFACE_HS_STRING      "Bormio Interface"
-#define USBD_CONFIGURATION_FS_STRING  "Bormio Config"
-#define USBD_INTERFACE_FS_STRING      "Bormio Interface"
-#define MICROPY_PY_SYS_PLATFORM       "Bormio"
-#define USBD_PID_RNDIS_CDC_MSC        0x045F
-#define USBD_PID                      0x045F
-#define USBD_VID                      0x2341
+#define MICROPY_HW_USB_VID                      0x2341
+#define MICROPY_HW_USB_PID                      0x045F
+#define MICROPY_HW_USB_PID_CDC_MSC              (MICROPY_HW_USB_PID)
+#define MICROPY_HW_USB_PID_CDC_HID              (MICROPY_HW_USB_PID)
+#define MICROPY_HW_USB_PID_CDC                  (MICROPY_HW_USB_PID)
+#define MICROPY_HW_USB_PID_MSC                  (MICROPY_HW_USB_PID)
+#define MICROPY_HW_USB_PID_CDC2_MSC             (MICROPY_HW_USB_PID)
+#define MICROPY_HW_USB_PID_CDC2                 (MICROPY_HW_USB_PID)
+#define MICROPY_HW_USB_PID_CDC3                 (MICROPY_HW_USB_PID)
+#define MICROPY_HW_USB_PID_CDC3_MSC             (MICROPY_HW_USB_PID)
+#define MICROPY_HW_USB_PID_CDC_MSC_HID          (MICROPY_HW_USB_PID)
+#define MICROPY_HW_USB_PID_CDC2_MSC_HID         (MICROPY_HW_USB_PID)
+#define MICROPY_HW_USB_PID_CDC3_MSC_HID         (MICROPY_HW_USB_PID)
+#define MICROPY_HW_USB_LANGID_STRING            0x409
+#define MICROPY_HW_USB_MANUFACTURER_STRING      "Arduino"
+#define MICROPY_HW_USB_PRODUCT_FS_STRING        "Bormio Virtual Comm Port in FS Mode"
+#define MICROPY_HW_USB_PRODUCT_HS_STRING        "Bormio Virtual Comm Port in HS Mode"
+//#define MICROPY_HW_USB_SERIALNUMBER_FS_STRING   "000000000011"
+//#define MICROPY_HW_USB_SERIALNUMBER_HS_STRING   "000000000010"
+#define MICROPY_HW_USB_CONFIGURATION_FS_STRING  "Bormio Config"
+#define MICROPY_HW_USB_CONFIGURATION_HS_STRING  "Bormio Config"
+#define MICROPY_HW_USB_INTERFACE_FS_STRING      "Bormio Interface"
+#define MICROPY_HW_USB_INTERFACE_HS_STRING      "Bormio Interface"
