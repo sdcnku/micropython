@@ -49,17 +49,16 @@ void BORMIO_board_osc_enable(int enable);
 #define MICROPY_HW_SPIFLASH_ENABLE_CACHE (1)
 
 // QSPI Flash 128Mbit
-#define MICROPY_HW_SPIFLASH_SIZE_BITS (120 * 1024 * 1024)
+#define MICROPY_HW_QSPI_PRESCALER           (4) //200MHz/4=50MHz
+#define MICROPY_HW_QSPI_SAMPLE_SHIFT	    (0)
+#define MICROPY_HW_SPIFLASH_SIZE_BITS       (120 * 1024 * 1024)
 #define MICROPY_HW_QSPIFLASH_SIZE_BITS_LOG2 (27)
-#define MICROPY_HW_QSPIFLASH_CS     (pyb_pin_QSPI2_CS)
-#define MICROPY_HW_QSPIFLASH_SCK    (pyb_pin_QSPI2_CLK)
-#define MICROPY_HW_QSPIFLASH_IO0    (pyb_pin_QSPI2_D0)
-#define MICROPY_HW_QSPIFLASH_IO1    (pyb_pin_QSPI2_D1)
-#define MICROPY_HW_QSPIFLASH_IO2    (pyb_pin_QSPI2_D2)
-#define MICROPY_HW_QSPIFLASH_IO3    (pyb_pin_QSPI2_D3)
-
-#define MICROPY_HW_QSPI_PRESCALER       (4) //200MHz/4=50MHz
-#define MICROPY_HW_QSPI_SAMPLE_SHIFT	(0)
+#define MICROPY_HW_QSPIFLASH_CS             (pyb_pin_QSPI2_CS)
+#define MICROPY_HW_QSPIFLASH_SCK            (pyb_pin_QSPI2_CLK)
+#define MICROPY_HW_QSPIFLASH_IO0            (pyb_pin_QSPI2_D0)
+#define MICROPY_HW_QSPIFLASH_IO1            (pyb_pin_QSPI2_D1)
+#define MICROPY_HW_QSPIFLASH_IO2            (pyb_pin_QSPI2_D2)
+#define MICROPY_HW_QSPIFLASH_IO3            (pyb_pin_QSPI2_D3)
 
 // block device config for SPI flash
 extern const struct _mp_spiflash_config_t spiflash_config;
@@ -71,6 +70,7 @@ extern struct _spi_bdev_t spi_bdev;
 )
 #define MICROPY_HW_BDEV_READBLOCKS(dest, bl, n) spi_bdev_readblocks(&spi_bdev, (dest), (bl), (n))
 #define MICROPY_HW_BDEV_WRITEBLOCKS(src, bl, n) spi_bdev_writeblocks(&spi_bdev, (src), (bl), (n))
+#define MICROPY_HW_BDEV_SPIFLASH_EXTENDED (&spi_bdev)
 
 // 4 wait states
 #define MICROPY_HW_FLASH_LATENCY    FLASH_LATENCY_2

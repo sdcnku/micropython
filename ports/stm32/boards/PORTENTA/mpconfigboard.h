@@ -63,17 +63,16 @@ void PORTENTA_board_osc_enable(int enable);
 #define MICROPY_HW_RTC_USE_CALOUT   (1)
 
 // QSPI flash #2, to be memory mapped
+#define MICROPY_HW_QSPI_PRESCALER           (4) //200MHz/4=50MHz
+#define MICROPY_HW_QSPI_SAMPLE_SHIFT	    (0)
 #define MICROPY_HW_QSPIFLASH_SIZE_BITS_LOG2 (27)
-#define MICROPY_HW_SPIFLASH_SIZE_BITS (120 * 1024 * 1024)
-#define MICROPY_HW_QSPIFLASH_CS     (pyb_pin_QSPI2_CS)
-#define MICROPY_HW_QSPIFLASH_SCK    (pyb_pin_QSPI2_CLK)
-#define MICROPY_HW_QSPIFLASH_IO0    (pyb_pin_QSPI2_D0)
-#define MICROPY_HW_QSPIFLASH_IO1    (pyb_pin_QSPI2_D1)
-#define MICROPY_HW_QSPIFLASH_IO2    (pyb_pin_QSPI2_D2)
-#define MICROPY_HW_QSPIFLASH_IO3    (pyb_pin_QSPI2_D3)
-
-#define MICROPY_HW_QSPI_PRESCALER       (4) //200MHz/4=50MHz
-#define MICROPY_HW_QSPI_SAMPLE_SHIFT	(0)
+#define MICROPY_HW_SPIFLASH_SIZE_BITS       (120 * 1024 * 1024)
+#define MICROPY_HW_QSPIFLASH_CS             (pyb_pin_QSPI2_CS)
+#define MICROPY_HW_QSPIFLASH_SCK            (pyb_pin_QSPI2_CLK)
+#define MICROPY_HW_QSPIFLASH_IO0            (pyb_pin_QSPI2_D0)
+#define MICROPY_HW_QSPIFLASH_IO1            (pyb_pin_QSPI2_D1)
+#define MICROPY_HW_QSPIFLASH_IO2            (pyb_pin_QSPI2_D2)
+#define MICROPY_HW_QSPIFLASH_IO3            (pyb_pin_QSPI2_D3)
 
 // SPI flash #2, block device config
 #if MICROPY_HW_ENABLE_INTERNAL_FLASH_STORAGE == 0
@@ -87,6 +86,7 @@ void PORTENTA_board_osc_enable(int enable);
 )
 #define MICROPY_HW_BDEV_READBLOCKS(dest, bl, n) spi_bdev_readblocks(&spi_bdev2, (dest), (bl), (n))
 #define MICROPY_HW_BDEV_WRITEBLOCKS(src, bl, n) spi_bdev_writeblocks(&spi_bdev2, (src), (bl), (n))
+#define MICROPY_HW_BDEV_SPIFLASH_EXTENDED (&spi_bdev2)
 #endif
 
 // 4 wait states
