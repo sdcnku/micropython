@@ -690,40 +690,43 @@ friendly_repl_reset:
 #endif // MICROPY_REPL_EVENT_DRIVEN
 #endif // MICROPY_ENABLE_COMPILER
 
-int pyexec_file(const char *filename) {
-    return parse_compile_execute(filename, MP_PARSE_FILE_INPUT, EXEC_FLAG_RERAISE | EXEC_FLAG_SOURCE_IS_FILENAME);
+int pyexec_str(vstr_t *str, bool raise_error) {
+    uint32_t flags = (raise_error) ? EXEC_FLAG_RERAISE : 0;
+    return parse_compile_execute(str, MP_PARSE_FILE_INPUT, EXEC_FLAG_SOURCE_IS_VSTR | flags);
 }
 
-int pyexec_str(vstr_t *str) {
-    return parse_compile_execute(str, MP_PARSE_FILE_INPUT, EXEC_FLAG_RERAISE | EXEC_FLAG_SOURCE_IS_VSTR);
+int pyexec_file(const char *filename, bool raise_error) {
+    uint32_t flags = (raise_error) ? EXEC_FLAG_RERAISE : 0;
+    return parse_compile_execute(filename, MP_PARSE_FILE_INPUT, EXEC_FLAG_SOURCE_IS_FILENAME | flags);
 }
 
-int pyexec_file_if_exists(const char *filename) {
+int pyexec_file_if_exists(const char *filename, bool raise_error) {
     #if MICROPY_MODULE_FROZEN
     if (mp_frozen_stat(filename) == MP_IMPORT_STAT_FILE) {
-        return pyexec_frozen_module(filename);
+        return pyexec_frozen_module(filename, raise_error);
     }
     #endif
     if (mp_import_stat(filename) != MP_IMPORT_STAT_FILE) {
         return 1; // success (no file is the same as an empty file executing without fail)
     }
-    return pyexec_file(filename);
+    return pyexec_file(filename, raise_error);
 }
 
 #if MICROPY_MODULE_FROZEN
-int pyexec_frozen_module(const char *name) {
+int pyexec_frozen_module(const char *name, bool raise_error) {
     void *frozen_data;
     int frozen_type = mp_find_frozen_module(name, strlen(name), &frozen_data);
+    uint32_t flags = (raise_error) ? EXEC_FLAG_RERAISE : 0;
 
     switch (frozen_type) {
         #if MICROPY_MODULE_FROZEN_STR
         case MP_FROZEN_STR:
-            return parse_compile_execute(frozen_data, MP_PARSE_FILE_INPUT, EXEC_FLAG_RERAISE);
+            return parse_compile_execute(frozen_data, MP_PARSE_FILE_INPUT, flags);
         #endif
 
         #if MICROPY_MODULE_FROZEN_MPY
         case MP_FROZEN_MPY:
-            return parse_compile_execute(frozen_data, MP_PARSE_FILE_INPUT, EXEC_FLAG_SOURCE_IS_RAW_CODE | EXEC_FLAG_RERAISE);
+            return parse_compile_execute(frozen_data, MP_PARSE_FILE_INPUT, EXEC_FLAG_SOURCE_IS_RAW_CODE | flags);
         #endif
 
         default:
