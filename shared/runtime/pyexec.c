@@ -52,21 +52,21 @@ int pyexec_system_exit = 0;
 STATIC bool repl_display_debugging_info = 0;
 #endif
 
-#define EXEC_FLAG_PRINT_EOF (1)
-#define EXEC_FLAG_ALLOW_DEBUGGING (2)
-#define EXEC_FLAG_IS_REPL (4)
-#define EXEC_FLAG_RERAISE (8)
-#define EXEC_FLAG_SOURCE_IS_RAW_CODE (16)
-#define EXEC_FLAG_SOURCE_IS_VSTR (32)
-#define EXEC_FLAG_SOURCE_IS_FILENAME (64)
-#define EXEC_FLAG_SOURCE_IS_READER (128)
+#define EXEC_FLAG_PRINT_EOF             (1 << 0)
+#define EXEC_FLAG_ALLOW_DEBUGGING       (1 << 1)
+#define EXEC_FLAG_IS_REPL               (1 << 2)
+#define EXEC_FLAG_SOURCE_IS_RAW_CODE    (1 << 3)
+#define EXEC_FLAG_SOURCE_IS_VSTR        (1 << 4)
+#define EXEC_FLAG_SOURCE_IS_FILENAME    (1 << 5)
+#define EXEC_FLAG_SOURCE_IS_READER      (1 << 6)
+#define EXEC_FLAG_RERAISE               (1 << 7)
 
 // parses, compiles and executes the code in the lexer
 // frees the lexer before returning
 // EXEC_FLAG_PRINT_EOF prints 2 EOF chars: 1 after normal output, 1 after exception output
 // EXEC_FLAG_ALLOW_DEBUGGING allows debugging info to be printed after executing the code
 // EXEC_FLAG_IS_REPL is used for REPL inputs (flag passed on to mp_compile)
-STATIC int parse_compile_execute(const void *source, mp_parse_input_kind_t input_kind, int exec_flags) {
+STATIC int parse_compile_execute(const void *source, mp_parse_input_kind_t input_kind, mp_uint_t exec_flags) {
     int ret = 0;
     #if MICROPY_REPL_INFO
     uint32_t start = 0;
@@ -130,20 +130,21 @@ STATIC int parse_compile_execute(const void *source, mp_parse_input_kind_t input
         mp_hal_set_interrupt_char(-1); // disable interrupt
         mp_handle_pending(false); // clear any pending exceptions (and run any callbacks)
 
-        // re-raise same exception
-        if (exec_flags & EXEC_FLAG_RERAISE) {
-            nlr_raise(nlr.ret_val);
-        }
-
         if (exec_flags & EXEC_FLAG_SOURCE_IS_READER) {
             const mp_reader_t *reader = source;
             reader->close(reader->data);
+        }
+
+        // re-raise same exception
+        if (exec_flags & EXEC_FLAG_RERAISE) {
+            nlr_raise(nlr.ret_val);
         }
 
         // print EOF after normal output
         if (exec_flags & EXEC_FLAG_PRINT_EOF) {
             mp_hal_stdout_tx_strn("\x04", 1);
         }
+
         // check for SystemExit
         if (mp_obj_is_subclass_fast(MP_OBJ_FROM_PTR(((mp_obj_base_t *)nlr.ret_val)->type), MP_OBJ_FROM_PTR(&mp_type_SystemExit))) {
             // at the moment, the value of SystemExit is unused
@@ -717,12 +718,12 @@ int pyexec_frozen_module(const char *name) {
     switch (frozen_type) {
         #if MICROPY_MODULE_FROZEN_STR
         case MP_FROZEN_STR:
-            return parse_compile_execute(frozen_data, MP_PARSE_FILE_INPUT, 0);
+            return parse_compile_execute(frozen_data, MP_PARSE_FILE_INPUT, EXEC_FLAG_RERAISE);
         #endif
 
         #if MICROPY_MODULE_FROZEN_MPY
         case MP_FROZEN_MPY:
-            return parse_compile_execute(frozen_data, MP_PARSE_FILE_INPUT, EXEC_FLAG_SOURCE_IS_RAW_CODE);
+            return parse_compile_execute(frozen_data, MP_PARSE_FILE_INPUT, EXEC_FLAG_SOURCE_IS_RAW_CODE | EXEC_FLAG_RERAISE);
         #endif
 
         default:
