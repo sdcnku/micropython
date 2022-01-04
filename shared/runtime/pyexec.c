@@ -730,7 +730,6 @@ int pyexec_frozen_module(const char *name, bool raise_error) {
         #endif
 
         default:
-            printf("could not find module '%s'\n", name);
             return false;
     }
 }
