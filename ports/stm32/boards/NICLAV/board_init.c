@@ -7,12 +7,12 @@
 #include "modopenamp.h"
 #endif
 
-void BORMIO_board_early_init(void) {
+void NICLAV_board_early_init(void) {
     HAL_InitTick(0);
 
     // Enable oscillator pin
     // This is enabled in the bootloader anyway.
-    BORMIO_board_osc_enable(true);
+    NICLAV_board_osc_enable(true);
 
     // Make sure PC2 and PC3 and PC2_C and PC3_C pads are connected
     // through the analog switch for ULPI NXT and DIR pins.
@@ -28,14 +28,14 @@ void BORMIO_board_early_init(void) {
     #endif
 }
 
-void BORMIO_reboot_to_bootloader(void) {
+void NICLAV_reboot_to_bootloader(void) {
     RTC_HandleTypeDef RTCHandle;
     RTCHandle.Instance = RTC;
     HAL_RTCEx_BKUPWrite(&RTCHandle, RTC_BKP_DR0, 0xDF59);
     NVIC_SystemReset();
 }
 
-void BORMIO_board_osc_enable(int enable) {
+void NICLAV_board_osc_enable(int enable) {
     __HAL_RCC_GPIOH_CLK_ENABLE();
     GPIO_InitTypeDef  gpio_osc_init_structure;
     gpio_osc_init_structure.Pin = GPIO_PIN_1;
@@ -46,7 +46,7 @@ void BORMIO_board_osc_enable(int enable) {
     HAL_GPIO_WritePin(GPIOH, GPIO_PIN_1, enable);
 }
 
-void BORMIO_board_low_power(int mode)
+void NICLAV_board_low_power(int mode)
 {
     switch (mode) {
         case 0:     // Leave stop mode.

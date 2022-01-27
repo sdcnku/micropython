@@ -119,7 +119,7 @@ Functions
       * `sensor.MT9M114`: New Rolling shutter sensor module.
       * `sensor.LEPTON`: Lepton1/2/3 sensor module.
       * `sensor.HM01B0`: Arduino Portenta H7 sensor module.
-      * `sensor.GC2145`: Arduino Bormio H7 sensor module.
+      * `sensor.GC2145`: Arduino Nicla Vision H7 sensor module.
 
 .. function:: sensor.alloc_extra_fb(width, height, pixformat)
 

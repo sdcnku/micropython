@@ -1,7 +1,7 @@
-#define MICROPY_HW_BOARD_NAME       "BORMIO"
+#define MICROPY_HW_BOARD_NAME       "NICLAV"
 #define MICROPY_HW_MCU_NAME         "STM32H747"
-#define MICROPY_PY_SYS_PLATFORM     "Bormio"
-#define MICROPY_HW_FLASH_FS_LABEL	"bormio"
+#define MICROPY_PY_SYS_PLATFORM     "Nicla Vision"
+#define MICROPY_HW_FLASH_FS_LABEL   "nicla"
 
 #define MICROPY_FATFS_EXFAT         (1)
 #define MICROPY_HW_ENABLE_RTC       (1)
@@ -23,20 +23,20 @@
 
 #define MICROPY_HW_CLK_USE_BYPASS   (1)
 
-#define MICROPY_BOARD_EARLY_INIT BORMIO_board_early_init
-void BORMIO_board_early_init(void);
+#define MICROPY_BOARD_EARLY_INIT NICLAV_board_early_init
+void NICLAV_board_early_init(void);
 
-#define MICROPY_RESET_TO_BOOTLOADER BORMIO_reboot_to_bootloader
-void BORMIO_reboot_to_bootloader(void);
+#define MICROPY_RESET_TO_BOOTLOADER NICLAV_reboot_to_bootloader
+void NICLAV_reboot_to_bootloader(void);
 
-void BORMIO_board_low_power(int mode);
-#define MICROPY_BOARD_LEAVE_STOP    BORMIO_board_low_power(0);
-#define MICROPY_BOARD_ENTER_STOP    BORMIO_board_low_power(1);
-#define MICROPY_BOARD_ENTER_STANDBY BORMIO_board_low_power(2);
+void NICLAV_board_low_power(int mode);
+#define MICROPY_BOARD_LEAVE_STOP    NICLAV_board_low_power(0);
+#define MICROPY_BOARD_ENTER_STOP    NICLAV_board_low_power(1);
+#define MICROPY_BOARD_ENTER_STANDBY NICLAV_board_low_power(2);
 
-void BORMIO_board_osc_enable(int enable);
-#define MICROPY_BOARD_OSC_ENABLE    BORMIO_board_osc_enable(1);
-#define MICROPY_BOARD_OSC_DISABLE   BORMIO_board_osc_enable(0);
+void NICLAV_board_osc_enable(int enable);
+#define MICROPY_BOARD_OSC_ENABLE    NICLAV_board_osc_enable(1);
+#define MICROPY_BOARD_OSC_DISABLE   NICLAV_board_osc_enable(0);
 
 // There is an external 32kHz oscillator
 #define RTC_ASYNCH_PREDIV           (0)
@@ -136,11 +136,11 @@ extern struct _spi_bdev_t spi_bdev;
 #define MICROPY_HW_USB_PID_CDC3_MSC_HID         (MICROPY_HW_USB_PID)
 #define MICROPY_HW_USB_LANGID_STRING            0x409
 #define MICROPY_HW_USB_MANUFACTURER_STRING      "Arduino"
-#define MICROPY_HW_USB_PRODUCT_FS_STRING        "Bormio Virtual Comm Port in FS Mode"
-#define MICROPY_HW_USB_PRODUCT_HS_STRING        "Bormio Virtual Comm Port in HS Mode"
+#define MICROPY_HW_USB_PRODUCT_FS_STRING        "Nicla Vision Virtual Comm Port in FS Mode"
+#define MICROPY_HW_USB_PRODUCT_HS_STRING        "Nicla Vision Virtual Comm Port in HS Mode"
 //#define MICROPY_HW_USB_SERIALNUMBER_FS_STRING   "000000000011"
 //#define MICROPY_HW_USB_SERIALNUMBER_HS_STRING   "000000000010"
-#define MICROPY_HW_USB_CONFIGURATION_FS_STRING  "Bormio Config"
-#define MICROPY_HW_USB_CONFIGURATION_HS_STRING  "Bormio Config"
-#define MICROPY_HW_USB_INTERFACE_FS_STRING      "Bormio Interface"
-#define MICROPY_HW_USB_INTERFACE_HS_STRING      "Bormio Interface"
+#define MICROPY_HW_USB_CONFIGURATION_FS_STRING  "Nicla Vision Config"
+#define MICROPY_HW_USB_CONFIGURATION_HS_STRING  "Nicla Vision Config"
+#define MICROPY_HW_USB_INTERFACE_FS_STRING      "Nicla Vision Interface"
+#define MICROPY_HW_USB_INTERFACE_HS_STRING      "Nicla Vision Interface"
