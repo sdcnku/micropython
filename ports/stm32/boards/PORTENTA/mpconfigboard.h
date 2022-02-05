@@ -155,9 +155,10 @@ void PORTENTA_board_osc_enable(int enable);
 #define MICROPY_HW_USB_HS_ULPI_DIR  (pin_I11)
 
 //#define MICROPY_HW_USB_FS			(1)
-#define MICROPY_HW_USB_CDC_RX_DATA_SIZE       (512)
-#define MICROPY_HW_USB_CDC_TX_DATA_SIZE       (512)
-#define GPIO_AF10_OTG_HS            (GPIO_AF10_OTG2_HS)
+#define MICROPY_HW_USB_CDC_RX_DATA_SIZE     (512)
+#define MICROPY_HW_USB_CDC_TX_DATA_SIZE     (512)
+#define MICROPY_HW_USB_CDC_1200BPS_TOUCH    (1)
+#define GPIO_AF10_OTG_HS                    (GPIO_AF10_OTG2_HS)
 
 // Bluetooth config
 #define MICROPY_HW_BLE_UART_ID       (PYB_UART_7)

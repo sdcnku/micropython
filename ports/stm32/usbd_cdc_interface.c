@@ -131,8 +131,13 @@ int8_t usbd_cdc_control(usbd_cdc_state_t *cdc_in, uint8_t cmd, uint8_t *pbuf, ui
 
         case CDC_SET_LINE_CODING: {
             cdc->baudrate = *((uint32_t*)pbuf);
+            if (0) {
+            #if MICROPY_HW_USB_CDC_1200BPS_TOUCH
+            } else if (cdc->baudrate == 1200) {
+                MICROPY_RESET_TO_BOOTLOADER();
+            #endif
             // The slow cdc->baudrate can be used on OSs that don't support custom baudrates
-            if (cdc->baudrate == IDE_BAUDRATE_SLOW || cdc->baudrate == IDE_BAUDRATE_FAST) {
+            } else if (cdc->baudrate == IDE_BAUDRATE_SLOW || cdc->baudrate == IDE_BAUDRATE_FAST) {
                 cdc->dbg_xfer_length  = 0;
                 cdc->dbg_last_packet  = 0;
                 cdc->dbg_mode_enabled = 1;

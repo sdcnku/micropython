@@ -117,9 +117,10 @@ extern struct _spi_bdev_t spi_bdev;
 #define MICROPY_HW_USB_HS_ULPI_DIR  (pin_C2)
 
 //#define MICROPY_HW_USB_FS           (1)
-#define MICROPY_HW_USB_CDC_RX_DATA_SIZE       (512)
-#define MICROPY_HW_USB_CDC_TX_DATA_SIZE       (512)
-#define GPIO_AF10_OTG_HS            (GPIO_AF10_OTG2_HS)
+#define MICROPY_HW_USB_CDC_RX_DATA_SIZE     (512)
+#define MICROPY_HW_USB_CDC_TX_DATA_SIZE     (512)
+#define MICROPY_HW_USB_CDC_1200BPS_TOUCH    (1)
+#define GPIO_AF10_OTG_HS                    (GPIO_AF10_OTG2_HS)
 
 #define MICROPY_HW_USB_VID                      0x2341
 #define MICROPY_HW_USB_PID                      0x045F
