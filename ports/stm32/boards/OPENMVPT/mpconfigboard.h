@@ -24,6 +24,11 @@
 #define MICROPY_HW_CLK_PLLQ         (8)
 #define MICROPY_HW_CLK_PLLR         (2)
 
+// Use external 32kHz crystal for the RTC.
+#define MICROPY_HW_RTC_USE_LSE      (1)
+#define MICROPY_HW_RTC_USE_US       (1)
+#define MICROPY_HW_RTC_USE_CALOUT   (0)
+
 void board_low_power(int mode);
 #define MICROPY_BOARD_LEAVE_STOP    board_low_power(0);
 #define MICROPY_BOARD_ENTER_STOP    board_low_power(1);
