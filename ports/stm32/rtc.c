@@ -392,23 +392,6 @@ STATIC void PYB_RTC_MspInit_Kick(RTC_HandleTypeDef *hrtc, bool rtc_use_lse, bool
     }
     PYB_RCC_OscConfig(&RCC_OscInitStruct);
 
-    #if defined(STM32H7)
-    // Configure RTC clock source.
-    RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
-    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_RTC;
-    #if MICROPY_HW_RTC_USE_BYPASS
-    if (rtc_use_byp) {
-        PeriphClkInitStruct.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
-    } else
-    #endif
-    if (rtc_use_lse) {
-        PeriphClkInitStruct.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
-    } else {
-        PeriphClkInitStruct.RTCClockSelection = RCC_RTCCLKSOURCE_LSI;
-    }
-    HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct);
-    #endif
-
     // now ramp up osc. in background and flag calendear init needed
     rtc_need_init_finalise = true;
 }
