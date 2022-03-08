@@ -2,6 +2,14 @@
 #define MICROPY_HW_MCU_NAME         "STM32H747"
 #define MICROPY_PY_SYS_PLATFORM     "Nicla Vision"
 #define MICROPY_HW_FLASH_FS_LABEL   "nicla"
+#define MICROPY_PY_SYS_STDIO_BUFFER (0)
+#define MICROPY_STREAMS_POSIX_API   (1)
+
+#define MICROPY_OBJ_REPR            (MICROPY_OBJ_REPR_C)
+#define UINT_FMT                    "%u"
+#define INT_FMT                     "%d"
+typedef int mp_int_t;               // must be pointer size
+typedef unsigned int mp_uint_t;     // must be pointer size
 
 #define MICROPY_FATFS_EXFAT         (1)
 #define MICROPY_HW_ENABLE_RTC       (1)
