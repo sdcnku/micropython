@@ -33,8 +33,6 @@
 
 #include "py/mpconfig.h"
 
-#define DBG_MAX_PACKET      (64)
-
 // Values for connect_state
 #define USBD_CDC_CONNECT_STATE_DISCONNECTED (0)
 #define USBD_CDC_CONNECT_STATE_CONNECTING (1)
@@ -64,7 +62,7 @@ typedef struct _usbd_cdc_itf_t {
     volatile uint8_t dbg_mode_enabled;
     volatile uint32_t dbg_last_packet;
     volatile uint32_t dbg_xfer_length;
-    uint8_t dbg_xfer_buffer[DBG_MAX_PACKET];
+    uint8_t dbg_xfer_buffer[CDC_DATA_MAX_PACKET_SIZE];
 
     uint8_t cdc_idx; // between 0 and MICROPY_HW_USB_CDC_NUM-1
     volatile uint8_t connect_state; // indicates if we are connected
