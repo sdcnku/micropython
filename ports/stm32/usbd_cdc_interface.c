@@ -242,11 +242,9 @@ void usbd_cdc_tx_ready(usbd_cdc_state_t *cdc_in) {
     if (cdc->dbg_mode_enabled == 1) {
         if (cdc->dbg_xfer_length) {
             send_packet(cdc);
-        } else {
-            if (cdc->dbg_last_packet == CDC_DATA_MAX_PACKET_SIZE) {
-                cdc->dbg_last_packet = 0;
-                USBD_CDC_TransmitPacket(&cdc->base, 0, cdc->dbg_xfer_buffer);
-            }
+        } else if (cdc->dbg_last_packet == CDC_DATA_MAX_PACKET_SIZE) {
+            cdc->dbg_last_packet = 0;
+            USBD_CDC_TransmitPacket(&cdc->base, 0, cdc->dbg_xfer_buffer);
         }
         return;
     } 
