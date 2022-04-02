@@ -86,9 +86,10 @@ void board_low_power(int mode);
 #define MICROPY_HW_SPI2_MOSI (pin_B15)
 
 // FDCAN bus
-#define MICROPY_HW_CAN2_NAME  "FDCAN2"
-#define MICROPY_HW_CAN2_TX    (pin_B13)
-#define MICROPY_HW_CAN2_RX    (pin_B12)
+#define MICROPY_HW_CAN2_NAME "FDCAN2"
+#define MICROPY_HW_CAN2_TX   (pin_B13)
+#define MICROPY_HW_CAN2_RX   (pin_B12)
+#define MICROPY_HW_CAN_IS_RESERVED(id) (id != PYB_CAN_2)
 
 // SD card detect switch
 #define MICROPY_HW_SDCARD_DETECT_PIN        (pin_G7)

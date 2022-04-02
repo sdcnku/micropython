@@ -103,6 +103,12 @@ extern struct _spi_bdev_t spi_bdev;
 #define MICROPY_HW_SPI4_MISO        (pin_E13)
 #define MICROPY_HW_SPI4_MOSI        (pin_E14)
 
+// FDCAN bus
+#define MICROPY_HW_CAN1_NAME        "FDCAN1"
+#define MICROPY_HW_CAN1_TX          (pin_A10)
+#define MICROPY_HW_CAN1_RX          (pin_A9)
+#define MICROPY_HW_CAN_IS_RESERVED(id) (id != PYB_CAN_1)
+
 // LEDs
 #define MICROPY_HW_LED1             (pyb_pin_LEDR) // red
 #define MICROPY_HW_LED2             (pyb_pin_LEDG) // green
