@@ -90,6 +90,7 @@ int usbd_cdc_rx_num(usbd_cdc_itf_t *cdc);
 int usbd_cdc_rx(usbd_cdc_itf_t *cdc, uint8_t *buf, uint32_t len, uint32_t timeout);
 void usbd_cdc_rx_event_callback(usbd_cdc_itf_t *cdc);
 
+void usbd_cdc_reset_buffers(usbd_cdc_itf_t *cdc);
 uint32_t usbd_cdc_buf_len(usbd_cdc_itf_t *cdc);
 uint32_t usbd_cdc_get_buf(usbd_cdc_itf_t *cdc, uint8_t *buf, uint32_t len);
 
