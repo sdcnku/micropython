@@ -86,6 +86,12 @@ extern struct _spi_bdev_t spi_bdev;
 #define MICROPY_HW_UART3_TX         (pin_C10)
 #define MICROPY_HW_UART3_RX         (pin_C11)
 
+// UART1 config
+#define MICROPY_HW_UART1_TX         (pyb_pin_BT_TXD)
+#define MICROPY_HW_UART1_RX         (pyb_pin_BT_RXD)
+#define MICROPY_HW_UART1_RTS        (pyb_pin_BT_RTS)
+#define MICROPY_HW_UART1_CTS        (pyb_pin_BT_CTS)
+
 // I2C busses
 #define MICROPY_HW_I2C1_SCL         (pin_B8)
 #define MICROPY_HW_I2C1_SDA         (pin_B9)
@@ -134,6 +140,11 @@ extern struct _spi_bdev_t spi_bdev;
 #define MICROPY_HW_USB_CDC_TX_DATA_SIZE     (512)
 #define MICROPY_HW_USB_CDC_1200BPS_TOUCH    (1)
 #define GPIO_AF10_OTG_HS                    (GPIO_AF10_OTG2_HS)
+
+// Bluetooth config
+#define MICROPY_HW_BLE_UART_ID       (PYB_UART_1)
+#define MICROPY_HW_BLE_UART_BAUDRATE (115200)
+#define MICROPY_HW_BLE_UART_BAUDRATE_SECONDARY (3000000)
 
 #define MICROPY_HW_USB_VID                      0x2341
 #define MICROPY_HW_USB_PID                      0x045F
