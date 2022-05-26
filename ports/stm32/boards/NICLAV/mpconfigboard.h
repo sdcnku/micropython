@@ -16,7 +16,6 @@ typedef unsigned int mp_uint_t;     // must be pointer size
 #define MICROPY_HW_ENABLE_ADC       (1)
 #define MICROPY_HW_ENABLE_DAC       (1)
 #define MICROPY_HW_ENABLE_USB       (1)
-#define MICROPY_HW_ENABLE_SPI4      (1)
 #define MICROPY_HW_HAS_SWITCH       (0)
 #define MICROPY_HW_HAS_FLASH        (1)
 #define MICROPY_HW_ENABLE_SERVO     (1)
@@ -107,6 +106,11 @@ extern struct _spi_bdev_t spi_bdev;
 #define MICROPY_HW_SPI4_SCK         (pin_E12)
 #define MICROPY_HW_SPI4_MISO        (pin_E13)
 #define MICROPY_HW_SPI4_MOSI        (pin_E14)
+
+#define MICROPY_HW_SPI5_NSS         (pin_F6)
+#define MICROPY_HW_SPI5_SCK         (pin_F7)
+#define MICROPY_HW_SPI5_MISO        (pin_F8)
+#define MICROPY_HW_SPI5_MOSI        (pin_F11)
 
 // FDCAN bus
 #define MICROPY_HW_CAN1_NAME        "FDCAN1"
