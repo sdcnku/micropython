@@ -18,7 +18,7 @@ typedef unsigned int mp_uint_t;     // must be pointer size
 #define MICROPY_HW_ENABLE_USB       (1)
 #define MICROPY_HW_HAS_SWITCH       (0)
 #define MICROPY_HW_HAS_FLASH        (1)
-#define MICROPY_HW_ENABLE_SERVO     (1)
+#define MICROPY_HW_ENABLE_SERVO     (0)
 #define MICROPY_HW_ENABLE_TIMER     (1)
 #define MICROPY_HW_ENABLE_SDCARD    (0)
 #define MICROPY_HW_ENABLE_MMCARD    (0)
@@ -82,8 +82,8 @@ extern struct _spi_bdev_t spi_bdev;
 #define MICROPY_HW_FLASH_LATENCY    FLASH_LATENCY_2
 
 // UART config
-#define MICROPY_HW_UART3_TX         (pin_C10)
-#define MICROPY_HW_UART3_RX         (pin_C11)
+#define MICROPY_HW_UART4_TX         (pin_B9)
+#define MICROPY_HW_UART4_RX         (pin_B8)
 
 // UART1 config
 #define MICROPY_HW_UART1_TX         (pyb_pin_BT_TXD)
