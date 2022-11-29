@@ -360,12 +360,6 @@
 #define MICROPY_HW_MAX_UART (8)
 #define MICROPY_HW_MAX_LPUART (1)
 
-// The STM32H7xx HAL defines LPUART1 AF macros without numbers.
-#ifndef GPIO_AF3_LPUART1
-#define GPIO_AF3_LPUART1 GPIO_AF3_LPUART
-#define GPIO_AF8_LPUART1 GPIO_AF8_LPUART
-#endif
-
 // Configuration for STM32L0 series
 #elif defined(STM32L0)
 
