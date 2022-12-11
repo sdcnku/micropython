@@ -888,15 +888,15 @@ void powerctrl_enter_standby_mode(void) {
     MICROPY_BOARD_ENTER_STANDBY
     #endif
 
-    // Disable SysTick Interrupt
-    // Note: This seems to be required at least on the H747,
-    // otherwise the MCU will leave stop mode immediately on entry.
-    SysTick->CTRL &= ~SysTick_CTRL_TICKINT_Msk;
-
-    #if defined(MCU_SERIES_H7)
-    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE3);
-    // Wait for PWR_FLAG_VOSRDY
-    while (!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {
+    #if defined(STM32H7)
+    // Note: According to ST reference manual, RM0399, Rev 3, Section 7.7.10,
+    // before entering Standby mode, voltage scale VOS0 must not be active.
+    uint32_t vscaling = POWERCTRL_GET_VOLTAGE_SCALING();
+    if (vscaling == PWR_REGULATOR_VOLTAGE_SCALE0) {
+        __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE3);
+        // Wait for PWR_FLAG_VOSRDY
+        while (!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {
+        }
     }
     #endif
 
@@ -951,8 +951,17 @@ void powerctrl_enter_standby_mode(void) {
     // Restore EWUP state
     PWR->CSR2 |= csr2_ewup;
     #elif defined(STM32H7)
-    EXTI_D1->PR1 = 0x3fffff;
-    PWR->WKUPCR |= PWR_WAKEUP_FLAG1 | PWR_WAKEUP_FLAG2 | PWR_WAKEUP_FLAG3 | PWR_WAKEUP_FLAG4 | PWR_WAKEUP_FLAG5 | PWR_WAKEUP_FLAG6;
+    // Clear and mask D1 EXTIs.
+    EXTI_D1->PR1 = 0x3fffffu;
+    EXTI_D1->IMR1 &= ~(0xFFFFu); // 16 lines
+
+    // Clear and mask D2 EXTIs.
+    EXTI_D2->PR1 = 0x3fffffu;
+    EXTI_D2->IMR1 &= ~(0xFFFFu); // 16 lines
+
+    // Disable all wakeup pins and clear flags.
+    PWR->WKUPEPR &= ~(0x1Fu);
+    PWR->WKUPCR |= PWR_WAKEUP_FLAG_ALL;
     #elif defined(STM32G0) || defined(STM32G4) || defined(STM32L4) || defined(STM32WB)
     // clear all wake-up flags
     PWR->SCR |= PWR_SCR_CWUF5 | PWR_SCR_CWUF4 | PWR_SCR_CWUF3 | PWR_SCR_CWUF2 | PWR_SCR_CWUF1;
@@ -977,9 +986,8 @@ void powerctrl_enter_standby_mode(void) {
     PWR->CSR1 |= PWR_CSR1_EIWUP;
     #endif
 
-    #if defined(MICROPY_BOARD_OSC_DISABLE)
-    MICROPY_BOARD_OSC_DISABLE
-    #endif
+    // Disable Debug MCU.
+    DBGMCU->CR = 0;
 
     // enter standby mode
     HAL_PWR_EnterSTANDBYMode();
