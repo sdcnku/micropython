@@ -31,7 +31,7 @@ typedef unsigned int mp_uint_t;     // must be pointer size
 
 // Flash storage config
 #define MICROPY_HW_SPIFLASH_ENABLE_CACHE            (1)
-#define MICROPY_HW_ENABLE_INTERNAL_FLASH_STORAGE    (1)
+#define MICROPY_HW_ENABLE_INTERNAL_FLASH_STORAGE    (0)
 
 // Reserved peripherals
 //#define MICROPY_HW_DMA1S0_IS_RESERVED
