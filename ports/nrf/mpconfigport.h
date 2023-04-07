@@ -116,6 +116,8 @@
 #if NRF51
 #define MICROPY_ALLOC_GC_STACK_SIZE (32)
 #endif
+#define MICROPY_SCHEDULER_DEPTH (8)
+#define MICROPY_SCHEDULER_STATIC_NODES  (1)
 
 // fatfs configuration used in ffconf.h
 #define MICROPY_FATFS_ENABLE_LFN       (1)
