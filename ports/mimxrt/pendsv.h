@@ -31,6 +31,7 @@ enum {
     #if MICROPY_PY_NETWORK && MICROPY_PY_LWIP
     PENDSV_DISPATCH_LWIP,
     #endif
+    MICROPY_BOARD_PENDSV_ENTRIES
     PENDSV_DISPATCH_MAX
 };
 
@@ -39,6 +40,7 @@ enum {
 typedef void (*pendsv_dispatch_t)(void);
 
 void pendsv_init(void);
+void pendsv_nlr_jump(void *val);
 void pendsv_schedule_dispatch(size_t slot, pendsv_dispatch_t f);
 
 #endif // MICROPY_INCLUDED_STM32_PENDSV_H

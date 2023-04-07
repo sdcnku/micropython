@@ -335,6 +335,11 @@ extern const struct _mp_obj_module_t music_module;
 #define NUM_OF_PINS 32
 #endif
 
+// Additional entries for use with pendsv_schedule_dispatch.
+#ifndef MICROPY_BOARD_PENDSV_ENTRIES
+#define MICROPY_BOARD_PENDSV_ENTRIES
+#endif
+
 #define MICROPY_PORT_ROOT_POINTERS \
     const char *readline_hist[8]; \
     mp_obj_t pin_class_mapper; \

@@ -75,7 +75,7 @@
 // Fine control over Python builtins, classes, modules, etc
 #define MICROPY_PY_BUILTINS_HELP_TEXT           rp2_help_text
 #define MICROPY_PY_SYS_PLATFORM                 "rp2"
-#define MICROPY_PY_THREAD                       (1)
+#define MICROPY_PY_THREAD                       (0)
 #define MICROPY_PY_THREAD_GIL                   (0)
 #define MICROPY_THREAD_YIELD()                  mp_handle_pending(true)
 
@@ -183,6 +183,11 @@ extern const struct _mod_network_nic_type_t mod_network_nic_type_wiznet5k;
     MICROPY_HW_NIC_NINAW10  \
     MICROPY_HW_NIC_WIZNET5K \
     MICROPY_BOARD_NETWORK_INTERFACES \
+
+// Additional entries for use with pendsv_schedule_dispatch.
+#ifndef MICROPY_BOARD_PENDSV_ENTRIES
+#define MICROPY_BOARD_PENDSV_ENTRIES
+#endif
 
 #ifndef MICROPY_BOARD_ROOT_POINTERS
 #define MICROPY_BOARD_ROOT_POINTERS

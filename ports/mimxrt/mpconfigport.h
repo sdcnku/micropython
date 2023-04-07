@@ -235,6 +235,11 @@ extern const struct _mp_obj_type_t network_lan_type;
     MICROPY_HW_NIC_ETH  \
     MICROPY_BOARD_NETWORK_INTERFACES \
 
+// Additional entries for use with pendsv_schedule_dispatch.
+#ifndef MICROPY_BOARD_PENDSV_ENTRIES
+#define MICROPY_BOARD_PENDSV_ENTRIES
+#endif
+
 #define MICROPY_HW_PIT_NUM_CHANNELS 3
 
 #ifndef MICROPY_BOARD_ROOT_POINTERS
