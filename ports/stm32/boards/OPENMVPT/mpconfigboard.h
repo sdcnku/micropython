@@ -19,10 +19,14 @@ typedef unsigned int mp_uint_t;     // must be pointer size
 #define MICROPY_HW_ENABLE_SPI2      (1)
 #define MICROPY_HW_ENABLE_USB       (1)
 #define MICROPY_HW_ENABLE_SDCARD    (1)
+
 // Reserved DMA streams
 #define MICROPY_HW_DMA1S0_IS_RESERVED
 #define MICROPY_HW_DMA2S1_IS_RESERVED
 #define MICROPY_HW_TIM_IS_RESERVED(id) (id == 1 || id == 6)
+
+#define MICROPY_HW_ENTER_BOOTLOADER_VIA_RESET   (0)
+#define MICROPY_BOARD_ENTER_BOOTLOADER(nargs, args) NVIC_SystemReset()
 
 // Note these are not used in top system.c.
 #define MICROPY_HW_CLK_PLLM         (3)
@@ -127,7 +131,7 @@ void board_low_power(int mode);
 
 // Board network interfaces config.
 #if MICROPY_PY_WINC1500
-extern const struct _mod_network_nic_type_t mod_network_nic_type_winc;
+extern const struct _mp_obj_type_t mod_network_nic_type_winc;
 #define MICROPY_PY_USOCKET_EXTENDED_STATE   (1)
 #define MICROPY_BOARD_NETWORK_INTERFACES \
     { MP_ROM_QSTR(MP_QSTR_WINC), MP_ROM_PTR(&mod_network_nic_type_winc) },\

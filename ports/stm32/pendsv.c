@@ -72,6 +72,7 @@ void pendsv_kbd_intr(void) {
 // This will always force the exception by using the hardware PENDSV
 void pendsv_nlr_jump(void *o) {
     MP_STATE_MAIN_THREAD(mp_pending_exception) = MP_OBJ_NULL;
+    pendsv_dispatch_active = false;
     pendsv_object = o;
     SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
 }

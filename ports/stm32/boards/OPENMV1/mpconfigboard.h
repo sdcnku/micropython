@@ -88,7 +88,7 @@ typedef unsigned int mp_uint_t;     // must be pointer size
 #define PYB_SERVO_NUM (2)
 
 #if MICROPY_PY_WINC1500
-extern const struct _mod_network_nic_type_t mod_network_nic_type_winc;
+extern const struct _mp_obj_type_t mod_network_nic_type_winc;
 #define MICROPY_PY_USOCKET_EXTENDED_STATE   (1)
 #define MICROPY_BOARD_NETWORK_INTERFACES \
     { MP_ROM_QSTR(MP_QSTR_WINC), MP_ROM_PTR(&mod_network_nic_type_winc) },\

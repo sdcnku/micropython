@@ -1,20 +1,24 @@
-//Board config for Arduino Nano RP2040 Connect.
+// Board config for Arduino Nano RP2040 Connect.
 #include "RP2040.h"
 
 // Board and hardware specific configuration
 #define MICROPY_HW_BOARD_NAME           "Arduino Nano RP2040 Connect"
 #define MICROPY_HW_FLASH_STORAGE_BYTES  (8 * 1024 * 1024)
 
-// Enable networking and sockets.
+extern void pico_reset_to_bootloader(size_t n_args, const void *args_in);
+#define MICROPY_BOARD_ENTER_BOOTLOADER pico_reset_to_bootloader
+
+// Enable networking.
 #define MICROPY_PY_NETWORK              (1)
-#define MICROPY_PY_USOCKET              (1)
-#define MICROPY_PY_WEBREPL              (1)
-#define MICROPY_PY_UWEBSOCKET           (1)
-#define MICROPY_PY_UHASHLIB_SHA1        (1)
-#define MICROPY_PY_OS_DUPTERM           (1)
+
+// Enable MD5 hash.
+#define MICROPY_PY_UHASHLIB_MD5         (1)
 
 // Disable internal error numbers.
 #define MICROPY_USE_INTERNAL_ERRNO      (0)
+
+// Enable externally controlled pins.
+#define MICROPY_HW_PIN_EXT_COUNT        (7)
 
 // Enable USB Mass Storage with FatFS filesystem.
 #define MICROPY_HW_USB_MSC              (1)
@@ -28,16 +32,12 @@
 #define MICROPY_HW_UART1_CTS            (10)
 #define MICROPY_HW_UART1_RTS            (11)
 
-// SPI 1 config.
+// SPI 1 config (non-default).
 #define MICROPY_HW_SPI1_SCK             (14)
 #define MICROPY_HW_SPI1_MOSI            (11)
 #define MICROPY_HW_SPI1_MISO            (8)
 
-// I2C0 config.
-#define MICROPY_HW_I2C0_SCL             (13)
-#define MICROPY_HW_I2C0_SDA             (12)
-
-// I2C1 config.
+// I2C1 config (non-default).
 #define MICROPY_HW_I2C1_SCL             (27)
 #define MICROPY_HW_I2C1_SDA             (26)
 
@@ -54,15 +54,3 @@
 #define MICROPY_HW_NINA_GPIO0           (2)
 #define MICROPY_HW_NINA_GPIO1           (9)
 #define MICROPY_HW_NINA_ACK             (10)
-
-// AUDIO config.
-// Not merged upstream yet.
-//#define MICROPY_HW_PDM_PIO              (pio1)
-//#define MICROPY_HW_PDM_SM               (0)
-//#define MICROPY_HW_PDM_DMA              (1)
-//#define MICROPY_HW_PDM_DMA_IRQ          (DMA_IRQ_1)
-//
-//#define MICROPY_HW_PDM_CLK_PIN          (23)
-//#define MICROPY_HW_PDM_DIN_PIN          (22)
-
-#define MICROPY_BOARD_ROOT_POINTERS     struct _audio_data_t *audio_data;

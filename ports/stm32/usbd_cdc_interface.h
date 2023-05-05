@@ -58,7 +58,6 @@ typedef struct _usbd_cdc_itf_t {
     uint16_t tx_buf_ptr_out_next; // next position of above once transmission finished
     uint8_t tx_need_empty_packet; // used to flush the USB IN endpoint if the last packet was exactly the endpoint packet size
 
-    uint32_t baudrate;
     volatile uint8_t dbg_mode_enabled;
     volatile uint32_t dbg_last_packet;
     volatile uint32_t dbg_xfer_length;
@@ -68,6 +67,7 @@ typedef struct _usbd_cdc_itf_t {
     volatile uint8_t connect_state; // indicates if we are connected
     uint8_t attached_to_repl; // indicates if interface is connected to REPL
     uint8_t flow; // USBD_CDC_FLOWCONTROL_* setting flags
+    uint32_t bitrate;
 } usbd_cdc_itf_t;
 
 // This is implemented in usb.c

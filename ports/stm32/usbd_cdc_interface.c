@@ -42,11 +42,22 @@
 #include "usbd_cdc_interface.h"
 #include "pendsv.h"
 
-#include "py/obj.h"
+#include "py/runtime.h"
+#include "py/mphal.h"
 #include "shared/runtime/interrupt_char.h"
 #include "irq.h"
+#include "modmachine.h"
 
 #if MICROPY_HW_ENABLE_USB
+
+#if !MICROPY_HW_USB_IS_MULTI_OTG
+#define USE_USB_CNTR_SOFM (1)
+#elif defined(STM32G0)
+#define USE_USB_CNTR_SOFM (1)
+#define USB USB_DRD_FS
+#else
+#define USE_USB_CNTR_SOFM (0)
+#endif
 
 // CDC control commands
 #define CDC_SEND_ENCAPSULATED_COMMAND               0x00
@@ -69,6 +80,14 @@ extern void usbdbg_control(void *buffer, uint8_t brequest, uint32_t wlength);
 // Used to control the connect_state variable when USB host opens the serial port
 static uint8_t usbd_cdc_connect_tx_timer;
 
+#if MICROPY_HW_USB_CDC_1200BPS_TOUCH
+static mp_sched_node_t mp_bootloader_sched_node;
+STATIC void usbd_cdc_run_bootloader_task(mp_sched_node_t *node) {
+    mp_hal_delay_ms(250);
+    machine_bootloader(0, NULL);
+}
+#endif
+
 uint8_t *usbd_cdc_init(usbd_cdc_state_t *cdc_in) {
     usbd_cdc_itf_t *cdc = (usbd_cdc_itf_t *)cdc_in;
 
@@ -81,7 +100,7 @@ uint8_t *usbd_cdc_init(usbd_cdc_state_t *cdc_in) {
     cdc->rx_buf_get = 0;
     cdc->rx_buf_full = false;
     cdc->tx_need_empty_packet = 0;
-    cdc->baudrate = 0;
+    cdc->bitrate = 0;
     cdc->dbg_mode_enabled = 0;
     cdc->dbg_xfer_length  = 0;
     cdc->connect_state = USBD_CDC_CONNECT_STATE_DISCONNECTED;
@@ -91,6 +110,7 @@ uint8_t *usbd_cdc_init(usbd_cdc_state_t *cdc_in) {
     } else {
         cdc->flow |= USBD_CDC_FLOWCONTROL_CTS;
     }
+    cdc->bitrate = 0;
 
     // Return the buffer to place the first USB OUT packet
     return cdc->rx_packet_buf;
@@ -131,10 +151,10 @@ int8_t usbd_cdc_control(usbd_cdc_state_t *cdc_in, uint8_t cmd, uint8_t *pbuf, ui
             break;
 
         case CDC_SET_LINE_CODING: {
-            cdc->baudrate = *((uint32_t*)pbuf);
+            cdc->bitrate = *((uint32_t*)pbuf);
             #if MICROPY_HW_USB_CDC_1200BPS_TOUCH
-            if (cdc->baudrate == 1200) {
-                MICROPY_RESET_TO_BOOTLOADER();
+            if (cdc->bitrate == 1200) {
+                MICROPY_BOARD_ENTER_BOOTLOADER(0, 0);
             }
             #endif
             usbd_cdc_reset_buffers(cdc);
@@ -142,11 +162,10 @@ int8_t usbd_cdc_control(usbd_cdc_state_t *cdc_in, uint8_t cmd, uint8_t *pbuf, ui
         }
 
         case CDC_GET_LINE_CODING:
-            /* Add your code here */
-            pbuf[0] = (uint8_t)(cdc->baudrate);
-            pbuf[1] = (uint8_t)(cdc->baudrate >> 8);
-            pbuf[2] = (uint8_t)(cdc->baudrate >> 16);
-            pbuf[3] = (uint8_t)(cdc->baudrate >> 24);
+            pbuf[0] = (uint8_t)(cdc->bitrate);
+            pbuf[1] = (uint8_t)(cdc->bitrate >> 8);
+            pbuf[2] = (uint8_t)(cdc->bitrate >> 16);
+            pbuf[3] = (uint8_t)(cdc->bitrate >> 24);
             pbuf[4] = 0; // stop bits (1)
             pbuf[5] = 0; // parity (none)
             pbuf[6] = 8; // number of bits (8)
@@ -159,7 +178,7 @@ int8_t usbd_cdc_control(usbd_cdc_state_t *cdc_in, uint8_t cmd, uint8_t *pbuf, ui
                 // configure its serial port (in most cases to disable local echo)
                 cdc->connect_state = USBD_CDC_CONNECT_STATE_CONNECTING;
                 usbd_cdc_connect_tx_timer = 8; // wait for 8 SOF IRQs
-                #if !MICROPY_HW_USB_IS_MULTI_OTG
+                #if USE_USB_CNTR_SOFM
                 USB->CNTR |= USB_CNTR_SOFM;
                 #else
                 PCD_HandleTypeDef *hpcd = cdc->base.usbd->pdev->pData;
@@ -167,6 +186,12 @@ int8_t usbd_cdc_control(usbd_cdc_state_t *cdc_in, uint8_t cmd, uint8_t *pbuf, ui
                 #endif
             } else {
                 cdc->connect_state = USBD_CDC_CONNECT_STATE_DISCONNECTED;
+                #if MICROPY_HW_USB_CDC_1200BPS_TOUCH
+                if (cdc->bitrate == 1200) {
+                    // Delay bootloader jump to allow the USB stack to service endpoints.
+                    mp_sched_schedule_node(&mp_bootloader_sched_node, usbd_cdc_run_bootloader_task);
+                }
+                #endif
             }
             break;
         }
@@ -280,7 +305,7 @@ void HAL_PCD_SOFCallback(PCD_HandleTypeDef *hpcd) {
         --usbd_cdc_connect_tx_timer;
     } else {
         usbd_cdc_msc_hid_state_t *usbd = ((USBD_HandleTypeDef *)hpcd->pData)->pClassData;
-        #if !MICROPY_HW_USB_IS_MULTI_OTG
+        #if USE_USB_CNTR_SOFM
         USB->CNTR &= ~USB_CNTR_SOFM;
         #else
         hpcd->Instance->GINTMSK &= ~USB_OTG_GINTMSK_SOFM;
@@ -334,9 +359,9 @@ void usbd_cdc_reset_buffers(usbd_cdc_itf_t *cdc) {
     cdc->tx_buf_ptr_out_next = 0;
     cdc->tx_need_empty_packet = 0;
 
-    // The slow cdc->baudrate can be used on OSes that don't support custom baudrates
-    if (cdc->baudrate == IDE_BAUDRATE_SLOW ||
-        cdc->baudrate == IDE_BAUDRATE_FAST) {
+    // The slow cdc->bitrate can be used on OSes that don't support custom baudrates
+    if (cdc->bitrate == IDE_BAUDRATE_SLOW ||
+        cdc->bitrate == IDE_BAUDRATE_FAST) {
         cdc->dbg_xfer_length  = 0;
         cdc->dbg_last_packet  = 0;
         cdc->dbg_mode_enabled = 1;

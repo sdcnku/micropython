@@ -53,6 +53,9 @@ void OPENMV4_H7_PRO_board_osc_enable(int enable);
 #define MICROPY_BOARD_OSC_ENABLE    OPENMV4_H7_PRO_board_osc_enable(1);
 #define MICROPY_BOARD_OSC_DISABLE   OPENMV4_H7_PRO_board_osc_enable(0);
 
+#define MICROPY_HW_ENTER_BOOTLOADER_VIA_RESET   (0)
+#define MICROPY_BOARD_ENTER_BOOTLOADER(nargs, args) NVIC_SystemReset()
+
 // External 32kHz oscillator configuration
 #define RTC_ASYNCH_PREDIV           (0)
 #define RTC_SYNCH_PREDIV            (0x7fff)
