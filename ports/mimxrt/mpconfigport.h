@@ -29,7 +29,7 @@
 // Board specific definitions
 #include "mpconfigboard.h"
 #include "fsl_common.h"
-#include "lib/nxp_driver/sdk/CMSIS/Include/core_cm7.h"
+#include "core_cm7.h"
 
 uint32_t trng_random_u32(void);
 
@@ -97,10 +97,13 @@ uint32_t trng_random_u32(void);
 #define MICROPY_PY_UPLATFORM                (1)
 
 // fatfs configuration used in ffconf.h
-#define MICROPY_FATFS_ENABLE_LFN            (1)
-#define MICROPY_FATFS_RPATH                 (2)
-#define MICROPY_FATFS_MAX_SS                (4096)
+#define MICROPY_FATFS_ENABLE_LFN            (2)
 #define MICROPY_FATFS_LFN_CODE_PAGE         437 /* 1=SFN/ANSI 437=LFN/U.S.(OEM) */
+#define MICROPY_FATFS_USE_LABEL             (1)
+#define MICROPY_FATFS_RPATH                 (2)
+#define MICROPY_FATFS_MULTI_PARTITION       (1)
+#define MICROPY_FATFS_MAX_SS                (4096)
+#define MICROPY_FATFS_EXFAT                 (1)
 
 #ifndef MICROPY_PY_NETWORK
 #define MICROPY_PY_NETWORK                  (1)
@@ -205,6 +208,8 @@ extern const struct _mp_obj_type_t network_lan_type;
     do { \
         extern void mp_handle_pending(bool); \
         mp_handle_pending(true); \
+        extern void tud_task_ext(uint32_t timeout_ms, bool in_isr); \
+        tud_task_ext(0, false); \
         __WFE(); \
     } while (0);
 #endif

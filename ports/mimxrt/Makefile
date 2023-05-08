@@ -51,7 +51,7 @@ include $(TOP)/py/py.mk
 include $(TOP)/extmod/extmod.mk
 
 # Set SDK directory based on MCU_SERIES
-MCU_DIR = lib/nxp_driver/sdk/devices/$(MCU_SERIES)
+MCU_DIR ?= lib/nxp_driver/sdk/devices/$(MCU_SERIES)
 
 # Select linker scripts based on MCU_SERIES
 LD_FILES = boards/$(MCU_SERIES).ld boards/common.ld
@@ -196,7 +196,6 @@ SRC_C += \
 	machine_spi.c \
 	machine_uart.c \
 	machine_wdt.c \
-	main.c \
 	mbedtls/mbedtls_port.c \
 	mimxrt_flash.c \
 	mimxrt_sdram.c \
@@ -282,8 +281,8 @@ else
 endif
 
 # Reset variables
-SUPPORTS_HARDWARE_FP_SINGLE = 0
-SUPPORTS_HARDWARE_FP_DOUBLE = 0
+SUPPORTS_HARDWARE_FP_SINGLE ?= 0
+SUPPORTS_HARDWARE_FP_DOUBLE ?= 0
 
 # Assembly source files
 SRC_SS = \
@@ -346,11 +345,10 @@ CFLAGS += \
 	-mthumb \
 	-mtune=cortex-m7 \
 	-nostdlib \
-	-std=c99 \
+	-std=gnu99 \
 	-Wall \
 	-Wdouble-promotion \
 	-Werror \
-	-Wfloat-conversion \
 	-Wno-error=unused-parameter
 
 # Configure respective board flash type
@@ -369,7 +367,7 @@ ifeq ($(MICROPY_FLOAT_IMPL),single)
     CFLAGS += \
         -DMICROPY_FLOAT_IMPL=MICROPY_FLOAT_IMPL_FLOAT \
         -fsingle-precision-constant \
-        -mfloat-abi=softfp \
+        -mfloat-abi=hard \
         -mfpu=fpv5-sp-d16
 else ifeq ($(MICROPY_FLOAT_IMPL),double)
     CFLAGS += \
@@ -452,7 +450,7 @@ $(BUILD)/lib/tinyusb/src/device/usbd.o: CFLAGS += -Wno-missing-braces
 # Build targets
 # =============================================================================
 
-all: $(BUILD)/firmware.hex $(BUILD)/firmware.bin
+all: $(OBJ)
 
 # Process linker scripts with C preprocessor to exchange LDDEFINES and
 #	aggregate output of preprocessor in a single linker script `link.ld`
@@ -482,15 +480,15 @@ $(HEADER_BUILD)/qstrdefs.generated.h: $(BOARD_DIR)/mpconfigboard.h
 
 $(GEN_FLEXRAM_CONFIG_SRC):
 	$(ECHO) "Create $@"
-	$(Q)$(PYTHON) $(MAKE_FLEXRAM_LD) -d $(TOP)/$(MCU_DIR)/$(MCU_SERIES)$(MCU_CORE).h \
-		-f $(TOP)/$(MCU_DIR)/$(MCU_SERIES)$(MCU_CORE)_features.h -l boards/$(MCU_SERIES).ld -c $(MCU_SERIES) > $(GEN_FLEXRAM_CONFIG_SRC)
+	$(Q)$(PYTHON) $(MAKE_FLEXRAM_LD) -d $(CMSIS_DIR)/include/mimxrt/$(MCU_SERIES)$(MCU_CORE).h \
+		-f $(MCU_DIR)/$(MCU_SERIES)$(MCU_CORE)_features.h -l boards/$(MCU_SERIES).ld -c $(MCU_SERIES) > $(GEN_FLEXRAM_CONFIG_SRC)
 
 # Use a pattern rule here so that make will only call make-pins.py once to make
 # both pins_gen.c and pins.h
 $(BUILD)/%_gen.c $(HEADER_BUILD)/%.h: $(BOARD_PINS) $(MAKE_PINS) $(AF_FILE) $(PREFIX_FILE) | $(HEADER_BUILD)
 	$(ECHO) "Create $@"
 	$(Q)$(PYTHON) $(MAKE_PINS) --board $(BOARD_PINS) --af $(AF_FILE)\
-		--iomux $(abspath $(TOP)/$(MCU_DIR)/drivers/fsl_iomuxc.h) \
+		--iomux $(abspath $(MCU_DIR)/drivers/fsl_iomuxc.h) \
 		--prefix $(PREFIX_FILE) --hdr $(GEN_PINS_HDR) > $(GEN_PINS_SRC)
 
 $(GEN_PINS_SRC:.c=.o): $(GEN_PINS_SRC)
