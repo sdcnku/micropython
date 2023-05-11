@@ -145,10 +145,6 @@ uint32_t trng_random_u32(void);
 
 // For regular code that wants to prevent "background tasks" from running.
 // These background tasks (LWIP, Bluetooth) run in PENDSV context.
-// TODO: Check for the settings of the STM32 port in irq.h
-#define NVIC_PRIORITYGROUP_4    ((uint32_t)0x00000003)
-#define IRQ_PRI_EXTINT          NVIC_EncodePriority(NVIC_PRIORITYGROUP_4, 14, 0)
-#define IRQ_PRI_PENDSV          NVIC_EncodePriority(NVIC_PRIORITYGROUP_4, 15, 0)
 #define MICROPY_PY_PENDSV_ENTER   uint32_t atomic_state = raise_irq_pri(IRQ_PRI_PENDSV);
 #define MICROPY_PY_PENDSV_REENTER atomic_state = raise_irq_pri(IRQ_PRI_PENDSV);
 #define MICROPY_PY_PENDSV_EXIT    restore_irq_pri(atomic_state);
@@ -163,23 +159,6 @@ __attribute__((always_inline)) static inline uint32_t disable_irq(void) {
     uint32_t state = __get_PRIMASK();
     __disable_irq();
     return state;
-}
-
-static inline uint32_t raise_irq_pri(uint32_t pri) {
-    uint32_t basepri = __get_BASEPRI();
-    // If non-zero, the processor does not process any exception with a
-    // priority value greater than or equal to BASEPRI.
-    // When writing to BASEPRI_MAX the write goes to BASEPRI only if either:
-    //   - Rn is non-zero and the current BASEPRI value is 0
-    //   - Rn is non-zero and less than the current BASEPRI value
-    pri <<= (8 - __NVIC_PRIO_BITS);
-    __ASM volatile ("msr basepri_max, %0" : : "r" (pri) : "memory");
-    return basepri;
-}
-
-// "basepri" should be the value returned from raise_irq_pri
-static inline void restore_irq_pri(uint32_t basepri) {
-    __set_BASEPRI(basepri);
 }
 
 #define MICROPY_BEGIN_ATOMIC_SECTION()     disable_irq()
