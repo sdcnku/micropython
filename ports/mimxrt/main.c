@@ -55,7 +55,9 @@ int main(void) {
     board_init();
     ticks_init();
     tusb_init();
+    #if defined(MICROPY_HW_LED1)
     led_init();
+    #endif
     pendsv_init();
 
     #if MICROPY_PY_LWIP
