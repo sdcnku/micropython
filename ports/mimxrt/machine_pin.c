@@ -93,6 +93,8 @@ int GPIO_get_instance(GPIO_Type *gpio) {
     return 0;
 }
 
+extern void omv_gpio_irq_handler(GPIO_Type *gpio, uint32_t gpio_nr, uint32_t pin_nr);
+
 void call_handler(GPIO_Type *gpio, int gpio_nr, int pin) {
     uint32_t mask = 1 << pin;
     uint32_t isr = gpio->ISR & gpio->IMR;
@@ -111,6 +113,7 @@ void call_handler(GPIO_Type *gpio, int gpio_nr, int pin) {
                 return;
             }
             #endif
+            omv_gpio_irq_handler(gpio, gpio_nr, pin);
             machine_pin_irq_obj_t *irq = MP_STATE_PORT(machine_pin_irq_objects[index]);
             if (irq != NULL) {
                 irq->flags = irq->trigger;
@@ -160,6 +163,10 @@ void GPIO5_Combined_0_15_IRQHandler(void) {
 
 void GPIO5_Combined_16_31_IRQHandler(void) {
     call_handler(gpiobases[5], 5, 16);
+}
+
+void GPIO10_Combined_0_31_IRQHandler(void) {
+    omv_gpio_irq_handler(gpiobases[10], 10, 0);
 }
 
 #if defined(MIMXRT117x_SERIES)
