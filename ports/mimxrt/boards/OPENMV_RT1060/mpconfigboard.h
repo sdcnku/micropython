@@ -36,8 +36,8 @@ extern void mimxrt_hal_bootloader(void);
 #define MICROPY_HW_SDIO_SDMMC       (2)
 #define MICROPY_HW_SDIO_CLK         (&pin_GPIO_AD_B1_09)
 #define MICROPY_HW_SDIO_CMD         (&pin_GPIO_AD_B1_08)
-#define MICROPY_HW_SDIO_D0          (&pin_GPIO_AD_B1_04)
-#define MICROPY_HW_SDIO_D1          (&pin_GPIO_AD_B1_05)
+#define MICROPY_HW_SDIO_D0          (&pin_GPIO_SD_B1_03)
+#define MICROPY_HW_SDIO_D1          (&pin_GPIO_SD_B1_02)
 #define MICROPY_HW_SDIO_D2          (&pin_GPIO_AD_B1_06)
 #define MICROPY_HW_SDIO_D3          (&pin_GPIO_AD_B1_07)
 
@@ -46,6 +46,7 @@ extern void mimxrt_hal_bootloader(void);
 
 #define MICROPY_HW_BT_REG_ON        (&pin_GPIO_AD_B0_08)
 #define MICROPY_HW_BT_HOST_WAKE     (&pin_GPIO_AD_B0_14)
+#define MICROPY_HW_BT_DEV_WAKE      (&pin_GPIO_SD_B1_00)
 
 // Bluetooth config.
 #define MICROPY_HW_BLE_UART_ID          (1)
