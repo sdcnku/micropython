@@ -193,12 +193,12 @@ extern void mimxrt_hal_bootloader(void);
 
 // Network definitions
 // Transceiver Phy Address
-#define ENET_PHY_ADDRESS    (2)
+#define ENET_PHY_ADDRESS    (0)
 #define ENET_PHY_OPS        phyksz8081_ops
 
 // Etherner PIN definitions
-#define ENET_RESET_PIN      &pin_GPIO_AD_B0_09
-#define ENET_INT_PIN        &pin_GPIO_AD_B0_10
+#define ENET_RESET_PIN      &pin_GPIO_B0_13
+#define ENET_INT_PIN        &pin_GPIO_B0_12
 
 #define IOMUX_TABLE_ENET \
     { IOMUXC_GPIO_B1_04_ENET_RX_DATA00, 0, 0xB0E9u }, \
