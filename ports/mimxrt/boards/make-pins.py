@@ -24,6 +24,9 @@ regexes = [
     r"IOMUXC_(?P<pin>GPIO_EMC_B\d_\d\d)_(?P<function>\w+) (?P<muxRegister>\w+), (?P<muxMode>\w+), (?P<inputRegister>\w+), (?P<inputDaisy>\w+), (?P<configRegister>\w+)",
     r"IOMUXC_(?P<pin>GPIO_DISP_B\d_\d\d)_(?P<function>\w+) (?P<muxRegister>\w+), (?P<muxMode>\w+), (?P<inputRegister>\w+), (?P<inputDaisy>\w+), (?P<configRegister>\w+)",
     r"IOMUXC_(?P<pin>GPIO_LPSR_\d\d)_(?P<function>\w+) (?P<muxRegister>\w+), (?P<muxMode>\w+), (?P<inputRegister>\w+), (?P<inputDaisy>\w+), (?P<configRegister>\w+)",
+    r"IOMUXC_SNVS_(?P<pin>WAKEUP)_(?P<function>\w+) (?P<muxRegister>\w+), (?P<muxMode>\w+), (?P<inputRegister>\w+), (?P<inputDaisy>\w+), (?P<configRegister>\w+)",
+    r"IOMUXC_SNVS_(?P<pin>PMIC_ON_REQ)_(?P<function>\w+) (?P<muxRegister>\w+), (?P<muxMode>\w+), (?P<inputRegister>\w+), (?P<inputDaisy>\w+), (?P<configRegister>\w+)",
+    r"IOMUXC_SNVS_(?P<pin>PMIC_STBY_REQ)_(?P<function>\w+) (?P<muxRegister>\w+), (?P<muxMode>\w+), (?P<inputRegister>\w+), (?P<inputDaisy>\w+), (?P<configRegister>\w+)",
 ]
 
 
@@ -118,10 +121,17 @@ class Pin(object):
             self.print_pin_af()
             self.print_pin_adc()
 
+            options = {
+                "LPSR": "PIN_LPSR",
+                "WAKEUP": "PIN_SNVS",
+                "PMIC_ON_REQ": "PIN_SNVS",
+                "PMIC_STBY_REQ": "PIN_SNVS",
+            }
+
             print(
                 "const machine_pin_obj_t pin_{0} = {1}({0}, {2}, {3}, pin_{0}_af, {4}, {5});\n".format(
                     self.name,
-                    "PIN_LPSR" if "LPSR" in self.name else "PIN",
+                    next((options[value] for value in options if value in self.name), "PIN"),
                     self.gpio,
                     int(self.pin),
                     len(self.adc_fns),
@@ -233,9 +243,6 @@ class Pins(object):
                 gpio, pin = row[6].split("_")
                 pin_number = pin.lstrip("IO")
                 pin = Pin(pad, gpio, pin_number, idx=idx)
-
-                if any(s in pad for s in ("SNVS", "WAKEUP")):
-                    continue
 
                 # Parse alternate functions
                 af_idx = 0
