@@ -25,8 +25,8 @@ extern void mimxrt_hal_bootloader(void);
 #define MICROPY_HW_LED2_PIN         (pin_GPIO_B0_11)
 #define MICROPY_HW_LED3_PIN         (pin_GPIO_B1_14)
 
-#define MICROPY_HW_LED_ON(pin)      (mp_hal_pin_low(pin))
-#define MICROPY_HW_LED_OFF(pin)     (mp_hal_pin_high(pin))
+#define MICROPY_HW_LED_ON(pin)      (mp_hal_pin_high(pin))
+#define MICROPY_HW_LED_OFF(pin)     (mp_hal_pin_low(pin))
 
 #define MICROPY_HW_NUM_PIN_IRQS     (4 * 32 + 3)
 
