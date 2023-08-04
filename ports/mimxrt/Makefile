@@ -401,6 +401,11 @@ ifeq ($(MICROPY_PY_LWIP),1)
 	endif
 endif
 
+ifdef MICROPY_HW_FLASH_CLK
+	CFLAGS += \
+			-DMICROPY_HW_FLASH_CLK=$(MICROPY_HW_FLASH_CLK)
+endif
+
 CFLAGS += $(CFLAGS_EXTRA)
 
 MPY_CROSS_FLAGS += -march=armv7m
