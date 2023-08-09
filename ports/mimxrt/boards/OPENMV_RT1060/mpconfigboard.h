@@ -56,7 +56,7 @@ extern void mimxrt_hal_bootloader(void);
 #define MICROPY_HW_SDIO_D3_ALT      (6)
 
 // Bluetooth config.
-#define MICROPY_HW_BLE_UART_ID          (1)
+#define MICROPY_HW_BLE_UART_ID          (0)
 #define MICROPY_HW_BLE_UART_BASE        (LPUART3)
 #define MICROPY_HW_BLE_UART_BAUDRATE    (115200)
 #define MICROPY_HW_BLE_UART_BAUDRATE_SECONDARY (3000000)
@@ -65,41 +65,53 @@ extern void mimxrt_hal_bootloader(void);
 // CYW43 config
 #define CYW43_WIFI_NVRAM_INCLUDE_FILE "wifi_nvram_1dx.h"
 
-// Define mapping logical UART # to hardware UART #
-// LPUART1 on USB_DBG  -> 0
-// LPUART3 on D0/D1    -> 1
-// LPUART2 on D7/D6    -> 2
-// LPUART6 on D8/D9    -> 3
-// LPUART8 on A1/A0    -> 4
+// Define the mapping hardware UART # to logical UART #
+// Bus      HW-UART      Logical UART
+// BLE      LPUART3 ->   0
+// External LPUART1 ->   1
 
 #define MICROPY_HW_UART_NUM     (sizeof(uart_index_table) / sizeof(uart_index_table)[0])
-#define MICROPY_HW_UART_INDEX   { 1, 3, 2, 6, 8 }
+#define MICROPY_HW_UART_INDEX   { 3, 1 }
 
 #define IOMUX_TABLE_UART \
     { IOMUXC_GPIO_AD_B0_12_LPUART1_TX }, { IOMUXC_GPIO_AD_B0_13_LPUART1_RX }, \
-    { IOMUXC_GPIO_AD_B1_02_LPUART2_TX }, { IOMUXC_GPIO_AD_B1_03_LPUART2_RX }, \
+    { 0 }, { 0 }, \
     { IOMUXC_GPIO_B0_08_LPUART3_TX }, { IOMUXC_GPIO_B0_09_LPUART3_RX }, \
     { 0 }, { 0 }, \
     { 0 }, { 0 }, \
-    { IOMUXC_GPIO_AD_B0_02_LPUART6_TX }, { IOMUXC_GPIO_AD_B0_03_LPUART6_RX }, \
     { 0 }, { 0 }, \
-    { IOMUXC_GPIO_AD_B1_10_LPUART8_TX }, { IOMUXC_GPIO_AD_B1_11_LPUART8_RX },
+    { 0 }, { 0 }, \
+    { 0 }, { 0 },
 
 #define IOMUX_TABLE_UART_CTS_RTS \
-    { IOMUXC_GPIO_AD_B0_14_LPUART1_CTS_B }, { IOMUXC_GPIO_AD_B0_15_LPUART1_RTS_B }, \
-    { IOMUXC_GPIO_AD_B1_00_LPUART2_CTS_B }, { IOMUXC_GPIO_AD_B1_01_LPUART2_RTS_B }, \
+    { 0 }, { 0 }, \
+    { 0 }, { 0 }, \
     { IOMUXC_GPIO_AD_B1_04_LPUART3_CTS_B }, { IOMUXC_GPIO_AD_B1_05_LPUART3_RTS_B }, \
     { 0 }, { 0 }, \
     { 0 }, { 0 }, \
-    { IOMUXC_GPIO_EMC_30_LPUART6_CTS_B }, { IOMUXC_GPIO_EMC_29_LPUART6_RTS_B }, \
     { 0 }, { 0 }, \
-    { IOMUXC_GPIO_SD_B0_02_LPUART8_CTS_B }, { IOMUXC_GPIO_SD_B0_03_LPUART8_RTS_B },
+    { 0 }, { 0 }, \
+    { 0 }, { 0 },
 
-#define MICROPY_HW_SPI_INDEX { 1 }
+// Define the mapping hardware SPI # to logical SPI #
+// Bus      HW-SPI       Logical SPI
+// Camera   LPSPI4 ->    0
+// External LPSPI3 ->    1
+
+#define MICROPY_HW_SPI_INDEX { 4, 3 }
 
 #define IOMUX_TABLE_SPI \
-    { IOMUXC_GPIO_SD_B0_00_LPSPI1_SCK }, { IOMUXC_GPIO_SD_B0_01_LPSPI1_PCS0 }, \
-    { IOMUXC_GPIO_SD_B0_02_LPSPI1_SDO }, { IOMUXC_GPIO_SD_B0_03_LPSPI1_SDI }, \
+    { 0 }, { 0 }, \
+    { 0 }, { 0 }, \
+    { 0 }, \
+    { 0 }, { 0 }, \
+    { 0 }, { 0 }, \
+    { 0 }, \
+    { IOMUXC_GPIO_AD_B0_00_LPSPI3_SCK }, { IOMUXC_GPIO_AD_B0_03_LPSPI3_PCS0 }, \
+    { IOMUXC_GPIO_AD_B0_01_LPSPI3_SDO }, { IOMUXC_GPIO_AD_B0_02_LPSPI3_SDI }, \
+    { 0 }, \
+    { IOMUXC_GPIO_B0_03_LPSPI4_SCK }, { IOMUXC_GPIO_B0_00_LPSPI4_PCS0 }, \
+    { IOMUXC_GPIO_B0_02_LPSPI4_SDO }, { IOMUXC_GPIO_B0_01_LPSPI4_SDI }, \
     { 0 },
 
 #define DMA_REQ_SRC_RX { 0, kDmaRequestMuxLPSPI1Rx, kDmaRequestMuxLPSPI2Rx, \
@@ -109,16 +121,18 @@ extern void mimxrt_hal_bootloader(void);
                          kDmaRequestMuxLPSPI3Tx, kDmaRequestMuxLPSPI4Tx }
 
 // Define the mapping hardware I2C # to logical I2C #
-// SDA/SCL  HW-I2C    Logical I2C
-// D14/D15  LPI2C1 ->    0
-// D1/D0    LPI2C3 ->    1
+// Bus      HW-I2C       Logical I2C
+// Camera   LPI2C1 ->    0
+// External LPI2C4 ->    1
+// Internal LPI2C2 ->    2
 
-#define MICROPY_HW_I2C_INDEX   { 1, 3 }
+#define MICROPY_HW_I2C_INDEX   { 1, 4, 2 }
 
 #define IOMUX_TABLE_I2C \
     { IOMUXC_GPIO_AD_B1_00_LPI2C1_SCL }, { IOMUXC_GPIO_AD_B1_01_LPI2C1_SDA }, \
+    { IOMUXC_GPIO_B0_04_LPI2C2_SCL }, { IOMUXC_GPIO_B0_05_LPI2C2_SDA }, \
     { 0 }, { 0 }, \
-    { IOMUXC_GPIO_AD_B1_07_LPI2C3_SCL }, { IOMUXC_GPIO_AD_B1_06_LPI2C3_SDA },
+    { IOMUXC_GPIO_AD_B0_12_LPI2C4_SCL }, { IOMUXC_GPIO_AD_B0_13_LPI2C4_SDA },
 
 #define MICROPY_PY_MACHINE_I2S (1)
 #define MICROPY_HW_I2S_NUM (1)
