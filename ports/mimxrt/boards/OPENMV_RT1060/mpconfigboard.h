@@ -17,6 +17,8 @@ extern void mimxrt_hal_bootloader(void);
 
 #define MICROPY_PY_NETWORK_HOSTNAME_DEFAULT "openmvrt1060"
 
+#define MICROPY_PY_MACHINE_CAN      (1)
+
 #define MICROPY_HW_USB_MSC          (1)
 #define MICROPY_HW_USB_VID          0x1209
 #define MICROPY_HW_USB_PID          0xabd1
@@ -133,6 +135,17 @@ extern void mimxrt_hal_bootloader(void);
     { IOMUXC_GPIO_B0_04_LPI2C2_SCL }, { IOMUXC_GPIO_B0_05_LPI2C2_SDA }, \
     { 0 }, { 0 }, \
     { IOMUXC_GPIO_AD_B0_12_LPI2C4_SCL }, { IOMUXC_GPIO_AD_B0_13_LPI2C4_SDA },
+
+// Define the mapping hardware CAN # to logical CAN #
+// Bus      HW-CAN       Logical CAN
+// External FLEXCAN2 ->  0
+
+#define MICROPY_HW_CAN_INDEX { 2 }
+#define MICROPY_HW_NUM_CAN_IRQS (1)
+
+#define IOMUX_TABLE_CAN \
+    { 0 }, { 0 }, \
+    { IOMUXC_GPIO_AD_B0_02_FLEXCAN2_TX }, { IOMUXC_GPIO_AD_B0_03_FLEXCAN2_RX },
 
 #define USDHC_DUMMY_PIN NULL, 0
 #define MICROPY_USDHC1 \
