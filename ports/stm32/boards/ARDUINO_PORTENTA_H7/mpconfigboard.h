@@ -8,7 +8,6 @@
 #define MICROPY_HW_MCU_NAME         "STM32H747"
 #define MICROPY_PY_SYS_PLATFORM     "Portenta"
 #define MICROPY_HW_FLASH_FS_LABEL   "portenta"
-#define MICROPY_STREAMS_POSIX_API   (1)
 
 #define MICROPY_PY_NETWORK_HOSTNAME_DEFAULT "Portenta"
 

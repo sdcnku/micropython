@@ -8,7 +8,6 @@
 #define MICROPY_HW_MCU_NAME         "STM32H747"
 #define MICROPY_PY_SYS_PLATFORM     "Nicla Vision"
 #define MICROPY_HW_FLASH_FS_LABEL   "niclavision"
-#define MICROPY_STREAMS_POSIX_API   (1)
 
 #define MICROPY_OBJ_REPR            (MICROPY_OBJ_REPR_C)
 #define UINT_FMT                    "%u"
