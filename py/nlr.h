@@ -134,7 +134,6 @@ struct _nlr_buf_t {
 
 // Helper macro to use at the start of a specific nlr_jump implementation
 #define MP_NLR_JUMP_HEAD(val, top) \
-    MICROPY_NLR_JUMP_HOOK \
     nlr_buf_t **_top_ptr = &MP_STATE_THREAD(nlr_top); \
     nlr_buf_t *top = *_top_ptr; \
     if (top == NULL) { \
@@ -170,7 +169,11 @@ NORETURN void nlr_jump_fail(void *val);
 
 // use nlr_raise instead of nlr_jump so that debugging is easier
 #ifndef MICROPY_DEBUG_NLR
-#define nlr_raise(val) nlr_jump(MP_OBJ_TO_PTR(val))
+#define nlr_raise(val) \
+    do { \
+        MICROPY_NLR_RAISE_HOOK \
+        nlr_jump(MP_OBJ_TO_PTR(val)); \
+    } while (0)
 #else
 #include "mpstate.h"
 #define nlr_raise(val) \
@@ -180,6 +183,7 @@ NORETURN void nlr_jump_fail(void *val);
         void *_val = MP_OBJ_TO_PTR(val); \
         assert(_val != NULL); \
         assert(mp_obj_is_exception_instance(val)); \
+        MICROPY_NLR_RAISE_HOOK \
         nlr_jump(_val); \
     } while (0)
 
