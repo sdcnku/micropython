@@ -621,6 +621,10 @@
 #define MICROPY_GC_HOOK_LOOP
 #endif
 
+#ifndef MICROPY_NLR_JUMP_HOOK
+#define MICROPY_NLR_JUMP_HOOK
+#endif
+
 // Whether to provide m_tracked_calloc, m_tracked_free functions
 #ifndef MICROPY_TRACKED_ALLOC
 #define MICROPY_TRACKED_ALLOC (0)

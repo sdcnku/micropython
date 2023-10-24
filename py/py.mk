@@ -193,7 +193,6 @@ PY_CORE_O_BASENAME = $(addprefix py/,\
 	repl.o \
 	smallint.o \
 	frozenmod.o \
-	omvdummy.o \
 	)
 
 # prepend the build destination prefix to the py object files
