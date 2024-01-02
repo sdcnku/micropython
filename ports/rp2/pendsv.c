@@ -38,6 +38,8 @@
 // traced by GC.  This is okay because we only ever set it to
 // mp_kbd_exception which is in the root-pointer set.
 void *pendsv_object;
+static int pendsv_lock;
+
 #define NVIC_PRIORITYGROUP_0    ((uint32_t)0x00000000)
 #define IRQ_PRI_PENDSV          NVIC_EncodePriority(NVIC_PRIORITYGROUP_0, 15, 0)
 
@@ -53,6 +55,24 @@ void pendsv_init(void) {
     pendsv_dispatch_active = false;
     #endif
     NVIC_SetPriority(PendSV_IRQn, IRQ_PRI_PENDSV);
+}
+
+void pendsv_suspend(void) {
+    pendsv_lock++;
+}
+
+void pendsv_resume(void) {
+    pendsv_lock--;
+    assert(pendsv_lock >= 0);
+    // Run pendsv if needed.  Find an entry with a dispatch and call pendsv dispatch
+    // with it.  If pendsv runs it will service all slots.
+    int count = PENDSV_DISPATCH_NUM_SLOTS;
+    while (count--) {
+        if (pendsv_dispatch_table[count]) {
+            pendsv_schedule_dispatch(count, pendsv_dispatch_table[count]);
+            break;
+        }
+    }
 }
 
 // This will always force the exception by using the hardware PENDSV 

@@ -33,8 +33,9 @@
 #include "py/mperrno.h"
 #include "py/mphal.h"
 #include "shared/runtime/mpirq.h"
-#include "modmachine.h"
 #include CLOCK_CONFIG_H
+#include "extmod/modmachine.h"
+#include "modmachine.h"
 
 #include "fsl_iomuxc.h"
 

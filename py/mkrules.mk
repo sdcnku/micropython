@@ -4,6 +4,13 @@ THIS_MAKEFILE = $(lastword $(MAKEFILE_LIST))
 include $(dir $(THIS_MAKEFILE))mkenv.mk
 endif
 
+# Enable in-progress/breaking changes that are slated for MicroPython 2.x.
+MICROPY_PREVIEW_VERSION_2 ?= 0
+
+ifeq ($(MICROPY_PREVIEW_VERSION_2),1)
+CFLAGS += -DMICROPY_PREVIEW_VERSION_2=1
+endif
+
 HELP_BUILD_ERROR ?= "See \033[1;31mhttps://github.com/micropython/micropython/wiki/Build-Troubleshooting\033[0m"
 HELP_MPY_LIB_SUBMODULE ?= "\033[1;31mError: micropython-lib submodule is not initialized.\033[0m Run 'make submodules'"
 
@@ -22,7 +29,7 @@ endif
 
 # QSTR generation uses the same CFLAGS, with these modifications.
 QSTR_GEN_FLAGS = -DNO_QSTR
-# Note: := to force evalulation immediately.
+# Note: := to force evaluation immediately.
 QSTR_GEN_CFLAGS := $(CFLAGS)
 QSTR_GEN_CFLAGS += $(QSTR_GEN_FLAGS)
 QSTR_GEN_CXXFLAGS := $(CXXFLAGS)
@@ -34,7 +41,7 @@ QSTR_GEN_CXXFLAGS += $(QSTR_GEN_FLAGS)
 # tree.
 #
 # So for example, py/map.c would have an object file name py/map.o
-# The object files will go into the build directory and mantain the same
+# The object files will go into the build directory and maintain the same
 # directory structure as the source tree. So the final dependency will look
 # like this:
 #
@@ -52,11 +59,11 @@ $(BUILD)/%.o: %.S
 vpath %.s . $(TOP) $(USER_C_MODULES)
 $(BUILD)/%.o: %.s
 	$(ECHO) "AS $<"
-	$(Q)$(AS) -o $@ $<
+	$(Q)$(AS) $(AFLAGS) -o $@ $<
 
 define compile_c
 $(ECHO) "CC $<"
-$(Q)$(CC) $(CFLAGS) -c -MD -o $@ $< || (echo -e $(HELP_BUILD_ERROR); false)
+$(Q)$(CC) $(CFLAGS) -c -MD -MF $(@:.o=.d) -o $@ $< || (echo -e $(HELP_BUILD_ERROR); false)
 @# The following fixes the dependency file.
 @# See http://make.paulandlesley.org/autodep.html for details.
 @# Regex adjusted from the above to play better with Windows paths, etc.
@@ -68,7 +75,7 @@ endef
 
 define compile_cxx
 $(ECHO) "CXX $<"
-$(Q)$(CXX) $(CXXFLAGS) -c -MD -o $@ $< || (echo -e $(HELP_BUILD_ERROR); false)
+$(Q)$(CXX) $(CXXFLAGS) -c -MD -MF $(@:.o=.d) -o $@ $< || (echo -e $(HELP_BUILD_ERROR); false)
 @# The following fixes the dependency file.
 @# See http://make.paulandlesley.org/autodep.html for details.
 @# Regex adjusted from the above to play better with Windows paths, etc.
@@ -89,6 +96,10 @@ $(BUILD)/%.o: %.cpp
 $(BUILD)/%.pp: %.c
 	$(ECHO) "PreProcess $<"
 	$(Q)$(CPP) $(CFLAGS) -Wp,-C,-dD,-dI -o $@ $<
+
+# Special case for compiling auto-generated source files.
+$(BUILD)/%.o: $(BUILD)/%.c
+	$(call compile_c)
 
 # The following rule uses | to create an order only prerequisite. Order only
 # prerequisites only get built if they don't exist. They don't cause timestamp
@@ -208,7 +219,7 @@ endif
 ifneq ($(PROG),)
 # Build a standalone executable (unix does this)
 
-# The executable should have an .exe extension for builds targetting 'pure'
+# The executable should have an .exe extension for builds targeting 'pure'
 # Windows, i.e. msvc or mingw builds, but not when using msys or cygwin's gcc.
 COMPILER_TARGET := $(shell $(CC) -dumpmachine)
 ifneq (,$(findstring mingw,$(COMPILER_TARGET)))
@@ -223,7 +234,9 @@ $(BUILD)/$(PROG): $(OBJ)
 # we may want to compile using Thumb, but link with non-Thumb libc.
 	$(Q)$(CC) -o $@ $^ $(LIB) $(LDFLAGS)
 ifndef DEBUG
+ifdef STRIP
 	$(Q)$(STRIP) $(STRIPFLAGS_EXTRA) $@
+endif
 endif
 	$(Q)$(SIZE) $$(find $(BUILD) -path "$(BUILD)/build/frozen*.o") $@
 

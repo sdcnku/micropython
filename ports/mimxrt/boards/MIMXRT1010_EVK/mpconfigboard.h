@@ -7,6 +7,7 @@
 #define MICROPY_HW_LED_OFF(pin) (mp_hal_pin_low(pin))
 
 #define MICROPY_HW_NUM_PIN_IRQS (2 * 32)
+#define MICROPY_PY_MACHINE_SDCARD    (0)
 
 // Define mapping logical UART # to hardware UART #
 // LPUART1 on USB_DBG  -> 0
@@ -20,7 +21,7 @@
 #define IOMUX_TABLE_UART \
     { IOMUXC_GPIO_10_LPUART1_TXD }, { IOMUXC_GPIO_09_LPUART1_RXD }, \
     { 0 }, { 0 }, \
-    { 0 }, { 0 }, \
+    { IOMUXC_GPIO_08_LPUART3_TXD }, { IOMUXC_GPIO_AD_07_LPUART3_RXD }, \
     { IOMUXC_GPIO_AD_02_LPUART4_TXD }, { IOMUXC_GPIO_AD_01_LPUART4_RXD },
 
 #define IOMUX_TABLE_UART_CTS_RTS \

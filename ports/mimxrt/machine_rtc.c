@@ -29,29 +29,33 @@
 #include "py/runtime.h"
 #include "shared/runtime/mpirq.h"
 #include "shared/timeutils/timeutils.h"
+#include "extmod/modmachine.h"
 #include "modmachine.h"
 #include "ticks.h"
 #include "fsl_snvs_lp.h"
+#include "fsl_snvs_hp.h"
 
 STATIC mp_int_t timeout = 0;
 
-void machine_rtc_alarm_clear_en() {
+void machine_rtc_alarm_clear_en(void) {
     SNVS_LP_SRTC_DisableInterrupts(SNVS, SNVS_LPCR_LPTA_EN_MASK);
     while (SNVS->LPCR & SNVS_LPCR_LPTA_EN_MASK) {
-        ;
     }
 }
 
 void machine_rtc_alarm_set_en() {
     SNVS_LP_SRTC_EnableInterrupts(SNVS, SNVS_LPCR_LPTA_EN_MASK);
     while (!(SNVS->LPCR & SNVS_LPCR_LPTA_EN_MASK)) {
-        ;
     }
 }
 
 void machine_rtc_alarm_off(bool clear) {
     machine_rtc_alarm_clear_en();
+    #ifdef MIMXRT117x_SERIES
+    DisableIRQ(SNVS_HP_NON_TZ_IRQn);
+    #else
     DisableIRQ(SNVS_HP_WRAPPER_IRQn);
+    #endif
 
     if (clear) {
         SNVS->LPTAR = 0;
@@ -61,7 +65,11 @@ void machine_rtc_alarm_off(bool clear) {
 }
 
 void machine_rtc_alarm_on() {
+    #ifdef MIMXRT117x_SERIES
+    EnableIRQ(SNVS_HP_NON_TZ_IRQn);
+    #else
     EnableIRQ(SNVS_HP_WRAPPER_IRQn);
+    #endif
     machine_rtc_alarm_set_en();
 }
 
@@ -144,7 +152,14 @@ STATIC const machine_rtc_obj_t machine_rtc_obj = {{&machine_rtc_type}};
 
 // Start the RTC Timer.
 void machine_rtc_start(void) {
-
+    // Enable Non-Privileged Software Access
+    SNVS->HPCOMR |= SNVS_HPCOMR_NPSWA_EN_MASK;
+    // Do a basic init.
+    SNVS_LP_Init(SNVS);
+    #if FSL_FEATURE_SNVS_HAS_MULTIPLE_TAMPER
+    // Disable all external Tamper
+    SNVS_LP_DisableAllExternalTamper(SNVS);
+    #endif
     SNVS_LP_SRTC_StartTimer(SNVS);
     // If the date is not set, set it to a more recent start date,
     // MicroPython's first commit.
@@ -331,11 +346,12 @@ STATIC mp_obj_t machine_rtc_alarm_cancel(size_t n_args, const mp_obj_t *args) {
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(machine_rtc_alarm_cancel_obj, 1, 2, machine_rtc_alarm_cancel);
 
 STATIC mp_obj_t machine_rtc_irq(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-    enum { ARG_trigger, ARG_handler, ARG_wake };
+    enum { ARG_trigger, ARG_handler, ARG_wake, ARG_hard };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_trigger, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_handler, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = mp_const_none} },
         { MP_QSTR_wake, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 0} },
+        { MP_QSTR_hard, MP_ARG_BOOL, {.u_bool = false} },
     };
 
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
@@ -355,7 +371,7 @@ STATIC mp_obj_t machine_rtc_irq(size_t n_args, const mp_obj_t *pos_args, mp_map_
         irq->base.methods = (mp_irq_methods_t *)&machine_rtc_irq_methods;
         irq->base.parent = MP_OBJ_FROM_PTR(pos_args[0]);
         irq->base.handler = mp_const_none;
-        irq->base.ishard = true;
+        irq->base.ishard = args[ARG_hard].u_bool;
         MP_STATE_PORT(machine_rtc_irq_object) = irq;
     }
 
@@ -371,34 +387,6 @@ STATIC mp_obj_t machine_rtc_irq(size_t n_args, const mp_obj_t *pos_args, mp_map_
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(machine_rtc_irq_obj, 1, machine_rtc_irq);
 
-STATIC mp_obj_t machine_rtc_wakeup(size_t n_args, const mp_obj_t *args) {
-    mp_int_t seconds = (args[1] == mp_const_none) ? 0 : (mp_obj_get_int(args[1]) / 1000);
-
-    machine_rtc_alarm_off(true);
-
-    machine_rtc_irq_obj_t *irq = MP_STATE_PORT(machine_rtc_irq_object);
-
-    // Allocate the IRQ object if it doesn't already exist.
-    if (irq == NULL) {
-        irq = m_new_obj(machine_rtc_irq_obj_t);
-        irq->base.base.type = &mp_irq_type;
-        irq->base.methods = (mp_irq_methods_t *)&machine_rtc_irq_methods;
-        irq->base.parent = MP_OBJ_FROM_PTR(args[0]);
-        irq->base.handler = mp_const_none;
-        irq->base.ishard = true;
-        MP_STATE_PORT(machine_rtc_irq_object) = irq;
-    }
-
-    irq->base.handler = (n_args > 2) ? args[2] : mp_const_none;
-
-    if (seconds > 0) {
-        machine_rtc_alarm_helper(seconds, true);
-    }
-
-    return mp_const_none;
-}
-MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(machine_rtc_wakeup_obj, 2, 3, machine_rtc_wakeup);
-
 STATIC const mp_rom_map_elem_t machine_rtc_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_init), MP_ROM_PTR(&machine_rtc_init_obj) },
     { MP_ROM_QSTR(MP_QSTR_datetime), MP_ROM_PTR(&machine_rtc_datetime_obj) },
@@ -409,7 +397,6 @@ STATIC const mp_rom_map_elem_t machine_rtc_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_alarm_cancel), MP_ROM_PTR(&machine_rtc_alarm_cancel_obj) },
     { MP_ROM_QSTR(MP_QSTR_cancel), MP_ROM_PTR(&machine_rtc_alarm_cancel_obj) },
     { MP_ROM_QSTR(MP_QSTR_irq), MP_ROM_PTR(&machine_rtc_irq_obj) },
-    { MP_ROM_QSTR(MP_QSTR_wakeup), MP_ROM_PTR(&machine_rtc_wakeup_obj) },
     { MP_ROM_QSTR(MP_QSTR_ALARM0), MP_ROM_INT(0) },
 };
 STATIC MP_DEFINE_CONST_DICT(machine_rtc_locals_dict, machine_rtc_locals_dict_table);

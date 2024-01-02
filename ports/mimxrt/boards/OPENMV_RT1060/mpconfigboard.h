@@ -36,19 +36,19 @@ extern void mimxrt_hal_bootloader(void);
 
 // WiFi SDMMC
 #define MICROPY_HW_SDIO_SDMMC       (2)
-#define MICROPY_HW_SDIO_CLK         (&pin_GPIO_AD_B1_09)
-#define MICROPY_HW_SDIO_CMD         (&pin_GPIO_AD_B1_08)
-#define MICROPY_HW_SDIO_D0          (&pin_GPIO_SD_B1_03)
-#define MICROPY_HW_SDIO_D1          (&pin_GPIO_SD_B1_02)
-#define MICROPY_HW_SDIO_D2          (&pin_GPIO_AD_B1_06)
-#define MICROPY_HW_SDIO_D3          (&pin_GPIO_AD_B1_07)
+#define MICROPY_HW_SDIO_CLK         (pin_GPIO_AD_B1_09)
+#define MICROPY_HW_SDIO_CMD         (pin_GPIO_AD_B1_08)
+#define MICROPY_HW_SDIO_D0          (pin_GPIO_SD_B1_03)
+#define MICROPY_HW_SDIO_D1          (pin_GPIO_SD_B1_02)
+#define MICROPY_HW_SDIO_D2          (pin_GPIO_AD_B1_06)
+#define MICROPY_HW_SDIO_D3          (pin_GPIO_AD_B1_07)
 
-#define MICROPY_HW_WL_REG_ON        (&pin_GPIO_B0_14)
-#define MICROPY_HW_WL_HOST_WAKE     (&pin_GPIO_B0_15)
+#define MICROPY_HW_WL_REG_ON        (pin_GPIO_B0_14)
+#define MICROPY_HW_WL_HOST_WAKE     (pin_GPIO_B0_15)
 
-#define MICROPY_HW_BT_REG_ON        (&pin_GPIO_AD_B0_08)
-#define MICROPY_HW_BT_HOST_WAKE     (&pin_GPIO_AD_B0_14)
-#define MICROPY_HW_BT_DEV_WAKE      (&pin_GPIO_SD_B1_00)
+#define MICROPY_HW_BT_REG_ON        (pin_GPIO_AD_B0_08)
+#define MICROPY_HW_BT_HOST_WAKE     (pin_GPIO_AD_B0_14)
+#define MICROPY_HW_BT_DEV_WAKE      (pin_GPIO_SD_B1_00)
 
 #define MICROPY_HW_SDIO_CLK_ALT     (6)
 #define MICROPY_HW_SDIO_CMD_ALT     (6)
@@ -66,6 +66,22 @@ extern void mimxrt_hal_bootloader(void);
 
 // CYW43 config
 #define CYW43_WIFI_NVRAM_INCLUDE_FILE "wifi_nvram_1dx.h"
+
+// SDRAM config
+#define MICROPY_HW_SDRAM_TIMING_TRC         (60)
+#define MICROPY_HW_SDRAM_TIMING_TRP         (18)
+#define MICROPY_HW_SDRAM_TIMING_TRCD        (18)
+#define MICROPY_HW_SDRAM_TIMING_TWR         (12)
+#define MICROPY_HW_SDRAM_TIMING_TRRD        (60)
+#define MICROPY_HW_SDRAM_TIMING_TXSR        (67)
+#define MICROPY_HW_SDRAM_TIMING_TRAS        (42)
+#define MICROPY_HW_SDRAM_TIMING_TREF        (64 * 1000000 / 8192) // 64ms/8192
+
+#define MICROPY_HW_SDRAM_CAS_LATENCY        (kSEMC_LatencyThree)
+#define MICROPY_HW_SDRAM_MEM_BUS_WIDTH      (kSEMC_PortSize16Bit)
+#define MICROPY_HW_SDRAM_COLUMN_BITS_NUM    (kSEMC_SdramColunm_9bit)
+#define MICROPY_HW_SDRAM_BURST_LENGTH       (kSEMC_Sdram_BurstLen8)
+#define MICROPY_HW_SDRAM_RBURST_LENGTH      (1)
 
 // Define the mapping hardware UART # to logical UART #
 // Bus      HW-UART      Logical UART

@@ -4,10 +4,12 @@
  * Copyright (c) 2023 Arduino SA
  */
 
-#define MICROPY_HW_BOARD_NAME       "GIGA"
+#define MICROPY_HW_BOARD_NAME       "Arduino GIGA R1 WiFi"
 #define MICROPY_HW_MCU_NAME         "STM32H747"
-#define MICROPY_PY_SYS_PLATFORM     "Giga"
-#define MICROPY_HW_FLASH_FS_LABEL   "Giga"
+#define MICROPY_HW_FLASH_FS_LABEL   "GIGA R1 WiFi"
+
+// Network config
+#define MICROPY_PY_NETWORK_HOSTNAME_DEFAULT "mpy-giga-r1-wifi"
 
 #define MICROPY_OBJ_REPR            (MICROPY_OBJ_REPR_C)
 #define UINT_FMT                    "%u"
@@ -105,6 +107,12 @@ void GIGA_board_low_power(int mode);
 // SMPS configuration
 #define MICROPY_HW_PWR_SMPS_CONFIG      (PWR_LDO_SUPPLY)
 
+// Configure the analog switches for dual-pad pins.
+#define MICROPY_HW_ANALOG_SWITCH_PA0    (SYSCFG_SWITCH_PA0_OPEN)
+#define MICROPY_HW_ANALOG_SWITCH_PA1    (SYSCFG_SWITCH_PA1_OPEN)
+#define MICROPY_HW_ANALOG_SWITCH_PC2    (SYSCFG_SWITCH_PC2_OPEN)
+#define MICROPY_HW_ANALOG_SWITCH_PC3    (SYSCFG_SWITCH_PC3_OPEN)
+
 // There is an external 32kHz oscillator
 #define RTC_ASYNCH_PREDIV           (0)
 #define RTC_SYNCH_PREDIV            (0x7fff)
@@ -128,13 +136,9 @@ void GIGA_board_low_power(int mode);
 // SPI flash #1, block device config
 extern const struct _mp_spiflash_config_t spiflash_config;
 extern struct _spi_bdev_t spi_bdev;
-#define MICROPY_HW_BDEV_IOCTL(op, arg) ( \
-    (op) == BDEV_IOCTL_NUM_BLOCKS ? (MICROPY_HW_SPIFLASH_SIZE_BITS / 8 / FLASH_BLOCK_SIZE) : \
-    (op) == BDEV_IOCTL_INIT ? spi_bdev_ioctl(&spi_bdev, (op), (uint32_t)&spiflash_config) : \
-    spi_bdev_ioctl(&spi_bdev, (op), (arg)) \
-    )
-#define MICROPY_HW_BDEV_READBLOCKS(dest, bl, n) spi_bdev_readblocks(&spi_bdev, (dest), (bl), (n))
-#define MICROPY_HW_BDEV_WRITEBLOCKS(src, bl, n) spi_bdev_writeblocks(&spi_bdev, (src), (bl), (n))
+#define MICROPY_HW_BDEV_SPIFLASH    (&spi_bdev)
+#define MICROPY_HW_BDEV_SPIFLASH_CONFIG (&spiflash_config)
+#define MICROPY_HW_BDEV_SPIFLASH_SIZE_BYTES (MICROPY_HW_SPIFLASH_SIZE_BITS / 8)
 #define MICROPY_HW_BDEV_SPIFLASH_EXTENDED (&spi_bdev)
 #endif
 
@@ -161,7 +165,7 @@ extern struct _spi_bdev_t spi_bdev;
 #define MICROPY_HW_UART7_RTS        (pyb_pin_BT_RTS)
 #define MICROPY_HW_UART7_CTS        (pyb_pin_BT_CTS)
 
-// I2C busses
+// I2C buses
 #define MICROPY_HW_I2C1_SCL         (pyb_pin_I2C1_SCL)
 #define MICROPY_HW_I2C1_SDA         (pyb_pin_I2C1_SDA)
 
