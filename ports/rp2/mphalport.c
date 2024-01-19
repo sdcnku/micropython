@@ -37,7 +37,6 @@
 #include "uart.h"
 #include "hardware/rtc.h"
 #include "pico/unique_id.h"
-#include "tinyusb_debug.h"
 
 #if MICROPY_PY_NETWORK_CYW43
 #include "lib/cyw43-driver/src/cyw43.h"
@@ -88,8 +87,7 @@ void tud_cdc_rx_cb(uint8_t itf) {
     // consume pending USB data immediately to free usb buffer and keep the endpoint from stalling.
     // in case the ringbuffer is full, mark the CDC interface that need attention later on for polling
     cdc_itf_pending &= ~(1 << itf);
-    for (uint32_t bytes_avail = tud_cdc_n_available(itf);
-            !tinyusb_debug_enabled() && bytes_avail > 0; --bytes_avail) {
+    for (uint32_t bytes_avail = tud_cdc_n_available(itf); bytes_avail > 0; --bytes_avail) {
         if (ringbuf_free(&stdin_ringbuf)) {
             int data_char = tud_cdc_read_char();
             if (data_char == mp_interrupt_char) {
@@ -156,12 +154,6 @@ int mp_hal_stdin_rx_chr(void) {
 mp_uint_t mp_hal_stdout_tx_strn(const char *str, mp_uint_t len) {
     mp_uint_t ret = len;
     bool did_write = false;
-
-    if (tinyusb_debug_enabled()) {
-        tinyusb_debug_tx_strn(str, len);
-        return len;
-    }
-
     #if MICROPY_HW_ENABLE_UART_REPL
     mp_uart_write_strn(str, len);
     did_write = true;
