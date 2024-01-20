@@ -222,7 +222,6 @@ SRC_NRFX += $(addprefix lib/nrfx/drivers/src/,\
 	)
 
 SRC_C += \
-	pendsv.c \
 	mphalport.c \
 	help.c \
 	gccollect.c \

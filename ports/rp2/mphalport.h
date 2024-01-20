@@ -43,6 +43,9 @@
 #define MICROPY_PY_PENDSV_ENTER   pendsv_suspend()
 #define MICROPY_PY_PENDSV_EXIT    pendsv_resume()
 
+#define NVIC_PRIORITYGROUP_0    ((uint32_t)0x00000000)
+#define IRQ_PRI_PENDSV          NVIC_EncodePriority(NVIC_PRIORITYGROUP_0, 15, 0)
+
 extern int mp_interrupt_char;
 extern ringbuf_t stdin_ringbuf;
 
