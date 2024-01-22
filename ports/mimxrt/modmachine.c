@@ -41,6 +41,7 @@
 #if FSL_FEATURE_BOOT_ROM_HAS_ROMAPI
 #include "fsl_romapi.h"
 #endif
+#include "fsl_iomuxc.h"
 
 #include CPU_HEADER_H
 
