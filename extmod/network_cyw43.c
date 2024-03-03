@@ -536,6 +536,9 @@ STATIC const mp_rom_map_elem_t network_cyw43_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_config), MP_ROM_PTR(&network_cyw43_config_obj) },
 
     // Class constants.
+    { MP_ROM_QSTR(MP_QSTR_OPEN), MP_OBJ_NEW_SMALL_INT(CYW43_AUTH_OPEN) },
+    { MP_ROM_QSTR(MP_QSTR_WPA_PSK), MP_OBJ_NEW_SMALL_INT(CYW43_AUTH_WPA2_AES_PSK) },
+
     { MP_ROM_QSTR(MP_QSTR_PM_NONE), MP_ROM_INT(PM_NONE) },
     { MP_ROM_QSTR(MP_QSTR_PM_PERFORMANCE), MP_ROM_INT(PM_PERFORMANCE) },
     { MP_ROM_QSTR(MP_QSTR_PM_POWERSAVE), MP_ROM_INT(PM_POWERSAVE) },
