@@ -49,6 +49,7 @@ extern void mimxrt_hal_bootloader(void);
 #define MICROPY_HW_BT_REG_ON        (pin_GPIO_AD_B0_08)
 #define MICROPY_HW_BT_HOST_WAKE     (pin_GPIO_AD_B0_14)
 #define MICROPY_HW_BT_DEV_WAKE      (pin_GPIO_SD_B1_00)
+//#define MICROPY_HW_BT_CTS           (pin_GPIO_AD_B1_04)
 
 #define MICROPY_HW_SDIO_CLK_ALT     (6)
 #define MICROPY_HW_SDIO_CMD_ALT     (6)
@@ -61,8 +62,8 @@ extern void mimxrt_hal_bootloader(void);
 #define MICROPY_HW_BLE_UART_ID          (0)
 #define MICROPY_HW_BLE_UART_BASE        (LPUART3)
 #define MICROPY_HW_BLE_UART_BAUDRATE    (115200)
-#define MICROPY_HW_BLE_UART_BAUDRATE_SECONDARY (3000000)
-#define MICROPY_HW_BLE_UART_BAUDRATE_DOWNLOAD_FIRMWARE (3000000)
+#define MICROPY_HW_BLE_UART_BAUDRATE_SECONDARY (2500000)
+#define MICROPY_HW_BLE_UART_BAUDRATE_DOWNLOAD_FIRMWARE (2500000)
 
 // CYW43 config
 #define CYW43_WIFI_NVRAM_INCLUDE_FILE "wifi_nvram_1dx.h"
