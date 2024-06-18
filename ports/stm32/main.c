@@ -320,13 +320,14 @@ void stm32_main(uint32_t reset_mode) {
     #else
     #if defined(MICROPY_HW_VTOR)
     // Change IRQ vector table if configured differently
+    // N6 sets this via &g_pfnVectors, might be good to just leave it as-is.
+    // unless we use mboot, then it needs to change
     SCB->VTOR = MICROPY_HW_VTOR;
     #endif
     #endif
     #endif
 
-
-    #if __CORTEX_M != 33
+    #if __CORTEX_M != 33 && __CORTEX_M != 55
     // Enable 8-byte stack alignment for IRQ handlers, in accord with EABI
     SCB->CCR |= SCB_CCR_STKALIGN_Msk;
     #endif
@@ -349,14 +350,17 @@ void stm32_main(uint32_t reset_mode) {
     __HAL_FLASH_PREFETCH_BUFFER_ENABLE();
     #endif
 
-    #elif defined(STM32F7) || defined(STM32H7)
+    #elif defined(STM32F7) || defined(STM32H7) || defined(STM32N6)
 
     #if ART_ACCLERATOR_ENABLE
     __HAL_FLASH_ART_ENABLE();
     #endif
 
     SCB_EnableICache();
+    #if defined(STM32N6) && defined(NDEBUG)
+    // See ST Errata ES0620 - Rev 0.2 section 2.1.2
     SCB_EnableDCache();
+    #endif
 
     #elif defined(STM32H5)
 
@@ -386,8 +390,12 @@ void stm32_main(uint32_t reset_mode) {
     // SysTick is needed by HAL_RCC_ClockConfig (called in SystemClock_Config)
     HAL_InitTick(TICK_INT_PRIORITY);
 
+    //#if defined(STM32N6)
+    //SystemCoreClock = HSE_VALUE / MICROPY_HW_CLK_PLLM * MICROPY_HW_CLK_PLLN;
+    //#else
     // set the system clock to be HSE
     SystemClock_Config();
+    //#endif
 
     #if defined(STM32F4) || defined(STM32F7)
     #if defined(__HAL_RCC_DTCMRAMEN_CLK_ENABLE)
@@ -613,6 +621,7 @@ soft_reset:
         const uint16_t pid = MICROPY_HW_USB_PID_CDC;
         const uint8_t mode = USBD_MODE_CDC;
         #endif
+        mp_hal_delay_ms(10); // TODO work out why this is needed, sometimes crashes without it
         pyb_usb_dev_init(pyb_usb_dev_detect(), MICROPY_HW_USB_VID, pid, mode, 0, NULL, NULL);
     }
     #endif
