@@ -268,7 +268,6 @@ void openamp_remoteproc_notified(mp_sched_node_t *node) {
     rproc_virtio_notified(MP_STATE_PORT(virtio_device)->rvdev.vdev, VRING_NOTIFY_ID);
 }
 
-#if MICROPY_PY_OPENAMP_HOST
 static void openamp_ns_callback(struct rpmsg_device *rdev, const char *name, uint32_t dest) {
     metal_log(METAL_LOG_DEBUG, "rpmsg_new_service_callback() new service request name: %s dest %lu\n", name, dest);
     // The remote processor advertises its presence to the host by sending
@@ -278,7 +277,6 @@ static void openamp_ns_callback(struct rpmsg_device *rdev, const char *name, uin
         mp_call_function_2(virtio_device->ns_callback, mp_obj_new_int(dest), mp_obj_new_str(name, strlen(name)));
     }
 }
-#endif // MICROPY_PY_OPENAMP_HOST
 
 #if MICROPY_PY_OPENAMP_HOST && MICROPY_PY_OPENAMP_RSC_TABLE_ENABLE
 // The shared resource table must be initialized manually by the host here,
@@ -403,12 +401,7 @@ void openamp_init(void) {
     // the status field in the resource table.
     rpmsg_virtio_init_shm_pool(&virtio_device->shm_pool, (void *)VRING_BUFF_ADDR, (size_t)VRING_BUFF_SIZE);
 
-    rpmsg_ns_bind_cb ns_callback = NULL;
-    #if MICROPY_PY_OPENAMP_HOST
-    ns_callback = openamp_ns_callback;
-    #endif // MICROPY_PY_OPENAMP_HOST
-
-    rpmsg_init_vdev(&virtio_device->rvdev, vdev, ns_callback, shm_io, &virtio_device->shm_pool);
+    rpmsg_init_vdev(&virtio_device->rvdev, vdev, openamp_ns_callback, shm_io, &virtio_device->shm_pool);
     MP_STATE_PORT(virtio_device) = virtio_device;
 }
 
