@@ -35,11 +35,12 @@
 
 #include "lib/cyw43-driver/src/cyw43_config.h"
 
-#ifndef CYW43_BT_FIRMWARE_INCLUDE_FILE
-#define CYW43_BT_FIRMWARE_INCLUDE_FILE "lib/cyw43-driver/firmware/cyw43_btfw_4343A1.h"
-#endif
-
+#ifdef CYW43_BT_FIRMWARE_INCLUDE_FILE
 #include CYW43_BT_FIRMWARE_INCLUDE_FILE
+#else
+#include "lib/cyw43-driver/firmware/cyw43_btfw_4343A1.h"
+const uintptr_t bt_fw_data = (uintptr_t) &cyw43_btfw_4343A1[0];
+#endif
 
 // Provided by the port, and also possibly shared with the stack.
 extern uint8_t mp_bluetooth_hci_cmd_buf[4 + 256];
