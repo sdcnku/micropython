@@ -34,6 +34,11 @@
 #if MICROPY_PY_NETWORK_CYW43
 
 #include "lib/cyw43-driver/src/cyw43_config.h"
+
+#ifndef CYW43_BT_FIRMWARE_INCLUDE_FILE
+#define CYW43_BT_FIRMWARE_INCLUDE_FILE "lib/cyw43-driver/firmware/cyw43_btfw_4343A1.h"
+#endif
+
 #include CYW43_BT_FIRMWARE_INCLUDE_FILE
 
 // Provided by the port, and also possibly shared with the stack.
