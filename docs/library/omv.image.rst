@@ -271,6 +271,45 @@ method. It doesn't have any methods itself for you to call.
    not cat like things labeled differently. The generator algorithm will then
    produce a Haar Cascade that detects cats.
 
+class Similarity -- Similarity Object
+-------------------------------------
+
+The similarity object is returned by `Image.get_similarity()`.
+
+.. class:: Similarity()
+
+   Please call `Image.get_similarity()` to create this object.
+
+   .. method:: mean() -> float
+
+      Returns the mean of the similarity values computed across the image (float).
+
+      You may also get this value doing ``[0]`` on the object.
+
+   .. method:: stdev() -> float
+
+      Returns the standard deviation of the similarity values computed across the image ( (float).
+
+      You may also get this value doing ``[1]`` on the object.
+
+   .. method:: min() -> float
+
+      Returns the min of the similarity values computed across the image ( (float).
+
+      Generally, for the SSIM you want to threshold the min value to determine if two images
+      are different.
+
+      You may also get this value doing ``[2]`` on the object.
+
+   .. method:: max() -> float
+
+      Returns the max of the similarity values computed across the image ( (float).
+
+      Generally, for the DSIM you want to threshold the max value to determine if two images
+      are different.
+
+      You may also get this value doing ``[3]`` on the object.
+
 class Histogram -- Histogram Object
 -----------------------------------
 
@@ -1617,23 +1656,28 @@ class Image -- Image object
 
 The image object is the basic object for machine vision operations.
 
-.. class:: Image(path:str, buffer:Optional[bytes, bytearray, memoryview]=None, copy_to_fb=False)
+.. class:: Image(arg, buffer:Optional[bytes, bytearray, memoryview]=None, copy_to_fb:bool=False)
 
-   Creates a new image object from a file at ``path``. Alternatively, you may
-   pass a `width`, `height`, and either they any image format value like ``image.GRAYSCALE``
-   to create new blank image object (initialized to 0 - black).
+   If ``arg`` is a string then this creates a new image object from a file at ``arg`` path.
+   Supports loading bmp/pgm/ppm/jpg/jpeg/png image files from disk. If ``copy_to_fb`` is true
+   the image is copied to the frame buffer verus being allocated on the heap.
 
-   Supports bmp/pgm/ppm/jpg/jpeg/png image files.
+   If ``arg`` is an ``ndarray`` then this creates a new image object from the ``ndarray``.
+   ``ndarray`` objects with a shape of ``(w, h)`` are treated as grayscale images, ``(w, h, 3)`` are treated
+   as RGB565 images. Only float32 point ``ndarrays`` are supported at this time. When creating
+   an image this way if you pass a ``buffer`` argument it will be used to store the image data
+   versus allocating space on the heap. If ``copy_to_fb`` is true the image is copied to the
+   frame buffer verus being allocated on the heap or using the ``buffer``.
 
-   ``copy_to_fb`` if True the image is loaded directly into the frame buffer
-   allowing you to load up large images. If False, the image is loaded into
-   MicroPython's heap which is much smaller than the frame buffer.
-
-   ``buffer`` can be set to the any buffer object to use that as the data source
-   for the image. For example, if you'd like to create a JPEG image from a JPEG
-   ``bytes()`` or ``bytearray()`` object you can pass the ``width``, ``height``,
-   ``image.JPEG`` for the JPEG along with setting ``buffer`` to the JPEG byte stream
-   to create a JPEG image. Finally, note that images are buffer objects themselves.
+   If ``arg`` is an ``int`` it is then considered the width of a new image and a ``height`` value
+   and a ``format`` value must follow to create a new blank image object. ``format`` can be
+   be any image pixformat value like `image.GRAYSCALE`. The image will be initialized
+   to all zeros. Note that a ``buffer`` value is expected for compressed image formats.
+   ``buffer`` is considered as the source of image data for creating images this way. If used with
+   ``copy_to_fb`` the data from ``buffer`` is copied to the frame buffer. If you'd like to create a
+   JPEG image from a JPEG `bytes()` or `bytearray()` object you can pass the ``width``,
+   ``height``, ``image.JPEG`` for the JPEG along with setting ``buffer`` to the JPEG byte stream
+   to create a JPEG image.
 
    Images support "[]" notation. Do ``image[index] = 8/16-bit value`` to assign
    an image pixel or ``image[index]`` to get an image pixel which will be
@@ -1648,6 +1692,9 @@ The image object is the basic object for machine vision operations.
    of MicroPython functions like as if the image were a byte-array object. In
    particular, if you'd like to transmit an image you can just pass it to the
    UART/SPI/I2C write functions to be transmitted automatically.
+
+   Basic Methods
+   ~~~~~~~~~~~~~
 
    .. method:: width() -> int
 
@@ -1726,58 +1773,32 @@ The image object is the basic object for machine vision operations.
          odd rows. Each pixel is 8-bits. If you call this method with an RGB888 tuple the grayscale
          value of that RGB888 tuple is extracted and set to the pixel location.
 
-   .. method:: mean_pool(x_div:int, y_div:int) -> Image
+   Conversion Methods
+   ~~~~~~~~~~~~~~~~~~
 
-      Finds the mean of ``x_div`` * ``y_div`` squares in the image and returns
-      the modified image composed of the mean of each square.
+   .. method:: to_ndarray(dtype:str, buffer:Optional[bytes, bytearray, memoryview]=None) -> ndarray
 
-      This method allows you to shrink an image down very quickly in-place.
+      Returns a ``ndarray`` object created from the image.
+      This only works for GRAYSCALE or RGB565 images currently.
 
-      Not supported on compressed images or bayer images.
+      ``dtype`` can be ``b``, ``B``, or ``f`` for creating a signed 8-bit, unsigned 8-bit, or 32-bit floating point ``ndarray``.
+      GRAYSCALE images are directly converted to unsigned 8-bit ``ndarray`` objects. For signed 8-bit ``ndarray``
+      objects the values (0:255) are mapped to (-127:128). For float 32-bit ``ndarray`` objects the values are
+      mapped to (0.0:255.0). RGB565 images are converted to 3-channel ``ndarray`` objects and the same
+      process described above for GRAYSCALE images is applied to each channel depending on ``dtype``. Note that
+      ``dtype`` also accepts the integer values (e.g. `ord()`) of ``b``, ``B``, and ``f`` respectively.
 
-   .. method:: mean_pooled(x_div:int, y_div:int) -> Image
+      ``buffer`` if not ``None`` is a ``bytearray`` object to use as the buffer for the ``ndarray``.
+      If ``None`` a new buffer is allocated on the heap to store the ``ndarray`` image data. You can
+      use the ``buffer`` argument to directly allocate the ``ndarray`` in a pre-allocated buffer saving
+      a heap allocation and a copy operation.
 
-      Finds the mean of ``x_div`` * ``y_div`` squares in the image and returns
-      a new image composed of the mean of each square.
+      The ``ndarray`` returned has the shape of ``(height, width)`` for GRAYSCALE images and
+      ``(height, width, 3)`` for RGB565 images.
 
-      This method allows you to create a shrunken down image copy.
+   .. method:: to_bitmap(x_scale:float=1.0, y_scale:float=1.0, roi:Optional[Tuple[int,int,int,int]]=None, rgb_channel:int=-1, alpha:int=256, color_palette=None, alpha_palette=None, hint:int=0, copy:bool=False, copy_to_fb:bool=False) -> Image
 
-      Not supported on compressed images or bayer images.
-
-   .. method:: midpoint_pool(x_div:int, y_div:int, bias=0.5) -> Image
-
-      Finds the midpoint of ``x_div`` * ``y_div`` squares in the image and returns
-      the modified image composed of the midpoint of each square.
-
-      A ``bias`` of 0.0 returns the min of each area while a ``bias`` of 1.0 returns
-      the max of each area.
-
-      This method allows you to shrink an image down very quickly in-place.
-
-      Not supported on compressed images or bayer images.
-
-   .. method:: midpoint_pooled(x_div:int, y_div:int, bias=0.5) -> Image
-
-      Finds the midpoint of ``x_div`` * ``y_div`` squares in the image and returns
-      a new image composed of the midpoint of each square.
-
-      A ``bias`` of 0.0 returns the min of each area while a ``bias`` of 1.0 returns
-      the max of each area.
-
-      This method allows you to create a shrunken down image copy.
-
-      Not supported on compressed images or bayer images.
-
-   .. method:: to_bitmap(x_scale=1.0, y_scale=1.0, roi:Optional[Tuple[int,int,int,int]]=None, rgb_channel=-1, alpha=256, color_palette=None, alpha_palette=None, hint=0, copy=False) -> Image
-
-      Converts an image to a bitmap image (1 bit per pixel). If ``copy`` is False
-      this method will try to modify the image in-place. If ``copy`` is True then
-      this method will return a new image copy allocated on the heap.
-
-      ``copy`` may also be another image object, which in this case this method will try to
-      re-use that image objects storage space and will return a new image object that uses
-      the previous image objects storage space. After doing this do not use any references
-      to the old image object anymore as they will be stale.
+      Converts an image to a bitmap image (1 bit per pixel).
 
       ``x_scale`` controls how much the displayed image is scaled by in the x direction (float). If this
       value is negative the image will be flipped horizontally. Note that if ``y_scale`` is not specified
@@ -1799,11 +1820,11 @@ The image object is the basic object for machine vision operations.
       256 draws an opaque source image while a value lower than 256 produces a blend between the source
       and destination image. 0 results in no modification to the destination image.
 
-      ``color_palette`` if not ``-1`` can be `image.PALETTE_RAINBOW`, `image.PALETTE_IRONBOW`, or
+      ``color_palette`` if not ``None`` can be `image.PALETTE_RAINBOW`, `image.PALETTE_IRONBOW`, or
       a 256 pixel in total RGB565 image to use as a color lookup table on the grayscale value of
       whatever the source image is. This is applied after ``rgb_channel`` extraction if used.
 
-      ``alpha_palette`` if not ``-1`` can be a 256 pixel in total GRAYSCALE image to use as a alpha
+      ``alpha_palette`` if not ``None`` can be a 256 pixel in total GRAYSCALE image to use as a alpha
       palette which modulates the ``alpha`` value of the source image being drawn at a pixel pixel
       level allowing you to precisely control the alpha value of pixels based on their grayscale value.
       A pixel value of 255 in the alpha lookup table is opaque which anything less than 255 becomes
@@ -1826,6 +1847,13 @@ The image object is the basic object for machine vision operations.
          * `image.ROTATE_90`: Rotate the image by 90 degrees (this is just VFLIP | TRANSPOSE).
          * `image.ROTATE_180`: Rotate the image by 180 degrees (this is just HMIRROR | VFLIP).
          * `image.ROTATE_270`: Rotate the image by 270 degrees (this is just HMIRROR | TRANSPOSE).
+
+      ``copy`` if True create a deep-copy on the heap of the image that's been converted versus converting the
+      original image in-place.
+
+      ``copy_to_fb`` if True the image is loaded directly into the frame buffer.
+      ``copy_to_fb`` has priority over ``copy``. This has no special effect if the image is already in
+      the frame buffer.
 
       .. note::
 
@@ -1842,16 +1870,9 @@ The image object is the basic object for machine vision operations.
 
       Returns the image object so you can call another method using ``.`` notation.
 
-   .. method:: to_grayscale(x_scale=1.0, y_scale=1.0, roi:Optional[Tuple[int,int,int,int]]=None, rgb_channel=-1, alpha=256, color_palette=None, alpha_palette=None, hint=0, copy=False) -> Image
+   .. method:: to_grayscale(x_scale:float=1.0, y_scale:float=1.0, roi:Optional[Tuple[int,int,int,int]]=None, rgb_channel:int=-1, alpha:int=256, color_palette=None, alpha_palette=None, copy:bool=False, copy_to_fb:bool=False) -> Image
 
-      Converts an image to a grayscale image (8-bits per pixel). If ``copy`` is False
-      this method will try to modify the image in-place. If ``copy`` is True then
-      this method will return a new image copy allocated on the heap.
-
-      ``copy`` may also be another image object, which in this case this method will try to
-      re-use that image objects storage space and will return a new image object that uses
-      the previous image objects storage space. After doing this do not use any references
-      to the old image object anymore as they will be stale.
+      Converts an image to a grayscale image (8-bits per pixel).
 
       ``x_scale`` controls how much the displayed image is scaled by in the x direction (float). If this
       value is negative the image will be flipped horizontally. Note that if ``y_scale`` is not specified
@@ -1873,11 +1894,11 @@ The image object is the basic object for machine vision operations.
       256 draws an opaque source image while a value lower than 256 produces a blend between the source
       and destination image. 0 results in no modification to the destination image.
 
-      ``color_palette`` if not ``-1`` can be `image.PALETTE_RAINBOW`, `image.PALETTE_IRONBOW`, or
+      ``color_palette`` if not ``None`` can be `image.PALETTE_RAINBOW`, `image.PALETTE_IRONBOW`, or
       a 256 pixel in total RGB565 image to use as a color lookup table on the grayscale value of
       whatever the source image is. This is applied after ``rgb_channel`` extraction if used.
 
-      ``alpha_palette`` if not ``-1`` can be a 256 pixel in total GRAYSCALE image to use as a alpha
+      ``alpha_palette`` if not ``None`` can be a 256 pixel in total GRAYSCALE image to use as a alpha
       palette which modulates the ``alpha`` value of the source image being drawn at a pixel pixel
       level allowing you to precisely control the alpha value of pixels based on their grayscale value.
       A pixel value of 255 in the alpha lookup table is opaque which anything less than 255 becomes
@@ -1901,18 +1922,18 @@ The image object is the basic object for machine vision operations.
          * `image.ROTATE_180`: Rotate the image by 180 degrees (this is just HMIRROR | VFLIP).
          * `image.ROTATE_270`: Rotate the image by 270 degrees (this is just HMIRROR | TRANSPOSE).
 
+      ``copy`` if True create a deep-copy on the heap of the image that's been converted versus converting the
+      original image in-place.
+
+      ``copy_to_fb`` if True the image is loaded directly into the frame buffer.
+      ``copy_to_fb`` has priority over ``copy``. This has no special effect if the image is already in
+      the frame buffer.
+
       Returns the image object so you can call another method using ``.`` notation.
 
-   .. method:: to_rgb565(x_scale=1.0, y_scale=1.0, roi:Optional[Tuple[int,int,int,int]]=None, rgb_channel=-1, alpha=256, color_palette=None, alpha_palette=None, hint=0, copy=False) -> Image
+   .. method:: to_rgb565(x_scale:float=1.0, y_scale:float=1.0, roi:Optional[Tuple[int,int,int,int]]=None, rgb_channel:int=-1, alpha:int=256, color_palette=None, alpha_palette=None, hint:int=0, copy:bool=False, copy_to_fb:bool=False) -> Image
 
-      Converts an image to an RGB565 image (16-bits per pixel). If ``copy`` is False
-      this method will try to modify the image in-place. If ``copy`` is True then
-      this method will return a new image copy allocated on the heap.
-
-      ``copy`` may also be another image object, which in this case this method will try to
-      re-use that image objects storage space and will return a new image object that uses
-      the previous image objects storage space. After doing this do not use any references
-      to the old image object anymore as they will be stale.
+      Converts an image to an RGB565 image (16-bits per pixel).
 
       ``x_scale`` controls how much the displayed image is scaled by in the x direction (float). If this
       value is negative the image will be flipped horizontally. Note that if ``y_scale`` is not specified
@@ -1934,11 +1955,11 @@ The image object is the basic object for machine vision operations.
       256 draws an opaque source image while a value lower than 256 produces a blend between the source
       and destination image. 0 results in no modification to the destination image.
 
-      ``color_palette`` if not ``-1`` can be `image.PALETTE_RAINBOW`, `image.PALETTE_IRONBOW`, or
+      ``color_palette`` if not ``None`` can be `image.PALETTE_RAINBOW`, `image.PALETTE_IRONBOW`, or
       a 256 pixel in total RGB565 image to use as a color lookup table on the grayscale value of
       whatever the source image is. This is applied after ``rgb_channel`` extraction if used.
 
-      ``alpha_palette`` if not ``-1`` can be a 256 pixel in total GRAYSCALE image to use as a alpha
+      ``alpha_palette`` if not ``None`` can be a 256 pixel in total GRAYSCALE image to use as a alpha
       palette which modulates the ``alpha`` value of the source image being drawn at a pixel pixel
       level allowing you to precisely control the alpha value of pixels based on their grayscale value.
       A pixel value of 255 in the alpha lookup table is opaque which anything less than 255 becomes
@@ -1962,18 +1983,18 @@ The image object is the basic object for machine vision operations.
          * `image.ROTATE_180`: Rotate the image by 180 degrees (this is just HMIRROR | VFLIP).
          * `image.ROTATE_270`: Rotate the image by 270 degrees (this is just HMIRROR | TRANSPOSE).
 
+      ``copy`` if True create a deep-copy on the heap of the image that's been converted versus converting the
+      original image in-place.
+
+      ``copy_to_fb`` if True the image is loaded directly into the frame buffer.
+      ``copy_to_fb`` has priority over ``copy``. This has no special effect if the image is already in
+      the frame buffer.
+
       Returns the image object so you can call another method using ``.`` notation.
 
-   .. method:: to_rainbow(x_scale=1.0, y_scale=1.0, roi:Optional[Tuple[int,int,int,int]]=None, rgb_channel=-1, alpha=256, color_palette=PALETTE_RAINBOW, alpha_palette=None, hint=0, copy=False) -> Image
+   .. method:: to_rainbow(x_scale:float=1.0, y_scale:float=1.0, roi:Optional[Tuple[int,int,int,int]]=None, rgb_channel:int=-1, alpha:int=256, color_palette=PALETTE_RAINBOW, alpha_palette=None, hint:int=0, copy:bool=False, copy_to_fb:bool=False) -> Image
 
-      Converts an image to an RGB565 rainbow image (16-bits per pixel). If ``copy`` is False
-      this method will try to modify the image in-place. If ``copy`` is True then
-      this method will return a new image copy allocated on the heap.
-
-      ``copy`` may also be another image object, which in this case this method will try to
-      re-use that image objects storage space and will return a new image object that uses
-      the previous image objects storage space. After doing this do not use any references
-      to the old image object anymore as they will be stale.
+      Converts an image to an RGB565 rainbow image (16-bits per pixel).
 
       ``x_scale`` controls how much the displayed image is scaled by in the x direction (float). If this
       value is negative the image will be flipped horizontally. Note that if ``y_scale`` is not specified
@@ -1995,11 +2016,11 @@ The image object is the basic object for machine vision operations.
       256 draws an opaque source image while a value lower than 256 produces a blend between the source
       and destination image. 0 results in no modification to the destination image.
 
-      ``color_palette`` if not ``-1`` can be `image.PALETTE_RAINBOW`, `image.PALETTE_IRONBOW`, or
+      ``color_palette`` if not ``None`` can be `image.PALETTE_RAINBOW`, `image.PALETTE_IRONBOW`, or
       a 256 pixel in total RGB565 image to use as a color lookup table on the grayscale value of
       whatever the source image is. This is applied after ``rgb_channel`` extraction if used.
 
-      ``alpha_palette`` if not ``-1`` can be a 256 pixel in total GRAYSCALE image to use as a alpha
+      ``alpha_palette`` if not ``None`` can be a 256 pixel in total GRAYSCALE image to use as a alpha
       palette which modulates the ``alpha`` value of the source image being drawn at a pixel pixel
       level allowing you to precisely control the alpha value of pixels based on their grayscale value.
       A pixel value of 255 in the alpha lookup table is opaque which anything less than 255 becomes
@@ -2023,18 +2044,18 @@ The image object is the basic object for machine vision operations.
          * `image.ROTATE_180`: Rotate the image by 180 degrees (this is just HMIRROR | VFLIP).
          * `image.ROTATE_270`: Rotate the image by 270 degrees (this is just HMIRROR | TRANSPOSE).
 
+      ``copy`` if True create a deep-copy on the heap of the image that's been converted versus converting the
+      original image in-place.
+
+      ``copy_to_fb`` if True the image is loaded directly into the frame buffer.
+      ``copy_to_fb`` has priority over ``copy``. This has no special effect if the image is already in
+      the frame buffer.
+
       Returns the image object so you can call another method using ``.`` notation.
 
-   .. method:: to_ironbow(x_scale=1.0, y_scale=1.0, roi:Optional[Tuple[int,int,int,int]]=None, rgb_channel=-1, alpha=256, color_palette=PALETTE_IRONBOW, alpha_palette=None, hint=0, copy=False) -> Image
+   .. method:: to_ironbow(x_scale:float=1.0, y_scale:float=1.0, roi:Optional[Tuple[int,int,int,int]]=None, rgb_channel:int=-1, alpha:int=256, color_palette=PALETTE_IRONBOW, alpha_palette=None, hint:int=0, copy:bool=False, copy_to_fb:bool=False) -> Image
 
-      Converts an image to an RGB565 ironbow image (16-bits per pixel). If ``copy`` is False
-      this method will try to modify the image in-place. If ``copy`` is True then
-      this method will return a new image copy allocated on the heap.
-
-      ``copy`` may also be another image object, which in this case this method will try to
-      re-use that image objects storage space and will return a new image object that uses
-      the previous image objects storage space. After doing this do not use any references
-      to the old image object anymore as they will be stale.
+      Converts an image to an RGB565 ironbow image (16-bits per pixel).
 
       ``x_scale`` controls how much the displayed image is scaled by in the x direction (float). If this
       value is negative the image will be flipped horizontally. Note that if ``y_scale`` is not specified
@@ -2056,11 +2077,11 @@ The image object is the basic object for machine vision operations.
       256 draws an opaque source image while a value lower than 256 produces a blend between the source
       and destination image. 0 results in no modification to the destination image.
 
-      ``color_palette`` if not ``-1`` can be `image.PALETTE_RAINBOW`, `image.PALETTE_IRONBOW`, or
+      ``color_palette`` if not ``None`` can be `image.PALETTE_RAINBOW`, `image.PALETTE_IRONBOW`, or
       a 256 pixel in total RGB565 image to use as a color lookup table on the grayscale value of
       whatever the source image is. This is applied after ``rgb_channel`` extraction if used.
 
-      ``alpha_palette`` if not ``-1`` can be a 256 pixel in total GRAYSCALE image to use as a alpha
+      ``alpha_palette`` if not ``None`` can be a 256 pixel in total GRAYSCALE image to use as a alpha
       palette which modulates the ``alpha`` value of the source image being drawn at a pixel pixel
       level allowing you to precisely control the alpha value of pixels based on their grayscale value.
       A pixel value of 255 in the alpha lookup table is opaque which anything less than 255 becomes
@@ -2084,18 +2105,18 @@ The image object is the basic object for machine vision operations.
          * `image.ROTATE_180`: Rotate the image by 180 degrees (this is just HMIRROR | VFLIP).
          * `image.ROTATE_270`: Rotate the image by 270 degrees (this is just HMIRROR | TRANSPOSE).
 
+      ``copy`` if True create a deep-copy on the heap of the image that's been converted versus converting the
+      original image in-place.
+
+      ``copy_to_fb`` if True the image is loaded directly into the frame buffer.
+      ``copy_to_fb`` has priority over ``copy``. This has no special effect if the image is already in
+      the frame buffer.
+
       Returns the image object so you can call another method using ``.`` notation.
 
-   .. method:: to_jpeg(x_scale=1.0, y_scale=1.0, roi:Optional[Tuple[int,int,int,int]]=None, rgb_channel=-1, alpha=256, color_palette=None, alpha_palette=None, hint=0, copy=False) -> Image
+   .. method:: to_jpeg(x_scale:float=1.0, y_scale:float=1.0, roi:Optional[Tuple[int,int,int,int]]=None, rgb_channel:int=-1, alpha:int=256, color_palette=None, alpha_palette=None, hint:int=0, copy:bool=False, copy_to_fb:bool=False, quality:int=90, encode_for_ide:bool=False, subsampling:int=0) -> Image
 
-      Converts an image to a JPEG image. If ``copy`` is False
-      this method will try to modify the image in-place. If ``copy`` is True then
-      this method will return a new image copy allocated on the heap.
-
-      ``copy`` may also be another image object, which in this case this method will try to
-      re-use that image objects storage space and will return a new image object that uses
-      the previous image objects storage space. After doing this do not use any references
-      to the old image object anymore as they will be stale.
+      Converts an image to a JPEG image.
 
       ``x_scale`` controls how much the displayed image is scaled by in the x direction (float). If this
       value is negative the image will be flipped horizontally. Note that if ``y_scale`` is not specified
@@ -2117,11 +2138,11 @@ The image object is the basic object for machine vision operations.
       256 draws an opaque source image while a value lower than 256 produces a blend between the source
       and destination image. 0 results in no modification to the destination image.
 
-      ``color_palette`` if not ``-1`` can be `image.PALETTE_RAINBOW`, `image.PALETTE_IRONBOW`, or
+      ``color_palette`` if not ``None`` can be `image.PALETTE_RAINBOW`, `image.PALETTE_IRONBOW`, or
       a 256 pixel in total RGB565 image to use as a color lookup table on the grayscale value of
       whatever the source image is. This is applied after ``rgb_channel`` extraction if used.
 
-      ``alpha_palette`` if not ``-1`` can be a 256 pixel in total GRAYSCALE image to use as a alpha
+      ``alpha_palette`` if not ``None`` can be a 256 pixel in total GRAYSCALE image to use as a alpha
       palette which modulates the ``alpha`` value of the source image being drawn at a pixel pixel
       level allowing you to precisely control the alpha value of pixels based on their grayscale value.
       A pixel value of 255 in the alpha lookup table is opaque which anything less than 255 becomes
@@ -2145,18 +2166,31 @@ The image object is the basic object for machine vision operations.
          * `image.ROTATE_180`: Rotate the image by 180 degrees (this is just HMIRROR | VFLIP).
          * `image.ROTATE_270`: Rotate the image by 270 degrees (this is just HMIRROR | TRANSPOSE).
 
+      ``copy`` if True create a deep-copy on the heap of the image that's been converted versus converting the
+      original image in-place.
+
+      ``copy_to_fb`` if True the image is loaded directly into the frame buffer.
+      ``copy_to_fb`` has priority over ``copy``. This has no special effect if the image is already in
+      the frame buffer.
+
+      ``quality`` controls the jpeg image compression quality. The value can be between 0 and 100.
+
+      ``encode_for_ide`` if True the image is encoded in a way that the IDE can display it if
+      printed by doing ``print(image)``. This is useful for debugging purposes over UARTs via
+      Open Terminal in the IDE.
+
+      ``subsampling`` can be:
+
+         * `image.JPEG_SUBSAMPLING_AUTO`: Use the best subsampling for the image based on the quality.
+         * `image.JPEG_SUBSAMPLING_444`: Use 4:4:4 subsampling.
+         * `image.JPEG_SUBSAMPLING_422`: Use 4:2:2 subsampling.
+         * `image.JPEG_SUBSAMPLING_420`: Use 4:2:0 subsampling.
+
       Returns the image object so you can call another method using ``.`` notation.
 
-   .. method:: to_png(x_scale=1.0, y_scale=1.0, roi:Optional[Tuple[int,int,int,int]]=None, rgb_channel=-1, alpha=256, color_palette=None, alpha_palette=None, hint=0, copy=False) -> Image
+   .. method:: to_png(x_scale:float=1.0, y_scale:float=1.0, roi:Optional[Tuple[int,int,int,int]]=None, rgb_channel:int=-1, alpha:int=256, color_palette=None, alpha_palette=None, hint:int=0, copy:bool=False, copy_to_fb:bool=False) -> Image
 
-      Converts an image to a PNG image. If ``copy`` is False
-      this method will try to modify the image in-place. If ``copy`` is True then
-      this method will return a new image copy allocated on the heap.
-
-      ``copy`` may also be another image object, which in this case this method will try to
-      re-use that image objects storage space and will return a new image object that uses
-      the previous image objects storage space. After doing this do not use any references
-      to the old image object anymore as they will be stale.
+      Converts an image to a PNG image.
 
       ``x_scale`` controls how much the displayed image is scaled by in the x direction (float). If this
       value is negative the image will be flipped horizontally. Note that if ``y_scale`` is not specified
@@ -2178,11 +2212,11 @@ The image object is the basic object for machine vision operations.
       256 draws an opaque source image while a value lower than 256 produces a blend between the source
       and destination image. 0 results in no modification to the destination image.
 
-      ``color_palette`` if not ``-1`` can be `image.PALETTE_RAINBOW`, `image.PALETTE_IRONBOW`, or
+      ``color_palette`` if not ``None`` can be `image.PALETTE_RAINBOW`, `image.PALETTE_IRONBOW`, or
       a 256 pixel in total RGB565 image to use as a color lookup table on the grayscale value of
       whatever the source image is. This is applied after ``rgb_channel`` extraction if used.
 
-      ``alpha_palette`` if not ``-1`` can be a 256 pixel in total GRAYSCALE image to use as a alpha
+      ``alpha_palette`` if not ``None`` can be a 256 pixel in total GRAYSCALE image to use as a alpha
       palette which modulates the ``alpha`` value of the source image being drawn at a pixel pixel
       level allowing you to precisely control the alpha value of pixels based on their grayscale value.
       A pixel value of 255 in the alpha lookup table is opaque which anything less than 255 becomes
@@ -2206,108 +2240,18 @@ The image object is the basic object for machine vision operations.
          * `image.ROTATE_180`: Rotate the image by 180 degrees (this is just HMIRROR | VFLIP).
          * `image.ROTATE_270`: Rotate the image by 270 degrees (this is just HMIRROR | TRANSPOSE).
 
-      Returns the image object so you can call another method using ``.`` notation.
+      ``copy`` if True create a deep-copy on the heap of the image that's been converted versus converting the
+      original image in-place.
 
-   .. method:: compress(quality=90) -> Image
-
-      JPEG compresses the image in place. Use this method versus `Image.compressed()`
-      to save heap space and to use a higher ``quality`` for compression at the
-      cost of destroying the original image.
-
-      Returns the image object so you can call another method using ``.`` notation.
-
-      ``quality`` is the compression quality (0-100) (int).
-
-      Returns the compressed image if called on a compressed image.
-
-   .. method:: compress_for_ide(quality=90) -> Image
-
-      JPEG compresses the image in place. Use this method versus `Image.compressed()`
-      to save heap space and to use a higher ``quality`` for compression at the
-      cost of destroying the original image.
-
-      This method JPEG compresses the image and then formats the JPEG data for
-      transmission to OpenMV IDE to display by encoding every 6-bits as a byte
-      valued between 128-191. This is done to prevent JPEG data from being
-      misinterpreted as other text data in the byte stream.
-
-      You need to use this method to format image data for display to terminal
-      windows created via "Open Terminal" in OpenMV IDE.
+      ``copy_to_fb`` if True the image is loaded directly into the frame buffer.
+      ``copy_to_fb`` has priority over ``copy``. This has no special effect if the image is already in
+      the frame buffer.
 
       Returns the image object so you can call another method using ``.`` notation.
 
-      ``quality`` is the compression quality (0-100) (int).
+   .. method:: compress(x_scale:float=1.0, y_scale:float=1.0, roi:Optional[Tuple[int,int,int,int]]=None, rgb_channel:int=-1, alpha:int=256, color_palette=None, alpha_palette=None, hint:int=0, copy:bool=False, copy_to_fb:bool=False, quality:int=90, encode_for_ide:bool=False, subsampling:int=0) -> Image
 
-      Returns the image compressed for the IDE if called on a compressed image.
-      Do not call this on an image already compressed for the IDE.
-
-   .. method:: compressed(quality=90) -> Image
-
-      Returns a JPEG compressed image - the original image is untouched. However,
-      this method requires a somewhat large allocation of heap space so the image
-      compression quality must be lower and the image resolution must be lower
-      than what you could do with `Image.compress()`.
-
-      ``quality`` is the compression quality (0-100) (int).
-
-      Returns a compressed image copy if called on a compressed image.
-
-   .. method:: compressed_for_ide(quality=90) -> Image
-
-      Returns a JPEG compressed image - the original image is untouched. However,
-      this method requires a somewhat large allocation of heap space so the image
-      compression quality must be lower and the image resolution must be lower
-      than what you could do with `Image.compress()`.
-
-      This method JPEG compresses the image and then formats the JPEG data for
-      transmission to OpenMV IDE to display by encoding every 6-bits as a byte
-      valued between 128-191. This is done to prevent JPEG data from being
-      misinterpreted as other text data in the byte stream.
-
-      You need to use this method to format image data for display to terminal
-      windows created via "Open Terminal" in OpenMV IDE.
-
-      ``quality`` is the compression quality (0-100) (int).
-
-      Returns a image compressed for the IDE copy if called on a compressed image.
-      Do not call this on an image already compressed for the IDE.
-
-   .. method: image.jpeg_encode_for_ide() -> Image
-
-      This formats the JPEG data for transmission to OpenMV IDE to display by
-      encoding every 6-bits as a byte valued between 128-191. This is done to
-      prevent JPEG data from being misinterpreted as other text data in the byte
-      stream. This method does the formatting in-place destroying the original
-      JPEG image and returns the encoded jpeg image.
-
-      You need to use this method to format image data for display to terminal
-      windows created via "Open Terminal" in OpenMV IDE.
-
-      Returns the image object so you can call another method using ``.`` notation.
-
-      Only works on JPEG images.
-
-   .. method: image.jpeg_encoded_for_ide() -> Image
-
-      This formats the JPEG data for transmission to OpenMV IDE to display by
-      encoding every 6-bits as a byte valued between 128-191. This is done to
-      prevent JPEG data from being misinterpreted as other text data in the byte
-      stream. This method does the formatting out-of-place preserving the original
-      JPEG image and returns a new encoded jpeg image.
-
-      You need to use this method to format image data for display to terminal
-      windows created via "Open Terminal" in OpenMV IDE.
-
-      Returns the image object so you can call another method using ``.`` notation.
-
-      Only works on JPEG images.
-
-   .. method:: copy(x_scale=1.0, y_scale=1.0, roi:Optional[Tuple[int,int,int,int]]=None, rgb_channel=-1, alpha=256, color_palette=None, alpha_palette=None, hint=0, copy_to_fb=False) -> Image
-
-      Creates a deep copy of the image object. If ``copy_to_fb`` is False then
-      the new image is allocated on the MicroPython heap. However, the MicroPython heap is limited
-      and may not have space to store the new image if exhausted. Instead, set ``copy_to_fb`` to
-      True to set the frame buffer to the new image making this function work just like `sensor.snapshot()`.
+      Converts an image to a JPEG image.
 
       ``x_scale`` controls how much the displayed image is scaled by in the x direction (float). If this
       value is negative the image will be flipped horizontally. Note that if ``y_scale`` is not specified
@@ -2329,11 +2273,11 @@ The image object is the basic object for machine vision operations.
       256 draws an opaque source image while a value lower than 256 produces a blend between the source
       and destination image. 0 results in no modification to the destination image.
 
-      ``color_palette`` if not ``-1`` can be `image.PALETTE_RAINBOW`, `image.PALETTE_IRONBOW`, or
+      ``color_palette`` if not ``None`` can be `image.PALETTE_RAINBOW`, `image.PALETTE_IRONBOW`, or
       a 256 pixel in total RGB565 image to use as a color lookup table on the grayscale value of
       whatever the source image is. This is applied after ``rgb_channel`` extraction if used.
 
-      ``alpha_palette`` if not ``-1`` can be a 256 pixel in total GRAYSCALE image to use as a alpha
+      ``alpha_palette`` if not ``None`` can be a 256 pixel in total GRAYSCALE image to use as a alpha
       palette which modulates the ``alpha`` value of the source image being drawn at a pixel pixel
       level allowing you to precisely control the alpha value of pixels based on their grayscale value.
       A pixel value of 255 in the alpha lookup table is opaque which anything less than 255 becomes
@@ -2357,20 +2301,35 @@ The image object is the basic object for machine vision operations.
          * `image.ROTATE_180`: Rotate the image by 180 degrees (this is just HMIRROR | VFLIP).
          * `image.ROTATE_270`: Rotate the image by 270 degrees (this is just HMIRROR | TRANSPOSE).
 
-      Returns the new image object.
+      ``copy`` if True create a deep-copy on the heap of the image that's been converted versus converting the
+      original image in-place.
 
-      Not supported on compressed images.
+      ``copy_to_fb`` if True the image is loaded directly into the frame buffer.
+      ``copy_to_fb`` has priority over ``copy``. This has no special effect if the image is already in
+      the frame buffer.
 
-   .. method:: crop(x_scale=1.0, y_scale=1.0, roi:Optional[Tuple[int,int,int,int]]=None, rgb_channel=-1, alpha=256, color_palette=None, alpha_palette=None, hint=0, copy=False) -> Image
+      ``quality`` controls the jpeg image compression quality. The value can be between 0 and 100.
 
-      Modifies an image in-place without changing the underlying image type. If ``copy`` is False
-      this method will try to modify the image in-place. If ``copy`` is True then
-      this method will return a new image copy allocated on the heap.
+      ``encode_for_ide`` if True the image is encoded in a way that the IDE can display it if
+      printed by doing ``print(image)``. This is useful for debugging purposes over UARTs via
+      Open Terminal in the IDE.
 
-      ``copy`` may also be another image object, which in this case this method will try to
-      re-use that image objects storage space and will return a new image object that uses
-      the previous image objects storage space. After doing this do not use any references
-      to the old image object anymore as they will be stale.
+      ``subsampling`` can be:
+
+         * `image.JPEG_SUBSAMPLING_AUTO`: Use the best subsampling for the image based on the quality.
+         * `image.JPEG_SUBSAMPLING_444`: Use 4:4:4 subsampling.
+         * `image.JPEG_SUBSAMPLING_422`: Use 4:2:2 subsampling.
+         * `image.JPEG_SUBSAMPLING_420`: Use 4:2:0 subsampling.
+
+      Returns the image object so you can call another method using ``.`` notation.
+
+      .. note::
+
+         `Image.compress` is an alias for `Image.to_jpeg`.
+
+   .. method:: copy(x_scale:float=1.0, y_scale:float=1.0, roi:Optional[Tuple[int,int,int,int]]=None, rgb_channel:int=-1, alpha:int=256, color_palette=None, alpha_palette=None, hint:int=0, copy_to_fb:float=False) -> Image
+
+      Creates a deep copy of the image object.
 
       ``x_scale`` controls how much the displayed image is scaled by in the x direction (float). If this
       value is negative the image will be flipped horizontally. Note that if ``y_scale`` is not specified
@@ -2392,11 +2351,11 @@ The image object is the basic object for machine vision operations.
       256 draws an opaque source image while a value lower than 256 produces a blend between the source
       and destination image. 0 results in no modification to the destination image.
 
-      ``color_palette`` if not ``-1`` can be `image.PALETTE_RAINBOW`, `image.PALETTE_IRONBOW`, or
+      ``color_palette`` if not ``None`` can be `image.PALETTE_RAINBOW`, `image.PALETTE_IRONBOW`, or
       a 256 pixel in total RGB565 image to use as a color lookup table on the grayscale value of
       whatever the source image is. This is applied after ``rgb_channel`` extraction if used.
 
-      ``alpha_palette`` if not ``-1`` can be a 256 pixel in total GRAYSCALE image to use as a alpha
+      ``alpha_palette`` if not ``None`` can be a 256 pixel in total GRAYSCALE image to use as a alpha
       palette which modulates the ``alpha`` value of the source image being drawn at a pixel pixel
       level allowing you to precisely control the alpha value of pixels based on their grayscale value.
       A pixel value of 255 in the alpha lookup table is opaque which anything less than 255 becomes
@@ -2420,20 +2379,14 @@ The image object is the basic object for machine vision operations.
          * `image.ROTATE_180`: Rotate the image by 180 degrees (this is just HMIRROR | VFLIP).
          * `image.ROTATE_270`: Rotate the image by 270 degrees (this is just HMIRROR | TRANSPOSE).
 
+      ``copy_to_fb`` if True the image is loaded directly into the frame buffer.
+      This has no special effect if the image is already in the frame buffer.
+
       Returns the image object so you can call another method using ``.`` notation.
 
-      Not supported on compressed images.
+   .. method:: crop(x_scale:float=1.0, y_scale:float=1.0, roi:Optional[Tuple[int,int,int,int]]=None, rgb_channel:int=-1, alpha:int=256, color_palette=None, alpha_palette=None, hint:int=0, copy:bool=False, copy_to_fb:bool=False) -> Image
 
-   .. method:: scale(x_scale=1.0, y_scale=1.0, roi:Optional[Tuple[int,int,int,int]]=None, rgb_channel=-1, alpha=256, color_palette=None, alpha_palette=None, hint=0, copy=False) -> Image
-
-      Modifies an image in-place without changing the underlying image type. If ``copy`` is False
-      this method will try to modify the image in-place. If ``copy`` is True then
-      this method will return a new image copy allocated on the heap.
-
-      ``copy`` may also be another image object, which in this case this method will try to
-      re-use that image objects storage space and will return a new image object that uses
-      the previous image objects storage space. After doing this do not use any references
-      to the old image object anymore as they will be stale.
+      Modifies an image in-place without changing the underlying image type.
 
       ``x_scale`` controls how much the displayed image is scaled by in the x direction (float). If this
       value is negative the image will be flipped horizontally. Note that if ``y_scale`` is not specified
@@ -2455,11 +2408,11 @@ The image object is the basic object for machine vision operations.
       256 draws an opaque source image while a value lower than 256 produces a blend between the source
       and destination image. 0 results in no modification to the destination image.
 
-      ``color_palette`` if not ``-1`` can be `image.PALETTE_RAINBOW`, `image.PALETTE_IRONBOW`, or
+      ``color_palette`` if not ``None`` can be `image.PALETTE_RAINBOW`, `image.PALETTE_IRONBOW`, or
       a 256 pixel in total RGB565 image to use as a color lookup table on the grayscale value of
       whatever the source image is. This is applied after ``rgb_channel`` extraction if used.
 
-      ``alpha_palette`` if not ``-1`` can be a 256 pixel in total GRAYSCALE image to use as a alpha
+      ``alpha_palette`` if not ``None`` can be a 256 pixel in total GRAYSCALE image to use as a alpha
       palette which modulates the ``alpha`` value of the source image being drawn at a pixel pixel
       level allowing you to precisely control the alpha value of pixels based on their grayscale value.
       A pixel value of 255 in the alpha lookup table is opaque which anything less than 255 becomes
@@ -2483,9 +2436,79 @@ The image object is the basic object for machine vision operations.
          * `image.ROTATE_180`: Rotate the image by 180 degrees (this is just HMIRROR | VFLIP).
          * `image.ROTATE_270`: Rotate the image by 270 degrees (this is just HMIRROR | TRANSPOSE).
 
+      ``copy`` if True create a deep-copy on the heap of the image that's been converted versus converting the
+      original image in-place.
+
+      ``copy_to_fb`` if True the image is loaded directly into the frame buffer.
+      ``copy_to_fb`` has priority over ``copy``. This has no special effect if the image is already in
+      the frame buffer.
+
       Returns the image object so you can call another method using ``.`` notation.
 
-      Not supported on compressed images.
+   .. method:: scale(x_scale:float=1.0, y_scale:float=1.0, roi:Optional[Tuple[int,int,int,int]]=None, rgb_channel:int=-1, alpha:int=256, color_palette=None, alpha_palette=None, hint:int=0, copy:bool=False, copy_to_fb:bool=False) -> Image
+
+      Modifies an image in-place without changing the underlying image type.
+
+      ``x_scale`` controls how much the displayed image is scaled by in the x direction (float). If this
+      value is negative the image will be flipped horizontally. Note that if ``y_scale`` is not specified
+      then it will match ``x_scale`` to maintain the aspect ratio.
+
+      ``y_scale`` controls how much the displayed image is scaled by in the y direction (float). If this
+      value is negative the image will be flipped vertically. Note that if ``x_scale`` is not specified
+      then it will match ``x_scale`` to maintain the aspect ratio.
+
+      ``roi`` is the region-of-interest rectangle tuple (x, y, w, h) of the source image to draw. This
+      allows you to extract just the pixels in the ROI to scale and draw on the destination image.
+
+      ``rgb_channel`` is the RGB channel (0=R, G=1, B=2) to extract from an RGB565 image (if passed)
+      and to render onto the destination image. For example, if you pass ``rgb_channel=1`` this will
+      extract the green channel of the source RGB565 image and draw that in grayscale on the
+      destination image.
+
+      ``alpha`` controls how much of the source image to blend into the destination image. A value of
+      256 draws an opaque source image while a value lower than 256 produces a blend between the source
+      and destination image. 0 results in no modification to the destination image.
+
+      ``color_palette`` if not ``None`` can be `image.PALETTE_RAINBOW`, `image.PALETTE_IRONBOW`, or
+      a 256 pixel in total RGB565 image to use as a color lookup table on the grayscale value of
+      whatever the source image is. This is applied after ``rgb_channel`` extraction if used.
+
+      ``alpha_palette`` if not ``None`` can be a 256 pixel in total GRAYSCALE image to use as a alpha
+      palette which modulates the ``alpha`` value of the source image being drawn at a pixel pixel
+      level allowing you to precisely control the alpha value of pixels based on their grayscale value.
+      A pixel value of 255 in the alpha lookup table is opaque which anything less than 255 becomes
+      more transparent until 0. This is applied after ``rgb_channel`` extraction if used.
+
+      ``hint`` can be a logical OR of the flags:
+
+         * `image.AREA`: Use area scaling when downscaling versus the default of nearest neighbor.
+         * `image.BILINEAR`: Use bilinear scaling versus the default of nearest neighbor scaling.
+         * `image.BICUBIC`: Use bicubic scaling versus the default of nearest neighbor scaling.
+         * `image.CENTER`: Center the image being drawn on the display. This is applied after scaling.
+         * `image.HMIRROR`: Horizontally mirror the image.
+         * `image.VFLIP`: Vertically flip the image.
+         * `image.TRANSPOSE`: Transpose the image (swap x/y).
+         * `image.EXTRACT_RGB_CHANNEL_FIRST`: Do rgb_channel extraction before scaling.
+         * `image.APPLY_COLOR_PALETTE_FIRST`: Apply color palette before scaling.
+         * `image.SCALE_ASPECT_KEEP`: Scale the image being drawn to fit inside the display.
+         * `image.SCALE_ASPECT_EXPAND`: Scale the image being drawn to fill the display (results in cropping)
+         * `image.SCALE_ASPECT_IGNORE`: Scale the image being drawn to fill the display (results in stretching).
+         * `image.ROTATE_90`: Rotate the image by 90 degrees (this is just VFLIP | TRANSPOSE).
+         * `image.ROTATE_180`: Rotate the image by 180 degrees (this is just HMIRROR | VFLIP).
+         * `image.ROTATE_270`: Rotate the image by 270 degrees (this is just HMIRROR | TRANSPOSE).
+
+      ``copy`` if True create a deep-copy on the heap of the image that's been converted versus converting the
+      original image in-place.
+
+      ``copy_to_fb`` if True the image is loaded directly into the frame buffer.
+      ``copy_to_fb`` has priority over ``copy``. This has no special effect if the image is already in
+      the frame buffer.
+
+      Returns the image object so you can call another method using ``.`` notation.
+
+      .. note::
+
+         `Image.scale` is an alias for `Image.crop`.
 
    .. method:: save(path:str, roi:Optional[Tuple[int,int,int,int]]=None, quality=50) -> Image
 
@@ -2506,6 +2529,9 @@ The image object is the basic object for machine vision operations.
    .. method:: flush() -> None
 
       Updates the frame buffer in the IDE with the image in the frame buffer on the camera.
+
+   Drawing Methods
+   ~~~~~~~~~~~~~~~
 
    .. method:: clear(mask:Optional[Image]=None) -> Image
 
@@ -2680,14 +2706,14 @@ The image object is the basic object for machine vision operations.
 
       Not supported on compressed images or bayer images.
 
-   .. method:: draw_image(image:Image, x:int, y:int, x_scale=1.0, y_scale=1.0, roi:Optional[Tuple[int,int,int,int]]=None, rgb_channel=-1, alpha=256, color_palette=None, alpha_palette=None, hint=0) -> Image
+   .. method:: draw_image(image:Image, x:int, y:int, x_scale:float=1.0, y_scale:float=1.0, roi:Optional[Tuple[int,int,int,int]]=None, rgb_channel:int=-1, alpha:int=256, color_palette=None, alpha_palette=None, hint:int=0) -> Image
 
       Draws an ``image`` whose top-left corner starts at location x, y. You may either pass x, y
       separately or as a tuple (x, y). This method automatically handles rendering the image passed
       into the correct pixel format for the destination image while also handling clipping seamlessly.
 
       You may also pass a path instead of an image object for this method to automatically load the image
-      from disk and draw it in one step. E.g. ``draw_image("test.jpg")``.
+      from disk and use it in one step. E.g. ``draw_image("test.jpg")``.
 
       ``x_scale`` controls how much the displayed image is scaled by in the x direction (float). If this
       value is negative the image will be flipped horizontally. Note that if ``y_scale`` is not specified
@@ -2709,11 +2735,11 @@ The image object is the basic object for machine vision operations.
       256 draws an opaque source image while a value lower than 256 produces a blend between the source
       and destination image. 0 results in no modification to the destination image.
 
-      ``color_palette`` if not ``-1`` can be `image.PALETTE_RAINBOW`, `image.PALETTE_IRONBOW`, or
+      ``color_palette`` if not ``None`` can be `image.PALETTE_RAINBOW`, `image.PALETTE_IRONBOW`, or
       a 256 pixel in total RGB565 image to use as a color lookup table on the grayscale value of
       whatever the source image is. This is applied after ``rgb_channel`` extraction if used.
 
-      ``alpha_palette`` if not ``-1`` can be a 256 pixel in total GRAYSCALE image to use as a alpha
+      ``alpha_palette`` if not ``None`` can be a 256 pixel in total GRAYSCALE image to use as a alpha
       palette which modulates the ``alpha`` value of the source image being drawn at a pixel pixel
       level allowing you to precisely control the alpha value of pixels based on their grayscale value.
       A pixel value of 255 in the alpha lookup table is opaque which anything less than 255 becomes
@@ -2739,8 +2765,6 @@ The image object is the basic object for machine vision operations.
          * `image.BLACK_BACKGROUND`: Assume the background image being drawn on is black speeding up blending.
 
       Returns the image object so you can call another method using ``.`` notation.
-
-      Not supported on compressed images.
 
    .. method:: draw_keypoints(keypoints, color:Optional[int,Tuple[int,int,int]]=None, size=10, thickness=1, fill=False) -> Image
 
@@ -2795,6 +2819,9 @@ The image object is the basic object for machine vision operations.
 
       This method is not available on the OpenMV Cam M4.
 
+   Masking Methods
+   ~~~~~~~~~~~~~~~
+
    .. method:: mask_rectange(x:int, y:int, w:int, h:int) -> Image
 
       Zeros a rectangular part of the image. If no arguments are supplied this
@@ -2821,6 +2848,9 @@ The image object is the basic object for machine vision operations.
       Returns the image object so you can call another method using ``.`` notation.
 
       Not supported on compressed images or bayer images.
+
+   Binary Methods
+   ~~~~~~~~~~~~~~
 
    .. method:: binary(thresholds:List[Tuple[int,int]], invert=False, zero=False, mask:Optional[Image]=None, to_bitmap=False, copy=False) -> Image
 
@@ -2891,11 +2921,15 @@ The image object is the basic object for machine vision operations.
 
    .. method:: invert() -> Image
 
-      Flips (binary inverts) all pixels values in a binary image very quickly.
+      Flips (binary inverts) all pixels values in the image. Note that binary
+      inversion is the same as numerical inversion for images because:
+
+      ``(255 - pixel) % 256 == (255 + ~pixel + 1) % 256 == (~pixel + 256) % 256 == ~pixel`` and
+      this holds for any value that's in a range of ``(0-2^n-1)`` which is true for all mutable image datatypes.
 
       Returns the image object so you can call another method using ``.`` notation.
 
-      Not supported on compressed images or bayer images.
+      Not supported on compressed images or bayer/yuv images.
 
    .. method:: b_and(image:Image, mask:Optional[Image]=None) -> Image
 
@@ -3005,100 +3039,10 @@ The image object is the basic object for machine vision operations.
 
       Not supported on compressed images or bayer images.
 
-   .. method:: erode(size:int, threshold:Optional[int]=None, mask:Optional[Image]=None) -> Image
+   ISP Methods
+   ~~~~~~~~~~~
 
-      Removes pixels from the edges of segmented areas.
-
-      This method works by convolving a kernel of ((size*2)+1)x((size*2)+1) pixels
-      across the image and zeroing the center pixel of the kernel if the sum of
-      the neighbour pixels set is not greater than ``threshold``.
-
-      This method works like the standard erode method if threshold is not set. If
-      ``threshold`` is set then you can specify erode to only erode pixels that
-      have, for example, less than 2 pixels set around them with a threshold of 2.
-
-      ``mask`` is another image to use as a pixel level mask for the operation.
-      The mask should be an image with just black or white pixels and should be the
-      same size as the image being operated on. Only pixels set in the mask are
-      modified.
-
-      Returns the image object so you can call another method using ``.`` notation.
-
-      Not supported on compressed images or bayer images.
-
-   .. method:: dilate(size:int, threshold:Optional[int]=None, mask:Optional[Image]=None) -> Image
-
-      Adds pixels to the edges of segmented areas.
-
-      This method works by convolving a kernel of ((size*2)+1)x((size*2)+1) pixels
-      across the image and setting the center pixel of the kernel if the sum of
-      the neighbour pixels set is greater than ``threshold``.
-
-      This method works like the standard dilate method if threshold is not set.
-      If ``threshold`` is set then you can specify dilate to only dilate pixels
-      that have, for example, more than 2 pixels set around them with a threshold
-      of 2.
-
-      ``mask`` is another image to use as a pixel level mask for the operation.
-      The mask should be an image with just black or white pixels and should be the
-      same size as the image being operated on. Only pixels set in the mask are
-      modified.
-
-      Returns the image object so you can call another method using ``.`` notation.
-
-      Not supported on compressed images or bayer images.
-
-   .. method:: open(size:int, threshold:Optional[int]=None, mask:Optional[Image]=None) -> Image
-
-      Performs erosion and dilation on an image in order. Please see `Image.erode()`
-      and `Image.dilate()` for more information.
-
-      ``mask`` is another image to use as a pixel level mask for the operation.
-      The mask should be an image with just black or white pixels and should be the
-      same size as the image being operated on. Only pixels set in the mask are
-      modified.
-
-      Returns the image object so you can call another method using ``.`` notation.
-
-      Not supported on compressed images or bayer images.
-
-   .. method:: close(size:int, threshold:Optional[int]=None, mask:Optional[Image]=None) -> Image
-
-      Performs dilation and erosion on an image in order. Please see `Image.dilate()`
-      and `Image.erode()` for more information.
-
-      ``mask`` is another image to use as a pixel level mask for the operation.
-      The mask should be an image with just black or white pixels and should be the
-      same size as the image being operated on. Only pixels set in the mask are
-      modified.
-
-      Returns the image object so you can call another method using ``.`` notation.
-
-      Not supported on compressed images or bayer images.
-
-   .. method:: top_hat(size:int, threshold:Optional[int]=None, mask:Optional[Image]=None) -> Image
-
-      Returns the image difference of the image and `Image.open()`'ed image.
-
-      ``mask`` is another image to use as a pixel level mask for the operation.
-      The mask should be an image with just black or white pixels and should be the
-      same size as the image being operated on. Only pixels set in the mask are
-      modified.
-
-      Not supported on compressed images or bayer images.
-
-   .. method:: black_hat(size:int, threshold:Optional[int]=None, mask:Optional[Image]=None) -> Image
-
-      Returns the image difference of the image and `Image.close()`'ed image.
-
-      ``mask`` is another image to use as a pixel level mask for the operation.
-      The mask should be an image with just black or white pixels and should be the
-      same size as the image being operated on. Only pixels set in the mask are
-      modified.
-
-      Not supported on compressed images or bayer images.
-
-   .. method:: awb(max=False) -> Image
+   .. method:: awb(max:bool=False) -> Image
 
       Performs automatic white balance on the image using the gray-world algorithm. This method
       operates on RAW Bayer Images so that you can improve image quality before converting
@@ -3109,7 +3053,7 @@ The image object is the basic object for machine vision operations.
 
       Returns the image object so you can call another method using ``.`` notation.
 
-      Not supported on compressed images.
+      Not supported on compressed or yuv images.
 
    .. method:: ccm(matrix) -> Image
 
@@ -3138,9 +3082,9 @@ The image object is the basic object for machine vision operations.
 
       Returns the image object so you can call another method using ``.`` notation.
 
-      Not supported on compressed images or bayer images.
+      Not supported on compressed images or bayer/yuv images.
 
-   .. method:: gamma(gamma=1.0, contrast=1.0, brightness=0.0) -> Image
+   .. method:: gamma(gamma:float=1.0, contrast:float=1.0, brightness:float=0.0) -> Image
 
       Quickly changes the image gamma, contrast, and brightness.
 
@@ -3161,20 +3105,53 @@ The image object is the basic object for machine vision operations.
 
       Returns the image object so you can call another method using ``.`` notation.
 
-      Not supported on compressed images.
+      Not supported on compressed or bayer/yuv images.
 
-   .. method:: gamma_corr(gamma=1.0, contrast=1.0, brightness=0.0) -> Image
+   .. method:: gamma_corr(gamma:float=1.0, contrast:float=1.0, brightness:float=0.0) -> Image
 
-      Alias for `Image.gamma`.
+      Quickly changes the image gamma, contrast, and brightness.
 
-   .. method:: negate() -> Image
+      ``gamma`` with values greater than 1.0 makes the image darker in a non-linear
+      manner while less than 1.0 makes the image brighter. The gamma value is applied
+      to the image by scaling all pixel color channels to be between [0:1) and then
+      doing a remapping of ``pow(pixel, 1/gamma)`` on all pixels before scaling back.
 
-      Flips (numerically inverts) all pixels values in an image very quickly. E.g.
-      for GRAYSCALE images this method changes all pixels from ``pixel`` to ``255 - pixel``.
+      ``contrast`` with values greater than 1.0 makes the image brighter in a linear
+      manner while less than 1.0 makes the image darker. The contrast value is applied
+      to the image by scaling all pixel color channels to be between [0:1) and then
+      doing a remapping of ``pixel * contrast`` on all pixels before scaling back.
+
+      ``brightness`` with values greater than 0.0 makes the image brighter in a constant
+      manner while less than 0.0 makes the image darker. The brightness value is applied
+      to the image by scaling all pixel color channels to be between [0:1) and then
+      doing a remapping of ``pixel + brightness`` on all pixels before scaling back.
 
       Returns the image object so you can call another method using ``.`` notation.
 
-      Not supported on compressed images or bayer images.
+      Not supported on compressed or bayer/yuv images.
+
+      .. note::
+
+         `Image.gamma_corr` is an alias for `Image.gamma`.
+
+   Math Methods
+   ~~~~~~~~~~~~
+
+   .. method:: negate() -> Image
+
+      Flips (binary inverts) all pixels values in the image. Note that binary
+      inversion is the same as numerical inversion for images because:
+
+      ``(255 - pixel) % 256 == (255 + ~pixel + 1) % 256 == (~pixel + 256) % 256 == ~pixel`` and
+      this holds for any value that's in a range of ``(0-2^n-1)`` which is true for all mutable image datatypes.
+
+      Returns the image object so you can call another method using ``.`` notation.
+
+      Not supported on compressed images or bayer/yuv images.
+
+      .. note::
+
+         `Image.negate` is an alias for `Image.invert`.
 
    .. method:: replace(image:Image, hmirror=False, vflip=False, transpose=False, mask:Optional[Image]=None) -> Image
 
@@ -3362,7 +3339,104 @@ The image object is the basic object for machine vision operations.
 
       Not supported on compressed images or bayer images.
 
-   .. method:: mean(size:int, threshold=False, offset=0, invert=False, mask:Optional[Image]=None) -> Image
+   Filtering Methods
+   ~~~~~~~~~~~~~~~~~
+
+   .. method:: erode(size:int, threshold:Optional[int]=None, mask:Optional[Image]=None) -> Image
+
+      Removes pixels from the edges of segmented areas.
+
+      This method works by convolving a kernel of ``((size*2)+1)x((size*2)+1)`` pixels
+      across the image and zeroing the center pixel of the kernel if the sum of
+      the neighbour pixels clear is greater than ``threshold``.
+
+      This method works like the standard erode method if threshold is not set. If
+      ``threshold`` is set then you can specify erode to only erode pixels that
+      have, for example, more than 2 pixels clear in the kernel region with a
+      threshold of 2.
+
+      ``mask`` is another image to use as a pixel level mask for the operation.
+      The mask should be an image with just black or white pixels and should be the
+      same size as the image being operated on. Only pixels set in the mask are
+      modified.
+
+      Returns the image object so you can call another method using ``.`` notation.
+
+      Not supported on compressed images or bayer/yuv images.
+
+   .. method:: dilate(size:int, threshold:Optional[int]=None, mask:Optional[Image]=None) -> Image
+
+      Adds pixels to the edges of segmented areas.
+
+      This method works by convolving a kernel of ``((size*2)+1)x((size*2)+1)`` pixels
+      across the image and setting the center pixel of the kernel if the sum of
+      the neighbour pixels set is greater than ``threshold``.
+
+      This method works like the standard dilate method if threshold is not set.
+      If ``threshold`` is set then you can specify dilate to only dilate pixels
+      that have, for example, more than 2 pixels set in the kernel region with a
+      threshold of 2.
+
+      ``mask`` is another image to use as a pixel level mask for the operation.
+      The mask should be an image with just black or white pixels and should be the
+      same size as the image being operated on. Only pixels set in the mask are
+      modified.
+
+      Returns the image object so you can call another method using ``.`` notation.
+
+      Not supported on compressed images or bayer/yuv images.
+
+   .. method:: open(size:int, threshold:Optional[int]=None, mask:Optional[Image]=None) -> Image
+
+      Performs erosion and dilation on an image in order. Please see `Image.erode()`
+      and `Image.dilate()` for more information.
+
+      ``mask`` is another image to use as a pixel level mask for the operation.
+      The mask should be an image with just black or white pixels and should be the
+      same size as the image being operated on. Only pixels set in the mask are
+      modified.
+
+      Returns the image object so you can call another method using ``.`` notation.
+
+      Not supported on compressed images or bayer/yuv images.
+
+   .. method:: close(size:int, threshold:Optional[int]=None, mask:Optional[Image]=None) -> Image
+
+      Performs dilation and erosion on an image in order. Please see `Image.dilate()`
+      and `Image.erode()` for more information.
+
+      ``mask`` is another image to use as a pixel level mask for the operation.
+      The mask should be an image with just black or white pixels and should be the
+      same size as the image being operated on. Only pixels set in the mask are
+      modified.
+
+      Returns the image object so you can call another method using ``.`` notation.
+
+      Not supported on compressed images or bayer/yuv images.
+
+   .. method:: top_hat(size:int, threshold:Optional[int]=None, mask:Optional[Image]=None) -> Image
+
+      Returns the image difference of the image and `Image.open()`'ed image.
+
+      ``mask`` is another image to use as a pixel level mask for the operation.
+      The mask should be an image with just black or white pixels and should be the
+      same size as the image being operated on. Only pixels set in the mask are
+      modified.
+
+      Not supported on compressed images or bayer/yuv images.
+
+   .. method:: black_hat(size:int, threshold:Optional[int]=None, mask:Optional[Image]=None) -> Image
+
+      Returns the image difference of the image and `Image.close()`'ed image.
+
+      ``mask`` is another image to use as a pixel level mask for the operation.
+      The mask should be an image with just black or white pixels and should be the
+      same size as the image being operated on. Only pixels set in the mask are
+      modified.
+
+      Not supported on compressed images or bayer/yuv images.
+
+   .. method:: mean(size:int, threshold:Optional[bool]=False, offset:Optional[int]=0, invert:Optional[bool]=False, mask:Optional[Image]=None) -> Image
 
       Standard mean blurring filter using a box filter.
 
@@ -3383,11 +3457,9 @@ The image object is the basic object for machine vision operations.
 
       Returns the image object so you can call another method using ``.`` notation.
 
-      Not supported on compressed images or bayer images.
+      Not supported on compressed images or bayer/yuv images.
 
-      This method is not available on the OpenMV Cam M4.
-
-   .. method:: median(size:int, percentile=0.5, threshold=False, offset=0, invert=False, mask:Optional[Image]=None) -> Image
+   .. method:: median(size:int, percentile:Optional[float]=0.5, threshold:Optional[bool]=False, offset:Optional[int]=0, invert:Optional[bool]=False, mask:Optional[Image]=None) -> Image
 
       Runs the median filter on the image. The median filter is the best filter
       for smoothing surfaces while preserving edges but it is very slow.
@@ -3414,11 +3486,9 @@ The image object is the basic object for machine vision operations.
 
       Returns the image object so you can call another method using ``.`` notation.
 
-      Not supported on compressed images or bayer images.
+      Not supported on compressed images or bayer/yuv images.
 
-      This method is not available on the OpenMV Cam M4.
-
-   .. method:: mode(size:int, threshold=False, offset=0, invert=False, mask:Optional[Image]=None) -> Image
+   .. method:: mode(size:int, threshold:Optional[bool]=False, offset:Optional[int]=0, invert:Optional[bool]=False, mask:Optional[Image]=Nonee) -> Image
 
       Runs the mode filter on the image by replacing each pixel with the mode of
       their neighbors. This method works great on grayscale images. However, on
@@ -3442,11 +3512,9 @@ The image object is the basic object for machine vision operations.
 
       Returns the image object so you can call another method using ``.`` notation.
 
-      Not supported on compressed images or bayer images.
+      Not supported on compressed images or bayer/yuv images.
 
-      This method is not available on the OpenMV Cam M4.
-
-   .. method:: midpoint(size:int, bias=0.5, threshold=False, offset=0, invert=False, mask:Optional[Image]=None) -> Image
+   .. method:: midpoint(size:int, bias:Optional[float]=0.5, threshold:Optional[bool]=False, offset:Optional[int]=0, invert:Optional[bool]=False, mask:Optional[Image]=None) -> Image
 
       Runs the midpoint filter on the image. This filter finds the midpoint
       ((max-min)/2) of each pixel neighborhood in the image.
@@ -3471,29 +3539,26 @@ The image object is the basic object for machine vision operations.
 
       Returns the image object so you can call another method using ``.`` notation.
 
-      Not supported on compressed images or bayer images.
+      Not supported on compressed images or bayer/yuv images.
 
-      This method is not available on the OpenMV Cam M4.
-
-   .. method:: morph(size:int, kernel, mul:Optional[int]=None, add=0, threshold=False, offset=0, invert=False, mask:Optional[Image]=None) -> Image
+   .. method:: morph(size:int, kernel:list, mul:Optional[float]=1.0, add:Optional[float]=0.0, threshold:Optional[bool]=False, offset:Optional[int]=0, invert:Optional[bool]=False, mask:Optional[Image]=None) -> Image
 
       Convolves the image by a filter kernel. This allows you to do general purpose
       convolutions on an image.
 
       ``size`` controls the size of the kernel which must be
-      ((size*2)+1)x((size*2)+1) elements big.
+      ``((size*2)+1)x((size*2)+1)`` elements big.
 
-      ``kernel`` is the kernel to convolve the image by. It can either be a tuple
-      or a list of integer values.
+      ``kernel`` is the kernel to convolve the image by. The kernel can either be
+      a 1D tuple or list or a 2D tuple or list. For 1D kernels the tuple/list
+      must be ``((size*2)+1)x((size*2)+1)`` elements big. For 2D tuples/lists each
+      row must be ``((size*2)+1)`` elements big and there must be ``((size*2)+1)`` rows.
 
-      ``mul`` is number to multiply the convolution pixel results by. When not set
-      it defaults to a value that will prevent scaling in the convolution output.
+      ``mul`` allows you to do a global contrast adjustment. It's value should be greater than
+      0.0. The default value is 1.0 which does nothing.
 
-      ``add`` is a value to add to each convolution pixel result.
-
-      ``mul`` basically allows you to do a global contrast adjustment and ``add``
-      allows you to do a global brightness adjustment. Pixels that go outside of
-      the image mins and maxes for color channels will be clipped.
+      ``add`` allows you to do a global brightness adjustment. It's value should be between
+      0.0 and 1.0. The default value is 0.0 which does nothing.
 
       If you'd like to adaptive threshold the image on the output of the filter
       you can pass ``threshold=True`` which will enable adaptive thresholding of the
@@ -3510,9 +3575,9 @@ The image object is the basic object for machine vision operations.
 
       Returns the image object so you can call another method using ``.`` notation.
 
-      Not supported on compressed images or bayer images.
+      Not supported on compressed images or bayer/yuv images.
 
-   .. method:: gaussian(size:int, unsharp=False, mul:Optional[int]=None, add=0, threshold=False, offset=0, invert=False, mask:Optional[Image]=None) -> Image
+   .. method:: gaussian(size:int, unsharp:Optional[bool]=False, mul:Optional[float]=1.0, add:Optional[float]=0.0, threshold:Optional[bool]=False, offset:Optional[int]=0, invert:Optional[bool]=False, mask:Optional[Image]=None) -> Image
 
       Convolves the image by a smoothing guassian kernel.
 
@@ -3522,14 +3587,11 @@ The image object is the basic object for machine vision operations.
       filtering operation this method will perform an unsharp mask operation which
       improves image sharpness on edges.
 
-      ``mul`` is number to multiply the convolution pixel results by. When not set
-      it defaults to a value that will prevent scaling in the convolution output.
+      ``mul`` allows you to do a global contrast adjustment. It's value should be greater than
+      0.0. The default value is 1.0 which does nothing.
 
-      ``add`` is a value to add to each convolution pixel result.
-
-      ``mul`` basically allows you to do a global contrast adjustment and ``add``
-      allows you to do a global brightness adjustment. Pixels that go outside of
-      the image mins and maxes for color channels will be clipped.
+      ``add`` allows you to do a global brightness adjustment. It's value should be between
+      0.0 and 1.0. The default value is 0.0 which does nothing.
 
       If you'd like to adaptive threshold the image on the output of the filter
       you can pass ``threshold=True`` which will enable adaptive thresholding of the
@@ -3546,9 +3608,9 @@ The image object is the basic object for machine vision operations.
 
       Returns the image object so you can call another method using ``.`` notation.
 
-      Not supported on compressed images or bayer images.
+      Not supported on compressed images or bayer/yuv images.
 
-   .. method:: laplacian(size:int, sharpen=False, mul:Optional[int]=None, add=0, threshold=False, offset=0, invert=False, mask:Optional[Image]=None) -> Image
+   .. method:: laplacian(size:int, sharpen:Optional[bool]=False, mul:Optional[float]=1.0, add:Optional[float]=0.0, threshold:Optional[bool]=False, offset:Optional[int]=0, invert:Optional[bool]=False, mask:Optional[Image]=None) -> Image
 
       Convolves the image by a edge detecting laplacian kernel.
 
@@ -3558,14 +3620,11 @@ The image object is the basic object for machine vision operations.
       unthresholded edge detection image this method will instead sharpen the
       image. Increase the kernel size then to increase the image sharpness.
 
-      ``mul`` is number to multiply the convolution pixel results by. When not set
-      it defaults to a value that will prevent scaling in the convolution output.
+      ``mul`` allows you to do a global contrast adjustment. It's value should be greater than
+      0.0. The default value is 1.0 which does nothing.
 
-      ``add`` is a value to add to each convolution pixel result.
-
-      ``mul`` basically allows you to do a global contrast adjustment and ``add``
-      allows you to do a global brightness adjustment. Pixels that go outside of
-      the image mins and maxes for color channels will be clipped.
+      ``add`` allows you to do a global brightness adjustment. It's value should be between
+      0.0 and 1.0. The default value is 0.0 which does nothing.
 
       If you'd like to adaptive threshold the image on the output of the filter
       you can pass ``threshold=True`` which will enable adaptive thresholding of the
@@ -3582,11 +3641,9 @@ The image object is the basic object for machine vision operations.
 
       Returns the image object so you can call another method using ``.`` notation.
 
-      Not supported on compressed images or bayer images.
+     Not supported on compressed images or bayer/yuv images.
 
-      This method is not available on the OpenMV Cam M4.
-
-   .. method:: bilateral(size:int, color_sigma=0.1, space_sigma=1, threshold=False, offset=0, invert=False, mask:Optional[Image]=None) -> Image
+   .. method:: bilateral(size:int, color_sigma:Optional[float]=0.1, space_sigma:Optional[float]=1.0, threshold:Optional[bool]=False, offset:Optional[int]=0, invert:Optional[bool]=False, mask:Optional[Image]=None) -> Image
 
       Convolves the image by a bilateral filter. The bilateral filter smooths the
       image while keeping edges in the image.
@@ -3614,11 +3671,12 @@ The image object is the basic object for machine vision operations.
 
       Returns the image object so you can call another method using ``.`` notation.
 
-      Not supported on compressed images or bayer images.
+      Not supported on compressed images or bayer/yuv images.
 
-      This method is not available on the OpenMV Cam M4.
+   Geometric Methods
+   ~~~~~~~~~~~~~~~~~
 
-   .. method:: linpolar(reverse=False) -> Image
+   .. method:: linpolar(reverse:bool=False) -> Image
 
       Re-project's and image from cartessian coordinates to linear polar coordinates.
 
@@ -3630,7 +3688,7 @@ The image object is the basic object for machine vision operations.
 
       This method is not available on the OpenMV Cam M4.
 
-   .. method:: logpolar(reverse=False) -> Image
+   .. method:: logpolar(reverse:bool=False) -> Image
 
       Re-project's and image from cartessian coordinates to log polar coordinates.
 
@@ -3643,7 +3701,7 @@ The image object is the basic object for machine vision operations.
 
       This method is not available on the OpenMV Cam M4.
 
-   .. method:: lens_corr(strength=1.8, zoom=1.0, x_corr=0.0, y_corr=0.0) -> Image
+   .. method:: lens_corr(strength:float=1.8, zoom:float=1.0, x_corr:float=0.0, y_corr:float=0.0) -> Image
 
       Performs lens correction to un-fisheye the image due to the lens distortion.
 
@@ -3705,6 +3763,83 @@ The image object is the basic object for machine vision operations.
       Not supported on compressed images or bayer images.
 
       This method is not available on the OpenMV Cam M4.
+
+   Get Methods
+   ~~~~~~~~~~~
+
+   .. method:: get_similarity(image:Image, x:Optional[int]=0, y:Optional[int]=0, x_scale:float=1.0, y_scale:float=1.0, roi:Optional[Tuple[int,int,int,int]]=None, rgb_channel:int=-1, alpha:int=256, color_palette=None, alpha_palette=None, hint:int=0, dssim:bool=False) -> Similarity
+
+      Computes the similarity between two images. The similarity is computed by
+      using the structural similiary index (SSIM). The SSIM is a metric that
+      compares the structural similarity between two images. The SSIM is a value
+      between -1 and 1. A value of 1 means the images are identical, a value of
+      0 means the images are not similar, and a value of -1 means the images are
+      perfectly the opposite of each other. Typically, if you want to check
+      if two images are different you should look to see how negative the SSIM
+      value is.
+
+      ``image`` is the image to compare to.
+
+      You may also pass a path instead of an image object for this method to automatically load the image
+      from disk and use it in one step. E.g. ``get_similarity("test.jpg")``.
+
+      ``x`` is the x offset to start comparing the image at.
+
+      ``y`` is the y offset to start comparing the image at.
+
+      ``x_scale`` controls how much the displayed image is scaled by in the x direction (float). If this
+      value is negative the image will be flipped horizontally. Note that if ``y_scale`` is not specified
+      then it will match ``x_scale`` to maintain the aspect ratio.
+
+      ``y_scale`` controls how much the displayed image is scaled by in the y direction (float). If this
+      value is negative the image will be flipped vertically. Note that if ``x_scale`` is not specified
+      then it will match ``x_scale`` to maintain the aspect ratio.
+
+      ``roi`` is the region-of-interest rectangle tuple (x, y, w, h) of the source image to draw. This
+      allows you to extract just the pixels in the ROI to scale and draw on the destination image.
+
+      ``rgb_channel`` is the RGB channel (0=R, G=1, B=2) to extract from an RGB565 image (if passed)
+      and to render onto the destination image. For example, if you pass ``rgb_channel=1`` this will
+      extract the green channel of the source RGB565 image and draw that in grayscale on the
+      destination image.
+
+      ``alpha`` controls how much of the source image to blend into the destination image. A value of
+      256 draws an opaque source image while a value lower than 256 produces a blend between the source
+      and destination image. 0 results in no modification to the destination image.
+
+      ``color_palette`` if not ``None`` can be `image.PALETTE_RAINBOW`, `image.PALETTE_IRONBOW`, or
+      a 256 pixel in total RGB565 image to use as a color lookup table on the grayscale value of
+      whatever the source image is. This is applied after ``rgb_channel`` extraction if used.
+
+      ``alpha_palette`` if not ``None`` can be a 256 pixel in total GRAYSCALE image to use as a alpha
+      palette which modulates the ``alpha`` value of the source image being drawn at a pixel pixel
+      level allowing you to precisely control the alpha value of pixels based on their grayscale value.
+      A pixel value of 255 in the alpha lookup table is opaque which anything less than 255 becomes
+      more transparent until 0. This is applied after ``rgb_channel`` extraction if used.
+
+      ``hint`` can be a logical OR of the flags:
+
+         * `image.AREA`: Use area scaling when downscaling versus the default of nearest neighbor.
+         * `image.BILINEAR`: Use bilinear scaling versus the default of nearest neighbor scaling.
+         * `image.BICUBIC`: Use bicubic scaling versus the default of nearest neighbor scaling.
+         * `image.CENTER`: Center the image being drawn on the display. This is applied after scaling.
+         * `image.HMIRROR`: Horizontally mirror the image.
+         * `image.VFLIP`: Vertically flip the image.
+         * `image.TRANSPOSE`: Transpose the image (swap x/y).
+         * `image.EXTRACT_RGB_CHANNEL_FIRST`: Do rgb_channel extraction before scaling.
+         * `image.APPLY_COLOR_PALETTE_FIRST`: Apply color palette before scaling.
+         * `image.SCALE_ASPECT_KEEP`: Scale the image being drawn to fit inside the display.
+         * `image.SCALE_ASPECT_EXPAND`: Scale the image being drawn to fill the display (results in cropping)
+         * `image.SCALE_ASPECT_IGNORE`: Scale the image being drawn to fill the display (results in stretching).
+         * `image.ROTATE_90`: Rotate the image by 90 degrees (this is just VFLIP | TRANSPOSE).
+         * `image.ROTATE_180`: Rotate the image by 180 degrees (this is just HMIRROR | VFLIP).
+         * `image.ROTATE_270`: Rotate the image by 270 degrees (this is just HMIRROR | TRANSPOSE).
+         * `image.BLACK_BACKGROUND`: Assume the background image being drawn on is black speeding up blending.
+
+      ``dssim`` if true will compute the structual disimilarity index (DSSIM) instead of the SSIM. A
+      value of 0 means the images are identical. A value of 1 means the images are completely different.
+
+      Returns a `image.Similarity` object.
 
    .. method:: get_histogram(thresholds:Optional[List[Tuple[int,int]]]=None, invert=False, roi:Optional[Tuple[int,int,int,int]]=None, bins=256, l_bins=256, a_bins=256, b_bins=256, difference:Optional[Image]=None) -> histogram
 
@@ -3889,6 +4024,9 @@ The image object is the basic object for machine vision operations.
       If the regression's pixel count is less than ``pixels_threshold`` then None is returned.
 
       Not supported on compressed images or bayer images.
+
+   Detection Methods
+   ~~~~~~~~~~~~~~~~~
 
    .. method:: find_blobs(thresholds:List[Tuple[int,int]], invert=False, roi:Optional[Tuple[int,int,int,int]]=None, x_stride=2, y_stride=1, area_threshold=10, pixels_threshold=10, merge=False, margin=0, threshold_cb=None, merge_cb=None, x_hist_bins_max=0, y_hist_bins_max=0) -> List[blob]
 
@@ -4415,10 +4553,10 @@ The image object is the basic object for machine vision operations.
 
       This method is not available on the OpenMV Cam M4.
 
-   .. method:: stero_disparity(reversed=False, max_disparity=64, threshold=64)
+   .. method:: stero_disparity(reversed:bool=False, max_disparity:int=64, threshold:int=64)
 
       Takes a double wide grayscale image that contains the output of two camera sensors
-      side-by-side and replaces one of the images int he double wide image with the stero-disparity
+      side-by-side and replaces one of the images in the double wide image with the stero-disparity
       image where each pixel reprsents depth. E.g. if you have two 320x240 cameras then this method
       takes a 640x240 image.
 
@@ -4581,6 +4719,12 @@ Constants
    the aspect ratio of the image being drawn. Any x_scale/y_scale values passed will additionally
    scale the scaled image.
 
+.. data:: BLACK_BACKGROUND
+   :type: int
+
+   Speeds up `draw_image` when drawing on a black destination image when using alpha effects that
+   require reading both source and destination pixels. This skips reading the destination pixel.
+
 .. data:: ROTATE_90
    :type: int
 
@@ -4596,11 +4740,26 @@ Constants
 
    Rotate the image by 270 degrees (this is just `image.HMIRROR` ORed with `image.TRANSPOSE`).
 
-.. data:: BLACK_BACKGROUND
+.. data:: JPEG_SUBSAMPLING_AUTO
    :type: int
 
-   Speeds up `draw_image` when drawing on a black destination image when using alpha effects that
-   require reading both source and destination pixels. This skips reading the destination pixel.
+   Automatically select the best JPEG subsampling based on the image quality parameter.
+
+.. data:: JPEG_SUBSAMPLING_444
+   :type: int
+
+   Use 4:4:4 JPEG subsampling.
+
+.. data:: JPEG_SUBSAMPLING_422
+   :type: int
+
+   Use 4:2:2 JPEG subsampling. Note, you should force the jpeg subsampling to be 4:2:2 if you are
+   streaming video via MJPEG for the best compatibility with third-party video players.
+
+.. data:: JPEG_SUBSAMPLING_420
+   :type: int
+
+   Use 4:2:0 JPEG subsampling.
 
 .. data:: SEARCH_EX
    :type: int

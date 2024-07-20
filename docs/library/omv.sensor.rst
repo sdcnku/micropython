@@ -701,6 +701,11 @@ Constants
 
    `sensor.get_id()` returns this for the GC2145 camera.
 
+.. data:: PAG7920
+   :type: int
+
+   `sensor.get_id()` returns this for the PAG7920 camera.
+
 .. data:: PAJ6100
    :type: int
 

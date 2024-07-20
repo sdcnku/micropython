@@ -2,7 +2,7 @@
 
 Core language
 =============
-Generated Mon 14 Nov 2022 04:08:40 UTC
+Generated Tue 23 Jul 2024 04:46:38 UTC
 
 .. _cpydiff_core_fstring_concat:
 
@@ -23,17 +23,17 @@ Sample code::
     print(f"{x}" "a{}b")  # fails
     print(f"{x}" f"{y}")  # fails
 
-+-------------+------------------------------------------------------+
-| CPy output: | uPy output:                                          |
-+-------------+------------------------------------------------------+
-| ::          | ::                                                   |
-|             |                                                      |
-|     aa1     |     /bin/sh: 1: ../ports/unix/micropython: not found |
-|     1ab     |                                                      |
-|     a{}a1   |                                                      |
-|     1a{}b   |                                                      |
-|     12      |                                                      |
-+-------------+------------------------------------------------------+
++-------------+----------------------------------------+
+| CPy output: | uPy output:                            |
++-------------+----------------------------------------+
+| ::          | ::                                     |
+|             |                                        |
+|     aa1     |     Traceback (most recent call last): |
+|     1ab     |       File "<stdin>", line 13          |
+|     a{}a1   |     SyntaxError: invalid syntax        |
+|     1a{}b   |                                        |
+|     12      |                                        |
++-------------+----------------------------------------+
 
 .. _cpydiff_core_fstring_parser:
 
@@ -50,14 +50,15 @@ Sample code::
     print(f'{"hello { world"}')
     print(f'{"hello ] world"}')
 
-+-------------------+------------------------------------------------------+
-| CPy output:       | uPy output:                                          |
-+-------------------+------------------------------------------------------+
-| ::                | ::                                                   |
-|                   |                                                      |
-|     hello { world |     /bin/sh: 1: ../ports/unix/micropython: not found |
-|     hello ] world |                                                      |
-+-------------------+------------------------------------------------------+
++-------------------+----------------------------------------+
+| CPy output:       | uPy output:                            |
++-------------------+----------------------------------------+
+| ::                | ::                                     |
+|                   |                                        |
+|     hello { world |     Traceback (most recent call last): |
+|     hello ] world |       File "<stdin>", line 9           |
+|                   |     SyntaxError: invalid syntax        |
++-------------------+----------------------------------------+
 
 .. _cpydiff_core_fstring_raw:
 
@@ -71,46 +72,39 @@ Sample code::
     
     rf"hello"
 
-+-------------+------------------------------------------------------+
-| CPy output: | uPy output:                                          |
-+-------------+------------------------------------------------------+
-|             | ::                                                   |
-|             |                                                      |
-|             |     /bin/sh: 1: ../ports/unix/micropython: not found |
-+-------------+------------------------------------------------------+
++-------------+--------------------------------------------------+
+| CPy output: | uPy output:                                      |
++-------------+--------------------------------------------------+
+|             | ::                                               |
+|             |                                                  |
+|             |     Traceback (most recent call last):           |
+|             |       File "<stdin>", line 8                     |
+|             |     SyntaxError: raw f-strings are not supported |
++-------------+--------------------------------------------------+
 
 .. _cpydiff_core_fstring_repr:
 
-f-strings don't support the !r, !s, and !a conversions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+f-strings don't support !a conversions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Cause:** MicroPython is optimised for code space.
+**Cause:** MicropPython does not implement ascii()
 
-**Workaround:** Use repr(), str(), and ascii() explictly.
+**Workaround:** None
 
 Sample code::
 
     
-    
-    class X:
-        def __repr__(self):
-            return "repr"
-    
-        def __str__(self):
-            return "str"
-    
-    
-    print(f"{X()!r}")
-    print(f"{X()!s}")
+    f"{'unicode text'!a}"
 
-+-------------+------------------------------------------------------+
-| CPy output: | uPy output:                                          |
-+-------------+------------------------------------------------------+
-| ::          | ::                                                   |
-|             |                                                      |
-|     repr    |     /bin/sh: 1: ../ports/unix/micropython: not found |
-|     str     |                                                      |
-+-------------+------------------------------------------------------+
++-------------+----------------------------------------+
+| CPy output: | uPy output:                            |
++-------------+----------------------------------------+
+|             | ::                                     |
+|             |                                        |
+|             |     Traceback (most recent call last): |
+|             |       File "<stdin>", line 8           |
+|             |     SyntaxError: invalid syntax        |
++-------------+----------------------------------------+
 
 Classes
 -------
@@ -135,13 +129,13 @@ Sample code::
     
     gc.collect()
 
-+-------------+------------------------------------------------------+
-| CPy output: | uPy output:                                          |
-+-------------+------------------------------------------------------+
-| ::          | ::                                                   |
-|             |                                                      |
-|     __del__ |     /bin/sh: 1: ../ports/unix/micropython: not found |
-+-------------+------------------------------------------------------+
++-------------+-------------+
+| CPy output: | uPy output: |
++-------------+-------------+
+| ::          |             |
+|             |             |
+|     __del__ |             |
++-------------+-------------+
 
 .. _cpydiff_core_class_mro:
 
@@ -168,13 +162,57 @@ Sample code::
     t = C((1, 2, 3))
     print(t)
 
-+-------------+------------------------------------------------------+
-| CPy output: | uPy output:                                          |
-+-------------+------------------------------------------------------+
-| ::          | ::                                                   |
-|             |                                                      |
-|     Foo     |     /bin/sh: 1: ../ports/unix/micropython: not found |
-+-------------+------------------------------------------------------+
++-------------+---------------+
+| CPy output: | uPy output:   |
++-------------+---------------+
+| ::          | ::            |
+|             |               |
+|     Foo     |     (1, 2, 3) |
++-------------+---------------+
+
+.. _cpydiff_core_class_name_mangling:
+
+Private Class Members name mangling is not implemented
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Cause:** The MicroPython compiler does not implement name mangling for private class members.
+
+**Workaround:** Avoid using or having a collision with global names, by adding a unique prefix to the private class member name manually.
+
+Sample code::
+
+    
+    
+    def __print_string(string):
+        print(string)
+    
+    
+    class Foo:
+        def __init__(self, string):
+            self.string = string
+    
+        def do_print(self):
+            __print_string(self.string)
+    
+    
+    example_string = "Example String to print."
+    
+    class_item = Foo(example_string)
+    print(class_item.string)
+    
+    class_item.do_print()
+
++------------------------------------------------------------------------------------------+------------------------------+
+| CPy output:                                                                              | uPy output:                  |
++------------------------------------------------------------------------------------------+------------------------------+
+| ::                                                                                       | ::                           |
+|                                                                                          |                              |
+|     Example String to print.                                                             |     Example String to print. |
+|     Traceback (most recent call last):                                                   |     Example String to print. |
+|       File "<stdin>", line 26, in <module>                                               |                              |
+|       File "<stdin>", line 18, in do_print                                               |                              |
+|     NameError: name '_Foo__print_string' is not defined. Did you mean: '__print_string'? |                              |
++------------------------------------------------------------------------------------------+------------------------------+
 
 .. _cpydiff_core_class_supermultiple:
 
@@ -214,16 +252,16 @@ Sample code::
     
     D()
 
-+----------------+------------------------------------------------------+
-| CPy output:    | uPy output:                                          |
-+----------------+------------------------------------------------------+
-| ::             | ::                                                   |
-|                |                                                      |
-|     D.__init__ |     /bin/sh: 1: ../ports/unix/micropython: not found |
-|     B.__init__ |                                                      |
-|     C.__init__ |                                                      |
-|     A.__init__ |                                                      |
-+----------------+------------------------------------------------------+
++----------------+----------------+
+| CPy output:    | uPy output:    |
++----------------+----------------+
+| ::             | ::             |
+|                |                |
+|     D.__init__ |     D.__init__ |
+|     B.__init__ |     B.__init__ |
+|     C.__init__ |     A.__init__ |
+|     A.__init__ |                |
++----------------+----------------+
 
 .. _cpydiff_core_class_superproperty:
 
@@ -249,13 +287,13 @@ Sample code::
     a = AA()
     print(a.p)
 
-+---------------+------------------------------------------------------+
-| CPy output:   | uPy output:                                          |
-+---------------+------------------------------------------------------+
-| ::            | ::                                                   |
-|               |                                                      |
-|     {'a': 10} |     /bin/sh: 1: ../ports/unix/micropython: not found |
-+---------------+------------------------------------------------------+
++---------------+----------------+
+| CPy output:   | uPy output:    |
++---------------+----------------+
+| ::            | ::             |
+|               |                |
+|     {'a': 10} |     <property> |
++---------------+----------------+
 
 Functions
 ---------
@@ -276,13 +314,13 @@ Sample code::
     except Exception as e:
         print(e)
 
-+---------------------------------------------------+------------------------------------------------------+
-| CPy output:                                       | uPy output:                                          |
-+---------------------------------------------------+------------------------------------------------------+
-| ::                                                | ::                                                   |
-|                                                   |                                                      |
-|     append() takes exactly one argument (0 given) |     /bin/sh: 1: ../ports/unix/micropython: not found |
-+---------------------------------------------------+------------------------------------------------------+
++--------------------------------------------------------+------------------------------------------------------------+
+| CPy output:                                            | uPy output:                                                |
++--------------------------------------------------------+------------------------------------------------------------+
+| ::                                                     | ::                                                         |
+|                                                        |                                                            |
+|     list.append() takes exactly one argument (0 given) |     function takes 2 positional arguments but 1 were given |
++--------------------------------------------------------+------------------------------------------------------------+
 
 .. _cpydiff_core_function_moduleattr:
 
@@ -303,13 +341,15 @@ Sample code::
     
     print(f.__module__)
 
-+--------------+------------------------------------------------------+
-| CPy output:  | uPy output:                                          |
-+--------------+------------------------------------------------------+
-| ::           | ::                                                   |
-|              |                                                      |
-|     __main__ |     /bin/sh: 1: ../ports/unix/micropython: not found |
-+--------------+------------------------------------------------------+
++--------------+---------------------------------------------------------------------+
+| CPy output:  | uPy output:                                                         |
++--------------+---------------------------------------------------------------------+
+| ::           | ::                                                                  |
+|              |                                                                     |
+|     __main__ |     Traceback (most recent call last):                              |
+|              |       File "<stdin>", line 13, in <module>                          |
+|              |     AttributeError: 'function' object has no attribute '__module__' |
++--------------+---------------------------------------------------------------------+
 
 .. _cpydiff_core_function_userattr:
 
@@ -331,13 +371,15 @@ Sample code::
     f.x = 0
     print(f.x)
 
-+-------------+------------------------------------------------------+
-| CPy output: | uPy output:                                          |
-+-------------+------------------------------------------------------+
-| ::          | ::                                                   |
-|             |                                                      |
-|     0       |     /bin/sh: 1: ../ports/unix/micropython: not found |
-+-------------+------------------------------------------------------+
++-------------+------------------------------------------------------------+
+| CPy output: | uPy output:                                                |
++-------------+------------------------------------------------------------+
+| ::          | ::                                                         |
+|             |                                                            |
+|     0       |     Traceback (most recent call last):                     |
+|             |       File "<stdin>", line 13, in <module>                 |
+|             |     AttributeError: 'function' object has no attribute 'x' |
++-------------+------------------------------------------------------------+
 
 Generator
 ---------
@@ -374,17 +416,17 @@ Sample code::
     
     func()
 
-+-------------+------------------------------------------------------+
-| CPy output: | uPy output:                                          |
-+-------------+------------------------------------------------------+
-| ::          | ::                                                   |
-|             |                                                      |
-|     Enter   |     /bin/sh: 1: ../ports/unix/micropython: not found |
-|     1       |                                                      |
-|     2       |                                                      |
-|     3       |                                                      |
-|     Exit    |                                                      |
-+-------------+------------------------------------------------------+
++-------------+-------------+
+| CPy output: | uPy output: |
++-------------+-------------+
+| ::          | ::          |
+|             |             |
+|     Enter   |     Enter   |
+|     1       |     1       |
+|     2       |     2       |
+|     3       |     3       |
+|     Exit    |             |
++-------------+-------------+
 
 Runtime
 -------
@@ -407,13 +449,13 @@ Sample code::
     
     test()
 
-+----------------+------------------------------------------------------+
-| CPy output:    | uPy output:                                          |
-+----------------+------------------------------------------------------+
-| ::             | ::                                                   |
-|                |                                                      |
-|     {'val': 2} |     /bin/sh: 1: ../ports/unix/micropython: not found |
-+----------------+------------------------------------------------------+
++----------------+------------------------------------------------------------------------------------------------+
+| CPy output:    | uPy output:                                                                                    |
++----------------+------------------------------------------------------------------------------------------------+
+| ::             | ::                                                                                             |
+|                |                                                                                                |
+|     {'val': 2} |     {'test': <function test at 0x7f0666666260>, '__name__': '__main__', '__file__': '<stdin>'} |
++----------------+------------------------------------------------------------------------------------------------+
 
 .. _cpydiff_core_locals_eval:
 
@@ -435,14 +477,14 @@ Sample code::
     
     test()
 
-+-------------+------------------------------------------------------+
-| CPy output: | uPy output:                                          |
-+-------------+------------------------------------------------------+
-| ::          | ::                                                   |
-|             |                                                      |
-|     2       |     /bin/sh: 1: ../ports/unix/micropython: not found |
-|     2       |                                                      |
-+-------------+------------------------------------------------------+
++-------------+-------------+
+| CPy output: | uPy output: |
++-------------+-------------+
+| ::          | ::          |
+|             |             |
+|     2       |     2       |
+|     2       |     1       |
++-------------+-------------+
 
 import
 ------
@@ -462,20 +504,22 @@ Sample code::
     
     foo.hello()
 
-+-------------+------------------------------------------------------+
-| CPy output: | uPy output:                                          |
-+-------------+------------------------------------------------------+
-| ::          | ::                                                   |
-|             |                                                      |
-|     hello   |     /bin/sh: 1: ../ports/unix/micropython: not found |
-+-------------+------------------------------------------------------+
++-------------+-------------------------------------------+
+| CPy output: | uPy output:                               |
++-------------+-------------------------------------------+
+| ::          | ::                                        |
+|             |                                           |
+|     hello   |     Traceback (most recent call last):    |
+|             |       File "<stdin>", line 9, in <module> |
+|             |     NameError: name 'foo' isn't defined   |
++-------------+-------------------------------------------+
 
 .. _cpydiff_core_import_path:
 
 __path__ attribute of a package has a different type (single string instead of list of strings) in MicroPython
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Cause:** MicroPython does't support namespace packages split across filesystem. Beyond that, MicroPython's import system is highly optimized for minimal memory usage.
+**Cause:** MicroPython doesn't support namespace packages split across filesystem. Beyond that, MicroPython's import system is highly optimized for minimal memory usage.
 
 **Workaround:** Details of import handling is inherently implementation dependent. Don't rely on such details in portable applications.
 
@@ -485,53 +529,18 @@ Sample code::
     
     print(modules.__path__)
 
-+-----------------------------------------------------------------------------+------------------------------------------------------+
-| CPy output:                                                                 | uPy output:                                          |
-+-----------------------------------------------------------------------------+------------------------------------------------------+
-| ::                                                                          | ::                                                   |
-|                                                                             |                                                      |
-|     ['/home/kwagyeman/GitHub/openmv-doc/micropython/tests/cpydiff/modules'] |     /bin/sh: 1: ../ports/unix/micropython: not found |
-+-----------------------------------------------------------------------------+------------------------------------------------------+
-
-.. _cpydiff_core_import_prereg:
-
-Failed to load modules are still registered as loaded
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-**Cause:** To make module handling more efficient, it's not wrapped with exception handling.
-
-**Workaround:** Test modules before production use; during development, use ``del sys.modules["name"]``, or just soft or hard reset the board.
-
-Sample code::
-
-    import sys
-    
-    try:
-        from modules import foo
-    except NameError as e:
-        print(e)
-    try:
-        from modules import foo
-    
-        print("Should not get here")
-    except NameError as e:
-        print(e)
-
-+-------------------------------+------------------------------------------------------+
-| CPy output:                   | uPy output:                                          |
-+-------------------------------+------------------------------------------------------+
-| ::                            | ::                                                   |
-|                               |                                                      |
-|     foo                       |     /bin/sh: 1: ../ports/unix/micropython: not found |
-|     name 'xxx' is not defined |                                                      |
-|     foo                       |                                                      |
-|     name 'xxx' is not defined |                                                      |
-+-------------------------------+------------------------------------------------------+
++-----------------------------------------------------------------------------+------------------------------+
+| CPy output:                                                                 | uPy output:                  |
++-----------------------------------------------------------------------------+------------------------------+
+| ::                                                                          | ::                           |
+|                                                                             |                              |
+|     ['/home/kwagyeman/github/openmv-doc/micropython/tests/cpydiff/modules'] |     ../tests/cpydiff/modules |
++-----------------------------------------------------------------------------+------------------------------+
 
 .. _cpydiff_core_import_split_ns_pkgs:
 
-MicroPython does't support namespace packages split across filesystem.
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+MicroPython doesn't support namespace packages split across filesystem.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Cause:** MicroPython's import system is highly optimized for simplicity, minimal memory usage, and minimal filesystem search overhead.
 
@@ -549,11 +558,13 @@ Sample code::
     
     print("Two modules of a split namespace package imported")
 
-+-------------------------------------------------------+------------------------------------------------------+
-| CPy output:                                           | uPy output:                                          |
-+-------------------------------------------------------+------------------------------------------------------+
-| ::                                                    | ::                                                   |
-|                                                       |                                                      |
-|     Two modules of a split namespace package imported |     /bin/sh: 1: ../ports/unix/micropython: not found |
-+-------------------------------------------------------+------------------------------------------------------+
++-------------------------------------------------------+-----------------------------------------------+
+| CPy output:                                           | uPy output:                                   |
++-------------------------------------------------------+-----------------------------------------------+
+| ::                                                    | ::                                            |
+|                                                       |                                               |
+|     Two modules of a split namespace package imported |     Traceback (most recent call last):        |
+|                                                       |       File "<stdin>", line 13, in <module>    |
+|                                                       |     ImportError: no module named 'subpkg.bar' |
++-------------------------------------------------------+-----------------------------------------------+
 
