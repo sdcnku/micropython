@@ -39,8 +39,8 @@
 #define MPU_REGION_OPENAMP  (MPU_REGION_NUMBER6)
 
 // Only relevant on CPUs with D-Cache, must be higher priority than SDRAM
-#define MPU_REGION_DMA_UNCACHED_1 (MPU_REGION_NUMBER6)
-#define MPU_REGION_DMA_UNCACHED_2 (MPU_REGION_NUMBER7)
+#define MPU_REGION_DMA_UNCACHED_1 (MPU_REGION_NUMBER7)
+#define MPU_REGION_DMA_UNCACHED_2 (MPU_REGION_NUMBER8)
 
 // Attribute value to disable a region entirely, remove it from the MPU
 // (i.e. the MPU_REGION_ENABLE bit is unset.)
