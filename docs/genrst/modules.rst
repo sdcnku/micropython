@@ -2,7 +2,41 @@
 
 Modules
 =======
-Generated Mon 14 Nov 2022 04:08:40 UTC
+Generated Tue 23 Jul 2024 04:46:38 UTC
+
+.. Preamble section inserted into generated output
+
+Positional-only Parameters
+--------------------------
+
+To save code size, many functions that accept keyword arguments in CPython only accept positional arguments in MicroPython.
+
+MicroPython marks positional-only parameters in the same way as CPython, by inserting a ``/`` to mark the end of the positional parameters. Any function whose signature ends in ``/`` takes *only* positional arguments. For more details, see `PEP 570 <https://peps.python.org/pep-0570/>`_.
+
+Example
+~~~~~~~
+
+For example, in CPython 3.4 this is the signature of the constructor ``socket.socket``::
+
+    socket.socket(family=AF_INET, type=SOCK_STREAM, proto=0, fileno=None)
+
+However, the signature documented in :func:`MicroPython<socket.socket>` is::
+
+    socket(af=AF_INET, type=SOCK_STREAM, proto=IPPROTO_TCP, /)
+
+The ``/`` at the end of the parameters indicates that they are all positional-only in MicroPython. The following code works in CPython but not in most MicroPython ports::
+
+    import socket
+    s = socket.socket(type=socket.SOCK_DGRAM)
+
+MicroPython will raise an exception::
+
+    TypeError: function doesn't take keyword arguments
+
+The following code will work in both CPython and MicroPython::
+
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 array
 -----
@@ -22,13 +56,15 @@ Sample code::
     
     array.array("b", [1, 2]) == array.array("i", [1, 2])
 
-+-------------+------------------------------------------------------+
-| CPy output: | uPy output:                                          |
-+-------------+------------------------------------------------------+
-|             | ::                                                   |
-|             |                                                      |
-|             |     /bin/sh: 1: ../ports/unix/micropython: not found |
-+-------------+------------------------------------------------------+
++-------------+-------------------------------------------+
+| CPy output: | uPy output:                               |
++-------------+-------------------------------------------+
+|             | ::                                        |
+|             |                                           |
+|             |     Traceback (most recent call last):    |
+|             |       File "<stdin>", line 9, in <module> |
+|             |     NotImplementedError:                  |
++-------------+-------------------------------------------+
 
 .. _cpydiff_module_array_constructor:
 
@@ -46,15 +82,15 @@ Sample code::
     a = array.array("b", [257])
     print(a)
 
-+--------------------------------------------------------+------------------------------------------------------+
-| CPy output:                                            | uPy output:                                          |
-+--------------------------------------------------------+------------------------------------------------------+
-| ::                                                     | ::                                                   |
-|                                                        |                                                      |
-|     Traceback (most recent call last):                 |     /bin/sh: 1: ../ports/unix/micropython: not found |
-|       File "<stdin>", line 9, in <module>              |                                                      |
-|     OverflowError: signed char is greater than maximum |                                                      |
-+--------------------------------------------------------+------------------------------------------------------+
++--------------------------------------------------------+---------------------+
+| CPy output:                                            | uPy output:         |
++--------------------------------------------------------+---------------------+
+| ::                                                     | ::                  |
+|                                                        |                     |
+|     Traceback (most recent call last):                 |     array('b', [1]) |
+|       File "<stdin>", line 9, in <module>              |                     |
+|     OverflowError: signed char is greater than maximum |                     |
++--------------------------------------------------------+---------------------+
 
 .. _cpydiff_modules_array_containment:
 
@@ -67,13 +103,15 @@ Sample code::
     
     print(1 in array.array("B", b"12"))
 
-+-------------+------------------------------------------------------+
-| CPy output: | uPy output:                                          |
-+-------------+------------------------------------------------------+
-| ::          | ::                                                   |
-|             |                                                      |
-|     False   |     /bin/sh: 1: ../ports/unix/micropython: not found |
-+-------------+------------------------------------------------------+
++-------------+-------------------------------------------+
+| CPy output: | uPy output:                               |
++-------------+-------------------------------------------+
+| ::          | ::                                        |
+|             |                                           |
+|     False   |     Traceback (most recent call last):    |
+|             |       File "<stdin>", line 9, in <module> |
+|             |     NotImplementedError:                  |
++-------------+-------------------------------------------+
 
 .. _cpydiff_modules_array_deletion:
 
@@ -88,13 +126,15 @@ Sample code::
     del a[1]
     print(a)
 
-+------------------------+------------------------------------------------------+
-| CPy output:            | uPy output:                                          |
-+------------------------+------------------------------------------------------+
-| ::                     | ::                                                   |
-|                        |                                                      |
-|     array('b', [1, 3]) |     /bin/sh: 1: ../ports/unix/micropython: not found |
-+------------------------+------------------------------------------------------+
++------------------------+-------------------------------------------------------------+
+| CPy output:            | uPy output:                                                 |
++------------------------+-------------------------------------------------------------+
+| ::                     | ::                                                          |
+|                        |                                                             |
+|     array('b', [1, 3]) |     Traceback (most recent call last):                      |
+|                        |       File "<stdin>", line 10, in <module>                  |
+|                        |     TypeError: 'array' object doesn't support item deletion |
++------------------------+-------------------------------------------------------------+
 
 .. _cpydiff_modules_array_subscrstep:
 
@@ -108,13 +148,15 @@ Sample code::
     a = array.array("b", (1, 2, 3))
     print(a[3:2:2])
 
-+----------------+------------------------------------------------------+
-| CPy output:    | uPy output:                                          |
-+----------------+------------------------------------------------------+
-| ::             | ::                                                   |
-|                |                                                      |
-|     array('b') |     /bin/sh: 1: ../ports/unix/micropython: not found |
-+----------------+------------------------------------------------------+
++----------------+---------------------------------------------------------------------------+
+| CPy output:    | uPy output:                                                               |
++----------------+---------------------------------------------------------------------------+
+| ::             | ::                                                                        |
+|                |                                                                           |
+|     array('b') |     Traceback (most recent call last):                                    |
+|                |       File "<stdin>", line 10, in <module>                                |
+|                |     NotImplementedError: only slices with step=1 (aka None) are supported |
++----------------+---------------------------------------------------------------------------+
 
 builtins
 --------
@@ -137,13 +179,15 @@ Sample code::
 
     print(next(iter(range(0)), 42))
 
-+-------------+------------------------------------------------------+
-| CPy output: | uPy output:                                          |
-+-------------+------------------------------------------------------+
-| ::          | ::                                                   |
-|             |                                                      |
-|     42      |     /bin/sh: 1: ../ports/unix/micropython: not found |
-+-------------+------------------------------------------------------+
++-------------+-----------------------------------------------------------------------+
+| CPy output: | uPy output:                                                           |
++-------------+-----------------------------------------------------------------------+
+| ::          | ::                                                                    |
+|             |                                                                       |
+|     42      |     Traceback (most recent call last):                                |
+|             |       File "<stdin>", line 12, in <module>                            |
+|             |     TypeError: function takes 1 positional arguments but 2 were given |
++-------------+-----------------------------------------------------------------------+
 
 deque
 -----
@@ -162,13 +206,15 @@ Sample code::
     D = collections.deque()
     print(D)
 
-+---------------+------------------------------------------------------+
-| CPy output:   | uPy output:                                          |
-+---------------+------------------------------------------------------+
-| ::            | ::                                                   |
-|               |                                                      |
-|     deque([]) |     /bin/sh: 1: ../ports/unix/micropython: not found |
-+---------------+------------------------------------------------------+
++---------------+-----------------------------------------------------------------+
+| CPy output:   | uPy output:                                                     |
++---------------+-----------------------------------------------------------------+
+| ::            | ::                                                              |
+|               |                                                                 |
+|     deque([]) |     Traceback (most recent call last):                          |
+|               |       File "<stdin>", line 9, in <module>                       |
+|               |     TypeError: function missing 2 required positional arguments |
++---------------+-----------------------------------------------------------------+
 
 json
 ----
@@ -190,13 +236,15 @@ Sample code::
     except TypeError:
         print("TypeError")
 
-+---------------+------------------------------------------------------+
-| CPy output:   | uPy output:                                          |
-+---------------+------------------------------------------------------+
-| ::            | ::                                                   |
-|               |                                                      |
-|     TypeError |     /bin/sh: 1: ../ports/unix/micropython: not found |
-+---------------+------------------------------------------------------+
++---------------+--------------------------------------------+
+| CPy output:   | uPy output:                                |
++---------------+--------------------------------------------+
+| ::            | ::                                         |
+|               |                                            |
+|     TypeError |     Traceback (most recent call last):     |
+|               |       File "<stdin>", line 12, in <module> |
+|               |     UnicodeError:                          |
++---------------+--------------------------------------------+
 
 os
 --
@@ -222,14 +270,15 @@ Sample code::
         os.putenv("NEW_VARIABLE", "VALUE")
         print(os.getenv("NEW_VARIABLE"))
 
-+-------------+------------------------------------------------------+
-| CPy output: | uPy output:                                          |
-+-------------+------------------------------------------------------+
-| ::          | ::                                                   |
-|             |                                                      |
-|     None    |     /bin/sh: 1: ../ports/unix/micropython: not found |
-|     VALUE   |                                                      |
-+-------------+------------------------------------------------------+
++-------------+-------------------------+
+| CPy output: | uPy output:             |
++-------------+-------------------------+
+| ::          | ::                      |
+|             |                         |
+|     None    |     should not get here |
+|     VALUE   |     None                |
+|             |     VALUE               |
++-------------+-------------------------+
 
 .. _cpydiff_modules_os_getenv:
 
@@ -246,40 +295,14 @@ Sample code::
     os.putenv("NEW_VARIABLE", "VALUE")
     print(os.getenv("NEW_VARIABLE"))
 
-+-------------+------------------------------------------------------+
-| CPy output: | uPy output:                                          |
-+-------------+------------------------------------------------------+
-| ::          | ::                                                   |
-|             |                                                      |
-|     None    |     /bin/sh: 1: ../ports/unix/micropython: not found |
-|     None    |                                                      |
-+-------------+------------------------------------------------------+
-
-.. _cpydiff_modules_os_getenv_argcount:
-
-``getenv`` only allows one argument
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-**Workaround:** Test that the return value is ``None``
-
-Sample code::
-
-    import os
-    
-    try:
-        print(os.getenv("NEW_VARIABLE", "DEFAULT"))
-    except TypeError:
-        print("should not get here")
-        # this assumes NEW_VARIABLE is never an empty variable
-        print(os.getenv("NEW_VARIABLE") or "DEFAULT")
-
-+-------------+------------------------------------------------------+
-| CPy output: | uPy output:                                          |
-+-------------+------------------------------------------------------+
-| ::          | ::                                                   |
-|             |                                                      |
-|     DEFAULT |     /bin/sh: 1: ../ports/unix/micropython: not found |
-+-------------+------------------------------------------------------+
++-------------+-------------+
+| CPy output: | uPy output: |
++-------------+-------------+
+| ::          | ::          |
+|             |             |
+|     None    |     None    |
+|     None    |     VALUE   |
++-------------+-------------+
 
 random
 ------
@@ -302,13 +325,15 @@ Sample code::
     x = random.getrandbits(64)
     print("{}".format(x))
 
-+--------------------------+------------------------------------------------------+
-| CPy output:              | uPy output:                                          |
-+--------------------------+------------------------------------------------------+
-| ::                       | ::                                                   |
-|                          |                                                      |
-|     10869376513326761403 |     /bin/sh: 1: ../ports/unix/micropython: not found |
-+--------------------------+------------------------------------------------------+
++--------------------------+--------------------------------------------+
+| CPy output:              | uPy output:                                |
++--------------------------+--------------------------------------------+
+| ::                       | ::                                         |
+|                          |                                            |
+|     16149866429655178725 |     Traceback (most recent call last):     |
+|                          |       File "<stdin>", line 11, in <module> |
+|                          |     ValueError: bits must be 32 or less    |
++--------------------------+--------------------------------------------+
 
 .. _cpydiff_modules_random_randint:
 
@@ -328,13 +353,15 @@ Sample code::
     x = random.randint(2**128 - 1, 2**128)
     print("x={}".format(x))
 
-+-----------------------------------------------+------------------------------------------------------+
-| CPy output:                                   | uPy output:                                          |
-+-----------------------------------------------+------------------------------------------------------+
-| ::                                            | ::                                                   |
-|                                               |                                                      |
-|     x=340282366920938463463374607431768211456 |     /bin/sh: 1: ../ports/unix/micropython: not found |
-+-----------------------------------------------+------------------------------------------------------+
++-----------------------------------------------+-----------------------------------------------------------------+
+| CPy output:                                   | uPy output:                                                     |
++-----------------------------------------------+-----------------------------------------------------------------+
+| ::                                            | ::                                                              |
+|                                               |                                                                 |
+|     x=340282366920938463463374607431768211455 |     Traceback (most recent call last):                          |
+|                                               |       File "<stdin>", line 11, in <module>                      |
+|                                               |     OverflowError: overflow converting long int to machine word |
++-----------------------------------------------+-----------------------------------------------------------------+
 
 struct
 ------
@@ -354,13 +381,14 @@ Sample code::
     except:
         print("struct.error")
 
-+------------------+------------------------------------------------------+
-| CPy output:      | uPy output:                                          |
-+------------------+------------------------------------------------------+
-| ::               | ::                                                   |
-|                  |                                                      |
-|     struct.error |     /bin/sh: 1: ../ports/unix/micropython: not found |
-+------------------+------------------------------------------------------+
++------------------+-------------------------+
+| CPy output:      | uPy output:             |
++------------------+-------------------------+
+| ::               | ::                      |
+|                  |                         |
+|     struct.error |     b'\x01\x00'         |
+|                  |     Should not get here |
++------------------+-------------------------+
 
 .. _cpydiff_modules_struct_manyargs:
 
@@ -377,13 +405,14 @@ Sample code::
     except:
         print("struct.error")
 
-+------------------+------------------------------------------------------+
-| CPy output:      | uPy output:                                          |
-+------------------+------------------------------------------------------+
-| ::               | ::                                                   |
-|                  |                                                      |
-|     struct.error |     /bin/sh: 1: ../ports/unix/micropython: not found |
-+------------------+------------------------------------------------------+
++------------------+-------------------------+
+| CPy output:      | uPy output:             |
++------------------+-------------------------+
+| ::               | ::                      |
+|                  |                         |
+|     struct.error |     b'\x01\x02'         |
+|                  |     Should not get here |
++------------------+-------------------------+
 
 .. _cpydiff_modules_struct_whitespace_in_format:
 
@@ -404,14 +433,14 @@ Sample code::
     except:
         print("struct.error")
 
-+------------------------+------------------------------------------------------+
-| CPy output:            | uPy output:                                          |
-+------------------------+------------------------------------------------------+
-| ::                     | ::                                                   |
-|                        |                                                      |
-|     b'\x01\x02'        |     /bin/sh: 1: ../ports/unix/micropython: not found |
-|     Should have worked |                                                      |
-+------------------------+------------------------------------------------------+
++------------------------+------------------+
+| CPy output:            | uPy output:      |
++------------------------+------------------+
+| ::                     | ::               |
+|                        |                  |
+|     b'\x01\x02'        |     struct.error |
+|     Should have worked |                  |
++------------------------+------------------+
 
 sys
 ---
@@ -430,11 +459,13 @@ Sample code::
     sys.stdin = None
     print(sys.stdin)
 
-+-------------+------------------------------------------------------+
-| CPy output: | uPy output:                                          |
-+-------------+------------------------------------------------------+
-| ::          | ::                                                   |
-|             |                                                      |
-|     None    |     /bin/sh: 1: ../ports/unix/micropython: not found |
-+-------------+------------------------------------------------------+
++-------------+--------------------------------------------------------------+
+| CPy output: | uPy output:                                                  |
++-------------+--------------------------------------------------------------+
+| ::          | ::                                                           |
+|             |                                                              |
+|     None    |     Traceback (most recent call last):                       |
+|             |       File "<stdin>", line 9, in <module>                    |
+|             |     AttributeError: 'module' object has no attribute 'stdin' |
++-------------+--------------------------------------------------------------+
 
