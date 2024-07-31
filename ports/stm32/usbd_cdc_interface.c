@@ -73,6 +73,7 @@
 #define IDE_BAUDRATE_SLOW    (921600)
 #define IDE_BAUDRATE_FAST    (12000000)
 
+extern bool usbdbg_get_irq_enabled();
 extern void usbdbg_data_in(void *buffer, int length);
 extern void usbdbg_data_out(void *buffer, int length);
 extern void usbdbg_control(void *buffer, uint8_t brequest, uint32_t wlength);
@@ -456,7 +457,7 @@ int usbd_cdc_tx(usbd_cdc_itf_t *cdc, const uint8_t *buf, uint32_t len, uint32_t 
                 // timeout
                 return i;
             }
-            if (query_irq() == IRQ_STATE_DISABLED) {
+            if ((query_irq() == IRQ_STATE_DISABLED) || (!usbdbg_get_irq_enabled())) {
                 // IRQs disabled so buffer will never be drained; return immediately
                 return i;
             }
@@ -493,7 +494,7 @@ void usbd_cdc_tx_always(usbd_cdc_itf_t *cdc, const uint8_t *buf, uint32_t len) {
                     // The USB is suspended so buffer will never be drained; exit loop
                     break;
                 }
-                if (query_irq() == IRQ_STATE_DISABLED) {
+                if ((query_irq() == IRQ_STATE_DISABLED) || (!usbdbg_get_irq_enabled())) {
                     // IRQs disabled so buffer will never be drained; exit loop
                     break;
                 }
@@ -537,7 +538,7 @@ int usbd_cdc_rx(usbd_cdc_itf_t *cdc, uint8_t *buf, uint32_t len, uint32_t timeou
                 // timeout
                 return i;
             }
-            if (query_irq() == IRQ_STATE_DISABLED) {
+            if ((query_irq() == IRQ_STATE_DISABLED) || (!usbdbg_get_irq_enabled())) {
                 // IRQs disabled so buffer will never be filled; return immediately
                 return i;
             }
