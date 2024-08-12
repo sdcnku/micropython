@@ -67,6 +67,7 @@ typedef struct _usbd_cdc_itf_t {
     volatile uint8_t dbg_mode_enabled;
     volatile uint32_t dbg_last_packet;
     volatile uint32_t dbg_xfer_length;
+    uint8_t dbg_xfer_buffer[CDC_DATA_MAX_PACKET_SIZE];
 } usbd_cdc_itf_t;
 
 // This is implemented in usb.c

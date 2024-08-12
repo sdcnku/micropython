@@ -75,7 +75,7 @@
 #define IDE_BAUDRATE_SLOW    (921600)
 #define IDE_BAUDRATE_FAST    (12000000)
 
-void usb_cdc_reset_buffers();
+void usb_cdc_reset_buffers(void);
 
 // Used to control the connect_state variable when USB host opens the serial port
 static uint8_t usbd_cdc_connect_tx_timer;
@@ -157,7 +157,7 @@ int8_t usbd_cdc_control(usbd_cdc_state_t *cdc_in, uint8_t cmd, uint8_t *pbuf, ui
                 MICROPY_BOARD_ENTER_BOOTLOADER(0, 0);
             }
             #endif
-            usb_cdc_reset_buffers(cdc);
+            usb_cdc_reset_buffers();
             break;
         }
 
@@ -339,7 +339,7 @@ void usbd_cdc_rx_check_resume(usbd_cdc_itf_t *cdc) {
     enable_irq(irq_state);
 }
 
-uint32_t usb_cdc_buf_len() {
+uint32_t usb_cdc_buf_len(void) {
     usbd_cdc_itf_t *cdc = usb_vcp_get(0);
     cdc->tx_buf_ptr_out = cdc->tx_buf_ptr_out_next;
     if (usbd_cdc_tx_buffer_empty(cdc)) {
@@ -363,11 +363,12 @@ uint32_t usb_cdc_read(void *buf, uint32_t len) {
 
 uint32_t usb_cdc_write(const void *buf, uint32_t len) {
     usbd_cdc_itf_t *cdc = usb_vcp_get(0);
-    USBD_CDC_TransmitPacket(&cdc->base, len, buf);
+    memcpy(cdc->dbg_xfer_buffer, buf, len);
+    USBD_CDC_TransmitPacket(&cdc->base, len, cdc->dbg_xfer_buffer);
     return len;
 }
 
-void usb_cdc_reset_buffers() {
+void usb_cdc_reset_buffers(void) {
     usbd_cdc_itf_t *cdc = usb_vcp_get(0);
 
     cdc->tx_buf_ptr_in = 0;
