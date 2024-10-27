@@ -34,6 +34,7 @@
 #define CFG_TUD_CDC             (1)
 #define CFG_TUD_CDC_RX_BUFSIZE  (512)
 #define CFG_TUD_CDC_TX_BUFSIZE  (512)
+#define CFG_TUD_CDC_PERSISTENT_TX_BUFF (1)
 
 #if MICROPY_HW_USB_MSC
 // Board and hardware specific configuration

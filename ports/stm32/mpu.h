@@ -41,12 +41,11 @@
 #define MPU_REGION_DMA_UNCACHED_1 (MPU_REGION_NUMBER6)
 #define MPU_REGION_DMA_UNCACHED_2 (MPU_REGION_NUMBER7)
 
-// Last used MPU region.
 #ifdef MPU_REGION_NUMBER8
 #define MPU_REGION_OPENAMP  (MPU_REGION_NUMBER8)
-#define MPU_REGION_LAST     (MPU_REGION_NUMBER8)
+#define MPU_REGION_LAST_USED (MPU_REGION_NUMBER8)
 #else
-#define MPU_REGION_LAST     (MPU_REGION_NUMBER7)
+#define MPU_REGION_LAST_USED (MPU_REGION_NUMBER7)
 #endif
 
 // Attribute value to disable a region entirely, remove it from the MPU
@@ -142,7 +141,7 @@ static inline void mpu_config_end(uint32_t irq_state) {
 
 #define MPU_REGION_SIG      (MPU_REGION_NUMBER0)
 #define MPU_REGION_ETH      (MPU_REGION_NUMBER1)
-#define MPU_REGION_LAST     (MPU_REGION_NUMBER1)
+#define MPU_REGION_LAST_USED (MPU_REGION_NUMBER1)
 
 #define ST_DEVICE_SIGNATURE_BASE (0x08fff800)
 #define ST_DEVICE_SIGNATURE_LIMIT (0x08ffffff)

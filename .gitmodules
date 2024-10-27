@@ -1,3 +1,9 @@
+[submodule "lib/axtls"]
+	path = lib/axtls
+	url = https://github.com/micropython/axtls.git
+[submodule "lib/lwip"]
+	path = lib/lwip
+	url = https://github.com/lwip-tcpip/lwip.git
 [submodule "lib/berkeley-db-1.xx"]
 	path = lib/berkeley-db-1.xx
 	url = https://github.com/micropython/berkeley-db-1.xx
