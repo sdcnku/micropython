@@ -30,8 +30,8 @@ typedef unsigned int mp_uint_t;     // must be pointer size
 #define MICROPY_HW_CLK_PLLQ         (8)
 #define MICROPY_HW_CLK_PLLR         (2)
 
-#define MICROPY_HW_USB_VID                      0x1209
-#define MICROPY_HW_USB_PID                      0xabd1
+#define MICROPY_HW_USB_VID                      0x37C5
+#define MICROPY_HW_USB_PID                      0x1204
 #define MICROPY_HW_USB_PID_CDC_MSC              (MICROPY_HW_USB_PID)
 #define MICROPY_HW_USB_PID_CDC_HID              (MICROPY_HW_USB_PID)
 #define MICROPY_HW_USB_PID_CDC                  (MICROPY_HW_USB_PID)

@@ -36,8 +36,8 @@ void board_low_power(int mode);
 #define MICROPY_BOARD_ENTER_STOP    board_low_power(1);
 #define MICROPY_BOARD_ENTER_STANDBY board_low_power(2);
 
-#define MICROPY_HW_USB_VID                      0x1209
-#define MICROPY_HW_USB_PID                      0xabd1
+#define MICROPY_HW_USB_VID                      0x37C5
+#define MICROPY_HW_USB_PID                      0x124A
 #define MICROPY_HW_USB_PID_CDC_MSC              (MICROPY_HW_USB_PID)
 #define MICROPY_HW_USB_PID_CDC_HID              (MICROPY_HW_USB_PID)
 #define MICROPY_HW_USB_PID_CDC                  (MICROPY_HW_USB_PID)
