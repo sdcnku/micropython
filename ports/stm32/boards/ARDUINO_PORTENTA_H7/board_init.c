@@ -166,15 +166,4 @@ void PORTENTA_board_low_power(int mode) {
     // Enable QSPI deepsleep for modes 1 and 2
     mp_spiflash_deepsleep(&spi_bdev.spiflash, (mode != 0));
     #endif
-
-    #if defined(M4_APP_ADDR)
-    // Signal Cortex-M4 to go to Standby mode.
-    if (mode == 2) {
-        __HAL_RCC_HSEM_CLK_ENABLE();
-        HAL_HSEM_FastTake(0);
-        HAL_HSEM_Release(0, 0);
-        __HAL_RCC_HSEM_CLK_DISABLE();
-        HAL_Delay(100);
-    }
-    #endif
 }
