@@ -1,6 +1,7 @@
 #define MICROPY_HW_BOARD_NAME       "OPENMV1"
 #define MICROPY_HW_MCU_NAME         "STM32F407"
 #define MICROPY_PY_SYS_PLATFORM     "OpenMV1"
+#define MICROPY_HW_FLASH_FS_LABEL   "OPENMV"
 
 #define MICROPY_OBJ_REPR            (MICROPY_OBJ_REPR_C)
 #define UINT_FMT                    "%u"
@@ -9,6 +10,7 @@ typedef int mp_int_t;               // must be pointer size
 typedef unsigned int mp_uint_t;     // must be pointer size
 
 #define MICROPY_HW_HAS_SWITCH       (0)
+#define MICROPY_HW_HAS_FLASH        (1)
 #define MICROPY_HW_HAS_MMA7660      (0)
 #define MICROPY_HW_HAS_LIS3DSH      (0)
 #define MICROPY_HW_HAS_LCD          (0)

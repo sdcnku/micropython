@@ -11,6 +11,7 @@
 
 #define MICROPY_HW_BOARD_NAME   "OpenMV IMXRT1060"
 #define MICROPY_HW_MCU_NAME     "MIMXRT1062DVJ6A"
+#define MICROPY_HW_FLASH_FS_LABEL   "OPENMV"
 
 extern void mimxrt_hal_bootloader(void);
 #define MICROPY_BOARD_ENTER_BOOTLOADER(nargs, args) mimxrt_hal_bootloader()
