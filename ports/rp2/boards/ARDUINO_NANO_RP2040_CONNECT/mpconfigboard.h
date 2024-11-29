@@ -1,8 +1,13 @@
 // Board config for Arduino Nano RP2040 Connect.
+#include "RP2040.h"
 
 // Board and hardware specific configuration
 #define MICROPY_HW_BOARD_NAME           "Arduino Nano RP2040 Connect"
 #define MICROPY_HW_FLASH_STORAGE_BYTES  (14 * 1024 * 1024)
+
+// Bootloader config.
+extern void pico_reset_to_bootloader(size_t n_args, const void *args_in);
+#define MICROPY_BOARD_ENTER_BOOTLOADER pico_reset_to_bootloader
 
 // Network config
 #define MICROPY_PY_NETWORK_HOSTNAME_DEFAULT "mpy-nano-rp2040-connect"
@@ -23,7 +28,7 @@
 // Enable USB Mass Storage with FatFS filesystem.
 #define MICROPY_HW_USB_MSC              (1)
 #define MICROPY_HW_USB_VID              (0x2341)
-#define MICROPY_HW_USB_PID              (0x025e)
+#define MICROPY_HW_USB_PID              (0x015e)
 #define MICROPY_HW_USB_CDC_1200BPS_TOUCH (1)
 
 // UART 1 config.
