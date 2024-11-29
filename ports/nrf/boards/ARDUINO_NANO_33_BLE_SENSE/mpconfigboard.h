@@ -13,6 +13,8 @@
 
 #define MICROPY_PY_MACHINE_UART         (1)
 #define MICROPY_PY_MACHINE_HW_PWM       (1)
+#define MICROPY_PY_MACHINE_HW_SPI       (1)
+#define MICROPY_PY_MACHINE_TIMER        (1)
 #define MICROPY_PY_MACHINE_RTCOUNTER    (1)
 #define MICROPY_PY_MACHINE_I2C          (1)
 #define MICROPY_PY_MACHINE_ADC          (1)
@@ -64,7 +66,7 @@
 #define MICROPY_HW_PWM3_NAME            "PWM3"
 
 #define MICROPY_HW_USB_VID              (0x2341)
-#define MICROPY_HW_USB_PID              (0x025A)
+#define MICROPY_HW_USB_PID              (0x015A)
 #define MICROPY_HW_USB_CDC_1200BPS_TOUCH (1)
 
 void NANO33_board_early_init(void);
