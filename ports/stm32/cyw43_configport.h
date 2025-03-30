@@ -36,11 +36,13 @@
 #include "extint.h"
 #include "pendsv.h"
 #include "sdio.h"
+#include "extmod/mpbthci.h"
 
 #define CYW43_USE_SPI                   (0)
 #define CYW43_ENABLE_BLUETOOTH_OVER_UART (1)
 #define CYW43_LWIP                      (1)
 #define CYW43_USE_STATS                 (0)
+#define CYW43_ENABLE_BLUETOOTH_OVER_UART (1)
 
 #ifndef CYW43_CHIPSET_FIRMWARE_INCLUDE_FILE
 #define CYW43_CHIPSET_FIRMWARE_INCLUDE_FILE "lib/cyw43-driver/firmware/w4343WA1_7_45_98_50_combined.h"
