@@ -16,8 +16,13 @@
 #define MICROPY_PY_PYB_LEGACY       (0)
 
 #define MICROPY_HW_ENABLE_INTERNAL_FLASH_STORAGE (0)
+#define MICROPY_HW_ENTER_BOOTLOADER_VIA_RESET   (0)
 
+extern void board_early_init(void);
 #define MICROPY_BOARD_EARLY_INIT    board_early_init
+
+extern void board_enter_bootloader(void);
+#define MICROPY_BOARD_ENTER_BOOTLOADER(nargs, args) board_enter_bootloader()
 
 // HSE is 48MHz, this gives a CPU frequency of 800MHz.
 #define MICROPY_HW_CLK_PLLM         (6)

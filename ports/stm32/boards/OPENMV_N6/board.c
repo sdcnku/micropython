@@ -23,8 +23,18 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#include STM32_HAL_H
+#include "py/mphal.h"
+
+#define OMV_BOOT_MAGIC_ADDR   (0x3401FFFCU)
+#define OMV_BOOT_MAGIC_VALUE  (0xB00710ADU)
 
 void board_early_init(void) {
-    // TODO: if (HAL_PWREx_ConfigSupply(PWR_EXTERNAL_SOURCE_SUPPLY ) != HAL_OK)
-    //xspi_flash_init();
+
+}
+
+void board_enter_bootloader(void) {
+    *((uint32_t *) OMV_BOOT_MAGIC_ADDR) = OMV_BOOT_MAGIC_VALUE;
+    SCB_CleanDCache();
+    NVIC_SystemReset();
 }
