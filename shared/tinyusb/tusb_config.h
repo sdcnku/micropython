@@ -75,6 +75,12 @@
 #define CFG_TUD_MSC             (0)
 #endif
 
+// CDC Endpoint transfer buffer size, more is faster
+#define CFG_TUD_CDC_EP_BUFSIZE(4096)
+#define CFG_TUD_CDC_RX_BUFSIZE(4096)
+#define CFG_TUD_CDC_TX_BUFSIZE(4096)
+
+
 // CDC Configuration
 #if CFG_TUD_CDC
 #ifndef CFG_TUD_CDC_RX_BUFSIZE
